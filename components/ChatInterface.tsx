@@ -31,7 +31,7 @@ interface ChatInterfaceProps {
     onUpdateModel: (model: string) => void;
     onAddKnowledge: (chunks: DocumentChunk[]) => void;
     settings: AppSettings;
-    onMakeNote?: (title: string, content: string) => void;
+    onMakeNote?: (draft: { title?: string; content?: string; imageUrl?: string }) => void;
     onOpenSettings: () => void;
     onToggleHolidayMode: () => void;
     onCycleHolidayEffect: () => void;
@@ -426,7 +426,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         isMatrix={settings.matrixMode}
                         onRegenerate={handleRegenerate}
                         onRate={(rating, reason) => handleFeedback(msg.id, rating, reason)}
-                        onMakeNote={onMakeNote ? () => onMakeNote(msg.sender === Sender.USER ? 'User note' : 'AI note', msg.text) : undefined}
+                        onMakeNote={onMakeNote ? (message) => {
+                            const attachmentImg = (message.attachments || []).find(a => a.mimeType.startsWith('image/'));
+                            const attachmentDataUrl = attachmentImg ? `data:${attachmentImg.mimeType};base64,${attachmentImg.data}` : undefined;
+                            const firstImage = message.generatedImages?.[0]?.url || attachmentDataUrl;
+                            onMakeNote({
+                                title: message.sender === Sender.USER ? 'User note' : 'AI note',
+                                content: message.text,
+                                imageUrl: firstImage
+                            });
+                        } : undefined}
                     />
                 ))}
                 {processingStatus && (
