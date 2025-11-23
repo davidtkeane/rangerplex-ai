@@ -88,6 +88,7 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
 *   **Registration Concepts Doc**: Added `docs/registration_options.md` outlining multiple registration flows (in-app code, SMTP, API providers, deferred) with pros/cons and UX/abuse notes.
 *   **Prompt Library Upgrades**: Expanded default saved prompts to 20, added search/filter, reorder (up/down), and import/export (JSON) controls in Settings → Prompts. Saved prompts continue to persist to server/IndexedDB/backups.
 *   **Screensaver Radio Control**: Added a “Ranger Radio” button to the screensaver controls to play/pause the floating radio player without exiting screensaver.
+*   **Image Prompt Default**: Prompt library now seeds with a top “imagine” entry (`/imagine `) for quick image generation.
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
 *   **Auto-Sync Every 5 Minutes**: Automatic synchronization of all data to server when cloud sync is enabled.
     *   Runs immediately on app launch, then every 5 minutes (300000ms).
