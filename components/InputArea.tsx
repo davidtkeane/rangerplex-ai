@@ -151,8 +151,10 @@ const InputArea: React.FC<InputAreaProps> = ({
         <div className="relative w-full max-w-3xl mx-auto pb-6">
             {/* Prompt Menu */}
             {showPromptMenu && (
-                <div className="absolute bottom-full mb-2 left-0 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden z-50">
-                    <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-800">Saved Prompts</div>
+                <div className="absolute bottom-full mb-2 left-2 right-2 sm:left-0 sm:right-auto sm:w-80 max-w-full bg-zinc-900/95 border border-zinc-700 rounded-xl shadow-2xl backdrop-blur overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
+                    <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-800 sticky top-0 bg-zinc-900/95 backdrop-blur">
+                        Saved Prompts
+                    </div>
                     {filteredPrompts.map(p => (
                         <button
                             key={p.id}
