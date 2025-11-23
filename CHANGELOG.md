@@ -84,6 +84,7 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
     *   Total Claude models now: 9 (was 8).
     *   Includes vision capability badge 👁️.
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
+*   **Uninstaller Script**: Added `uninstall-me-now.sh` to clean local artifacts (node_modules, .env, caches, optional data/backups) with prompts; reminds about Ollama manual removal if installed.
 *   **Registration Concepts Doc**: Added `docs/registration_options.md` outlining multiple registration flows (in-app code, SMTP, API providers, deferred) with pros/cons and UX/abuse notes.
 *   **Prompt Library Upgrades**: Expanded default saved prompts to 20, added search/filter, reorder (up/down), and import/export (JSON) controls in Settings → Prompts. Saved prompts continue to persist to server/IndexedDB/backups.
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
