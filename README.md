@@ -492,3 +492,23 @@ See [LICENSE](./LICENSE) for full details.
 
 **Built by David Keane (IrishRanger) | iCanHelp Ltd**
 *Transforming disabilities into superpowers - helping 1.3 billion people worldwide.*
+
+---
+
+## ☕ Support the Mission
+
+If RangerPlex AI has helped you, consider supporting the development and mission to help 1.3 billion people with disabilities worldwide.
+
+<a href="https://buymeacoffee.com/davidtkeane" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
+</a>
+
+Every coffee helps keep the servers running and development moving forward! 🚀
+
+**Other ways to support:**
+- ⭐ Star the repo on GitHub
+- 🐛 Report bugs and suggest features
+- 📖 Contribute to documentation
+- 💬 Share RangerPlex with others who could benefit
+
+**Thank you for being part of the Ranger squad!** 🎖️
