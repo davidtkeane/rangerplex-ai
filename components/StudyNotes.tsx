@@ -42,7 +42,7 @@ interface StoredNotes {
 interface StudyNotesProps {
   currentUser: string;
   settings: AppSettings;
-  initialDraft?: { title?: string; content?: string };
+  initialDraft?: { title?: string; content?: string; imageUrl?: string; savedImagePath?: string };
 }
 
 const COLORS: { key: NoteColor; label: string; bg: string }[] = [
@@ -118,10 +118,16 @@ const StudyNotes: React.FC<StudyNotesProps> = ({ currentUser, settings, initialD
 
   useEffect(() => {
     if (initialDraft && (initialDraft.title || initialDraft.content)) {
+      const draftTitle = typeof initialDraft.title === 'string' ? initialDraft.title : initialDraft.title ? String(initialDraft.title) : '';
+      const draftContent = typeof initialDraft.content === 'string' ? initialDraft.content : initialDraft.content ? String(initialDraft.content) : '';
+      const imageUrl = typeof initialDraft.savedImagePath === 'string'
+        ? initialDraft.savedImagePath
+        : (typeof initialDraft.imageUrl === 'string' ? initialDraft.imageUrl : undefined);
+      const imageMarkdown = imageUrl ? `\n\n![Image](${imageUrl})` : '';
       setEditing({
         id: '',
-        title: initialDraft.title || '',
-        content: initialDraft.content || '',
+        title: draftTitle,
+        content: draftContent + imageMarkdown,
         color: 'yellow',
         pinned: false,
         priority: 'medium',
@@ -530,6 +536,18 @@ const StudyNotes: React.FC<StudyNotesProps> = ({ currentUser, settings, initialD
                 placeholder="Title"
                 className={`w-full px-3 py-2 rounded border ${inputClass}`}
               />
+              {initialDraft && (initialDraft.savedImagePath || initialDraft.imageUrl) && (
+                <div className="flex items-center gap-3 p-3 rounded border text-sm bg-black/10">
+                  <img
+                    src={initialDraft.savedImagePath || initialDraft.imageUrl}
+                    alt="Attached"
+                    className="w-20 h-20 object-cover rounded border"
+                  />
+                  <div className="text-xs opacity-70 break-all">
+                    {initialDraft.savedImagePath || initialDraft.imageUrl}
+                  </div>
+                </div>
+              )}
               <textarea
                 value={editing.content}
                 onChange={(e) => setEditing({ ...editing, content: e.target.value })}
