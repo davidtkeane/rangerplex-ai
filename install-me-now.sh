@@ -219,6 +219,47 @@ ensure_node() {
 }
 
 ########################
+# Ollama (Optional)    #
+########################
+check_ollama() {
+  if command -v ollama >/dev/null 2>&1; then
+    ok "Ollama already installed ($(ollama --version))."
+    return 0
+  fi
+
+  log
+  warn "Ollama not detected. Ollama enables local AI models (Llama, Mistral, DeepSeek, etc.)."
+  log "${dim}Ollama is OPTIONAL - RangerPlex works with cloud models (Gemini, Claude, GPT).${reset}"
+  log "${dim}But if you want privacy-first local AI, Ollama is the way!${reset}"
+  printf "Install Ollama now? (y/N): "
+  read -r reply
+  if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+    log "${dim}Skipped Ollama. Install later from https://ollama.com${reset}"
+    return 0
+  fi
+
+  case "$OS" in
+    Darwin)
+      log "Opening Ollama download page in your browser..."
+      log "${dim}Download the .dmg, drag to Applications, then run Ollama from there.${reset}"
+      open "https://ollama.com/download/mac" 2>/dev/null || log "Visit: https://ollama.com/download/mac"
+      ;;
+    Linux)
+      log "Installing Ollama via official script..."
+      if curl -fsSL https://ollama.com/install.sh | sh; then
+        ok "Ollama installed successfully!"
+        log "${dim}Start Ollama: OLLAMA_ORIGINS=\"*\" ollama serve${reset}"
+      else
+        warn "Ollama installation failed. Visit https://ollama.com for manual install."
+      fi
+      ;;
+    *)
+      log "Visit https://ollama.com to download Ollama for your system."
+      ;;
+  esac
+}
+
+########################
 # Dependency install   #
 ########################
 prepare_deps() {
@@ -335,6 +376,9 @@ ensure_pkg git
 
 step "Ensuring Node.js 22.x..."
 ensure_node
+
+step "Checking for Ollama (optional local AI)..."
+check_ollama
 
 step "Installing project dependencies..."
 prepare_deps
