@@ -23,6 +23,8 @@
 
 It runs locally on your machine (`localhost`), stores data privately in your browser **and** a local database, and connects to the world's most powerful AI models via a secure local server.
 
+![RangerPlex Promo](./image/rangerplex_dall-e-3_1763935594087.png)
+
 ## ✨ Features
 
 ### 🧠 The Intelligence
