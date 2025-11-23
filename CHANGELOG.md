@@ -92,6 +92,53 @@ Critical updates to xAI/Grok integration with verified model IDs, new flagship m
 *   Parameter validation added to xaiService
 *   Vision badge shows for correct models in UI
 *   Speed badge shows for grok-3-mini
+*   **Model Dropdown Fix** (`ChatInterface.tsx:338`): Changed from hardcoded list to dynamic settings
+    *   Was: `[ModelType.GROK_BETA, ModelType.GROK_2]` (hardcoded, deprecated models)
+    *   Now: `settings.availableModels.grok` (uses current model list from settings)
+    *   Enables proper display of all available Grok models in UI
+*   **Settings Migration Fix** (`App.tsx:183-191, 224-232`): Force latest Grok models on app load
+    *   Old stored settings with deprecated `grok-beta` are now ignored
+    *   App always uses current Grok model list from `DEFAULT_SETTINGS`
+    *   Fixes issue where only `grok-2` appeared in dropdown due to cached old settings
+    *   Now correctly shows all 4 models: `grok-3`, `grok-3-mini`, `grok-2`, `grok-2-vision`
+    *   Also added sanitization for `anthropic` and `huggingface` model lists
+    *   Applied to both IndexedDB load and server sync merge operations
+*   **API Test Updated** (`SettingsModal.tsx:375`): Changed Grok test model from `grok-beta` → `grok-3`
+    *   Settings API key test now uses current flagship model
+    *   Ensures test validates against active production endpoint
+
+### ⚙️ Environment Configuration Enhancement
+*   **`.env-example` Complete Overhaul**: Transformed into comprehensive, production-ready template
+    *   **Vite-Specific Documentation**: Added header explaining Vite environment variables
+        - All client-exposed variables MUST use `VITE_` prefix
+        - Access pattern documented: `import.meta.env.VITE_*`
+        - Clear warnings about client-side exposure
+    *   **All 8 API Keys Documented**: Complete coverage with VITE_ prefix
+        - `VITE_GEMINI_API_KEY` - Google Gemini (free tier available)
+        - `VITE_OPENAI_API_KEY` - OpenAI/ChatGPT (paid only)
+        - `VITE_ANTHROPIC_API_KEY` - Anthropic Claude (free tier available)
+        - `VITE_PERPLEXITY_API_KEY` - Perplexity AI (paid only)
+        - `VITE_GROK_API_KEY` - xAI Grok (paid only, NO FREE TIER warning)
+        - `VITE_HUGGINGFACE_ACCESS_TOKEN` - Hugging Face (free tier available)
+        - `VITE_BRAVE_SEARCH_API_KEY` - Brave Search (free tier available)
+        - `VITE_ELEVENLABS_API_KEY` - ElevenLabs TTS (10,000 chars/month free)
+    *   **Organized Sections**: Clear structure with separators
+        - Vite Configuration (app name, version, port, host)
+        - AI API Keys (with source URLs for each)
+        - Optional Settings (theme, debug mode, custom base URLs)
+        - Comprehensive notes section
+    *   **Developer-Friendly Documentation**:
+        - Copy/paste usage instructions (cp .env-example .env)
+        - Links to get each API key
+        - Free tier vs paid clarification for each service
+        - Security best practices (never commit .env, rotate exposed keys)
+        - API key naming conventions (xAI keys start with `xai-`)
+    *   **Helpful Comments**: Each API key includes:
+        - Service name and description
+        - Free tier availability status
+        - Direct URL to get API key
+        - Special notes (e.g., Grok requires credits first)
+    *   Verified against `types.ts:325-332` - all API keys match codebase
 
 ---
 
@@ -182,6 +229,7 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
 *   **Prompt Library Upgrades**: Expanded default saved prompts to 20, added search/filter, reorder (up/down), and import/export (JSON) controls in Settings → Prompts. Saved prompts continue to persist to server/IndexedDB/backups.
 *   **Screensaver Radio Control**: Added a “Ranger Radio” button to the screensaver controls to play/pause the floating radio player without exiting screensaver.
 *   **Image Prompt Default**: Prompt library now seeds with a top “imagine” entry (`/imagine `) above “rewrite” for quick image generation, and existing lists are normalized to keep it first.
+*   **Image Generation Meta**: `/imagine` responses now include model, latency, and stats in the AI message (with stats recorded on the message object).
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
 *   **Auto-Sync Every 5 Minutes**: Automatic synchronization of all data to server when cloud sync is enabled.
     *   Runs immediately on app launch, then every 5 minutes (300000ms).
