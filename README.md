@@ -507,13 +507,30 @@ See [LICENSE](./LICENSE) for full details.
 
 If RangerPlex AI has helped you, consider supporting the development and mission to help 1.3 billion people with disabilities worldwide.
 
+<div align="center">
+
 <a href="https://buymeacoffee.com/davidtkeane" target="_blank">
   <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
 </a>
 
-Every coffee helps keep the servers running and development moving forward! 🚀
+<a href="https://ko-fi.com/mrdavidkeane" target="_blank">
+  <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support on Ko-fi" style="height: 60px !important;width: 217px !important;" >
+</a>
 
-**Other ways to support:**
+<a href="https://www.patreon.com/12521591/join" target="_blank">
+  <img src="https://img.shields.io/badge/Patreon-Support%20the%20Mission-FF424D?style=for-the-badge&logo=patreon&logoColor=white" alt="Support on Patreon" style="height: 60px !important;" >
+</a>
+
+</div>
+
+Every contribution helps keep the servers running and development moving forward! 🚀
+
+**Support Options:**
+- ☕ **Buy Me a Coffee** - One-time support for the project
+- 💖 **Ko-fi** - Flexible support with one-time or monthly options
+- 🎖️ **Patreon** - Become a monthly supporter and join the Ranger squad
+
+**Other ways to contribute:**
 - ⭐ Star the repo on GitHub
 - 🐛 Report bugs and suggest features
 - 📖 Contribute to documentation
