@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberSec Profile | Digital Identity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+        
+        :root {
+            --primary: #00ff9d;
+            --secondary: #00b8ff;
+            --dark: #0a0a0a;
+            --darker: #050505;
+            --light: #e6e6e6;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--darker);
+            color: var(--light);
+            overflow-x: hidden;
+        }
+        
+        .code-font {
+            font-family: 'Share Tech Mono', monospace;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .cyber-border {
+            position: relative;
+            border: 1px solid rgba(0, 255, 157, 0.3);
+        }
+        
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 2px solid var(--primary);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .cyber-border:hover::before {
+            opacity: 1;
+        }
+        
+        .cyber-glow {
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+        }
+        
+        .cyber-glow:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.8);
+        }
+        
+        .terminal-line {
+            position: relative;
+            padding-left: 1.5rem;
+        }
+        
+        .terminal-line::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+        
+        .scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(0, 255, 157, 0.05) 50%,
+                transparent 100%
+            );
+            background-size: 100% 8px;
+            animation: scan 8s linear infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        
+        .hex-pattern {
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 157, 0.05) 1px, transparent 1px),
+                radial-gradient(circle at 50% 50%, rgba(0, 184, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        
+        .matrix-fall {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .matrix-fall::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent 0%, var(--darker) 90%);
+            z-index: 1;
+        }
+        
+        .matrix-char {
+            position: absolute;
+            color: var(--primary);
+            font-family: 'Share Tech Mono', monospace;
+            opacity: 0.8;
+            animation: matrix-fall linear infinite;
+        }
+        
+        @keyframes matrix-fall {
+            0% { transform: translateY(-100%); opacity: 0; }
+            5% { opacity: 0.8; }
+            95% { opacity: 0.8; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+        
+        .cyber-input {
+            background-color: rgba(10, 10, 10, 0.8);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            color: var(--light);
+            transition: all 0.3s ease;
+        }
+        
+        .cyber-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+        }
+        
+        .cyber-btn {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .cyber-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.4);
+        }
+        
+        .cyber-card {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .cyber-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 20px rgba(0, 255, 157, 0.2);
+        }
+        
+        .hacker-video {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hacker-video::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 255, 157, 0.1) 0%,
+                rgba(0, 184, 255, 0.1) 100%
+            );
+            z-index: 1;
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 2s infinite alternate;
+        }
+        
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(0, 255, 157, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(0, 255, 157, 0.8); }
+        }
+        
+        .cyber-nav-link {
+            position: relative;
+        }
+        
+        .cyber-nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+        
+        .cyber-nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .cyber-tab {
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .cyber-tab.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .cyber-tab:hover:not(.active) {
+            border-bottom-color: rgba(0, 255, 157, 0.5);
+        }
+        
+        .grid-pattern {
+            background-image: 
+                linear-gradient(rgba(0, 255, 157, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 157, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden">
+    <!-- Matrix Background Effect -->
+    <div id="matrixBackground" class="fixed inset-0 overflow-hidden z-0"></div>
+    
+    <!-- Scanline Effect -->
+    <div class="scanline"></div>
+    
+    <!-- Main Container -->
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Navigation Bar -->
+        <nav class="flex items-center justify-between py-4 border-b border-gray-800 mb-8">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center cyber-glow">
+                    <i class="fas fa-user-secret text-dark"></i>
+                </div>
+                <h1 class="text-2xl font-bold gradient-text">CyberSec<span class="text-primary">ID</span></h1>
+            </div>
+            
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#" class="cyber-nav-link text-gray-300 hover:text-primary transition">Dashboard</a>
+                <a href="#" class="cyber-nav-link text-gray-300 hover:text-primary transition">Network</a>
+                <a href="#" class="cyber-nav-link text-gray-300 hover:text-primary transition">Projects</a>
+                <a href="#" class="cyber-nav-link text-gray-300 hover:text-primary transition">Blog</a>
+                <a href="#" class="cyber-nav-link text-gray-300 hover:text-primary transition">Contact</a>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-800 transition">
+                    <i class="fas fa-bell text-gray-400"></i>
+                </button>
+                <button id="settingsBtn" class="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-800 transition">
+                    <i class="fas fa-cog text-gray-400"></i>
+                </button>
+            </div>
+            
+            <button class="md:hidden text-gray-400 hover:text-primary">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </nav>
+        
+        <!-- Profile Header -->
+        <div class="cyber-border cyber-card rounded-xl p-6 mb-8 hex-pattern relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-dark opacity-70"></div>
+            <div class="relative z-10 flex flex-col md:flex-row items-center">
+                <!-- Profile Picture -->
+                <div class="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-primary p-1 mb-4 md:mb-0 md:mr-6 cyber-glow">
+                    <div class="w-full h-full rounded-full bg-gray-900 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                             alt="Profile" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                
+                <!-- Profile Info -->
+                <div class="flex-1 text-center md:text-left">
+                    <h2 class="text-3xl font-bold mb-1">Alex <span class="gradient-text">"Cypher"</span> Rivera</h2>
+                    <p class="text-secondary mb-3 code-font">Senior Cybersecurity Analyst | Ethical Hacker</p>
+                    
+                    <div class="flex flex-wrap justify-center md:justify-start items-center space-x-4 mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-map-marker-alt text-primary mr-2"></i>
+                            <span>Silicon Valley, CA</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-briefcase text-primary mr-2"></i>
+                            <span>CyberDefense Inc.</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-shield-alt text-primary mr-2"></i>
+                            <span>OSCP | CEH | CISSP</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-3 justify-center md:justify-start">
+                        <a href="#" class="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center hover:bg-primary hover:text-dark transition">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center hover:bg-primary hover:text-dark transition">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center hover:bg-primary hover:text-dark transition">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center hover:bg-primary hover:text-dark transition">
+                            <i class="fab fa-hacker-news"></i>
+                        </a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center hover:bg-primary hover:text-dark transition">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="mt-4 md:mt-0 grid grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-primary">127</div>
+                        <div class="text-xs text-gray-400">PROJECTS</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-primary">4.9K</div>
+                        <div class="text-xs text-gray-400">FOLLOWERS</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-primary">892</div>
+                        <div class="text-xs text-gray-400">POSTS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- About Section -->
+                <div class="cyber-border cyber-card rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold gradient-text">About Me</h3>
+                        <button class="text-gray-400 hover:text-primary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="terminal-line">
+                            Cybersecurity specialist with over 8 years of experience in penetration testing, vulnerability assessment, and security architecture. Passionate about securing digital assets and educating others about cyber threats.
+                        </div>
+                        
+                        <div class="terminal-line">
+                            Currently leading red team operations at CyberDefense Inc., where I simulate sophisticated cyber attacks to test organizational defenses.
+                        </div>
+                        
+                        <div class="terminal-line">
+                            When not hacking (ethically), I contribute to open-source security tools and mentor aspiring cybersecurity professionals.
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-6 border-t border-gray-800">
+                        <h4 class="text-lg font-medium mb-3 text-primary">Security Specializations</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 rounded-full bg-gray-900 text-xs code-font">Penetration Testing</span>
+                            <span class="px-3 py-1 rounded-full bg-gray-900 text-xs code-font">Network Security</span>
+                            <span class="px-3 py-1 rounded-full bg-gray-900 text-xs code-font">Cryptography</span>
+                            <span class="px-3 py-1 rounded-full bg-gray-900 text-xs code-font">Malware Analysis</span>
+                            <span class="px-3 py-1 rounded-full bg-gray-900 text-xs code-font">Incident Response</span>
+                            <span class="px-3 py-1 rounded-full bg-gray-900 text-xs code-font">Cloud Security</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Create Post -->
+                <div class="cyber-border cyber-card rounded-xl p-6">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-gray-900 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                                 alt="User" class="w-full h-full object-cover">
+                        </div>
+                        <input type="text" placeholder="What's on your mind?" class="flex-1 cyber-input px-4 py-2 rounded-full">
+                    </div>
+                    
+                    <div class="flex justify-between border-t border-gray-800 pt-4">
+                        <button class="flex items-center text-gray-400 hover:text-primary px-3 py-1 rounded">
+                            <i class="fas fa-image mr-2"></i> Photo
+                        </button>
+                        <button class="flex items-center text-gray-400 hover:text-primary px-3 py-1 rounded">
+                            <i class="fas fa-video mr-2"></i> Video
+                        </button>
+                        <button class="flex items-center text-gray-400 hover:text-primary px-3 py-1 rounded">
+                            <i class="fas fa-link mr-2"></i> Link
+                        </button>
+                        <button class="flex items-center text-gray-400 hover:text-primary px-3 py-1 rounded">
+                            <i class="fas fa-code mr-2"></i> Code
+                        </button>
+                        <button class="flex items-center text-gray-400 hover:text-primary px-3 py-1 rounded">
+                            <i class="fas fa-lock mr-2"></i> Secure
+                        </button>
+                    </div>
+                    
+                    <!-- Expanded Post Options (hidden by default) -->
+                    <div id="postOptions" class="mt-4 hidden">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Post Type</label>
+                                <select class="w-full cyber-input px-3 py-2 rounded">
+                                    <option>Standard Post</option>
+                                    <option>Security Alert</option>
+                                    <option>Tutorial</option>
+                                    <option>Tool Release</option>
+                                    <option>Event</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Visibility</label>
+                                <select class="w-full cyber-input px-3 py-2 rounded">
+                                    <option>Public</option>
+                                    <option>Followers Only</option>
+                                    <option>Private</option>
+                                    <option>Encrypted</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm text-gray-400 mb-1">Content</label>
+                            <textarea class="w-full cyber-input px-3 py-2 rounded" rows="4" placeholder="Write your post content here..."></textarea>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm text-gray-400 mb-1">Add Media</label>
+                            <div class="border-2 border-dashed border-gray-700 rounded-lg p-4 text-center">
+                                <div class="flex flex-col items-center justify-center py-4">
+                                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-500 mb-2"></i>
+                                    <p class="text-sm text-gray-400">Drag & drop files here or click to browse</p>
+                                    <p class="text-xs text-gray-500 mt-1">Supports: JPG, PNG, GIF, MP4, PDF</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3">
+                            <button class="px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-800">
+                                Cancel
+                            </button>
+                            <button class="px-4 py-2 rounded-lg cyber-btn">
+                                <i class="fas fa-paper-plane mr-2"></i> Post
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Posts Feed -->
+                <div class="space-y-6">
+                    <!-- Post 1 -->
+                    <div class="cyber-border cyber-card rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gray-900 overflow-hidden">
+                                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                                             alt="User" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Alex "Cypher" Rivera</h4>
+                                        <p class="text-xs text-gray-400">2 hours ago · <i class="fas fa-globe-americas"></i></p>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-primary">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <p>Just released a new open-source tool for network vulnerability scanning - <span class="text-primary">NetSentry v2.1</span>. This version includes improved detection algorithms and a new plugin system.</p>
+                            </div>
+                            
+                            <div class="bg-gray-900 rounded-lg p-3 mb-4">
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <div class="w-12 h-12 bg-gray-800 rounded flex items-center justify-center">
+                                        <i class="fas fa-code text-primary text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="font-medium">NetSentry v2.1</h5>
+                                        <p class="text-xs text-gray-400">github.com/cypher/netsentry</p>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-300">Advanced network vulnerability scanner with plugin support and enhanced detection capabilities.</p>
+                            </div>
+                            
+                            <div class="flex items-center justify-between text-gray-400 border-t border-b border-gray-800 py-2 mb-4">
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-thumbs-up"></i>
+                                    <span>42</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-comment"></i>
+                                    <span>8</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="fas fa-retweet"></i>
+                                    <span>15</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-bookmark"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-900 overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                                         alt="User" class="w-full h-full object-cover">
+                                </div>
+                                <input type="text" placeholder="Write a comment..." class="flex-1 cyber-input px-3 py-1 rounded-full text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Post 2 (Video) -->
+                    <div class="cyber-border cyber-card rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gray-900 overflow-hidden">
+                                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                                             alt="User" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Alex "Cypher" Rivera</h4>
+                                        <p class="text-xs text-gray-400">1 day ago · <i class="fas fa-user-friends"></i></p>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-primary">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <p>Check out my latest tutorial on bypassing modern WAF protections using advanced obfuscation techniques. Perfect for red teamers and penetration testers!</p>
+                            </div>
+                            
+                            <div class="hacker-video rounded-lg mb-4 overflow-hidden">
+                                <div class="aspect-w-16 aspect-h-9">
+                                    <iframe class="w-full h-64" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between text-gray-400 border-t border-b border-gray-800 py-2 mb-4">
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-thumbs-up"></i>
+                                    <span>87</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-comment"></i>
+                                    <span>23</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="fas fa-retweet"></i>
+                                    <span>34</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-bookmark"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-900 overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                                         alt="User" class="w-full h-full object-cover">
+                                </div>
+                                <input type="text" placeholder="Write a comment..." class="flex-1 cyber-input px-3 py-1 rounded-full text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Post 3 (Image Gallery) -->
+                    <div class="cyber-border cyber-card rounded-xl overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gray-900 overflow-hidden">
+                                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                                             alt="User" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Alex "Cypher" Rivera</h4>
+                                        <p class="text-xs text-gray-400">3 days ago · <i class="fas fa-lock"></i></p>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-primary">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <p>Some behind-the-scenes from our latest red team engagement. Can you spot all the security vulnerabilities in these photos? (Answers in comments)</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <div class="h-40 bg-gray-900 rounded-lg overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                                         alt="Post" class="w-full h-full object-cover">
+                                </div>
+                                <div class="h-40 bg-gray-900 rounded-lg overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1517430816045-df4b7de11d1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80" 
+                                         alt="Post" class="w-full h-full object-cover">
+                                </div>
+                                <div class="h-40 bg-gray-900 rounded-lg overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                                         alt="Post" class="w-full h-full object-cover">
+                                </div>
+                                <div class="h-40 bg-gray-900 rounded-lg overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1563206767-5b18f218e8df?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1469&q=80" 
+                                         alt="Post" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between text-gray-400 border-t border-b border-gray-800 py-2 mb-4">
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-thumbs-up"></i>
+                                    <span>64</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-comment"></i>
+                                    <span>17</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="fas fa-retweet"></i>
+                                    <span>9</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-primary">
+                                    <i class="far fa-bookmark"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-900 overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                                         alt="User" class="w-full h-full object-cover">
+                                </div>
+                                <input type="text" placeholder="Write a comment..." class="flex-1 cyber-input px-3 py-1 rounded-full text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- Security Status -->
+                <div class="cyber-border cyber-card rounded-xl p-6">
+                    <h3 class="text-xl font-bold gradient-text mb-4">Security Status</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm">Profile Protection</span>
+                                <span class="text-xs bg-primary text-dark px-2 py-0.5 rounded-full">Active</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-primary h-2 rounded-full" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm">Data Encryption</span>
+                                <span class="text-xs bg-primary text-dark px-2 py-0.5 rounded-full">Enabled</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-primary h-2 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm">Threat Detection</span>
+                                <span class="text-xs bg-yellow-500 text-dark px-2 py-0.5 rounded-full">Monitoring</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-yellow-500 h-2 rounded-full" style="width: 72%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-gray-800">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm">Last Security Scan</span>
+                                <span class="text-xs text-gray-400">2 hours ago</span>
+                            </div>
+                            <button class="w-full mt-3 cyber-btn py-2 rounded-lg">
+                                <i class="fas fa-shield-alt mr-2"></i> Run Full Scan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upcoming Events -->
+                <div class="cyber-border cyber-card rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold gradient-text">Upcoming Events</h3>
+                        <button class="text-gray-400 hover:text-primary">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-primary">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">DEF CON 31</h4>
+                                <p class="text-xs text-gray-400">Aug 10-13, 2023 · Las Vegas</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-primary">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">Security Workshop</h4>
+                                <p class="text-xs text-gray-400">Jul 28, 2023 · Online</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-primary">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">Local Meetup</h4>
+                                <p class="text-xs text-gray-400">Jul 15, 2023 · San Francisco</p>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full mt-4 text-sm text-primary hover:underline">
+                            View All Events
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Recent Projects -->
+                <div class="cyber-border cyber-card rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold gradient-text">Recent Projects</h3>
+                        <button class="text-gray-400 hover:text-primary">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="p-3 bg-gray-900 rounded-lg">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <div class="w-8 h-8 bg-gray-800 rounded flex items-center justify-center text-primary">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">SecureAuth v3</h4>
+                                    <p class="text-xs text-gray-400">Multi-factor authentication framework</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-400">Last updated: 2 days ago</span>
+                                <span class="text-primary">Private</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 bg-gray-900 rounded-lg">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <div class="w-8 h-8 bg-gray-800 rounded flex items-center justify-center text-primary">
+                                    <i class="fas fa-network-wired"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">NetSentry</h4>
+                                    <p class="text-xs text-gray-400">Network vulnerability scanner</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-400">Last updated: 1 week ago</span>
+                                <span class="text-primary">Open Source</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 bg-gray-900 rounded-lg">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <div class="w-8 h-8 bg-gray-800 rounded flex items-center justify-center text-primary">
+                                    <i class="fas fa-bug"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">BugTracker</h4>
+                                    <p class="text-xs text-gray-400">Security issue management system</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-400">Last updated: 3 weeks ago</span>
+                                <span class="text-primary">Team Project</span>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full mt-4 text-sm text-primary hover:underline">
+                            View All Projects
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Connections -->
+                <div class="cyber-border cyber-card rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold gradient-text">Connections</h3>
+                        <button class="text-gray-400 hover:text-primary">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-gray-900 mx-auto mb-2 overflow-hidden">
+                                <img src="https://randomuser.me/api/portraits/women/44.jpg" 
+                                     alt="User" class="w-full h-full object-cover">
+                            </div>
+                            <p class="text-xs truncate">Sarah K.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-gray-900 mx-auto mb-2 overflow-hidden">
+                                <img src="https://randomuser.me/api/portraits/men/32.jpg" 
+                                     alt="User" class="w-full h-full object-cover">
+                            </div>
+                            <p class="text-xs truncate">Mike T.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-gray-900 mx-auto mb-2 overflow-hidden">
+                                <img src="https://randomuser.me/api/portraits/women/68.jpg" 
+                                     alt="User" class="w-full h-full object-cover">
+                            </div>
+                            <p class="text-xs truncate">Lisa M.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-gray-900 mx-auto mb-2 overflow-hidden">
+                                <img src="https://randomuser.me/api/portraits/men/75.jpg" 
+                                     alt="User" class="w-full h-full object-cover">
+                            </div>
+                            <p class="text-xs truncate">David L.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-gray-900 mx-auto mb-2 overflow-hidden">
+                                <img src="https://randomuser.me/api/portraits/women/90.jpg" 
+                                     alt="User" class="w-full h-full object-cover">
+                            </div>
+                            <p class="text-xs truncate">Emma S.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-gray-900 mx-auto mb-2 overflow-hidden">
+                                <img src="https://randomuser.me/api/portraits/men/22.jpg" 
+                                     alt="User" class="w-full h-full object-cover">
+                            </div>
+                            <p class="text-xs truncate">James R.</p>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full mt-4 text-sm text-primary hover:underline">
+                        View All Connections
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-darker border border-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+            <div class="sticky top-0 bg-darker border-b border-gray-800 p-4 flex justify-between items-center">
+                <h3 class="text-xl font-bold gradient-text">Profile Settings</h3>
+                <button id="closeSettings" class="text-gray-400 hover:text-primary">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Settings Navigation -->
+                    <div class="md:col-span-1">
+                        <div class="space-y-1">
+                            <button class="w-full text-left px-3 py-2 rounded-lg cyber-tab active" data-tab="profile">
+                                <i class="fas fa-user-circle mr-2"></i> Profile
+                            </button>
+                            <button class="w-full text-left px-3 py-2 rounded-lg cyber-tab" data-tab="security">
+                                <i class="fas fa-shield-alt mr-2"></i> Security
+                            </button>
+                            <button class="w-full text-left px-3 py-2 rounded-lg cyber-tab" data-tab="privacy">
+                                <i class="fas fa-lock mr-2"></i> Privacy
+                            </button>
+                            <button class="w-full text-left px-3 py-2 rounded-lg cyber-tab" data-tab="notifications">
+                                <i class="fas fa-bell mr-2"></i> Notifications
+                            </button>
+                            <button class="w-full text-left px-3 py-2 rounded-lg cyber-tab" data-tab="appearance">
+                                <i class="fas fa-palette mr-2"></i> Appearance
+                            </button>
+                            <button class="w-full text-left px-3 py-2 rounded-lg cyber-tab" data-tab="advanced">
+                                <i class="fas fa-cogs mr-2"></i> Advanced
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Settings Content -->
+                    <div class="md:col-span-3">
+                        <!-- Profile Settings -->
+                        <div id="profileTab" class="settings-content">
+                            <h4 class="text-lg font-medium mb-4">Profile Information</h4>
+                            
+                            <div class="space-y-6">
+                                <div class="flex flex-col md:flex-row items-center md:space-x-6">
+                                    <div class="mb-4 md:mb-0">
+                                        <div class="w-32 h-32 rounded-full border-2 border-primary overflow-hidden">
+                                            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80" 
+                                                 alt="Profile" class="w-full h-full object-cover">
+                                        </div>
+                                        <button class="w-full mt-2 cyber-btn py-1 text-sm">
+                                            <i class="fas fa-camera mr-1"></i> Change Photo
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="flex-1 w-full">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm text-gray-400 mb-1">First Name</label>
+                                                <input type="text" value="Alex" class="w-full cyber-input px-3 py-2 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm text-gray-400 mb-1">Last Name</label>
+                                                <input type="text" value="Rivera" class="w-full cyber-input px-3 py-2 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm text-gray-400 mb-1">Username</label>
+                                                <input type="text" value="cypher" class="w-full cyber-input px-3 py-2 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm text-gray-400 mb-1">Alias</label>
+                                                <input type="text" value="Cypher" class="w-full cyber-input px-3 py-2 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-gray-400 mb-1">Bio</label>
+                                    <textarea class="w-full cyber-input px-3 py-2 rounded" rows="4">Cybersecurity specialist with over 8 years of experience in penetration testing, vulnerability assessment, and security architecture. Passionate about securing digital assets and educating others about cyber threats.</textarea>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-gray-400 mb-1">Location</label>
+                                    <input type="text" value="Silicon Valley, CA" class="w-full cyber-input px-3 py-2 rounded">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-gray-400 mb-1">Company</label>
+                                    <input type="text" value="CyberDefense Inc." class="w-full cyber-input px-3 py-2 rounded">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-gray-400 mb-1">Website</label>
+                                    <input type="url" value="https://cyphersec.io" class="w-full cyber-input px-3 py-2 rounded">
+                                </div>
+                                
+                                <div class="pt-4 border-t border-gray-800 flex justify-end">
+                                    <button class="px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-800 mr-3">
+                                        Cancel
+                                    </button>
+                                    <button class="px-4 py-2 rounded-lg cyber-btn">
+                                        <i class="fas fa-save mr-2"></i> Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Security Settings -->
+                        <div id="securityTab" class="settings-content hidden">
+                            <h4 class="text-lg font-medium mb-4">Security Settings</h4>
+                            
+                            <div class="space-y-6">
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Two-Factor Authentication</h5>
+                                            <p class="text-xs text-gray-400">Add an extra layer of security to your account</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" checked>
+                                            <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Password</h5>
+                                            <p class="text-xs text-gray-400">Last changed 3 months ago</p>
+                                        </div>
+                                        <button class="text-sm text-primary hover:underline">
+                                            Change
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Connected Devices</h5>
+                                            <p class="text-xs text-gray-400">3 devices currently active</p>
+                                        </div>
+                                        <button class="text-sm text-primary hover:underline">
+                                            Manage
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Login History</h5>
+                                            <p class="text-xs text-gray-400">Review recent account activity</p>
+                                        </div>
+                                        <button class="text-sm text-primary hover:underline">
+                                            View
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Backup Codes</h5>
+                                            <p class="text-xs text-gray-400">Generate new backup codes</p>
+                                        </div>
+                                        <button class="text-sm text-primary hover:underline">
+                                            Generate
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="pt-4 border-t border-gray-800">
+                                    <h5 class="font-medium mb-2">Danger Zone</h5>
+                                    <div class="flex flex-col space-y-3">
+                                        <button class="text-left px-4 py-2 rounded-lg border border-red-500 text-red-500 hover:bg-red-900 hover:bg-opacity-20">
+                                            <i class="fas fa-user-slash mr-2"></i> Deactivate Account
+                                        </button>
+                                        <button class="text-left px-4 py-2 rounded-lg border border-red-500 text-red-500 hover:bg-red-900 hover:bg-opacity-20">
+                                            <i class="fas fa-trash-alt mr-2"></i> Delete Account
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Privacy Settings -->
+                        <div id="privacyTab" class="settings-content hidden">
+                            <h4 class="text-lg font-medium mb-4">Privacy Settings</h4>
+                            
+                            <div class="space-y-6">
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Profile Visibility</h5>
+                                            <p class="text-xs text-gray-400">Who can see your profile</p>
+                                        </div>
+                                        <select class="cyber-input px-3 py-1 rounded text-sm">
+                                            <option>Public</option>
+                                            <option selected>Followers Only</option>
+                                            <option>Private</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Activity Status</h5>
+                                            <p class="text-xs text-gray-400">Show when you're active</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" checked>
+                                            <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Data Collection</h5>
+                                            <p class="text-xs text-gray-400">Allow analytics and improvement data</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h5 class="font-medium">Ad Personalization</h5>
+                                            <p class="text-xs text-gray-400">Use your data to show relevant ads</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <h5 class="font-medium mb-2">Blocked Users</h5>
+                                    <p class="text-xs text-gray-400 mb-3">3 users blocked</p>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between p-2 bg-gray-900 rounded">
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-8 h-8 rounded-full bg-gray-800 overflow-hidden">
+                                                    <img src="https://randomuser.me/api/portraits/men/22.jpg" 
+                                                         alt="User" class="w-full h-full object-cover">
+                                                </div>
+                                                <span>James R.</span>
+                                            </div>
+                                            <button class="text-red-500 hover:text-red-400">
+                                                <i class="fas fa-unlock"></i>
+                                            </button>
+                                        </div>
+                                        <div class="flex items-center justify-between p-2 bg-gray-900 rounded">
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-8 h-8 rounded-full bg-gray-800 overflow-hidden">
+                                                    <img src="https://randomuser.me/api/portraits/women/33.jpg" 
+                                                         alt="User" class="w-full h-full object-cover">
+                                                </div>
+                                                <span>Emily T.</span>
+                                            </div>
+                                            <button class="text-red-500 hover:text-red-400">
+                                                <i class="fas fa-unlock"></i>
+                                            </button>
+                                        </div>
+                                        <div class="flex items-center justify-between p-2 bg-gray-900 rounded">
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-8 h-8 rounded-full bg-gray-800 overflow-hidden">
+                                                    <img src="https://randomuser.me/api/portraits/men/45.jpg" 
+                                                         alt="User" class="w-full h-full object-cover">
+                                                </div>
+                                                <span>Michael K.</span>
+                                            </div>
+                                            <button class="text-red-500 hover:text-red-400">
+                                                <i class="fas fa-unlock"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="pt-4 border-t border-gray-800 flex justify-end">
+                                    <button class="px-4 py-2 rounded-lg cyber-btn">
+                                        <i class="fas fa-save mr-2"></i> Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notification Settings -->
+                        <div id="notificationsTab" class="settings-content hidden">
+                            <h4 class="text-lg font-medium mb-4">Notification Settings</h4>
+                            
+                            <div class="space-y-6">
+                                <div class="cyber-border rounded-lg p-4">
+                                    <h5 class="font-medium mb-3">Email Notifications</h5>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">New Messages</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">Post Interactions</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">New Followers</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer">
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">Security Alerts</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <h5 class="font-medium mb-3">Push Notifications</h5>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">Direct Messages</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">Mentions</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">Event Reminders</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer">
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="cyber-border rounded-lg p-4">
+                                    <h5 class="font-medium mb-3">SMS Notifications</h5>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">Two-Factor Codes</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm">Security Alerts</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="pt-4 border-t border-gray-800 flex justify-end">
+                                    <button class="px-4 py-2 rounded-lg cyber-btn">
+                                        <i class="fas fa-save mr-2"></i> Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Appearance Settings -->
+                        <div id="appearanceTab" class="settings-content hidden">
+                            <h4 class="text-lg font-medium mb-4">Appearance Settings</h4>
+                            
+                            <div class="space-y-6">
+                                <div class="cyber-border rounded-lg p-4">
+                                    <h5 class="font-medium mb-3">Theme</h5>
+                                    <div class="grid grid-cols-3 gap-3">
+                                        <div class="border-2 border-transparent hover:border-primary rounded-lg overflow-hidden cursor-pointer">
+                                            <div class="h-20 bg-darker"></div>
+                                            <div class="p-2 text-center">
+                                                <span class="text-sm">Dark</span>
+                                            </div>
+                                        </div>
+                                        <div class="border-2 border-primary rounded-lg overflow-hidden cursor-pointer">
+                                            <div class="h-20 bg-gray-900"></div>
+                                            <div class="p-2 text-center">
+                                                <span class="text-sm">Cyber</span>
+                                            </div>
+                                        </div>
+                                        <div class="border-2 border-transparent hover:border-primary rounded-lg overflow-hidden cursor-pointer">
+                                            <div class="h-20 bg-gray-800"></div>
+                                            <div class="p-2 text-center">
+                                                <span class="text-sm">Cyber</span>
+                                            </div>
+                                        </div>
+</html>

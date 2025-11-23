@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Secure Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles/account.css">
+    <style>
+        /* Additional custom styles if needed */
+        body {
+            background-color: #111827; /* bg-gray-900 */
+            color: #d1d5db; /* text-gray-300 */
+            font-family: 'Inter', sans-serif; /* Assuming Inter font, add link if needed */
+        }
+        /* Style for project cards */
+        .project-card {
+            background-color: rgba(55, 65, 81, 0.6); /* bg-gray-700 with opacity */
+            border: 1px solid rgba(75, 85, 99, 0.5); /* border-gray-600 with opacity */
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+        }
+        /* Simple pulsating animation for placeholder */
+        .pulse-placeholder {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        /* Ensure icons size correctly */
+        .icon-size {
+            width: 1.5rem; /* Adjust as needed */
+            height: 1.5rem; /* Adjust as needed */
+        }
+        .project-icon-size {
+            width: 2.5rem; /* Larger for project cards */
+            height: 2.5rem;
+        }
+        /* Custom glow effect */
+        .glow-effect {
+            position: relative;
+        }
+        .glow-effect::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(45deg, rgba(56, 182, 255, 0.4), rgba(178, 245, 234, 0.2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .glow-effect:hover::before {
+            opacity: 1;
+        }
+        /* Custom notification badge */
+        .notification-badge {
+            position: absolute;
+            top: -0.5rem;
+            right: -0.5rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 9999px;
+            background-color: #ef4444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="min-h-screen flex flex-col">
+    <header class="bg-gray-800 shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="/index.html" class="text-xl font-bold text-white hover:text-cyan-400 transition duration-150 flex items-center">
+                <i class="fas fa-shield-alt mr-2 text-cyan-400"></i>
+                <span>Secure Portal</span>
+            </a>
+
+            <div class="flex items-center space-x-6">
+                <div class="relative">
+                    <button id="notificationButton" class="text-gray-300 hover:text-white transition duration-150 relative">
+                        <i class="fas fa-bell icon-size"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                </div>
+                <a href="settings.html" title="Account Settings" class="text-gray-300 hover:text-white transition duration-150">
+                    <i class="fas fa-cog icon-size"></i>
+                </a>
+                <button id="logoutButton" title="Logout" class="text-gray-300 hover:text-red-500 transition duration-150">
+                    <i class="fas fa-sign-out-alt icon-size"></i>
+                </button>
+                <div id="logoutFeedback" class="feedback-message text-xs"></div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Welcome Back, <span id="username" class="text-cyan-400">User</span>!</h1>
+            <p class="text-lg text-gray-400 mt-2" id="welcomeMessage">Here's what's happening today</p>
+            <div class="mt-4 flex justify-center">
+                <div class="bg-gray-800 rounded-full px-4 py-2 text-sm text-gray-300 flex items-center">
+                    <i class="fas fa-calendar-day mr-2 text-cyan-400"></i>
+                    <span id="currentDate">Loading date...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <a href="settings.html" class="project-card glow-effect rounded-lg p-6 flex flex-col items-center text-center hover:no-underline relative">
+                <div class="absolute top-3 right-3">
+                    <span class="bg-cyan-500 text-white text-xs px-2 py-1 rounded-full">Updated</span>
+                </div>
+                <i class="fas fa-user-cog project-icon-size mb-4 text-cyan-400"></i>
+                <h2 class="text-lg font-semibold text-white mb-2">Account Settings</h2>
+                <p class="text-sm text-gray-400">Manage your profile, password, and security settings.</p>
+                <div class="mt-4 w-full bg-gray-700 rounded-full h-1.5">
+                    <div class="bg-cyan-500 h-1.5 rounded-full" style="width: 100%"></div>
+                </div>
+            </a>
+
+            <a href="http://localhost:8081/sticky_notes.html" target="_blank" class="project-card glow-effect rounded-lg p-6 flex flex-col items-center text-center hover:no-underline relative">
+                <i class="fas fa-sticky-note project-icon-size mb-4 text-yellow-400"></i>
+                <h2 class="text-lg font-semibold text-white mb-2">Sticky Notes</h2>
+                <p class="text-sm text-gray-400">Your personal digital sticky notes board.</p>
+                <div class="mt-4 flex items-center">
+                    <span class="text-xs text-yellow-400 mr-2"><i class="fas fa-chart-pie"></i></span>
+                    <span class="text-xs text-gray-500">In Development</span>
+                </div>
+            </a>
+
+            <a href="http://localhost:3002/index.html" target="_blank" class="project-card glow-effect rounded-lg p-6 flex flex-col items-center text-center hover:no-underline relative">
+                <i class="fas fa-video project-icon-size mb-4 text-purple-400"></i>
+                <h2 class="text-lg font-semibold text-white mb-2">Video Portal</h2>
+                <p class="text-sm text-gray-400">Access the local video streaming project.</p>
+                <div class="mt-4 flex items-center">
+                    <span class="text-xs text-purple-400 mr-2"><i class="fas fa-play-circle"></i></span>
+                    <span class="text-xs text-gray-500">Runs Locally</span>
+                </div>
+            </a>
+
+            <div class="project-card glow-effect rounded-lg p-6 flex flex-col items-center text-center cursor-pointer" onclick="showComingSoon('Analytics Dashboard')">
+                <i class="fas fa-chart-line project-icon-size mb-4 text-green-400"></i>
+                <h2 class="text-lg font-semibold text-white mb-2">Analytics Dashboard</h2>
+                <p class="text-sm text-gray-400">Track your usage statistics and metrics.</p>
+                <div class="mt-4 flex items-center">
+                    <span class="text-xs text-green-400 mr-2"><i class="fas fa-chart-pie"></i></span>
+                    <span class="text-xs text-gray-500">In Development</span>
+                </div>
+            </div>
+
+            <div class="project-card glow-effect rounded-lg p-6 flex flex-col items-center text-center cursor-pointer" onclick="showComingSoon('Team Collaboration')">
+                <i class="fas fa-users project-icon-size mb-4 text-blue-400"></i>
+                <h2 class="text-lg font-semibold text-white mb-2">Team Collaboration</h2>
+                <p class="text-sm text-gray-400">Work together with your team members.</p>
+                <div class="mt-4 flex items-center">
+                    <span class="text-xs text-blue-400 mr-2"><i class="fas fa-user-plus"></i></span>
+                    <span class="text-xs text-gray-500">Invite Only</span>
+                </div>
+            </div>
+
+            <div class="project-card pulse-placeholder rounded-lg p-6 flex flex-col items-center text-center border-dashed border-gray-600 hover:border-cyan-400 transition-colors duration-300">
+                <i class="fas fa-plus project-icon-size mb-4 text-gray-500"></i>
+                <h2 class="text-lg font-semibold text-gray-500 mb-2">New Project</h2>
+                <p class="text-sm text-gray-500">Suggest or request a new application.</p>
+                <button class="mt-3 px-4 py-1 bg-gray-700 text-gray-300 text-sm rounded-full hover:bg-gray-600 transition-colors duration-200">
+                    Request
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Stats Section -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-gray-400 text-sm font-medium">Active Sessions</h3>
+                        <p class="text-2xl font-bold text-white mt-1">2</p>
+                    </div>
+                    <div class="bg-cyan-500 bg-opacity-20 p-3 rounded-full">
+                        <i class="fas fa-laptop text-cyan-400"></i>
+                    </div>
+                </div>
+                <div class="mt-4 text-xs text-gray-500 flex items-center">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    <span>Last login: 2 hours ago</span>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-gray-400 text-sm font-medium">Storage Used</h3>
+                        <p class="text-2xl font-bold text-white mt-1">15%</p>
+                    </div>
+                    <div class="bg-purple-500 bg-opacity-20 p-3 rounded-full">
+                        <i class="fas fa-database text-purple-400"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-gray-700 rounded-full h-2">
+                        <div class="bg-purple-500 h-2 rounded-full" style="width: 15%"></div>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">2.1 GB of 14 GB used</div>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-gray-400 text-sm font-medium">Recent Activity</h3>
+                        <p class="text-2xl font-bold text-white mt-1">7</p>
+                    </div>
+                    <div class="bg-green-500 bg-opacity-20 p-3 rounded-full">
+                        <i class="fas fa-history text-green-400"></i>
+                    </div>
+                </div>
+                <div class="mt-4 text-xs text-gray-500 flex items-center">
+                    <i class="fas fa-clock mr-1"></i>
+                    <span>Last updated: 5 minutes ago</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-center py-4 mt-8 border-t border-gray-700">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <p class="text-sm text-gray-500 mb-2 md:mb-0">
+                    <i class="fas fa-shield-alt mr-1 text-cyan-400"></i> &copy; 2025 Secure Portal. All rights reserved.
+                </p>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-500 hover:text-white transition-colors duration-200">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-white transition-colors duration-200">
+                        <i class="fab fa-github"></i>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-white transition-colors duration-200">
+                        <i class="fab fa-discord"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+            
+            // Set a random username for demo purposes
+            const usernames = ['Dave', 'David', 'Ranger', 'Keaner'];
+            document.getElementById('username').textContent = usernames[Math.floor(Math.random() * usernames.length)];
+            
+            // Set welcome message based on time of day
+            const hour = now.getHours();
+            let message = "Here's what's happening today";
+            if (hour < 12) message = "Good morning! Here's your dashboard";
+            else if (hour < 18) message = "Good afternoon! Here's your dashboard";
+            else message = "Good evening! Here's your dashboard";
+            document.getElementById('welcomeMessage').textContent = message;
+        }
+
+        // Coming soon notification
+        function showComingSoon(feature) {
+            alert(`${feature} is coming soon! We're working hard to bring you this feature.`);
+        }
+
+        // Logout button functionality
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            const feedback = document.getElementById('logoutFeedback');
+            feedback.textContent = "Logging out...";
+            feedback.className = "feedback-message text-xs text-yellow-400";
+            
+            setTimeout(() => {
+                feedback.textContent = "Redirecting to login page...";
+                feedback.className = "feedback-message text-xs text-green-400";
+                // In a real app, this would redirect to logout endpoint
+                setTimeout(() => {
+                    window.location.href = "login_page.html";
+                }, 1000);
+            }, 1000);
+        });
+
+        // Notification button functionality
+        document.getElementById('notificationButton').addEventListener('click', function() {
+            alert("You have 3 new notifications:\n\n1. System update available\n2. New message from support\n3. Storage usage alert");
+        });
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            // Update time every minute
+            setInterval(updateDateTime, 60000);
+        });
+    </script>
+    <script src="scripts/index.js"></script>
+
+    <!-- RangerBot AI Assistant Widget -->
+    <script src="/04-ai-integration/rangerbot_widget_cool.js"></script>
+    <!-- End RangerBot Integration -->
+</body>
+</html>

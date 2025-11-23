@@ -1,0 +1,73 @@
+[
+  {
+    "id": "edf72381-7f4a-4e01-a74d-b66050d6a46a",
+    "title": "Note From Terminal Script 23:12",
+    "content": "<p>This note was added using the <strong>add_note.sh</strong> script.</p>",
+    "color": "green",
+    "reminder": null,
+    "pinned": false,
+    "createdAt": "2025-04-19T22:12:55.829Z",
+    "updatedAt": "2025-04-19T22:12:55.829Z"
+  },
+  {
+    "id": "969dc40c-7f82-4162-8d4a-1b50b0f140af",
+    "title": "Note From Terminal Script 22:58",
+    "content": "<p>This note was added using the <strong>add_note.sh</strong> script.</p>",
+    "color": "green",
+    "reminder": null,
+    "pinned": false,
+    "createdAt": "2025-04-19T21:58:14.667Z",
+    "updatedAt": "2025-04-19T21:58:14.667Z"
+  },
+  {
+    "id": "ba9e9685-e56a-4e65-8c79-3cc9d92966d5",
+    "title": "Note From Terminal Script 22:53",
+    "content": "<p>This note was added using the <strong>add_note.sh</strong> script.</p>",
+    "color": "green",
+    "reminder": null,
+    "pinned": false,
+    "createdAt": "2025-04-19T21:53:17.900Z",
+    "updatedAt": "2025-04-19T21:53:17.900Z"
+  },
+  {
+    "id": "621ad6b7-4411-4916-a318-73c2395c5d2d",
+    "title": "Note From Terminal Script 22:48",
+    "content": "<p>This note was added using the <strong>add_note.sh</strong> script.</p>",
+    "color": "green",
+    "reminder": null,
+    "pinned": false,
+    "createdAt": "2025-04-19T21:48:03.381Z",
+    "updatedAt": "2025-04-19T21:48:03.381Z"
+  },
+  {
+    "id": "66be0d97-ad1a-4d27-856c-e7b6dec4b19c",
+    "title": "Note From Terminal Script 22:38",
+    "content": "<p>This note was added using the <strong>add_note.sh</strong> script.</p>",
+    "color": "green",
+    "reminder": null,
+    "pinned": false,
+    "createdAt": "2025-04-19T21:38:16.726Z",
+    "updatedAt": "2025-04-19T21:38:16.726Z"
+  },
+  {
+    "id": "1745097144846",
+    "title": "hgjghj",
+    "content": "",
+    "color": "yellow",
+    "reminder": "2025-04-19T22:12:00.000Z",
+    "pinned": false,
+    "createdAt": "2025-04-19T21:12:24.846Z",
+    "updatedAt": "2025-04-19T21:12:24.846Z",
+    "_sessionNotified": true
+  },
+  {
+    "id": "test-script-1",
+    "title": "Test Note from Script",
+    "content": "<p>This was saved by test_api.sh</p>",
+    "color": "purple",
+    "reminder": null,
+    "pinned": true,
+    "createdAt": "2024-01-01T10:00:00Z",
+    "updatedAt": "2024-01-01T10:00:00Z"
+  }
+]

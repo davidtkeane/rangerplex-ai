@@ -1,0 +1,5 @@
+{
+  "name": "RangerPlex AI",
+  "description": "A powerful research assistant featuring Google Search Grounding, document analysis, and persistent history.",
+  "requestFramePermissions": []
+}

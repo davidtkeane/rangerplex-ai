@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Account - Sticky Notes</title>
+    <link rel="stylesheet" href="styles/account.css">
+    <link rel="stylesheet" href="styles/dark-mode.css" id="darkModeStyle" disabled>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1>Create Account</h1>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="emailInput">Email</label>
+                    <input type="email" id="emailInput" required>
+                </div>
+                <div class="form-group">
+                    <label for="passwordInput">Password</label>
+                    <input type="password" id="passwordInput" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn-primary">Create Account</button>
+            </form>
+            <div id="errorMessage" class="error-message"></div>
+            <div class="auth-footer">
+                <p>Already have an account? <a href="login_page.html">Login</a></p>
+            </div>
+        </div>
+    </div>
+    <script src="scripts/register.js"></script>
+
+    <!-- RangerBot AI Assistant Widget -->
+    <script src="/04-ai-integration/rangerbot_widget_cool.js"></script>
+    <!-- End RangerBot Integration -->
+</body>
+</html>

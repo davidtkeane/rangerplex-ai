@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Secure Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles/account.css"> <style>
+        /* Add specific styles for settings page if needed */
+        body {
+            /* Ensure scrolling is possible if content overflows */
+            overflow: auto;
+            min-height: 100vh;
+            padding-top: 2rem; /* Add padding for better spacing */
+            padding-bottom: 2rem;
+        }
+        .settings-container {
+            max-width: 600px; /* Wider container for settings */
+            margin: 2rem auto; /* Center container */
+        }
+        .settings-section {
+            background-color: rgba(55, 65, 81, 0.6); /* Slightly transparent dark background */
+            padding: 1.5rem;
+            border-radius: 0.75rem; /* Slightly larger rounding */
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(75, 85, 99, 0.5); /* Subtle border */
+        }
+        .settings-section h2 {
+            font-size: 1.25rem; /* Larger section titles */
+            font-weight: 600;
+            color: #e5e7eb; /* Lighter text */
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(75, 85, 99, 0.5);
+        }
+        .avatar-preview-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .avatar-image {
+            width: 120px; /* Larger avatar */
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover; /* Ensure image covers the circle */
+            border: 3px solid #4b5563; /* Darker border */
+            background-color: #374151; /* Fallback background */
+            display: flex; /* For centering placeholder */
+            align-items: center;
+            justify-content: center;
+        }
+        /* Simple placeholder SVG */
+        .avatar-placeholder-icon {
+             width: 60px;
+             height: 60px;
+             color: #9ca3af; /* gray-400 */
+        }
+        /* Hide the default file input */
+        input[type="file"] {
+            display: none;
+        }
+        /* Style the custom file input label */
+        .custom-file-upload {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s ease;
+        }
+        .custom-file-upload:hover {
+            background-color: #4338ca;
+        }
+        /* Feedback message styling */
+        .feedback-message {
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            display: none; /* Hidden by default */
+            text-align: center;
+        }
+        .feedback-message.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+        .feedback-message.error {
+             background-color: rgba(239, 68, 68, 0.1);
+             color: #ef4444;
+        }
+        /* Loading spinner for buttons */
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 0.5rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
+
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200"> <div class="auth-container settings-container"> <h1 class="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Account Settings</h1>
+
+    <div class="max-w-6xl mx-auto"> <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
+            <a href="/index.html" class="btn-link text-sm flex items-center space-x-1">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+                <span>Back to Dashboard</span>
+            </a>
+        </div>
+
+        <div class="settings-section">
+            <h2>Profile Information</h2>
+            <form id="profileForm">
+                <div class="avatar-preview-container">
+                    <img id="avatarPreview" src="https://placehold.co/120x120/374151/9ca3af?text=Avatar" alt="Current Avatar" class="avatar-image">
+                     <svg id="avatarPlaceholder" class="avatar-placeholder-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                    </svg>
+                    <label for="avatarUpload" class="custom-file-upload">Change Avatar</label>
+                    <input type="file" id="avatarUpload" name="avatar" accept="image/*">
+                    <div id="avatarFeedback" class="feedback-message"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="displayName">Display Name</label>
+                    <input type="text" id="displayName" name="displayName" class="input-glow" required maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label for="emailDisplay">Email Address</label>
+                    <input type="email" id="emailDisplay" name="emailDisplay" class="input-glow bg-gray-700 cursor-not-allowed" readonly>
+                    <p class="text-xs text-gray-400 mt-1">Email address cannot be changed yet.</p>
+                </div>
+                <button type="submit" id="saveProfileButton" class="btn-primary w-full mt-2">
+                     <span id="saveProfileText">Save Profile Changes</span>
+                     <span id="saveProfileSpinner" class="spinner hidden"></span>
+                 </button>
+                 <div id="profileFeedback" class="feedback-message"></div>
+            </form>
+        </div>
+
+        <div class="settings-section">
+            <h2>Security</h2>
+            <form id="passwordForm">
+                 <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" name="currentPassword" class="input-glow" required>
+                </div>
+                 <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" name="newPassword" class="input-glow" required minlength="8">
+                     <p class="text-xs text-gray-400 mt-1">Must be at least 8 characters long.</p>
+                </div>
+                 <div class="form-group">
+                    <label for="confirmNewPassword">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" name="confirmNewPassword" class="input-glow" required>
+                </div>
+                 <button type="submit" id="changePasswordButton" class="btn-primary w-full mt-2 bg-red-600 hover:bg-red-700"> <span id="changePasswordText">Change Password</span>
+                     <span id="changePasswordSpinner" class="spinner hidden"></span>
+                 </button>
+                 <div id="passwordFeedback" class="feedback-message"></div>
+            </form>
+        </div>
+
+        <div class="mt-6 text-center">
+             <button id="logoutButton" class="text-gray-400 hover:text-red-500 transition duration-150 ease-in-out underline">
+                 Log Out
+             </button>
+             <div id="logoutFeedback" class="feedback-message"></div>
+         </div>
+
+    </div> <script src="scripts/settings.js"></script>
+
+    <!-- RangerBot AI Assistant Widget -->
+    <script src="/04-ai-integration/rangerbot_widget_cool.js"></script>
+    <!-- End RangerBot Integration -->
+</body>
+</html>
+

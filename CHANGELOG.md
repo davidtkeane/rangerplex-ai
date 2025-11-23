@@ -1,0 +1,473 @@
+# 📜 RangerPlex Changelog & Journey
+
+*Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
+
+## v2.4.2 - "CORS Proxy Suite, Model Badges & Data Persistence" (Current)
+*Released: Nov 23, 2025*
+
+Critical fixes for API proxying, image downloads, data persistence, and development environment stability. This update establishes a comprehensive CORS proxy system for Claude, images, search, and radio streaming, plus adds visual model capability indicators to help users choose the right AI model for their task.
+
+### 🐛 Bug Fixes
+*   **Anthropic API Proxy Fixed**: Fixed "Cannot POST /v1/messages" error when using Claude models.
+    *   Added missing `/v1/messages` proxy endpoint to `proxy_server.js` (lines 355-409).
+    *   Proxy now properly forwards Claude API requests to `https://api.anthropic.com/v1/messages`.
+    *   Maintains all headers (`x-api-key`, `anthropic-version`) and streams responses correctly.
+    *   Resolves CORS issues for Claude API calls through local proxy.
+*   **Model Selector Usability**: Model dropdown no longer auto-hides while open; stays visible during scrolling/selecting (ChatInterface.tsx).
+*   **Image Download Proxy Fixed**: Fixed CORS errors when downloading AI-generated images.
+    *   Added `/api/image/download` proxy endpoint to `proxy_server.js` (lines 301-353).
+    *   Downloads now route through local server to bypass Azure Blob Storage CORS restrictions.
+    *   Images download directly to Downloads folder without navigating away from app.
+    *   Fixes "Failed to download image" error for DALL-E, Imagen, and Flux.1 images.
+*   **Image Gallery UX Improvements**: Enhanced image preview and download experience.
+    *   Added large red X close button (top-right corner) to image preview modal.
+    *   Added ESC key support to close preview modal.
+    *   Added download buttons on image thumbnails (visible on hover).
+    *   Added user instructions: "Click outside or press ESC to close".
+    *   Improved modal styling with backdrop blur and better shadows.
+    *   Auto-names downloaded files: `rangerplex_provider_timestamp.png`.
+*   **Cloud Sync Enabled by Default**: Fixed data not persisting across browser sessions.
+    *   Changed `enableCloudSync` default from `false` to `true` in `types.ts`.
+    *   Data now saves to both IndexedDB (browser) AND SQLite server automatically.
+    *   Prevents data loss when browser cache is cleared.
+    *   Ensures chats, settings, and avatars persist permanently.
+    *   Triple-layer backup system now fully functional by default.
+*   **Web Search CORS & Fallbacks**: Brave and DuckDuckGo searches now route through the local proxy to avoid browser CORS failures.
+    *   Added `/v1/brave` and `/v1/ddg` proxy routes in `proxy_server.js` with CORS headers.
+    *   Updated `searchService.ts` to prefer the proxy for Brave and to use the DDG fallback endpoint (no more 404).
+    *   Restores working in-app web search when keys are set and proxy URL is `http://localhost:3010`.
+*   **Radio Streaming Fixed**: Fixed 403 Forbidden error when playing SomaFM radio stations.
+    *   Changed RadioPlayer audio source from direct stream URL to proxied URL (`getProxiedUrl()`).
+    *   All radio streams now route through local proxy server (`/api/radio/stream`).
+    *   Proxy adds proper User-Agent and headers required by SomaFM.
+*   **better-sqlite3 Compatibility**: Fixed Node.js module version mismatch error.
+    *   Rebuilt `better-sqlite3` for current Node version (MODULE_VERSION 115 vs 127).
+    *   Command: `npm rebuild better-sqlite3` resolves the issue.
+*   **Working Directory Recovery**: Fixed npm error when terminal was in deleted directory.
+    *   Error: `ENOENT: no such file or directory, uv_cwd` now auto-recovers.
+    *   Shell automatically resets to valid project directory.
+*   **Chat Loading from Server Fixed**: Fixed bug where chats wouldn't load from server on fresh browser sessions.
+    *   Changed cloud sync check from `storedSettings?.enableCloudSync` to check merged settings with defaults.
+    *   Now uses fallback chain: `storedSettings ?? finalSettings ?? DEFAULT_SETTINGS`.
+    *   Ensures server chats load even when browser storage is empty.
+    *   Resolves issue where only IndexedDB chats appeared in UI.
+*   **Last Sync Timestamp Persistence**: Fixed "Last Sync" time being lost when closing settings.
+    *   Timestamp now saved to IndexedDB as `lastSyncTime` setting.
+    *   Loads automatically when opening Data & Backup tab.
+    *   Persists across browser sessions and refreshes.
+*   **Cloud Sync Toggle Auto-Save**: Fixed toggle reverting when closing settings without clicking Save.
+    *   Cloud Sync toggle now saves immediately when clicked (critical setting!).
+    *   No longer requires manual "Save" button click.
+    *   Changes persist even if settings modal is closed immediately.
+*   **Avatar Auto-Save**: Fixed avatars being lost when closing settings without clicking Save.
+    *   User and AI avatars now save immediately upon upload.
+    *   Avatars stored as base64 data URLs in settings (portable and sync-friendly).
+    *   Auto-syncs to server when cloud sync is enabled.
+    *   Console logging shows avatar sizes for verification.
+*   **Storage Stats Calculation**: Fixed storage sizes showing 0.0 KB.
+    *   Now calculates actual IndexedDB size (chats + settings).
+    *   Fetches and calculates server SQLite database size.
+    *   Updates automatically when opening Data & Backup tab or after sync.
+    *   Shows real KB values instead of always 0.0 KB.
+
+### ✨ New Features
+*   **Model Capability Badges**: Visual indicators showing what each AI model can do!
+    *   **👁️ Vision** - Models that can analyze uploaded images (Claude 3+, Gemini, GPT-4o, Grok Vision).
+    *   **🧠 Advanced Reasoning** - Deep thinking models (o1, o1-mini, o3-mini).
+    *   **⚡ Fast Speed** - Quick response models (Haiku, Flash, Perplexity, local models).
+    *   **💎 Most Powerful** - Maximum capability models (Opus, Gemini Pro, o1/o3).
+    *   Badges appear in model selector button and dropdown menu.
+    *   Added capability legend at bottom of model dropdown explaining each icon.
+    *   Note: Image generation handled by `/imagine` command (DALL-E 3, Imagen 3, Flux.1).
+*   **Claude 3.5 Sonnet Added**: Added missing popular Claude model.
+    *   Model ID: `claude-3-5-sonnet-20241022`
+    *   Total Claude models now: 9 (was 8).
+    *   Includes vision capability badge 👁️.
+*   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
+
+### ✅ Verified Systems
+*   **Claude API**: All 9 Claude models (including 3.5 Sonnet) now working through proxy with vision badges.
+*   **Model Capabilities**: All models (Gemini, OpenAI, Claude, Grok, Perplexity, local) display correct capability badges.
+*   **Chat Loading**: Chats load from server correctly even with empty browser storage.
+*   **Image Downloads**: DALL-E 3, Imagen 3, and Flux.1 images download successfully through proxy.
+*   **Data Persistence**: Chats, settings, and avatars now save to server automatically (cloud sync enabled).
+*   **Radio Streaming**: All 50+ SomaFM stations now play correctly through proxy.
+*   **Database Module**: SQLite module properly compiled for active Node.js version.
+*   **Development Server**: Both Vite (port 5173) and proxy server (port 3010) running stable.
+
+### 🎵 New Defaults
+*   **DEF CON Radio**: Set as default radio station for new users (perfect for coding sessions!).
+
+### 📁 Files Modified
+*   **Modified**: `proxy_server.js:301-353` - Added `/api/image/download` proxy endpoint for image downloads.
+*   **Modified**: `proxy_server.js:355-409` - Added `/v1/messages` Anthropic API proxy endpoint for Claude CORS support.
+*   **Modified**: `components/ImageGallery.tsx` - Complete UX overhaul with close button, ESC key, download buttons, and improved styling.
+*   **Modified**: `components/RadioPlayer.tsx:470` - Changed audio src to use `getProxiedUrl(currentStation.url)`.
+*   **Modified**: `types.ts:34-45` - Added `CLAUDE_3_5_SONNET` model type and updated anthropic models array (now 9 models).
+*   **Modified**: `types.ts:372` - Changed `enableCloudSync` default to `true` for automatic data persistence.
+*   **Modified**: `types.ts:407` - Set `radioLastStation` default to `'soma-defcon'` (DEF CON Radio).
+*   **Modified**: `types.ts:420-486` - Added `ModelCapabilities` interface, `getModelCapabilities()`, and `getModelBadges()` helper functions.
+*   **Modified**: `components/ChatInterface.tsx` - Added model capability badges to dropdown and selector button with capability legend.
+*   **Modified**: `App.tsx:139-140` - Fixed cloud sync check to use fallback chain for chat loading from server.
+
+---
+
+## v2.4.1 - "Stability & Sync Fixes"
+*Released: Nov 23, 2025*
+
+Critical bug fixes for settings persistence and cloud sync reliability.
+
+### 🐛 Bug Fixes
+*   **Settings Persistence Race Condition**: Fixed critical bug where settings were being overwritten on page load.
+    *   Added `settingsLoaded` flag to prevent saves until settings are loaded from IndexedDB.
+    *   Settings (radio state, currency, theme, etc.) now persist correctly after refresh.
+*   **Cloud Sync Loop Prevention**: Fixed infinite sync loop when cloud sync was enabled.
+    *   Added `isLoadingFromServer` flag to prevent save triggers during server load.
+    *   Improved load order: IndexedDB → Server merge → Save enabled.
+*   **Enhanced Error Handling**: Improved error logging in syncService for better debugging.
+    *   Detailed error messages now show exactly what failed and why.
+    *   Failed syncs are queued for retry when connection is restored.
+
+### ✅ Verified Systems
+*   **Auto-Backup System**: Confirmed 5-minute auto-backup to `./backups/*.json` working correctly.
+*   **SQLite Database**: Verified database at `data/rangerplex.db` with tables: chats, settings, users.
+*   **Triple-Layer Persistence**: All three storage layers (IndexedDB, SQLite, JSON backups) functioning as designed.
+
+### 🔧 Technical Improvements
+*   Settings load flow now properly sequenced to prevent race conditions.
+*   Cloud sync error messages include HTTP status codes and response details.
+*   Database version management improved (IndexedDB v2 with settings store).
+
+---
+
+## v2.4.0 - "Ranger Radio Command"
+*Released: Nov 23, 2025*
+
+This update adds ambient background music to RangerPlex with a floating radio player featuring **50+ SomaFM stations** organized by genre.
+
+### 📻 Ranger Radio Player
+*   **Floating Mini-Player**: Bottom-right corner radio with minimize/maximize toggle.
+*   **50+ SomaFM Stations**: Complete SomaFM collection organized by genre!
+    *   **Ambient** (8): Groove Salad, Drone Zone, Deep Space One, Space Station, and more
+    *   **Electronic** (9): DEF CON Radio, Beat Blender, The Trip, Vaporwaves, Dub Step Beyond
+    *   **Lounge** (4): Lush, Secret Agent, Illinois Street Lounge, Bossa Beyond
+    *   **Rock** (5): Indie Pop Rocks, Underground 80s, Left Coast 70s, Folk Forward
+    *   **Metal** (2): Metal Detector, Doomed
+    *   **Jazz/Soul** (2): Sonic Universe, Seven Inch Soul
+    *   **World** (3): ThistleRadio (Celtic), Suburbs of Goa (Asian), Tiki Time
+    *   **Reggae** (1): Heavyweight Reggae
+    *   **Holiday** (5): Christmas Lounge, Christmas Rocks!, Xmas in Frisko, and more
+    *   **Specials** (5): Black Rock FM (Burning Man), Covers, SF 10-33, and more
+*   **Organized Dropdown**: Stations grouped by genre with emojis for easy navigation.
+*   **Full Controls**: Play/pause button, volume slider (0-100%), station selector.
+*   **Theme Integration**: Radio UI adapts to Dark, Light, and Tron themes with matching glow effects.
+*   **Persistent Settings**: Volume, last station, and minimized state saved to database.
+*   **Auto-Play Option**: Optionally start music on app launch (browser permissions apply).
+*   **CORS Proxy**: Streams routed through local server to bypass browser restrictions.
+*   **Error Handling**: Graceful fallback when streams are unavailable.
+
+### 🎨 User Experience
+*   **Non-Intrusive Design**: Minimizable player stays out of the way while working.
+*   **Focus-Friendly Stations**: LoFi, ambient, and downtempo stations for deep work sessions.
+*   **Theme-Matched Effects**: Tron theme shows cyan glow on radio player.
+*   **Legal Streams**: All music powered by SomaFM and Jazz24 (free, legal, high-quality).
+
+### 🔧 Technical Implementation
+*   **HTML5 Audio API**: Native browser audio with full volume control.
+*   **Settings Integration**: New "Radio" tab in Settings modal.
+*   **Database Schema**: Radio settings auto-sync with existing triple-layer backup system.
+*   **No External Dependencies**: Uses built-in audio capabilities.
+*   **Stream Proxy Endpoint**: `/api/radio/stream` routes audio through local server to bypass CORS.
+*   **TypeScript Interfaces**: Full type safety for radio stations and settings.
+
+### ⚙️ Infrastructure Updates
+*   **Node.js v22 LTS**: Migrated from v20 (deprecated Oct 2026) to v22 for long-term stability.
+*   **better-sqlite3 Rebuild**: Recompiled database module for Node v22 (MODULE_VERSION 127).
+*   **Dependency Updates**: All packages verified compatible with Node v22.
+*   **Documentation**: NODE_VERSION_LOG.md created to track migration history.
+*   **README Updates**: System requirements and troubleshooting sections updated for v22.
+
+### 📁 Files Modified/Created
+*   **Created**: `components/RadioPlayer.tsx` (598 lines) - Complete radio player component
+*   **Created**: `NODE_VERSION_LOG.md` - Node.js migration documentation
+*   **Created**: `RANGER_RADIO_TODO.md` - Feature roadmap and implementation notes
+*   **Modified**: `proxy_server.js` - Added `/api/radio/stream` CORS proxy endpoint
+*   **Modified**: `components/SettingsModal.tsx` - Added Radio tab with station previews
+*   **Modified**: `components/Sidebar.tsx` - Updated version display
+*   **Modified**: `types.ts` - Added radio settings interfaces
+*   **Modified**: `App.tsx` - Integrated RadioPlayer component
+*   **Modified**: `README.md` - Added radio usage guide and Node v22 requirements
+*   **Modified**: `CHANGELOG.md` - Comprehensive v2.4.0 documentation
+
+### 🎵 Future Enhancements (Roadmap)
+*   **v2 (Planned)**: Radio Browser API integration for 30,000+ stations worldwide (search, favorites, custom stations).
+*   **v3 (Planned)**: Audio visualizer with theme-specific waveforms and frequency bars.
+*   **v4 (Planned)**: Podcast support and recording capabilities.
+
+---
+
+## v2.3.2 - "Model Lists, Real Tests & Perplexity Fix"
+*Released: Nov 23, 2025*
+
+### ✅ API Testing & Perplexity Reliability
+*   Test buttons now perform real API calls (no mock checkmarks) for Gemini, OpenAI, Anthropic, Perplexity, ElevenLabs, Hugging Face, xAI/Grok, and Brave.
+*   Perplexity streaming uses correct headers, better error surfacing, and strict user/assistant alternation to prevent 400 errors.
+*   Settings test for Perplexity now uses `sonar-reasoning-pro` with proper headers and payload.
+
+### 🧾 Cost Display & Model Lists
+*   Updated OpenAI defaults to `gpt-4.1` / `gpt-4.1-mini` and refreshed Gemini list; sanitized stale dropdown entries.
+*   Cost footer restored with “tokens” label, pricing added for Gemini 2.5/3 and Claude 4.x (including broader Claude Sonnet/3.7 matches).
+*   Fallback token estimation when providers omit usage; pricing map documented in `COSTS.md`.
+
+### ✨ Celebration & Rename UX
+*   Added Holiday Mode styles (Snow / Confetti / Sparkles) with header toggle and quick style cycler.
+*   Settings now let you pick the celebration style and toggle rename sparkles.
+*   Sidebar renames are inline with a themed sparkle confirmation instead of prompts.
+*   Optional “Hide Header Celebration Buttons” toggle to declutter the desktop header.
+*   Hover controls hide while renaming, keeping the Save button clear.
+*   Rename confirmation now uses a confetti burst animation instead of static sparkles.
+*   Added a quick “New” chat button inside the Recent Logs header.
+*   Grounding sources now list all URLs and footnote refs [n] in chat link to their source cards.
+*   New “Study Notes” view: inline CRUD, filters, pinning, courses/topics, reminders, todos, import/export JSON, per-user IndexedDB storage.
+
+### 🌌 Ranger Vision & UX Polish
+*   Screensaver/Matrix mode fixes from prior patch retained (stable images, correct activation/exit behavior).
+
+### 🔒 Security & Licensing
+*   RANGER LICENSE retained; .env and sensitive folders protected via .gitignore.
+
+---
+
+## v2.3.1 - "Screensaver Polish, API Validation & Claude Models"
+*Released: Nov 23, 2025*
+
+Patch release fixing Ranger Vision Mode, validating all Claude model IDs, and implementing real API key testing.
+
+### 🌌 Ranger Vision Mode Fixes
+*   **Manual Activation Working**: Fixed screensaver button - now opens instantly when clicked (was closing immediately due to race condition).
+*   **Smart Activation Detection**: Distinguishes between manual activation (eye button) vs auto-activation (idle timer).
+*   **Manual Mode Behavior**: When opened manually, stays open until ESC or Exit button pressed (doesn't auto-close on mouse movement).
+*   **Auto Mode Behavior**: When opened by idle timer, closes on any mouse/keyboard activity (true screensaver behavior).
+*   **Timing Improvements**: Changed slideshow from 5 seconds to 10 seconds per image for better viewing.
+*   **Image Stability**: Removed `Date.now()` from image URLs preventing constant flickering/reloading.
+
+### 🤖 Claude API Fixes & Model Updates
+*   **Invalid Model IDs Removed**: Removed `claude-3-5-sonnet-20241022` (doesn't exist in Anthropic API).
+*   **Official Models Added**: Added Claude Haiku 4.5, Opus 4.1, Claude 3.7 Sonnet from official Anthropic documentation.
+*   **8 Claude Models**: Now includes Sonnet 4.5, Haiku 4.5, Opus 4.1, Sonnet 4, Opus 4, Claude 3.7 Sonnet, 3.5 Haiku, 3 Haiku.
+*   **Sonnet 4.5 Compatible**: Fixed `temperature` and `top_p` conflict error (Sonnet 4.5 only accepts one, not both).
+*   **Empty Message Filter**: Added validation to prevent empty messages in conversation history (Claude API rejects empty content).
+*   **Smart Parameter Handling**: Temperature takes priority; top_p only sent if temperature undefined.
+*   **All Models Verified**: Every model ID verified against official Anthropic API documentation.
+
+### ✅ API Testing Overhaul
+*   **Real API Validation**: Replaced fake "success" checkmarks with actual API calls to verify keys.
+*   **All Providers Tested**: Anthropic, Perplexity, ElevenLabs, Hugging Face, Grok/xAI, Brave Search now make real API requests.
+*   **Accurate Feedback**: Test buttons now show actual API connection status (valid key ✅ vs invalid key ❌).
+*   **Network Error Handling**: Proper error detection and console logging for failed API tests.
+*   **Cost-Effective Tests**: Minimal token usage (10 tokens) for Claude/Perplexity/Grok test requests.
+
+### 🔒 Security & Legal
+*   **RANGER LICENSE Created**: Open shareware license - free for personal/educational use, revenue share required for commercial use.
+*   **Contact for Commercial**: Email rangersmyth.74@gmail.com for commercial licensing agreements.
+*   **.gitignore Enhanced**: Protected `.env` file, `docs/` folder, and `.claude/` folder from git commits.
+*   **API Key Protection**: .env file now properly ignored, .env-example safe to commit.
+
+### 🎯 User Experience
+*   **Screensaver Now Outstanding**: 10-second transitions, stable images, instant manual activation.
+*   **Claude Models Verified**: All 8 Claude models working with official Anthropic API IDs.
+*   **API Keys Validated**: Test buttons now actually verify your API keys work (no more fake checkmarks!).
+*   **Repository Ready**: Proper licensing and security for GitHub deployment.
+
+---
+
+## v2.3.0 - "Cloud Sync Control & Claude 4"
+*Released: Nov 23, 2025*
+
+This update brings optional cloud synchronization, Claude 4 model support, and critical stability fixes for local deployment.
+
+### ☁️ Cloud Sync Control
+*   **Enable/Disable Toggle**: Added `enableCloudSync` setting in Data & Backup tab (default: OFF).
+*   **Smart Sync Service**: Sync service only connects when explicitly enabled by user.
+*   **Clean Console**: Eliminated 404 errors and WebSocket spam when sync is disabled.
+*   **Conditional Sync**: App.tsx now respects the toggle - only syncs to server when enabled.
+
+### 🤖 Claude 4 Model Support
+*   **Latest Models Added**:
+    *   Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) - Newest flagship model
+    *   Claude Opus 4 (`claude-opus-4-20250514`) - Most powerful
+    *   Claude Haiku 4 (`claude-haiku-4-20250514`) - Fastest
+*   **Legacy Models Retained**: Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus still available.
+*   **API Compatibility**: Verified `anthropic-version: 2023-06-01` works with Claude 4 models.
+
+### 🐛 Critical Fixes
+*   **Claude CORS Fixed**: Excluded Claude from auto web search (was causing CORS errors and hanging).
+*   **Stop Button Working**: Implemented proper stop functionality - button now actually stops streaming.
+*   **Port Configuration**: Fixed proxy server port mismatch (3010 vs 3001).
+*   **Accessibility**: Added `id`, `name`, and `aria-label` to chat textarea for better autofill and screen reader support.
+
+### 📚 Documentation
+*   **OPTION_B_LOCAL_SQLITE_SYNC.md**: Complete guide to building local SQLite sync server with WebSocket support.
+*   **OPTION_C_GOOGLE_CLOUD_FIREBASE_SYNC.md**: Full Firebase integration tutorial for cloud sync with authentication.
+*   **Architecture Diagrams**: Detailed explanations of 4-layer backup system.
+
+### 🔧 Technical Improvements
+*   **SyncService Refactor**: Added `enableSync()` and `disableSync()` methods with reconnection control.
+*   **Dependency Fix**: Corrected `@google/genai` version from `0.1.1` to `1.30.0` in package.json.
+*   **Vite Build System**: Fully operational with `npm start` running both proxy and frontend servers concurrently.
+
+### 🎯 User Experience
+*   **Instant Claude Responses**: No more "Scanning Network..." hang on Claude models.
+*   **Zero Console Spam**: Clean developer console with only informational messages.
+*   **Clear Sync Status**: Visual indicators showing cloud sync state in Settings.
+
+---
+
+## v2.0.0 - "The Ultimate Studio"
+*Released: Late 2025*
+
+This update transformed RangerPlex from a text chatbot into a full multi-modal creative studio.
+
+### ✨ New Features
+*   **Media Studio**:
+    *   Added **Image Generation** (DALL-E 3, Imagen 3, Flux.1).
+    *   Added **Parallel Generation** (`/imagine_all`) to compare models side-by-side.
+    *   Added **ElevenLabs Integration** for cinematic text-to-speech.
+*   **Token Economics**:
+    *   Added real-time currency conversion (USD, EUR, GBP, etc.).
+    *   Added precise cost-per-message estimation based on model pricing maps.
+*   **The Newsroom**:
+    *   Added `/news` command. The AI researches a topic, writes a script, generates a thumbnail, and reads it out loud.
+*   **Providers**:
+    *   Added support for **Grok (xAI)** and **Hugging Face Inference**.
+    *   Updated Gemini models to 2.0/3.0 series and GPT to 5.1 Preview.
+
+---
+
+## v2.1.0 - "Fort Knox & The Local Frontier" (Security & Privacy)
+*Released: Nov 23, 2025*
+
+This update focuses on workstation security, privacy-first local AI, and user experience refinements.
+
+### 🔒 Security & Prank Mode
+*   **FBI Lock Screen**: Implemented a "Seized" screen for failed login attempts (or just for fun).
+*   **Escape Mechanisms**: Configurable ways to exit the prank screen:
+    *   **The Bribe**: Pay a fake fine.
+    *   **The Hacker**: Type `UNLOCK` (invisible input).
+    *   **Time Served**: Wait out a timer.
+    *   **Panic Click**: Click the logo rapidly.
+*   **Workstation Lock**: Added a dedicated Lock Button 🔒 to the sidebar.
+    *   **Resume Session**: Locking the screen no longer logs you out; it simply secures the session until you re-enter your password.
+
+### 🧠 Local Intelligence (Ollama)
+*   **DeepSeek Integration**: Added native support for `deepseek-coder:6.7b`.
+*   **Smart Network Handling**: Fixed "Scanning Network" errors by automatically disabling web search for local models (DeepSeek, Llama, Mistral) to ensure instant, offline responses.
+
+### ⚡ UI Enhancements
+*   **Web Search Toggle**: Added a manual globe button 🌐 in the input area to toggle web search on/off instantly.
+*   **Visual Polish**: Improved the visibility of the FBI background on the lock screen (60% opacity).
+
+---
+
+## v2.2.0 - "Fort Knox 2.0: Triple Redundancy" (Data Resilience)
+*Released: Nov 23, 2025*
+
+This update introduces a professional-grade data persistence system with triple-layer redundancy to ensure your data is never lost.
+
+### 💾 Triple-Layer Persistence
+*   **IndexedDB**: Fast browser-based storage (replaces localStorage).
+*   **SQLite Backend**: Server-side database for permanent storage.
+*   **File Export**: Auto-backup to JSON files every 5 minutes in `./backups/`.
+
+### 🔄 Real-Time Sync
+*   **WebSocket Sync**: Instant synchronization between browser and server.
+*   **Offline Queue**: Changes are queued and synced when reconnected.
+*   **Conflict Resolution**: Server-side data takes precedence.
+
+### 🗄️ Database Features
+*   **Auto-Setup**: SQLite database auto-created on first run (no installation needed).
+*   **Multi-OS**: Works on Windows, macOS, and Linux.
+*   **Migration**: Automatic migration from localStorage to IndexedDB.
+
+### ⚙️ New Settings Tab: "Data & Backup"
+*   **Sync Status**: Real-time connection status and last sync time.
+*   **Storage Stats**: View usage across all three layers.
+*   **Data Management**: Export, import, clear browser cache, or wipe server database.
+*   **Auto-Backup Settings**: Configure export intervals and backup location.
+
+### 🛠️ Backend Enhancements
+*   **Upgraded Server**: `proxy_server.js` → `rangerplex_server.js`
+*   **REST API**: New endpoints for sync, export, import, and data management.
+*   **Dependencies**: Added `better-sqlite3`, `ws`, and `idb` for database and WebSocket support.
+*   **Node v22 LTS**: Recommended for stability (v20 deprecated Oct 2026, v25 not supported).
+
+### 🔑 Environment Configuration
+*   **.env Support**: API keys can be stored in `.env` file (with `VITE_` prefix).
+*   **Auto-Load**: Keys from `.env` auto-load as defaults on first run.
+*   **Priority System**: Settings > .env > Empty.
+*   **Security**: `.env` is gitignored (never committed).
+
+### 🎨 Ollama Loading Effects
+*   **Neural Link**: Sleek top bar with status updates.
+*   **Terminal Boot**: Matrix-style boot sequence log (centered, 10x bigger).
+*   **Brain Pulse**: Subtle button heartbeat animation.
+*   **Model Pull Visualization**: Matrix-style download effect with glowing progress bar.
+
+### 🌌 Ranger Vision Mode (NEW!)
+*   **Screensaver Mode**: Beautiful fullscreen slideshow with transition effects.
+*   **Matrix Rain Effect**: Toggle digital rain overlay for cyberpunk aesthetics.
+*   **Auto-Activation**: Activates after configurable idle time (default: 5 minutes).
+*   **Manual Trigger**: Eye icon button in sidebar for instant activation.
+*   **Keyboard Shortcuts**: Space (pause), ←/→ (navigate), M (matrix), ESC (exit).
+*   **Clock Display**: Optional real-time clock overlay.
+*   **Hybrid Mode**: Both auto and manual activation supported.
+
+### 🧾 Cost Display Improvements (Maintenance)
+*   Updated OpenAI defaults to `gpt-4.1` / `gpt-4.1-mini` and refreshed Gemini model lists.
+*   Fixed model dropdown invalid IDs and added sanitization to remove stale entries.
+*   Restored cost-per-message display with clearer “tokens” labeling and added pricing for Gemini 2.5/3 and Claude 4.x models (including broader Claude Sonnet/3.7 coverage).
+*   Documented pricing map and cost calculation behavior in `COSTS.md`.
+
+---
+
+## v1.5.0 - "The Black Screen War" (Critical Fixes)
+*The Era of Stability*
+
+This version marked the migration from a simple HTML script to a professional Vite build system.
+
+### 🐛 The "Black Screen" Saga
+*   **The Issue**: Attempting to run React 19 code in a React 18 environment caused the "White/Black Screen of Death" on local machines (MacBook Pro M3).
+*   **The Battle**: We attempted to fix `index.html` import maps 9 times.
+*   **The Discovery**: `http-server` cannot handle `.tsx` files directly. Browsers don't speak TypeScript.
+*   **The Solution**: Migrated to **Vite** (`npm run dev`).
+    *   Added `package.json` and `vite.config.js`.
+    *   Cleaned `index.html` of all CDN links to rely on local `node_modules`.
+    *   Fixed `@google/genai` version from `0.1.1` (broken) to `1.30.0` (stable).
+
+---
+
+## v1.2.0 - "The Grid"
+*Visual Overhaul & Code Power*
+
+*   **Tron Theme**: Implemented a 3D animated grid background and neon aesthetics.
+*   **Pyodide Integration**: Added the ability to run Python code client-side for data analysis.
+*   **Command Deck**: Added the quick-action toolbar (Web, Visual, Flash, Deep).
+
+---
+
+## v1.1.0 - "The Council"
+*Agentic Workflows*
+
+*   **Multi-Agent System**: Added the "Council" mode where multiple AI personas (Researcher, Skeptic) debate before answering.
+*   **Settings Overhaul**: Added customizable Agents and Avatars.
+*   **Proxy Server**: Built `proxy_server.js` to bypass CORS for Anthropic and DuckDuckGo.
+
+---
+
+## v1.0.0 - "Genesis"
+*Initial Release*
+
+*   Basic Chat Interface.
+*   Gemini API Integration.
+*   RAG (PDF/Doc upload) via `pdfjs-dist` and Gemini Embeddings.
+*   Local History storage.

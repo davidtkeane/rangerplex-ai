@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Image Slideshow with Matrix Effect</title>
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #000;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            user-select: none; /* Prevents text selection */
+            cursor: default;   /* Default cursor */
+        }
+        
+        /* Auto-hide cursor when inactive - this creates the fading cursor effect */
+        body.hide-cursor {
+            cursor: none;
+        }
+        
+        #background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: opacity 1s ease-in-out;
+            opacity: 1;
+            z-index: -1;
+        }
+        
+        #next-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: opacity 1s ease-in-out;
+            opacity: 0;
+            z-index: -2;
+        }
+        
+        #transition-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 5px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        #transition-time {
+            width: 60px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 1em;
+            text-align: center;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            transition: opacity 0.3s;
+            flex-wrap: wrap;
+            backdrop-filter: blur(5px);
+        }
+        
+        .controls:hover {
+            opacity: 1;
+        }
+        
+        .controls.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        button {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        #interval-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 5px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        #interval {
+            width: 70px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 1em;
+            text-align: center;
+        }
+        
+        .hide-controls-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+        
+        #clock {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        #keyboard-info {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            max-width: 450px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 2000;
+        }
+        
+        #keyboard-info.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        #keyboard-info p {
+            margin: 15px 0;
+            line-height: 1.5;
+        }
+        
+        #keyboard-info h3 {
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+        }
+        
+        .shortcut-key {
+            display: inline-block;
+            background-color: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 0 5px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-size: 1.1em;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        
+        /* Motivation Overlay Styles */
+        .motivation-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 170, 0, 0.1));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(0, 255, 255, 0.4);
+            border-radius: 15px;
+            padding: 40px;
+            z-index: 2000;
+            min-width: 600px;
+            max-width: 80%;
+            text-align: center;
+            opacity: 1;
+            transition: all 0.4s ease;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+        }
+        
+        .motivation-overlay.hidden {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+            pointer-events: none;
+        }
+        
+        .motivation-content {
+            color: white;
+        }
+        
+        .motivation-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+        
+        .motivation-icon {
+            font-size: 32px;
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff;
+        }
+        
+        .motivation-title {
+            font-size: 24px;
+            color: #ffaa00;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #ffaa00;
+        }
+        
+        .motivation-quote {
+            font-size: 22px;
+            line-height: 1.4;
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-style: italic;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        
+        .motivation-source {
+            font-size: 16px;
+            color: #00ffff;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .motivation-ecosystem {
+            font-size: 14px;
+            color: #ffaa00;
+            opacity: 0.8;
+        }
+        
+        .ecosystem-support {
+            font-weight: bold;
+        }
+        
+        /* Matrix Effect Styles */
+        #matrixBackground {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3; /* Below the background images */
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            display: none; /* Hidden by default */
+        }
+        
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px; /* Thin line */
+            background: rgba(0, 255, 0, 0.3); /* Light green */
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            z-index: 5; /* Above everything */
+            opacity: 0;
+            animation: scanline 6s linear infinite;
+            display: none; /* Hidden by default */
+        }
+        
+        @keyframes scanline {
+            0% {
+                top: 0;
+                opacity: 0;
+            }
+            5% {
+                opacity: 0.8;
+            }
+            95% {
+                opacity: 0.8;
+            }
+            100% {
+                top: 100%;
+                opacity: 0;
+            }
+        }
+        
+        .matrix-transition #background,
+        .matrix-transition #next-background {
+            opacity: 0.5 !important; /* Partially visible during transition */
+            transition: opacity 5s;
+        }
+        
+        .matrix-mode #background,
+        .matrix-mode #next-background {
+            opacity: 0 !important;
+        }
+        
+        .matrix-mode #matrixBackground {
+            opacity: 1;
+        }
+        
+        .matrix-transition #matrixBackground,
+        .matrix-transition .scanline,
+        .matrix-mode #matrixBackground,
+        .matrix-mode .scanline {
+            display: block;
+        }
+        
+        .matrix-button {
+            background-color: rgba(0, 255, 0, 0.2) !important;
+            border-color: rgba(0, 255, 0, 0.4) !important;
+            color: #0f0 !important;
+        }
+        
+        .matrix-button:hover {
+            background-color: rgba(0, 255, 0, 0.3) !important;
+            box-shadow: 0 4px 12px rgba(0, 255, 0, 0.5) !important;
+        }
+
+        /* ============================================ */
+        /* AWESOME TRANSITION EFFECTS */
+        /* ============================================ */
+        
+        /* Slide Transitions */
+        .slide-left-enter {
+            transform: translateX(100%);
+        }
+        .slide-left-enter-active {
+            transform: translateX(0);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .slide-left-exit {
+            transform: translateX(0);
+        }
+        .slide-left-exit-active {
+            transform: translateX(-100%);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .slide-right-enter {
+            transform: translateX(-100%);
+        }
+        .slide-right-enter-active {
+            transform: translateX(0);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .slide-right-exit {
+            transform: translateX(0);
+        }
+        .slide-right-exit-active {
+            transform: translateX(100%);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .slide-up-enter {
+            transform: translateY(100%);
+        }
+        .slide-up-enter-active {
+            transform: translateY(0);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .slide-up-exit {
+            transform: translateY(0);
+        }
+        .slide-up-exit-active {
+            transform: translateY(-100%);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .slide-down-enter {
+            transform: translateY(-100%);
+        }
+        .slide-down-enter-active {
+            transform: translateY(0);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .slide-down-exit {
+            transform: translateY(0);
+        }
+        .slide-down-exit-active {
+            transform: translateY(100%);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Zoom Transitions */
+        .zoom-in-enter {
+            transform: scale(0.5);
+            opacity: 0;
+        }
+        .zoom-in-enter-active {
+            transform: scale(1);
+            opacity: 1;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .zoom-in-exit {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .zoom-in-exit-active {
+            transform: scale(1.5);
+            opacity: 0;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .zoom-out-enter {
+            transform: scale(1.5);
+            opacity: 0;
+        }
+        .zoom-out-enter-active {
+            transform: scale(1);
+            opacity: 1;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .zoom-out-exit {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .zoom-out-exit-active {
+            transform: scale(0.5);
+            opacity: 0;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Rotate Transitions */
+        .rotate-left-enter {
+            transform: rotate(90deg) scale(0.8);
+            opacity: 0;
+        }
+        .rotate-left-enter-active {
+            transform: rotate(0deg) scale(1);
+            opacity: 1;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .rotate-left-exit {
+            transform: rotate(0deg) scale(1);
+            opacity: 1;
+        }
+        .rotate-left-exit-active {
+            transform: rotate(-90deg) scale(0.8);
+            opacity: 0;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .rotate-right-enter {
+            transform: rotate(-90deg) scale(0.8);
+            opacity: 0;
+        }
+        .rotate-right-enter-active {
+            transform: rotate(0deg) scale(1);
+            opacity: 1;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .rotate-right-exit {
+            transform: rotate(0deg) scale(1);
+            opacity: 1;
+        }
+        .rotate-right-exit-active {
+            transform: rotate(90deg) scale(0.8);
+            opacity: 0;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Flip Transitions */
+        .flip-horizontal-enter {
+            transform: scaleX(0) rotateY(90deg);
+        }
+        .flip-horizontal-enter-active {
+            transform: scaleX(1) rotateY(0deg);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .flip-horizontal-exit {
+            transform: scaleX(1) rotateY(0deg);
+        }
+        .flip-horizontal-exit-active {
+            transform: scaleX(0) rotateY(-90deg);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .flip-vertical-enter {
+            transform: scaleY(0) rotateX(90deg);
+        }
+        .flip-vertical-enter-active {
+            transform: scaleY(1) rotateX(0deg);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .flip-vertical-exit {
+            transform: scaleY(1) rotateX(0deg);
+        }
+        .flip-vertical-exit-active {
+            transform: scaleY(0) rotateX(-90deg);
+            transition: transform var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Creative Transitions */
+        .diagonal-wipe-enter {
+            clip-path: polygon(0 100%, 0 100%, 0 100%);
+        }
+        .diagonal-wipe-enter-active {
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+            transition: clip-path var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .circle-reveal-enter {
+            clip-path: circle(0% at center);
+        }
+        .circle-reveal-enter-active {
+            clip-path: circle(100% at center);
+            transition: clip-path var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .pixelate-enter {
+            filter: blur(20px) brightness(0.5);
+            transform: scale(0.9);
+        }
+        .pixelate-enter-active {
+            filter: blur(0px) brightness(1);
+            transform: scale(1);
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .blur-enter {
+            filter: blur(50px);
+            opacity: 0;
+        }
+        .blur-enter-active {
+            filter: blur(0px);
+            opacity: 1;
+            transition: all var(--transition-time) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Control styling */
+        #effect-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 5px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #transition-effect {
+            padding: 8px;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 1em;
+            min-width: 140px;
+        }
+
+        #transition-effect option {
+            background-color: #333;
+            color: white;
+        }
+
+        /* ============================================ */
+        /* PROFESSIONAL HEADER LIKE VLC PLAYER */
+        /* ============================================ */
+        
+        .screensaver-header {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+
+        .screensaver-header.auto-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .screensaver-header h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .mode-switch {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .mode-switch:hover {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+        }
+
+        .mode-switch.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        
+        .mode-switch.fullscreen-launch {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 150, 200, 0.2));
+            border: 2px solid #00d4ff;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 10px 20px;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+        
+        .mode-switch.fullscreen-launch:hover {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.5), rgba(0, 150, 200, 0.3));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="background"></div>
+    <div id="next-background"></div>
+    
+    <!-- Clean Header with Single Full Screen Button -->
+    <div class="screensaver-header" id="screensaver-header">
+        <h1>🌟 RangerOS Screensaver</h1>
+        <div class="header-controls">
+            <button class="mode-switch fullscreen-launch" onclick="launchFullScreenMode()">🚀 Full Screen Mode</button>
+        </div>
+    </div>
+    <div id="matrixBackground"></div>
+    <div class="scanline"></div>
+    
+    <div id="keyboard-info">
+        <h3>Keyboard Shortcuts</h3>
+        <p><span class="shortcut-key">Space</span> Pause/Resume</p>
+        <p><span class="shortcut-key">←</span> Previous Image</p>
+        <p><span class="shortcut-key">→</span> Next Image</p>
+        <p><span class="shortcut-key">⌘ + Control + F</span> Toggle Fullscreen (Mac)</p>
+        <p><span class="shortcut-key">F11</span> Toggle Fullscreen (Windows)</p>
+        <p><span class="shortcut-key">H</span> Hide/Show Controls</p>
+        <p><span class="shortcut-key">K</span> Show/Hide Shortcuts</p>
+        <p><span class="shortcut-key">S</span> Save Current Image</p>
+        <p><span class="shortcut-key">M</span> Toggle Matrix Mode</p>
+        <p><span class="shortcut-key">I</span> 💫 Accessibility Inspiration</p>
+    </div>
+    
+    <div id="clock"></div>
+    
+    <div class="controls" id="controls">
+        <button id="prev-btn" title="Previous image">Previous</button>
+        <button id="toggle-btn" title="Pause/resume slideshow">Pause</button>
+        <button id="next-btn" title="Next image">Next</button>
+        <div id="interval-control">
+            <label for="interval">Change Every:</label>
+            <input type="number" id="interval" min="1" max="60" value="5" title="How often to change images">
+            <span>sec</span>
+        </div>
+        <div id="effect-control">
+            <label for="transition-effect">Effect:</label>
+            <select id="transition-effect" title="Choose transition effect">
+                <option value="fade">Fade</option>
+                <option value="slideLeft">Slide Left</option>
+                <option value="slideRight">Slide Right</option>
+                <option value="slideUp">Slide Up</option>
+                <option value="slideDown">Slide Down</option>
+                <option value="zoomIn">Zoom In</option>
+                <option value="zoomOut">Zoom Out</option>
+                <option value="rotateLeft">Rotate Left</option>
+                <option value="rotateRight">Rotate Right</option>
+                <option value="flipHorizontal">Flip Horizontal</option>
+                <option value="flipVertical">Flip Vertical</option>
+                <option value="diagonalWipe">Diagonal Wipe</option>
+                <option value="circleReveal">Circle Reveal</option>
+                <option value="pixelate">Pixelate</option>
+                <option value="blur">Blur Transition</option>
+                <option value="random">🎲 Random</option>
+            </select>
+        </div>
+        <button id="save-btn" title="Save current image">Save Image</button>
+        <button id="matrix-btn" class="matrix-button" title="Enter the Matrix">Matrix</button>
+        <button id="motivation-btn" title="Toggle accessibility motivation overlay">💫 Motivation</button>
+        <button id="fullscreen-btn" title="Toggle fullscreen mode">Fullscreen</button>
+        <button id="shortcuts-btn" title="View keyboard shortcuts">Shortcuts</button>
+    </div>
+    
+    <button class="hide-controls-btn" id="toggle-controls" title="Hide/show controls">▼</button>
+    
+    <!-- Motivation Overlay -->
+    <div id="motivation-overlay" class="motivation-overlay hidden">
+        <div class="motivation-content">
+            <div class="motivation-header">
+                <span class="motivation-icon">💫</span>
+                <span class="motivation-title">Accessibility Superpowers</span>
+            </div>
+            <div class="motivation-quote" id="motivation-quote">
+                "Transform disabilities into superpowers - One foot in front of the other"
+            </div>
+            <div class="motivation-source" id="motivation-source">
+                — David Keane, Applied Psychologist & Mountaineer
+            </div>
+            <div class="motivation-ecosystem">
+                <span class="ecosystem-support">🏢 70+ Living Personalities Supporting You</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ==========================================
+        // CONFIGURATION VARIABLES
+        // ==========================================
+        let currentIndex = 0;        // Keeps track of which image we're on
+        let timer;                   // Timer for changing backgrounds
+        let intervalSeconds = 5;     // How many seconds between image changes
+        let isPaused = false;        // Is the slideshow paused?
+        let currentTransitionEffect = 'fade';  // Current transition effect
+        let transitionInProgress = false;  // Prevent overlapping transitions
+        let keyboardInfoVisible = false; // Is the shortcuts panel visible?
+        let controlsVisible = true;  // Are the control buttons visible?
+        let isFullscreen = false;    // Is the browser in fullscreen mode?
+        let controlsTimeout;         // Timer for auto-hiding controls
+        let cursorTimeout;           // Timer for auto-hiding cursor
+        let lastActivityTime = Date.now(); // When was the last user activity?
+        let wasSavingImage = false;  // Used to track if we paused for saving an image
+        let isMatrixMode = false;    // Is the matrix effect active?
+        let matrixTransitionTimer;   // Timer for matrix transition phases
+        let matrixAnimationId;       // Animation frame ID for matrix effect
+
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // ==========================================
+            // DOM ELEMENT REFERENCES
+            // ==========================================
+            // These connect our JavaScript to the HTML elements
+            const background = document.getElementById('background');
+            const nextBackground = document.getElementById('next-background');
+            const matrixBackground = document.getElementById('matrixBackground');
+            const scanline = document.querySelector('.scanline');
+            const toggleBtn = document.getElementById('toggle-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const intervalInput = document.getElementById('interval');
+            // Duration control removed for simplicity
+            const transitionEffectSelect = document.getElementById('transition-effect');
+            const saveBtn = document.getElementById('save-btn');
+            const matrixBtn = document.getElementById('matrix-btn');
+            const motivationBtn = document.getElementById('motivation-btn');
+            const motivationOverlay = document.getElementById('motivation-overlay');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const shortcutsBtn = document.getElementById('shortcuts-btn');
+            const controls = document.getElementById('controls');
+            const toggleControlsBtn = document.getElementById('toggle-controls');
+            const clock = document.getElementById('clock');
+            const keyboardInfo = document.getElementById('keyboard-info');
+            
+            // ==========================================
+            // INITIALIZATION FUNCTION
+            // ==========================================
+            // This function sets everything up when the page loads
+            function init() {
+                // Load preferences
+                intervalInput.value = intervalSeconds;
+                transitionEffectSelect.value = currentTransitionEffect;
+                
+                // Start clock
+                updateClock();
+                setInterval(updateClock, 1000);
+                
+                // Load initial image immediately - no transition needed
+                loadInitialImage();
+                
+                // Start timer after initial image loads and everything is stable
+                setTimeout(() => {
+                    startTimer();
+                    showNotification('🎯 Slideshow active - smooth transitions enabled!');
+                }, 2000);
+                
+                // Setup Matrix canvas
+                setupMatrixCanvas();
+                
+                // ==========================================
+                // EVENT LISTENERS
+                // ==========================================
+                // Button click handlers
+                toggleBtn.addEventListener('click', togglePause);
+                prevBtn.addEventListener('click', showPreviousImage);
+                nextBtn.addEventListener('click', showNextImage);
+                intervalInput.addEventListener('change', changeInterval);
+                document.getElementById('transition-effect').addEventListener('change', changeTransitionEffect);
+                saveBtn.addEventListener('click', saveCurrentImage);
+                matrixBtn.addEventListener('click', toggleMatrixMode);
+                motivationBtn.addEventListener('click', toggleMotivationOverlay);
+                fullscreenBtn.addEventListener('click', toggleFullscreen);
+                shortcutsBtn.addEventListener('click', toggleShortcutsInfo);
+                toggleControlsBtn.addEventListener('click', toggleControls);
+                
+                // Activity tracking for auto-hide features
+                document.addEventListener('mousemove', trackActivity);
+                document.addEventListener('click', trackActivity);
+                document.addEventListener('keydown', trackActivity);
+                
+                // Start the auto-hide timers
+                startAutoHideTimer();
+                startCursorHideTimer();
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', handleKeyPress);
+                
+                // Fullscreen change detection
+                document.addEventListener('fullscreenchange', updateFullscreenButton);
+                
+                // All initialization complete
+                console.log('🎯 Slideshow initialization completed successfully!');
+            }
+            
+            // ==========================================
+            // MATRIX EFFECT FUNCTIONS
+            // ==========================================
+            
+            // Setup the canvas for matrix digital rain
+            // Replace the setupMatrixCanvas function with this improved version:
+            function setupMatrixCanvas() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                matrixBackground.appendChild(canvas);
+                
+                // Resize function for responsive canvas
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+                
+                // Matrix drawing function
+                function drawMatrix() {
+                    // Semi-transparent black overlay creates fading trail effect
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Green text for the matrix characters
+                    ctx.fillStyle = '#0F0';
+                    ctx.font = '16px monospace';
+                    
+                    // Draw random characters at random positions
+                    for (let i = 0; i < canvas.width / 20; i++) {
+                        const text = String.fromCharCode(33 + Math.floor(Math.random() * 94)); // More visible characters
+                        const x = i * 20;
+                        const y = Math.random() * canvas.height;
+                        ctx.fillText(text, x, y);
+                    }
+                    
+                    // Continue animation loop if still in matrix mode
+                    if (isMatrixMode || document.body.classList.contains('matrix-transition')) {
+                        matrixAnimationId = requestAnimationFrame(drawMatrix);
+                    }
+                }
+                
+                // Handle window resize
+                window.addEventListener('resize', resizeCanvas);
+                
+                // Initialize canvas size
+                resizeCanvas();
+                
+                // Store the draw function for external access
+                matrixBackground.drawMatrix = drawMatrix;
+            }
+
+            // Now, modify the toggleMatrixMode function to fix the animation flow:
+            function toggleMatrixMode() {
+                // Already transitioning - ignore additional clicks
+                if (document.body.classList.contains('matrix-transition')) {
+                    return;
+                }
+                
+                if (!isMatrixMode) {
+                    // ENTER MATRIX MODE
+                    
+                    // Pause the slideshow during matrix mode
+                    if (!isPaused) {
+                        clearInterval(timer);
+                    }
+                    
+                    // Update button text
+                    matrixBtn.textContent = 'Leave Matrix';
+                    
+                    // Show notification
+                    showNotification('Entering the Matrix...');
+                    
+                    // PHASE 1: Show scanline effect with slideshow still visible
+                    document.body.classList.add('matrix-transition');
+                    scanline.style.display = 'block';
+                    
+                    // Make sure matrix canvas is ready
+                    matrixBackground.style.display = 'block';
+                    
+                    // Start matrix animation immediately - key change!
+                    matrixAnimationId = requestAnimationFrame(matrixBackground.drawMatrix);
+                    
+                    // PHASE 2: After 2 seconds, fade in matrix and fade out slideshow
+                    matrixTransitionTimer = setTimeout(() => {
+                        // PHASE 3: Complete transition
+                        document.body.classList.remove('matrix-transition');
+                        document.body.classList.add('matrix-mode');
+                        isMatrixMode = true;
+                    }, 2000);
+                    
+                } else {
+                    // EXIT MATRIX MODE
+                    
+                    // Update button text
+                    matrixBtn.textContent = 'Matrix';
+                    
+                    // Show notification
+                    showNotification('Exiting the Matrix...');
+                    
+                    // PHASE 1: Start transition out
+                    document.body.classList.remove('matrix-mode');
+                    document.body.classList.add('matrix-transition');
+                    
+                    // Set flag immediately to stop animation in next frame
+                    isMatrixMode = false;
+                    
+                    // PHASE 2: After animation stops, remove all matrix effects
+                    matrixTransitionTimer = setTimeout(() => {
+                        document.body.classList.remove('matrix-transition');
+                        
+                        // Stop the matrix animation explicitly
+                        cancelAnimationFrame(matrixAnimationId);
+                        
+                        // Hide matrix elements after transition
+                        matrixBackground.style.display = 'none';
+                        scanline.style.display = 'none';
+                        
+                        // Resume slideshow if it was playing before
+                        if (!isPaused) {
+                            startTimer();
+                        }
+                    }, 2000);
+                }
+            }
+            
+            // ==========================================
+            // ACTIVITY TRACKING FUNCTIONS
+            // ==========================================
+            
+            // This function is called whenever the user moves the mouse,
+            // clicks, or presses a key. It's used to detect when the user
+            // is actively using the page.
+            function trackActivity() {
+                // Update the time of last activity
+                lastActivityTime = Date.now();
+                
+                // If controls are hidden, show them
+                if (!controlsVisible) {
+                    toggleControls();
+                }
+                
+                // Show the header if it was hidden
+                const header = document.getElementById('screensaver-header');
+                header.classList.remove('auto-hidden');
+                
+                // Show the cursor if it was hidden
+                document.body.classList.remove('hide-cursor');
+                
+                // Reset both auto-hide timers
+                startAutoHideTimer();
+                startCursorHideTimer();
+            }
+            
+            // This function starts the timer that will hide the controls
+            // after 5 seconds of inactivity
+            function startAutoHideTimer() {
+                // Clear any existing timeout to avoid multiple timers
+                clearTimeout(controlsTimeout);
+                
+                // Set timeout to hide controls after 5 seconds of inactivity
+                controlsTimeout = setTimeout(() => {
+                    // Only hide if visible and it's been 5+ seconds since last activity
+                    if (controlsVisible && Date.now() - lastActivityTime >= 5000) {
+                        toggleControls();
+                        // Also hide header when controls hide
+                        const header = document.getElementById('screensaver-header');
+                        header.classList.add('auto-hidden');
+                    }
+                }, 5000);
+            }
+            
+            // This function starts the timer that will hide the cursor
+            // after 3 seconds of inactivity
+            function startCursorHideTimer() {
+                // Clear any existing timeout
+                clearTimeout(cursorTimeout);
+                
+                // Set timeout to hide cursor after 3 seconds
+                cursorTimeout = setTimeout(() => {
+                    // Only hide if it's been 3+ seconds since last activity
+                    if (Date.now() - lastActivityTime >= 3000) {
+                        document.body.classList.add('hide-cursor');
+                    }
+                }, 3000);
+            }
+            
+            // ==========================================
+            // CLOCK FUNCTION
+            // ==========================================
+            
+            // Updates the clock display with the current time
+            function updateClock() {
+                const now = new Date();
+                clock.textContent = now.toLocaleTimeString();
+            }
+            
+            // ==========================================
+            // BACKGROUND CHANGE FUNCTIONS
+            // ==========================================
+            
+            // Load the very first image without transition
+            function loadInitialImage() {
+                const initialImageUrl = `https://picsum.photos/1920/1080?random=${Date.now()}`;
+                background.style.backgroundImage = `url(${initialImageUrl})`;
+                background.style.opacity = 1;
+                
+                // Show notification that slideshow is ready
+                showNotification('🌟 Slideshow ready - enjoy beautiful transitions!');
+            }
+            
+            // Starts or restarts the timer for automatic background changes
+            function startTimer() {
+                // Clear any existing interval to avoid multiple timers
+                clearInterval(timer);
+                
+                // Only start a new timer if not paused and not in matrix mode
+                if (!isPaused && !isMatrixMode) {
+                    timer = setInterval(changeBackground, intervalSeconds * 1000);
+                }
+            }
+            
+            // Changes the background image with a smooth transition
+            function changeBackground() {
+                // Don't change if in matrix mode
+                if (isMatrixMode) return;
+                
+                // CRITICAL FIX: Don't start new transition if one is in progress
+                if (transitionInProgress) {
+                    console.log('⚠️ Transition in progress - skipping image change');
+                    return;
+                }
+                
+                // Set transition lock
+                transitionInProgress = true;
+                
+                // Increment image counter for new random image
+                currentIndex++;
+                
+                // Create the URL for the next image
+                const nextImageUrl = `https://picsum.photos/1920/1080?random=${currentIndex}&t=${Date.now()}`;
+                
+                // Create an Image object to preload the image FIRST
+                const img = new Image();
+                img.src = nextImageUrl;
+                
+                // Add timeout for slow loading images
+                const loadTimeout = setTimeout(() => {
+                    console.log('⚠️ Image loading timeout - using fallback');
+                    transitionInProgress = false;
+                }, 5000);
+                
+                // Once the image is loaded, show it
+                img.onload = () => {
+                    clearTimeout(loadTimeout);
+                    
+                    // Set the next background div to show this image AFTER it's loaded
+                    nextBackground.style.backgroundImage = `url(${nextImageUrl})`;
+                    
+                    // Apply the transition effect
+                    applyTransitionEffect();
+                    
+                    // Release transition lock after transition completes
+                    const optimalDuration = Math.min(intervalSeconds * 0.4, 2);
+                    setTimeout(() => {
+                        transitionInProgress = false;
+                        console.log('✅ Transition completed - ready for next image');
+                    }, optimalDuration * 1000 + 200); // Slightly longer buffer
+                };
+                
+                // Handle image loading errors
+                img.onerror = () => {
+                    clearTimeout(loadTimeout);
+                    console.log('❌ Image failed to load - trying different image');
+                    transitionInProgress = false;
+                    // Retry with different random seed
+                    setTimeout(() => changeBackground(), 500);
+                };
+            }
+            
+            // ==========================================
+            // NAVIGATION FUNCTIONS
+            // ==========================================
+            
+            // Shows the previous image in the sequence
+            function showPreviousImage() {
+                // Only work in slideshow mode
+                if (isMatrixMode) return;
+                
+                // Go back 2 images (since we increment in changeBackground)
+                currentIndex = Math.max(0, currentIndex - 2);
+                changeBackground();
+                startTimer();
+            }
+            
+            // Shows the next image in the sequence
+            function showNextImage() {
+                // Only work in slideshow mode
+                if (isMatrixMode) return;
+                
+                changeBackground();
+                startTimer();
+            }
+            
+            // Toggles between pause and play states
+            function togglePause() {
+                // Only work in slideshow mode
+                if (isMatrixMode) return;
+                
+                isPaused = !isPaused;
+                toggleBtn.textContent = isPaused ? 'Resume' : 'Pause';
+                
+                if (isPaused) {
+                    // Stop the timer when paused
+                    clearInterval(timer);
+                } else {
+                    // Start a new timer when resumed
+                    startTimer();
+                }
+            }
+            
+            // ==========================================
+            // SETTINGS FUNCTIONS
+            // ==========================================
+            
+            // Changes the interval between image changes
+            function changeInterval() {
+                // Parse the input value as an integer
+                intervalSeconds = parseInt(intervalInput.value) || 5;
+                
+                // Enforce limits (1-60 seconds)
+                if (intervalSeconds < 1) intervalSeconds = 1;
+                if (intervalSeconds > 60) intervalSeconds = 60;
+                intervalInput.value = intervalSeconds;
+                
+                // Restart the timer with new interval
+                startTimer();
+                
+                // Calculate new optimal duration
+                const optimalDuration = Math.min(intervalSeconds * 0.4, 2);
+                console.log(`✅ Interval: ${intervalSeconds}s, Auto-duration: ${optimalDuration}s`);
+                showNotification(`Interval: ${intervalSeconds}s (auto-optimized transitions)`);
+            }
+            
+            // ==========================================
+            // AWESOME TRANSITION EFFECTS SYSTEM
+            // ==========================================
+
+            function applyTransitionEffect() {
+                const backgroundElement = document.getElementById('background');
+                const nextBackgroundElement = document.getElementById('next-background');
+                
+                // SMART AUTOMATIC DURATION: Always optimal for smooth transitions
+                const optimalDuration = Math.min(intervalSeconds * 0.4, 2); // 40% of interval, max 2s
+                
+                // Set CSS custom property for transition duration
+                document.documentElement.style.setProperty('--transition-time', `${optimalDuration}s`);
+                
+                let effect = currentTransitionEffect;
+                
+                // Random effect selection
+                if (effect === 'random') {
+                    const effects = ['fade', 'slideLeft', 'slideRight', 'slideUp', 'slideDown', 
+                                   'zoomIn', 'zoomOut', 'rotateLeft', 'rotateRight', 
+                                   'flipHorizontal', 'flipVertical', 'diagonalWipe', 'circleReveal', 
+                                   'pixelate', 'blur'];
+                    effect = effects[Math.floor(Math.random() * effects.length)];
+                    console.log(`🎲 Random transition: ${effect}`);
+                }
+                
+                // Clear any existing classes
+                backgroundElement.className = '';
+                nextBackgroundElement.className = '';
+                
+                // Reset positions and transformations
+                backgroundElement.style.transform = '';
+                nextBackgroundElement.style.transform = '';
+                backgroundElement.style.filter = '';
+                nextBackgroundElement.style.filter = '';
+                backgroundElement.style.clipPath = '';
+                nextBackgroundElement.style.clipPath = '';
+                
+                // Set up for transition
+                nextBackgroundElement.style.zIndex = -1;
+                backgroundElement.style.zIndex = -2;
+                
+                switch(effect) {
+                    case 'fade':
+                        // Ensure both elements are properly positioned
+                        nextBackgroundElement.style.opacity = 0;
+                        nextBackgroundElement.style.zIndex = -1; // Bring to front
+                        backgroundElement.style.zIndex = -2; // Send to back
+                        
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `opacity ${optimalDuration}s ease-in-out`;
+                            nextBackgroundElement.style.opacity = 1;
+                        });
+                        break;
+                        
+                    case 'slideLeft':
+                        nextBackgroundElement.style.transform = 'translateX(100%)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'translateX(0)';
+                            backgroundElement.style.transform = 'translateX(-100%)';
+                        });
+                        break;
+                        
+                    case 'slideRight':
+                        nextBackgroundElement.style.transform = 'translateX(-100%)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'translateX(0)';
+                            backgroundElement.style.transform = 'translateX(100%)';
+                        });
+                        break;
+                        
+                    case 'slideUp':
+                        nextBackgroundElement.style.transform = 'translateY(100%)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'translateY(0)';
+                            backgroundElement.style.transform = 'translateY(-100%)';
+                        });
+                        break;
+                        
+                    case 'slideDown':
+                        nextBackgroundElement.style.transform = 'translateY(-100%)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'translateY(0)';
+                            backgroundElement.style.transform = 'translateY(100%)';
+                        });
+                        break;
+                        
+                    case 'zoomIn':
+                        nextBackgroundElement.style.transform = 'scale(0.5)';
+                        nextBackgroundElement.style.opacity = 0;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'scale(1)';
+                            nextBackgroundElement.style.opacity = 1;
+                            backgroundElement.style.transform = 'scale(1.5)';
+                            backgroundElement.style.opacity = 0;
+                        });
+                        break;
+                        
+                    case 'zoomOut':
+                        nextBackgroundElement.style.transform = 'scale(1.5)';
+                        nextBackgroundElement.style.opacity = 0;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'scale(1)';
+                            nextBackgroundElement.style.opacity = 1;
+                            backgroundElement.style.transform = 'scale(0.5)';
+                            backgroundElement.style.opacity = 0;
+                        });
+                        break;
+                        
+                    case 'rotateLeft':
+                        nextBackgroundElement.style.transform = 'rotate(90deg) scale(0.8)';
+                        nextBackgroundElement.style.opacity = 0;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'rotate(0deg) scale(1)';
+                            nextBackgroundElement.style.opacity = 1;
+                            backgroundElement.style.transform = 'rotate(-90deg) scale(0.8)';
+                            backgroundElement.style.opacity = 0;
+                        });
+                        break;
+                        
+                    case 'rotateRight':
+                        nextBackgroundElement.style.transform = 'rotate(-90deg) scale(0.8)';
+                        nextBackgroundElement.style.opacity = 0;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'rotate(0deg) scale(1)';
+                            nextBackgroundElement.style.opacity = 1;
+                            backgroundElement.style.transform = 'rotate(90deg) scale(0.8)';
+                            backgroundElement.style.opacity = 0;
+                        });
+                        break;
+                        
+                    case 'flipHorizontal':
+                        nextBackgroundElement.style.transform = 'scaleX(0) rotateY(90deg)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'scaleX(1) rotateY(0deg)';
+                            backgroundElement.style.transform = 'scaleX(0) rotateY(-90deg)';
+                        });
+                        break;
+                        
+                    case 'flipVertical':
+                        nextBackgroundElement.style.transform = 'scaleY(0) rotateX(90deg)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `transform ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.transform = 'scaleY(1) rotateX(0deg)';
+                            backgroundElement.style.transform = 'scaleY(0) rotateX(-90deg)';
+                        });
+                        break;
+                        
+                    case 'diagonalWipe':
+                        nextBackgroundElement.style.clipPath = 'polygon(0 100%, 0 100%, 0 100%)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `clip-path ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)';
+                        });
+                        break;
+                        
+                    case 'circleReveal':
+                        nextBackgroundElement.style.clipPath = 'circle(0% at center)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `clip-path ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.clipPath = 'circle(100% at center)';
+                        });
+                        break;
+                        
+                    case 'pixelate':
+                        nextBackgroundElement.style.filter = 'blur(20px) brightness(0.5)';
+                        nextBackgroundElement.style.transform = 'scale(0.9)';
+                        nextBackgroundElement.style.opacity = 1;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.filter = 'blur(0px) brightness(1)';
+                            nextBackgroundElement.style.transform = 'scale(1)';
+                            backgroundElement.style.filter = 'blur(20px) brightness(0.5)';
+                            backgroundElement.style.transform = 'scale(1.1)';
+                        });
+                        break;
+                        
+                    case 'blur':
+                        nextBackgroundElement.style.filter = 'blur(50px)';
+                        nextBackgroundElement.style.opacity = 0;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            backgroundElement.style.transition = `all ${optimalDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            nextBackgroundElement.style.filter = 'blur(0px)';
+                            nextBackgroundElement.style.opacity = 1;
+                            backgroundElement.style.filter = 'blur(50px)';
+                            backgroundElement.style.opacity = 0;
+                        });
+                        break;
+                        
+                    default:
+                        // Fallback to fade
+                        nextBackgroundElement.style.opacity = 0;
+                        requestAnimationFrame(() => {
+                            nextBackgroundElement.style.transition = `opacity ${optimalDuration}s ease-in-out`;
+                            nextBackgroundElement.style.opacity = 1;
+                        });
+                }
+                
+                // Clean up after transition - SEAMLESS swap to prevent black screens
+                setTimeout(() => {
+                    // STEP 1: Ensure the visible element stays visible during swap
+                    const currentBgImage = backgroundElement.style.backgroundImage;
+                    const nextBgImage = nextBackgroundElement.style.backgroundImage;
+                    
+                    // STEP 2: Make nextBackground the new main background (it's already visible)
+                    backgroundElement.style.backgroundImage = nextBgImage;
+                    backgroundElement.style.opacity = 1; // Ensure it stays visible
+                    backgroundElement.style.zIndex = -1;
+                    
+                    // STEP 3: Hide and reset the old background for next transition
+                    nextBackgroundElement.style.backgroundImage = ''; // Clear old image
+                    nextBackgroundElement.style.opacity = 0;
+                    nextBackgroundElement.style.zIndex = -2;
+                    
+                    // STEP 4: Reset all transition effects but KEEP the main background visible
+                    backgroundElement.style.transition = 'none';
+                    backgroundElement.style.transform = 'none';
+                    backgroundElement.style.filter = 'none';
+                    backgroundElement.style.clipPath = 'none';
+                    
+                    nextBackgroundElement.style.transition = 'none';
+                    nextBackgroundElement.style.transform = 'none';
+                    nextBackgroundElement.style.filter = 'none';
+                    nextBackgroundElement.style.clipPath = 'none';
+                    
+                    console.log('🔄 SEAMLESS transition cleanup completed - no black screen!');
+                }, optimalDuration * 1000);
+                
+                console.log(`🌟 Applied ${effect} transition`);
+            }
+
+            function changeTransitionEffect() {
+                currentTransitionEffect = document.getElementById('transition-effect').value;
+                console.log(`🎭 Transition effect changed to: ${currentTransitionEffect}`);
+                showNotification(`Transition: ${currentTransitionEffect.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+            }
+
+            // Duration control removed - now uses smart automatic timing
+            
+            // Removed old toggle fade function - now using effect selector
+            
+            // ==========================================
+            // SAVE IMAGE FUNCTION
+            // ==========================================
+            
+            // Saves the current background image
+            function saveCurrentImage() {
+                // Only work in slideshow mode
+                if (isMatrixMode) return;
+                
+                // Pause slideshow while saving (if not already paused)
+                if (!isPaused) {
+                    wasSavingImage = true;
+                    togglePause(); // Pause the slideshow
+                }
+                
+                // Get the current image URL from the background style
+                const imageStyle = background.style.backgroundImage;
+                const imageUrl = imageStyle.replace(/^url\(['"](.+)['"]\)$/, '$1');
+                
+                // Create a link element to download the image
+                const a = document.createElement('a');
+                a.href = imageUrl;
+                a.download = `background-image-${Date.now()}.jpg`;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                
+                // Trigger the download
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Show a confirmation notification
+                showNotification('Image saved successfully');
+                
+                // Resume the slideshow if it was paused for saving
+                if (wasSavingImage) {
+                    wasSavingImage = false;
+                    togglePause(); // Resume the slideshow
+                }
+            }
+            
+            // ==========================================
+            // FULL SCREEN MODE LAUNCHER
+            // ==========================================
+            
+            function launchFullScreenMode() {
+                showNotification('🚀 Opening new slideshow window...');
+                
+                // Get the current slideshow URL
+                const currentUrl = window.location.href;
+                
+                // Simple, reliable method: Open new window (like the old VLC button)
+                try {
+                    const newWindow = window.open(
+                        currentUrl, 
+                        '_blank',
+                        'width=1920,height=1080,resizable=yes,scrollbars=no'
+                    );
+                    
+                    if (newWindow) {
+                        showNotification('🎬 New slideshow window opened! Use F11 for fullscreen.');
+                        console.log('✅ New slideshow window opened successfully');
+                    } else {
+                        showNotification('⚠️ Please allow pop-ups for this site to open new window.');
+                        console.log('❌ New window blocked - likely popup blocker');
+                    }
+                } catch (e) {
+                    console.error('Error opening new window:', e);
+                    showNotification('❌ Could not open new window. Try F11 for fullscreen.');
+                }
+            }
+            
+            // CRITICAL: Make function globally accessible for onclick
+            window.launchFullScreenMode = launchFullScreenMode;
+            
+            // ==========================================
+            // FULLSCREEN & UI FUNCTIONS
+            // ==========================================
+            
+            // Toggles fullscreen mode
+            function toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    // Enter fullscreen mode
+                    if (document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen()
+                            .then(() => {
+                                isFullscreen = true;
+                                fullscreenBtn.textContent = 'Exit Fullscreen';
+                            })
+                            .catch(err => {
+                                showNotification(`Error: ${err.message}`);
+                            });
+                    }
+                } else {
+                    // Exit fullscreen mode
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen()
+                            .then(() => {
+                                isFullscreen = false;
+                                fullscreenBtn.textContent = 'Fullscreen';
+                            })
+                            .catch(err => {
+                                showNotification(`Error: ${err.message}`);
+                            });
+                    }
+                }
+            }
+            
+            // Updates fullscreen button text when browser fullscreen state changes
+            function updateFullscreenButton() {
+                isFullscreen = !!document.fullscreenElement;
+                fullscreenBtn.textContent = isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
+            }
+            
+            // Toggles the controls panel visibility
+            function toggleControls() {
+                controlsVisible = !controlsVisible;
+                
+                if (controlsVisible) {
+                    controls.classList.remove('hidden');
+                    toggleControlsBtn.textContent = '▼';
+                    toggleControlsBtn.title = 'Hide controls';
+                } else {
+                    controls.classList.add('hidden');
+                    toggleControlsBtn.textContent = '▲';
+                    toggleControlsBtn.title = 'Show controls';
+                }
+            }
+            
+            // Shows or hides the keyboard shortcuts info panel
+            function toggleShortcutsInfo() {
+                keyboardInfoVisible = !keyboardInfoVisible;
+                
+                if (keyboardInfoVisible) {
+                    keyboardInfo.classList.add('visible');
+                } else {
+                    keyboardInfo.classList.remove('visible');
+                }
+            }
+            
+            // Toggle motivation overlay with accessibility inspiration
+            function toggleMotivationOverlay() {
+                const overlay = document.getElementById('motivation-overlay');
+                const isHidden = overlay.classList.contains('hidden');
+                
+                if (isHidden) {
+                    // Show motivation overlay
+                    showRandomMotivation();
+                    overlay.classList.remove('hidden');
+                    showNotification('💫 Accessibility motivation activated!');
+                    console.log('💫 Motivation overlay shown - superpowers activated!');
+                    
+                    // Auto-hide after 10 seconds
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                        showNotification('💫 Motivation continues in your heart!');
+                    }, 10000);
+                    
+                } else {
+                    // Hide motivation overlay
+                    overlay.classList.add('hidden');
+                    showNotification('💫 Motivation overlay hidden');
+                }
+            }
+            
+            function showRandomMotivation() {
+                const quotes = [
+                    {
+                        quote: "One foot in front of the other - every step builds superpowers",
+                        source: "David Keane, Applied Psychologist & Mountaineer"
+                    },
+                    {
+                        quote: "🧠 ADHD hyperfocus is not a deficit - it's a superpower",
+                        source: "RangerOS Accessibility System"
+                    },
+                    {
+                        quote: "🎯 Autism systematic thinking builds the best systems",
+                        source: "Professor Bridget, Education Manager"
+                    },
+                    {
+                        quote: "🎨 Dyslexia pattern recognition sees what others miss",
+                        source: "Accessibility Innovation Research"
+                    },
+                    {
+                        quote: "👥 70+ personalities believe in your success - you're never alone",
+                        source: "Complete Living Ecosystem"
+                    },
+                    {
+                        quote: "☘️ Sláinte to your success! The pub celebrates every victory!",
+                        source: "O'Keane's Digital Pub Community"
+                    },
+                    {
+                        quote: "🎮 Every level completed is a skill mastered - evidence of superpowers",
+                        source: "Paddy's Gaming Floor"
+                    },
+                    {
+                        quote: "📚 Every Jupyter notebook session builds analytical superpowers",
+                        source: "Professor Bridget's Education Floor"
+                    },
+                    {
+                        quote: "💻 Have you tried believing in yourself? Because you should - you're brilliant",
+                        source: "Dave's IT Security Basement"
+                    },
+                    {
+                        quote: "🪖 I've seen impossible situations overcome - your challenges are conquerable",
+                        source: "IR's Security Overwatch"
+                    }
+                ];
+                
+                const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+                
+                document.getElementById('motivation-quote').textContent = `"${randomQuote.quote}"`;
+                document.getElementById('motivation-source').textContent = `— ${randomQuote.source}`;
+                
+                console.log(`💫 Random motivation: ${randomQuote.quote}`);
+            }
+            
+            // Displays a notification message that fades away
+            function showNotification(message) {
+                // Create notification element if it doesn't exist
+                let notification = document.querySelector('.notification');
+                if (!notification) {
+                    notification = document.createElement('div');
+                    notification.className = 'notification';
+                    document.body.appendChild(notification);
+                }
+                
+                // Set notification text
+                notification.textContent = message;
+                
+                // Clear any existing timeout
+                if (notification.timeoutId) {
+                    clearTimeout(notification.timeoutId);
+                }
+                
+                // Show notification with animation
+                notification.style.opacity = 1;
+                notification.style.transform = 'translateX(-50%) translateY(0)';
+                
+                // Auto-hide after 3 seconds
+                notification.timeoutId = setTimeout(() => {
+                    notification.style.opacity = 0;
+                    notification.style.transform = 'translateX(-50%) translateY(-20px)';
+                }, 3000);
+            }
+            
+            // ==========================================
+            // KEYBOARD SHORTCUTS
+            // ==========================================
+            
+            // Handles keyboard inputs for controlling the slideshow
+            function handleKeyPress(event) {
+                // Handle different key presses
+                switch (event.key) {
+                    case ' ': // Space bar - toggle pause
+                        if (!isMatrixMode) {
+                            togglePause();
+                        }
+                        break;
+                        
+                    case 'ArrowLeft': // Left arrow - previous image
+                        if (!isMatrixMode) {
+                            showPreviousImage();
+                        }
+                        break;
+                        
+                    case 'ArrowRight': // Right arrow - next image
+                        if (!isMatrixMode) {
+                            showNextImage();
+                        }
+                        break;
+                        
+                    case 'f': // F - fullscreen (alternative to F11)
+                        toggleFullscreen();
+                        break;
+                        
+                    case 'h': // H - hide/show controls
+                        toggleControls();
+                        break;
+                        
+                    case 'k': // K - show/hide keyboard shortcuts
+                        toggleShortcutsInfo();
+                        break;
+                        
+                    case 's': // S - save current image
+                        if (!isMatrixMode) {
+                            saveCurrentImage();
+                        }
+                        break;
+                        
+                    case 'm': // M - toggle matrix mode
+                        toggleMatrixMode();
+                        break;
+                        
+                    case 'i': // I - inspiration/motivation overlay
+                        toggleMotivationOverlay();
+                        break;
+                }
+            }
+            
+            // Initialize everything
+            init();
+        });
+    </script>
+</body>
+</html>

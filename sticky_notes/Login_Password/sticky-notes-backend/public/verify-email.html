@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email | Secure Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles/account.css"> <style>
+        /* Add specific styles if needed */
+        body { overflow: auto; min-height: 100vh; padding: 2rem; }
+        .message-box { padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; font-size: 1rem; text-align: center; }
+        .message-box.success { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .message-box.error { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .message-box.loading { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .spinner { display: inline-block; width: 1.5rem; height: 1.5rem; border: 3px solid rgba(59, 130, 246, 0.3); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; margin-bottom: 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center">
+
+    <div class="auth-container w-full max-w-md"> <div class="auth-box text-center">
+            <h1 class="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Email Verification</h1>
+
+            <div id="verificationStatus" class="message-box loading">
+                 <div class="spinner mx-auto"></div>
+                 <p>Verifying your email address...</p>
+            </div>
+
+            <div id="loginLinkContainer" class="mt-6 text-sm text-gray-400" style="display: none;"> <p>You can now <a href="login_page.html" class="font-medium text-blue-500 hover:text-blue-400">Sign in</a> to your account.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/verify.js"></script>
+
+    <!-- RangerBot AI Assistant Widget -->
+    <script src="/04-ai-integration/rangerbot_widget_cool.js"></script>
+    <!-- End RangerBot Integration -->
+</body>
+</html>

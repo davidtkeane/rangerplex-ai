@@ -1,0 +1,154 @@
+/* ========== DARK MODE STYLES ========== */
+body.dark {
+    background-color: #1a1a1a;
+    color: #f8fafc;
+}
+
+/* Header */
+body.dark header {
+    background-color: #262626;
+    border-color: #333;
+}
+
+body.dark header h1 {
+    color: #f8fafc;
+}
+
+body.dark #searchBar {
+    background-color: #262626;
+    border-color: #333;
+}
+
+body.dark #searchInput {
+    background-color: #333;
+    border-color: #444;
+    color: #f8fafc;
+}
+
+/* Controls */
+body.dark h2 {
+    color: #f8fafc;
+}
+
+body.dark #noteCount {
+    background-color: #333;
+    color: #d1d5db;
+}
+
+body.dark #sortSelect {
+    background-color: #333;
+    border-color: #444;
+    color: #f8fafc;
+}
+
+body.dark #filterDropdown > div {
+    background-color: #262626;
+    border-color: #333;
+}
+
+body.dark .color-filter-btn[data-color="all"] {
+    background-color: #333;
+}
+
+/* Buttons */
+body.dark .btn-success {
+    background-color: #065f46;
+    color: #d1fae5;
+}
+
+body.dark .btn-success:hover {
+    background-color: #047857;
+}
+
+body.dark .btn-info {
+    background-color: #0369a1;
+    color: #bae6fd;
+}
+
+body.dark .btn-info:hover {
+    background-color: #0284c7;
+}
+
+body.dark .btn-purple {
+    background-color: #6d28d9;
+    color: #e9d5ff;
+}
+
+body.dark .btn-purple:hover {
+    background-color: #7c3aed;
+}
+
+body.dark .btn-danger {
+    background-color: #991b1b;
+    color: #fee2e2;
+}
+
+body.dark .btn-danger:hover {
+    background-color: #b91c1c;
+}
+
+/* Footer */
+body.dark footer {
+    background-color: #262626;
+    border-color: #333;
+}
+
+body.dark footer span {
+    color: #d1d5db;
+}
+
+/* Modal */
+body.dark .modal-content {
+    background-color: #262626;
+    color: #f8fafc;
+}
+
+body.dark .modal-content h3 {
+    color: #f8fafc;
+}
+
+body.dark .modal-content .border-b {
+    border-color: #333;
+}
+
+body.dark .settings-title,
+body.dark .font-medium.text-gray-700 {
+    color: #e5e7eb;
+}
+
+body.dark .text-gray-600,
+body.dark .text-gray-700 {
+    color: #9ca3af;
+}
+
+body.dark .text-gray-800 {
+    color: #e5e7eb;
+}
+
+body.dark input[type="text"],
+body.dark input[type="datetime-local"],
+body.dark .editor-content {
+    background-color: #333;
+    border-color: #444;
+    color: #f8fafc;
+}
+
+body.dark #viewNoteContent {
+    background-color: #333;
+}
+
+body.dark .border-dashed {
+    border-color: #444;
+}
+
+body.dark .profile-upload {
+    background-color: #333;
+    border-color: #444;
+}
+
+/* Empty State */
+body.dark .text-gray-300,
+body.dark .text-gray-400,
+body.dark .text-gray-500 {
+    color: #9ca3af;
+}
