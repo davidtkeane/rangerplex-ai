@@ -372,7 +372,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         'Authorization': 'Bearer ' + localSettings.xaiApiKey
                     },
                     body: JSON.stringify({
-                        model: 'grok-beta',
+                        model: 'grok-3',
                         messages: [{ role: 'user', content: 'test' }],
                         max_tokens: 10
                     })
