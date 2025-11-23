@@ -138,6 +138,13 @@ sudo apt install nodejs npm
     npm install
     ```
 
+4.  **Configure API Keys** (Optional but recommended):
+    Copy the example environment file and add your API keys:
+    ```bash
+    cp .env-example .env
+    ```
+    Then edit `.env` with your preferred text editor and add your API keys. See [API Key Configuration](#-api-key-configuration-env-file) for details.
+
 ---
 
 ## 🎮 Running the App (Mission Start)
@@ -256,25 +263,56 @@ Go to **Settings → Data & Backup** to:
 ### 🔑 API Key Configuration (.env File)
 RangerPlex supports loading API keys from a `.env` file for convenience.
 
-**Location**: `.env` in the project root
+**Quick Setup:**
+1. Copy the example file: `cp .env-example .env`
+2. Open `.env` in any text editor
+3. Fill in your API keys (see [Getting API Keys](#-getting-api-keys) below)
+4. Restart the dev server (`npm start`)
 
-**Format** (must use `VITE_` prefix):
+**Location**: `.env` in the project root (git-ignored for security)
+
+**Format** (must use `VITE_` prefix for Vite compatibility):
 ```bash
-VITE_GEMINI_API_KEY=your_key_here
-VITE_OPENAI_API_KEY=your_key_here
-VITE_ANTHROPIC_API_KEY=your_key_here
-VITE_PERPLEXITY_API_KEY=your_key_here
-VITE_BRAVE_SEARCH_API_KEY=your_key_here
-VITE_ELEVENLABS_API_KEY=your_key_here
-VITE_HUGGINGFACE_ACCESS_TOKEN=your_token_here
-VITE_GROK_API_KEY=your_key_here
+# Google Gemini (Free tier available)
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+
+# OpenAI / ChatGPT (Paid only)
+VITE_OPENAI_API_KEY=your_openai_api_key_here
+
+# Anthropic Claude (Free tier available)
+VITE_ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Perplexity AI (Paid only)
+VITE_PERPLEXITY_API_KEY=your_perplexity_api_key_here
+
+# xAI Grok (Paid only - NO FREE TIER - Add credits first!)
+VITE_GROK_API_KEY=your_grok_api_key_here
+
+# Hugging Face (Free tier available)
+VITE_HUGGINGFACE_ACCESS_TOKEN=your_huggingface_token_here
+
+# Brave Search (Free tier available)
+VITE_BRAVE_SEARCH_API_KEY=your_brave_search_api_key_here
+
+# ElevenLabs (Text-to-Speech - Free tier: 10,000 chars/month)
+VITE_ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
 ```
 
 **How it works:**
 - Keys in `.env` are loaded as **defaults** (not saved to database)
 - Keys entered in **Settings** override `.env` values
-- Priority: Settings > .env > Empty
-- **Security**: `.env` is gitignored (never committed to version control)
+- The `.env-example` file includes comprehensive documentation with:
+  - Links to get each API key
+  - Free tier vs paid service information
+  - Vite-specific configuration notes
+  - Security best practices
+
+**Important Notes:**
+- **Vite Requirement**: All environment variables exposed to the client must start with `VITE_`
+- **Access in code**: `import.meta.env.VITE_GEMINI_API_KEY`
+- **Priority**: Settings > .env > Empty (keys in Settings override .env)
+- **Security**: Never commit your `.env` file (it's in `.gitignore`)
+- **Grok/xAI**: Requires purchasing credits first (NO FREE TIER)
 
 ---
 
