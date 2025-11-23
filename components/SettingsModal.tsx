@@ -489,6 +489,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     Auto-Hide Model Selector
                                 </label>
                                 <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                    <input type="checkbox" checked={localSettings.showScannerBeam ?? true} onChange={e => setLocalSettings({ ...localSettings, showScannerBeam: e.target.checked })} className="accent-teal-500 w-5 h-5" />
+                                    Show Header Scanner Beam
+                                </label>
+                                <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
                                     <input type="checkbox" checked={localSettings.holidayMode} onChange={e => setLocalSettings({ ...localSettings, holidayMode: e.target.checked })} className="accent-teal-500 w-5 h-5" />
                                     Holiday Mode (Snow)
                                 </label>
