@@ -35,6 +35,7 @@ const App: React.FC = () => {
   const [settingsLoaded, setSettingsLoaded] = useState(false); // Track if settings loaded from DB
   const [isLoadingFromServer, setIsLoadingFromServer] = useState(false); // Prevent save loop during server sync
   const [wasVisionModeAutoActivated, setWasVisionModeAutoActivated] = useState(false);
+  const [radioToggleSignal, setRadioToggleSignal] = useState(0); // external play/pause signal for Ranger Radio
 
   // Initialize database and sync
   useEffect(() => {
@@ -78,6 +79,12 @@ const App: React.FC = () => {
       syncService.disableSync();
     }
   }, [settings.enableCloudSync]);
+
+  // Toggle radio playback (from external controls like screensaver)
+  const toggleRadioPlayback = () => {
+    setSettings(prev => ({ ...prev, radioEnabled: true }));
+    setRadioToggleSignal(prev => prev + 1);
+  };
 
   // Auto-sync every 5 minutes
   useEffect(() => {
@@ -521,6 +528,7 @@ const App: React.FC = () => {
             setWasVisionModeAutoActivated(false); // Reset flag on close
           }}
           theme={settings.theme}
+          onToggleRadio={toggleRadioPlayback}
         />
 
         {/* Ranger Radio Player */}
@@ -529,6 +537,7 @@ const App: React.FC = () => {
             settings={settings}
             onSettingsChange={(updates) => setSettings({ ...settings, ...updates })}
             theme={settings.theme}
+            externalToggleSignal={radioToggleSignal}
           />
         )}
       </div>
