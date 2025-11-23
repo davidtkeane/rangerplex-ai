@@ -297,6 +297,7 @@ export const DEFAULT_AGENTS: AgentConfig[] = [
 ];
 
 export const DEFAULT_SAVED_PROMPTS: SavedPrompt[] = [
+  { id: '0', trigger: 'imagine', text: '/imagine ' },
   { id: '1', trigger: 'rewrite', text: 'Rewrite the following text to be more professional and concise:' },
   { id: '2', trigger: 'code', text: 'Analyze the following code for bugs and performance improvements:' },
   { id: '3', trigger: 'summarize', text: 'Summarize the following content into bullet points:' },
