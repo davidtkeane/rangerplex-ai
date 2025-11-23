@@ -48,6 +48,50 @@ It runs locally on your machine (`localhost`), stores data privately in your bro
 *   **Cinematic Audio**: Integrated **ElevenLabs** support for Hollywood-quality voice responses.
 *   **Newsroom Mode**: Auto-generates a script, thumbnail, and audio briefing on any topic.
 
+### 🖼️ Understanding Image Features (IMPORTANT!)
+
+RangerPlex has **TWO different image features** that work in completely different ways:
+
+#### 1️⃣ Image GENERATION (Creating Images)
+**Purpose**: Generate NEW images from text descriptions
+
+**How to use**:
+- Type `/imagine` followed by your description
+- Example: `/imagine a futuristic city at sunset`
+- Uses: **DALL-E 3, Imagen 3, or Flux.1** (dedicated image generators)
+- **Note**: Your selected model (Grok, Claude, etc.) is **IGNORED** for `/imagine` commands
+
+**Commands**:
+- `/imagine <description>` - Generate with default provider (DALL-E 3)
+- `/imagine_all <description>` - Generate with all providers (DALL-E 3, Imagen 3, Flux.1) for comparison
+
+---
+
+#### 2️⃣ Image ANALYSIS (Vision Models)
+**Purpose**: Analyze EXISTING images with AI
+
+**How to use**:
+1. **Select a vision model** from dropdown (look for 👁️ badge):
+   - Grok-3, Grok-2-Vision
+   - Claude Sonnet 4.5, Claude 3.5, Claude Opus
+   - Gemini models
+   - GPT-4o, GPT-4.1
+2. **Click the paperclip** 📎 button (bottom-left of input)
+3. **Upload an image** (PNG, JPG, WebP, etc.)
+4. **Ask about the image**: "What do you see?" or "Describe this image"
+5. The selected vision model will analyze it
+
+**Use cases**:
+- Describe photos, screenshots, diagrams
+- Extract text from images (OCR)
+- Analyze charts, graphs, infographics
+- Identify objects, people, scenes
+- Answer questions about visual content
+
+---
+
+**⚠️ COMMON MISTAKE**: Selecting Grok-3 and typing `/imagine` will NOT use Grok to generate the image. `/imagine` always uses DALL-E/Imagen/Flux. To use Grok's vision, **upload an image** instead!
+
 ### 📻 Ranger Radio (NEW in v2.4.0)
 *   **50+ SomaFM Stations**: Complete collection of commercial-free radio organized by genre.
 *   **Focus-Friendly Music**: Ambient, LoFi, Electronic, Jazz, and more for deep work sessions.
