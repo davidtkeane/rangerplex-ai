@@ -36,6 +36,7 @@ const App: React.FC = () => {
   const [isLoadingFromServer, setIsLoadingFromServer] = useState(false); // Prevent save loop during server sync
   const [wasVisionModeAutoActivated, setWasVisionModeAutoActivated] = useState(false);
   const [radioToggleSignal, setRadioToggleSignal] = useState(0); // external play/pause signal for Ranger Radio
+  const [scannerMode, setScannerMode] = useState<'tron' | 'teal' | 'rainbow' | 'matrix' | 'red' | 'gold'>('tron');
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
     if (!prompts || prompts.length === 0) return DEFAULT_SAVED_PROMPTS;
@@ -473,11 +474,24 @@ const App: React.FC = () => {
     <div className={themeClass}>
       <style>{`
         @keyframes scanner {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(100%); }
+          0% { left: -25%; }
+          100% { left: 100%; }
         }
-        .animate-scanner {
-          animation: scanner 2s ease-in-out infinite alternate;
+        .scanner-bar {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 25%;
+          animation: scanner 2.2s ease-in-out infinite alternate;
+        }
+        .scanner-rainbow {
+          background: linear-gradient(90deg, #ff0080, #ff8c00, #ff0, #0f0, #0ff, #00f, #8a2be2);
+          background-size: 200% 200%;
+          animation: scanner 2.2s ease-in-out infinite alternate, rainbow-shift 3s linear infinite;
+        }
+        @keyframes rainbow-shift {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 100% 50%; }
         }
       `}</style>
       <div className={`flex h-screen w-full overflow-hidden font-sans ${isMatrix ? 'bg-black text-green-500 font-mono' : isTron ? 'bg-tron-dark text-tron-cyan font-tron' : 'bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100'}`}>
@@ -530,12 +544,35 @@ const App: React.FC = () => {
 
         <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 ${isSidebarOpen ? 'md:ml-0' : ''} pt-14 md:pt-0 z-10`}>
           <div className={`h-14 px-4 hidden md:flex items-center gap-3 border-b ${isTron ? 'border-tron-cyan/40 bg-black/70 backdrop-blur shadow-[0_0_10px_rgba(0,243,255,0.15)]' : 'bg-white/80 dark:bg-zinc-900/80 border-gray-200 dark:border-zinc-800 backdrop-blur-sm'}`}>
-            <img src="/image/rangerplex_logo.png" alt="logo" className="h-10 w-10 rounded" />
+            <img
+              src="/image/rangersmyth-pic.png"
+              alt="logo"
+              className="h-10 w-10 rounded cursor-pointer"
+              title="Toggle scanner mode"
+              onClick={() => setScannerMode(prev => {
+                if (prev === 'tron') return 'teal';
+                if (prev === 'teal') return 'rainbow';
+                if (prev === 'rainbow') return 'red';
+                if (prev === 'red') return 'gold';
+                if (prev === 'gold') return 'matrix';
+                return 'tron';
+              })}
+            />
             <div className="flex-1">
-              <div className={`relative h-3 w-40 max-w-xs rounded-full overflow-hidden border ${isTron ? 'bg-black/60 border-tron-cyan/40' : 'bg-gray-200 dark:bg-zinc-800 border-white/10'}`}>
-                <div className={`absolute inset-y-0 w-14 rounded-full blur-[1px] animate-scanner
-                  ${isTron ? 'bg-tron-cyan shadow-[0_0_14px_rgba(0,243,255,0.6)]' : 'bg-teal-400 shadow-[0_0_14px_rgba(45,212,191,0.5)]'}
-                `}></div>
+              <div className={`relative h-3 w-52 max-w-sm rounded-full overflow-hidden border ${isTron ? 'bg-black/60 border-tron-cyan/40' : 'bg-gray-200 dark:bg-zinc-800 border-white/10'}`}>
+                <div className={`scanner-bar rounded-full blur-[1px] ${
+                  scannerMode === 'rainbow'
+                    ? 'scanner-rainbow shadow-[0_0_14px_rgba(255,255,255,0.5)]'
+                    : scannerMode === 'red'
+                      ? 'bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.7)]'
+                    : scannerMode === 'gold'
+                      ? 'bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.7)]'
+                    : scannerMode === 'matrix'
+                      ? 'bg-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.6)]'
+                    : scannerMode === 'teal'
+                        ? 'bg-teal-400 shadow-[0_0_14px_rgba(45,212,191,0.5)]'
+                        : 'bg-tron-cyan shadow-[0_0_14px_rgba(0,243,255,0.6)]'
+                }`}></div>
               </div>
             </div>
           </div>
