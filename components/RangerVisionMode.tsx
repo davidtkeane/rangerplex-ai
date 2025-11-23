@@ -5,9 +5,10 @@ interface RangerVisionModeProps {
     isOpen: boolean;
     onClose: () => void;
     theme: 'dark' | 'light' | 'tron';
+    onToggleRadio: () => void;
 }
 
-const RangerVisionMode: React.FC<RangerVisionModeProps> = ({ isOpen, onClose, theme }) => {
+const RangerVisionMode: React.FC<RangerVisionModeProps> = ({ isOpen, onClose, theme, onToggleRadio }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [showClock, setShowClock] = useState(true);
@@ -220,6 +221,16 @@ const RangerVisionMode: React.FC<RangerVisionModeProps> = ({ isOpen, onClose, th
                             }`}
                     >
                         {matrixMode ? '✓ Matrix' : 'Matrix'}
+                    </button>
+
+                    <button
+                        onClick={onToggleRadio}
+                        className={`px-4 py-2 rounded-lg border transition-all flex items-center gap-2 ${isTron
+                                ? 'bg-black/50 border-tron-cyan text-tron-cyan hover:bg-tron-cyan/20'
+                                : 'bg-white/10 border-white/30 text-white hover:bg-white/20'
+                            }`}
+                    >
+                        🎵 Ranger Radio
                     </button>
 
                     <button
