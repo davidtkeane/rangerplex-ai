@@ -348,6 +348,75 @@ RangerPlex connects to multiple AI providers. Here's how to get your API keys:
 3. Get your subscription token
 4. Paste into RangerPlex Settings → **Brave Search API Key**
 
+### 🦙 Ollama (Local AI - Optional)
+
+**Ollama** enables privacy-first local AI models that run entirely on your machine. No API keys, no internet required, and your data never leaves your computer.
+
+**Why Use Ollama?**
+- 🔒 **100% Private** - All processing happens on your machine
+- 💸 **Zero Cost** - No API fees, unlimited usage
+- ⚡ **Offline Capable** - Works without internet
+- 🎯 **Fast** - No network latency for responses
+- 🧠 **Powerful Models** - Llama 3.3, DeepSeek, Mistral, and more
+
+**Installation:**
+
+#### macOS (Intel or Apple Silicon)
+1. Go to **[ollama.com/download](https://ollama.com/download)**
+2. Download the **.dmg** installer
+3. Drag Ollama to Applications folder
+4. Launch Ollama (menu bar icon will appear)
+5. Open Terminal and run:
+   ```bash
+   OLLAMA_ORIGINS="*" ollama serve
+   ```
+
+#### Linux (Ubuntu/Debian/Fedora)
+```bash
+# One-line install
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Start Ollama with CORS enabled
+OLLAMA_ORIGINS="*" ollama serve
+```
+
+#### Windows
+1. Go to **[ollama.com/download](https://ollama.com/download)**
+2. Download the Windows installer
+3. Run the installer
+4. Open PowerShell and set environment variable:
+   ```powershell
+   $env:OLLAMA_ORIGINS="*"
+   ollama serve
+   ```
+
+**Pulling Models:**
+After installing Ollama, download models you want to use:
+```bash
+# Fast & efficient (recommended for most users)
+ollama pull llama3.3:70b
+
+# Coding specialist
+ollama pull deepseek-coder:6.7b
+
+# Fast local model
+ollama pull mistral
+
+# See all available models: https://ollama.com/library
+```
+
+**Using Ollama in RangerPlex:**
+1. Make sure Ollama is running with `OLLAMA_ORIGINS="*"` set
+2. In RangerPlex Settings → **Providers** tab
+3. Set **Ollama URL** to `http://localhost:11434` (default)
+4. Select your pulled model from the dropdown
+5. Start chatting! Your data stays 100% local
+
+**Troubleshooting:**
+- **"Ollama isn't connecting"**: Make sure you started Ollama with `OLLAMA_ORIGINS="*"` environment variable
+- **"Model not found"**: Pull the model first using `ollama pull <model-name>`
+- **Slow responses**: Larger models (70B+) need powerful hardware; try smaller models like `mistral` or `llama3.3:8b`
+
 **Note**: All API keys are stored **locally** in your browser and server database. They are never sent to us or any third party (except the respective AI providers when you make requests).
 
 ---
@@ -411,9 +480,14 @@ Pros/cons and data/UX notes are in that doc.
 *   **Fix**: Check **Terminal 1**. Ensure `node proxy_server.js` is running. In Settings, verify Proxy URL is `http://localhost:3010`.
 
 ### "Ollama isn't connecting"
-*   **Cause**: Cross-Origin restrictions.
-*   **Fix**: You must start Ollama with the environment variable `OLLAMA_ORIGINS="*"`.
-    *   *Mac/Linux:* `OLLAMA_ORIGINS="*" ollama serve`
+*   **Cause**: Cross-Origin restrictions or Ollama not running.
+*   **Fix**:
+    1. Make sure Ollama is installed (see [Ollama Installation](#-ollama-local-ai---optional) above)
+    2. Start Ollama with CORS enabled:
+       - **Mac/Linux:** `OLLAMA_ORIGINS="*" ollama serve`
+       - **Windows PowerShell:** `$env:OLLAMA_ORIGINS="*"; ollama serve`
+    3. Verify Ollama is running: `curl http://localhost:11434` (should respond)
+    4. Check Ollama URL in Settings → Providers is set to `http://localhost:11434`
 
 ### "better-sqlite3 won't compile"
 *   **Cause**: Using Node.js v25 (too new, experimental) or incompatible version.
