@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ChatSession, AppSettings } from '../types';
 import { downloadFile, exportConversationMarkdown } from '../services/trainingService';
+import PetWidget from './PetWidget';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -224,6 +225,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <ul>{recentSessions.map(s => <SessionItem key={s.id} session={s} />)}</ul>
                 </div>
 
+                {/* Pet Widget */}
+                <PetWidget isTron={isTron} />
+
                 <div className={`p-4 border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900'}`}>
                     {currentUser && (
                         <div className={`flex items-center justify-between p-2 rounded mb-2 ${isTron ? 'border border-tron-cyan/30' : 'bg-white dark:bg-zinc-800/50 border dark:border-zinc-700'}`}>
@@ -242,7 +246,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                         </div>
                     )}
-                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.4.2 // 50+ RADIO STATIONS</div>
+                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.4.4 // RANGER PET 🐾</div>
                 </div>
             </aside>
         </>

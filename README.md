@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.4.3-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.4.4-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -102,6 +102,16 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **Smart Streaming**: CORS proxy routes audio through local server for seamless playback.
 *   **Persistent Settings**: Remembers your volume, last station, and player state.
 *   **Theme Integration**: Adapts to Dark, Light, and Tron themes with matching effects.
+
+### 🐾 Ranger Pet (NEW in v2.4.4)
+*   **Your Study Companion**: A lovable Cyber Cat that lives in your sidebar and keeps you company while you work.
+*   **Interactive Actions**: Feed your pet 🍎 or play with it 🎾 - complete with sound effects (meow/purr).
+*   **Always Happy**: No-guilt design - your pet never dies, gets sick, or makes you feel bad. It's always excited to see you!
+*   **Breathing Animation**: Gentle idle animation makes your pet feel alive and present.
+*   **Theme Integration**: Adapts to Dark, Light, and Tron modes with matching colors and effects.
+*   **Perfect Placement**: Sits in the sidebar between chat logs and user controls - always visible, never intrusive.
+*   **High-Quality Graphics**: Crisp 1024×1024 pixel art scaled to sidebar size for perfect clarity.
+*   **Future-Ready**: Built on the proven WordPress Tamagotchi system, ready for XP, leveling, evolution, and study session integration.
 
 ### 💾 Triple-Layer Data Persistence (v2.2.0 - Enhanced in v2.4.2)
 *   **IndexedDB** (Browser): Fast, local storage that survives page refreshes.
