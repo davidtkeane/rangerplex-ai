@@ -459,6 +459,13 @@ npm run dev
 ```
 Then open `http://localhost:5173`.
 
+### 🧹 Uninstall
+Clean up local artifacts without touching your repo:
+```bash
+bash uninstall-me-now.sh
+```
+You’ll be prompted before removing things like `node_modules`, `.env`, caches, or local data/backups.
+
 ### 🪪 Registration Options (Concept)
 We’re planning a lightweight registration flow (collect email, issue a code, show a “Registered” sticker). See `docs/registration_options.md` for approaches:
 - Option A: In-app code (no email service)
