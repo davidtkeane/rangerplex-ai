@@ -79,6 +79,19 @@ Critical updates to xAI/Grok integration with verified model IDs, new flagship m
     *   Billing page navigation details
     *   Pricing guidance ($5-10 to start)
     *   Clarification: xAI has NO FREE TIER
+*   **NEW Section: "Understanding Image Features"** (Critical clarification!)
+    *   **Image GENERATION vs Image ANALYSIS** - Clear distinction between two separate features
+    *   Image Generation (`/imagine`): Creates NEW images using DALL-E 3, Imagen 3, or Flux.1
+        - Selected model (Grok, Claude, etc.) is **IGNORED** for `/imagine` commands
+        - Example: `/imagine a futuristic city` → Uses DALL-E, not your selected model
+    *   Image Analysis (Vision Models): Analyzes EXISTING images you upload
+        - Requires selecting vision model with 👁️ badge (Grok-3, Claude, Gemini, GPT-4o)
+        - Click paperclip 📎 → Upload image → Ask questions about it
+        - Uses your selected vision model to analyze
+    *   **Common Mistake Warning**: Selecting Grok-3 and typing `/imagine` will NOT use Grok to generate images
+    *   Use cases documented: OCR, object identification, chart analysis, photo description
+    *   Step-by-step instructions for both features
+    *   Prevents hour-long confusion about why selected model isn't being used!
 
 ### ✅ Verified Systems
 *   **Grok API Endpoint**: Confirmed `https://api.x.ai/v1/chat/completions` is correct and stable
@@ -230,6 +243,8 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
 *   **Screensaver Radio Control**: Added a “Ranger Radio” button to the screensaver controls to play/pause the floating radio player without exiting screensaver.
 *   **Image Prompt Default**: Prompt library now seeds with a top “imagine” entry (`/imagine `) above “rewrite” for quick image generation, and existing lists are normalized to keep it first.
 *   **Image Generation Meta**: `/imagine` responses now include model, latency, and stats in the AI message (with stats recorded on the message object).
+*   **Make Note with Images**: “Make Note” now carries the first generated/attached image into Study Notes and attempts to save it server-side (`/api/save-image`) into `/image`; note content embeds the image link.
+*   **Note Draft Preview**: New note modal now shows a live preview of the attached image when created from “Make Note,” so you can see the image before saving.
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
 *   **Auto-Sync Every 5 Minutes**: Automatic synchronization of all data to server when cloud sync is enabled.
     *   Runs immediately on app launch, then every 5 minutes (300000ms).
