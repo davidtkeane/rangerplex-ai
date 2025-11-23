@@ -344,9 +344,10 @@ interface RadioPlayerProps {
   settings: AppSettings;
   onSettingsChange: (updates: Partial<AppSettings>) => void;
   theme: 'dark' | 'light' | 'tron';
+  externalToggleSignal?: number; // toggles play/pause when changed
 }
 
-const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, theme }) => {
+const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, theme, externalToggleSignal }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -442,6 +443,18 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
     setIsLoading(false);
     setError(null);
   };
+
+  // External toggle (e.g., from screensaver)
+  useEffect(() => {
+    if (externalToggleSignal === undefined) return;
+    setIsMinimized(false);
+    setError(null);
+    if (isPlaying) {
+      handlePause();
+    } else {
+      handlePlay();
+    }
+  }, [externalToggleSignal]);
 
   // Theme-specific styles
   const isTron = theme === 'tron';
