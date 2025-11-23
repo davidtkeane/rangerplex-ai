@@ -54,10 +54,11 @@ export enum ModelType {
   HF_MISTRAL = 'mistralai/Mistral-7B-Instruct-v0.3',
   HF_QWEN_2_5 = 'Qwen/Qwen2.5-72B-Instruct',
 
-  // xAI (Grok)
-  GROK_2 = 'grok-2-1212',
-  GROK_2_VISION = 'grok-2-vision-1212',
-  GROK_BETA = 'grok-beta'
+  // xAI (Grok) - Updated Nov 2025 per xAI API specs
+  GROK_2 = 'grok-2',
+  GROK_2_VISION = 'grok-2-vision',
+  GROK_3 = 'grok-3',           // Latest flagship (mid-2025) - reasoning, code, multimodal
+  GROK_3_MINI = 'grok-3-mini'  // Lightweight, cost-efficient, low latency
 }
 
 export interface GroundingSource {
@@ -369,9 +370,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
       'Qwen/Qwen2.5-72B-Instruct'
     ],
     grok: [
-      'grok-2-1212',
-      'grok-2-vision-1212',
-      'grok-beta'
+      'grok-3',           // Latest flagship - STRONGLY RECOMMENDED by xAI
+      'grok-3-mini',      // Fast, cost-efficient
+      'grok-2',           // Legacy (still supported)
+      'grok-2-vision'     // Legacy vision model
     ]
   },
 
@@ -475,10 +477,15 @@ export const getModelCapabilities = (modelId: string): ModelCapabilities => {
   // Perplexity
   if (modelId.includes('sonar')) return { ...defaults, speed: 'fast' };
 
-  // Grok
+  // Grok (xAI) - grok-2-vision and grok-3 support vision/multimodal
   if (modelId.includes('grok')) {
-    if (modelId.includes('vision')) return { ...defaults, vision: true, speed: 'balanced' };
-    return { ...defaults, speed: 'balanced' };
+    const hasVision = modelId.includes('vision') || modelId === 'grok-3';
+    const isMini = modelId.includes('mini');
+    return {
+      ...defaults,
+      vision: hasVision,
+      speed: isMini ? 'fast' : 'balanced'
+    };
   }
 
   // Local/Ollama
