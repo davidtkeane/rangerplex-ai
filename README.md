@@ -466,6 +466,9 @@ bash uninstall-me-now.sh
 ```
 You’ll be prompted before removing things like `node_modules`, `.env`, caches, or local data/backups.
 
+### 🎵 Ranger Radio in Screensaver
+While the screensaver is up, there’s a “Ranger Radio” button in the control bar to play/pause the floating radio player without leaving screensaver mode.
+
 ### 🪪 Registration Options (Concept)
 We’re planning a lightweight registration flow (collect email, issue a code, show a “Registered” sticker). See `docs/registration_options.md` for approaches:
 - Option A: In-app code (no email service)
