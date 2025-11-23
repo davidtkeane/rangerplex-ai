@@ -8,12 +8,22 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false }) => {
   const [petName] = useState('Pixel');
   const [petLevel] = useState(1);
   const [petMood] = useState('Happy');
+  const [currentAnimation, setCurrentAnimation] = useState<'idle' | 'effects'>('idle');
 
   const handleFeed = () => {
     // Play meow sound
     const audio = new Audio('/image/pets/sounds/meow.mp3');
     audio.volume = 0.7;
     audio.play().catch(err => console.log('Audio play failed:', err));
+
+    // Trigger effects animation
+    setCurrentAnimation('effects');
+
+    // Return to idle after 2 seconds
+    setTimeout(() => {
+      setCurrentAnimation('idle');
+    }, 2000);
+
     console.log('🍎 Fed pet!');
   };
 
@@ -23,6 +33,12 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false }) => {
     audio.volume = 0.7;
     audio.play().catch(err => console.log('Audio play failed:', err));
     console.log('🎾 Played with pet!');
+  };
+
+  const getAnimationSrc = () => {
+    return currentAnimation === 'effects'
+      ? '/image/pets/cyber_cat_effects.gif'
+      : '/image/pets/cyber_cat_idle_animated.gif';
   };
 
   return (
@@ -48,10 +64,11 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false }) => {
       {/* Pet Display */}
       <div className="flex flex-col items-center gap-2 mb-3">
         <img
-          src="/image/pets/cyber_cat_idle.gif"
+          src={getAnimationSrc()}
           alt={petName}
           className="pet-avatar w-20 h-20"
           style={{ imageRendering: 'pixelated' }}
+          key={currentAnimation}
         />
 
         <div className="text-center">

@@ -169,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:hidden'}
           ${isTron ? 'bg-black border-tron-cyan/30 font-tron' : 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800'}
       `}>
-                <div className={`p-4 border-b flex items-center justify-between ${isTron ? 'border-tron-cyan/30 text-tron-cyan' : 'border-gray-200 dark:border-zinc-800'}`}>
+                <div className={`flex-shrink-0 p-4 border-b flex items-center justify-between ${isTron ? 'border-tron-cyan/30 text-tron-cyan' : 'border-gray-200 dark:border-zinc-800'}`}>
                     <div className="flex items-center gap-2 font-bold tracking-widest">
                         <i className={`fa-solid ${isTron ? 'fa-network-wired' : 'fa-layer-group'}`}></i>
                         <span>{isTron ? 'THE GRID' : 'RANGERPLEX'}</span>
@@ -177,13 +177,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button onClick={toggleSidebar} className="md:hidden"><i className="fa-solid fa-xmark"></i></button>
                 </div>
 
-                <div className="p-3">
+                <div className="flex-shrink-0 p-3">
                     <button onClick={onNew} className={`w-full flex items-center gap-3 px-4 py-3 rounded transition-all font-bold uppercase tracking-wider text-xs ${isTron ? 'bg-tron-cyan/10 border border-tron-cyan text-tron-cyan hover:bg-tron-cyan hover:text-black hover:shadow-[0_0_15px_#00f3ff]' : 'bg-white dark:bg-zinc-100 hover:bg-gray-50'}`}>
                         <i className="fa-solid fa-plus"></i> <span>{isTron ? 'NEW_PROGRAM' : 'New Thread'}</span>
                     </button>
                 </div>
 
-                <div className={`px-4 py-2 border-b ${isTron ? 'border-tron-cyan/30 text-tron-cyan/70' : 'border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-zinc-400'}`}>
+                <div className={`flex-shrink-0 px-4 py-2 border-b ${isTron ? 'border-tron-cyan/30 text-tron-cyan/70' : 'border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-zinc-400'}`}>
                     <button onClick={onOpenTraining} className="flex items-center gap-3 px-3 py-2 text-sm w-full hover:opacity-100 transition-opacity opacity-70">
                         <i className="fa-solid fa-dumbbell w-4"></i> Model Training
                     </button>
@@ -226,9 +226,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 {/* Pet Widget */}
-                <PetWidget isTron={isTron} />
+                <div className="flex-shrink-0">
+                    <PetWidget isTron={isTron} />
+                </div>
 
-                <div className={`p-4 border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900'}`}>
+                <div className={`flex-shrink-0 p-4 border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900'}`}>
                     {currentUser && (
                         <div className={`flex items-center justify-between p-2 rounded mb-2 ${isTron ? 'border border-tron-cyan/30' : 'bg-white dark:bg-zinc-800/50 border dark:border-zinc-700'}`}>
                             <div className="flex items-center gap-2 overflow-hidden">
