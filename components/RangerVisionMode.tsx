@@ -230,7 +230,7 @@ const RangerVisionMode: React.FC<RangerVisionModeProps> = ({ isOpen, onClose, th
                                 : 'bg-white/10 border-white/30 text-white hover:bg-white/20'
                             }`}
                     >
-                        🎵 Ranger Radio
+                        🎵 Radio
                     </button>
 
                     <button
