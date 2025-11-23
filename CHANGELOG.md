@@ -2,7 +2,100 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.4.2 - "CORS Proxy Suite, Model Badges & Data Persistence" (Current)
+## v2.4.3 - "Grok Model Updates & Vision Support" (Current)
+*Released: Nov 23, 2025*
+
+Critical updates to xAI/Grok integration with verified model IDs, new flagship models, and comprehensive API parameter support. Verified directly with Grok API specifications.
+
+### 🤖 Grok/xAI Model Updates
+*   **Updated Model IDs to Official Standards**: Corrected all Grok model IDs per xAI API specifications (Nov 2025).
+    *   Changed `grok-2-1212` → `grok-2` (stable production ID)
+    *   Changed `grok-2-vision-1212` → `grok-2-vision` (stable production ID)
+    *   **REMOVED** `grok-beta` (deprecated, end-of-life Q1 2025)
+    *   Models updated in `types.ts` enum and settings arrays
+*   **Added New Flagship Models**:
+    *   **`grok-3`**: Latest flagship model (mid-2025) with advanced reasoning, code generation, and built-in multimodal support (128k context)
+    *   **`grok-3-mini`**: Lightweight, cost-efficient variant optimized for speed and low latency
+    *   Both models now available in model selector with proper capability badges
+*   **Enhanced Vision Support**:
+    *   Updated capability detection: `grok-2-vision` and `grok-3` both show 👁️ vision badge
+    *   `grok-3-mini` shows ⚡ fast speed badge
+    *   Vision support verified for images (JPEG, PNG, GIF, WebP, ≤20MB, ≤2048x2048)
+    *   Video support verified (MP4, ≤20MB, recommended ≤512x512)
+*   **API Parameter Support Added**: Enhanced `xaiService.ts` with full parameter support:
+    *   `temperature` (0.0-2.0, default 1.0) - Controls randomness
+    *   `max_tokens` (1-131072, Grok-3: 128k context) - Maximum response length
+    *   `top_p` (0.0-1.0, default 1.0) - Nucleus sampling
+    *   `frequency_penalty` (-2.0 to 2.0, default 0.0) - Reduces repetition
+    *   `presence_penalty` (-2.0 to 2.0, default 0.0) - Encourages new topics
+    *   `stop` (array of strings) - Stop sequences
+    *   `seed` (integer) - For reproducible outputs
+    *   All parameters optional, added to request body when provided
+
+### 📚 Documentation Added
+*   **GROK_XAI_COMPLETE_INTEGRATION_SPEC.txt**: Complete integration specification (single source of truth)
+    *   Official endpoint documentation (https://api.x.ai/v1/chat/completions)
+    *   All 4 active models with recommendations (grok-3 STRONGLY recommended first)
+    *   Full request/response format examples
+    *   TypeScript interfaces for all parameters
+    *   Vision & multimodal rules with limits
+    *   Streaming SSE format specification
+    *   **NO FREE TIER** warning prominently displayed
+    *   Rate limits and pricing (Paid: up to 10k RPM / 1M+ TPM, ~$0.50-$5/1M tokens)
+    *   Enhanced error codes: 400 (incorrect key + invalid images), 403 (no credits), 429, 500+
+    *   Quick bash test script included
+*   **GROK_VISION_IMPLEMENTATION.md**: Comprehensive guide for Grok vision/multimodal support
+    *   Image upload methods (URL preferred, base64 supported)
+    *   Video support details (MP4, ≤512x512 recommended)
+    *   Size limits and best practices (≤20MB, ≤2048x2048)
+    *   Code examples for validation, encoding, and message formatting
+    *   Error handling and rate limit guidance
+*   **test-grok-api.sh**: Executable test script to verify xAI API keys
+    *   Quick verification of API connectivity
+    *   **Enhanced error detection**: Incorrect API key (400), No credits (403), Rate limit (429)
+    *   Extracts team billing URL from error messages
+    *   Clear step-by-step fix instructions for each error type
+    *   Common mistakes explained (partial key, spaces, expired keys)
+    *   Tests with grok-3 flagship model
+*   **GROK_API_VERIFICATION.md**: Full verification request document used to validate implementation with Grok
+*   **GROK_QUICK_CHECK.md**: Quick reference for model IDs and parameters
+
+### 📖 README Updates
+*   **Enhanced Grok API Key Section**: Updated "Getting API Keys → Grok (xAI)"
+    *   Official console URL: https://console.x.ai
+    *   Detailed 7-step instructions with X/Twitter login
+    *   Warning: "Copy key immediately (shown only once!)"
+    *   NO FREE TIER notice - must add credits before using
+    *   Test command included: `bash test-grok-api.sh`
+    *   Pricing information (~$0.50-$5 per 1M tokens)
+*   **NEW Troubleshooting Section**: "Grok/xAI says 'Incorrect API key' (HTTP 400)"
+    *   Error example: "Incorrect API key provided: xx***xx"
+    *   7-step fix instructions with console.x.ai URL
+    *   Common mistakes listed (partial copy, spaces, expired keys)
+    *   Note: Keys start with `xai-` and are very long
+*   **Enhanced Troubleshooting Section**: "Grok/xAI says 'no credits' (HTTP 403)"
+    *   Error example: "Your newly created teams doesn't have any credits yet"
+    *   Step-by-step credit purchase instructions
+    *   Billing page navigation details
+    *   Pricing guidance ($5-10 to start)
+    *   Clarification: xAI has NO FREE TIER
+
+### ✅ Verified Systems
+*   **Grok API Endpoint**: Confirmed `https://api.x.ai/v1/chat/completions` is correct and stable
+*   **Model IDs**: All 4 Grok models verified as active and production-ready
+*   **Streaming Format**: SSE implementation confirmed correct (data: prefix, [DONE] termination)
+*   **Rate Limits**: Tiered by plan (free: 60 RPM / 20k TPM; paid: up to 10k RPM / 1M TPM)
+*   **Vision Models**: Both `grok-2-vision` and `grok-3` confirmed for multimodal support
+
+### 🔧 Technical Improvements
+*   Model capability detection enhanced for Grok models (`types.ts:480-489`)
+*   Parameter validation added to xaiService
+*   Vision badge shows for correct models in UI
+*   Speed badge shows for grok-3-mini
+
+---
+
+## v2.4.2 - "CORS Proxy Suite, Model Badges & Data Persistence"
 *Released: Nov 23, 2025*
 
 Critical fixes for API proxying, image downloads, data persistence, and development environment stability. This update establishes a comprehensive CORS proxy system for Claude, images, search, and radio streaming, plus adds visual model capability indicators to help users choose the right AI model for their task.
@@ -88,7 +181,7 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
 *   **Registration Concepts Doc**: Added `docs/registration_options.md` outlining multiple registration flows (in-app code, SMTP, API providers, deferred) with pros/cons and UX/abuse notes.
 *   **Prompt Library Upgrades**: Expanded default saved prompts to 20, added search/filter, reorder (up/down), and import/export (JSON) controls in Settings → Prompts. Saved prompts continue to persist to server/IndexedDB/backups.
 *   **Screensaver Radio Control**: Added a “Ranger Radio” button to the screensaver controls to play/pause the floating radio player without exiting screensaver.
-*   **Image Prompt Default**: Prompt library now seeds with a top “imagine” entry (`/imagine `) above “rewrite” for quick image generation.
+*   **Image Prompt Default**: Prompt library now seeds with a top “imagine” entry (`/imagine `) above “rewrite” for quick image generation, and existing lists are normalized to keep it first.
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
 *   **Auto-Sync Every 5 Minutes**: Automatic synchronization of all data to server when cloud sync is enabled.
     *   Runs immediately on app launch, then every 5 minutes (300000ms).
