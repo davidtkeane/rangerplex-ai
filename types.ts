@@ -258,6 +258,7 @@ export interface AppSettings {
   showHeaderControls: boolean;
   holidayEffect: 'snow' | 'confetti' | 'sparkles';
   useStudyNotesInChat: boolean;
+  showScannerBeam: boolean;
 
   // Ranger Radio
   radioEnabled: boolean;
@@ -420,6 +421,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showHeaderControls: true,
   holidayEffect: 'snow',
   useStudyNotesInChat: true,
+  showScannerBeam: true,
 
   radioEnabled: false,
   radioAutoPlay: false,
