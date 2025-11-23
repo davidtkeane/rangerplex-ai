@@ -246,6 +246,7 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
 *   **Make Note with Images**: “Make Note” now carries the first generated/attached image into Study Notes and attempts to save it server-side (`/api/save-image`) into `/image`; note content embeds the image link.
 *   **Note Draft Preview**: New note modal now shows a live preview of the attached image when created from “Make Note,” so you can see the image before saving.
 *   **Scanner Easter Egg**: Clicking the header logo cycles scanner colors (Tron, Teal, Rainbow, Red/Cylon, Gold, Matrix) with a full-width sweep animation.
+*   **Scanner Toggle in Settings**: Added `Show Header Scanner Beam` toggle so users can hide/show the scanner effect without removing the logo.
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
 *   **Auto-Sync Every 5 Minutes**: Automatic synchronization of all data to server when cloud sync is enabled.
     *   Runs immediately on app launch, then every 5 minutes (300000ms).
