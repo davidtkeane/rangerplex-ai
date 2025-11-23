@@ -301,7 +301,22 @@ export const DEFAULT_SAVED_PROMPTS: SavedPrompt[] = [
   { id: '2', trigger: 'code', text: 'Analyze the following code for bugs and performance improvements:' },
   { id: '3', trigger: 'summarize', text: 'Summarize the following content into bullet points:' },
   { id: '4', trigger: 'eli5', text: 'Explain this concept like I am 5 years old:' },
-  { id: '5', trigger: 'news', text: 'What is the latest news on:' }
+  { id: '5', trigger: 'news', text: 'What is the latest news on:' },
+  { id: '6', trigger: 'outline', text: 'Create a structured outline with headings and bullets for:' },
+  { id: '7', trigger: 'email', text: 'Draft a friendly email about:' },
+  { id: '8', trigger: 'spec', text: 'Write a short product spec with goals, non-goals, and acceptance criteria for:' },
+  { id: '9', trigger: 'qa', text: 'Generate test cases and edge cases for:' },
+  { id: '10', trigger: 'bugs', text: 'List potential bugs and mitigations for this feature:' },
+  { id: '11', trigger: 'perf', text: 'Suggest performance optimizations for:' },
+  { id: '12', trigger: 'migrate', text: 'Plan a migration steps list (phased) for moving from X to Y:' },
+  { id: '13', trigger: 'prompt', text: 'Improve this prompt for clarity, constraints, and explicit outputs:' },
+  { id: '14', trigger: 'meeting', text: 'Summarize this meeting transcript into action items and owners:' },
+  { id: '15', trigger: 'debate', text: 'List pros/cons and a recommendation for:' },
+  { id: '16', trigger: 'study', text: 'Create study notes with key ideas, examples, and mnemonics for:' },
+  { id: '17', trigger: 'compare', text: 'Compare two options across criteria (cost, speed, quality, risk):' },
+  { id: '18', trigger: 'roadmap', text: 'Draft a 3-phase roadmap with milestones and risks for:' },
+  { id: '19', trigger: 'sql', text: 'Write SQL queries for these requirements (assume common sense schema if missing):' },
+  { id: '20', trigger: 'regex', text: 'Write a regex that matches:' }
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {

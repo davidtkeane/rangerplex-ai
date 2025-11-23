@@ -20,6 +20,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'search' | 'council' | 'prompts' | 'security' | 'data' | 'help'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
     const [loadingModels, setLoadingModels] = useState(false);
+    const [promptSearch, setPromptSearch] = useState('');
+    const [promptImportText, setPromptImportText] = useState('');
+    const [promptMessage, setPromptMessage] = useState<string | null>(null);
 
     // Ollama Management
     const [pullModelName, setPullModelName] = useState('');
@@ -224,6 +227,46 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const removePrompt = (idx: number) => {
         const updated = localSettings.savedPrompts.filter((_, i) => i !== idx);
         setLocalSettings(prev => ({ ...prev, savedPrompts: updated }));
+    };
+
+    const movePrompt = (idx: number, direction: 'up' | 'down') => {
+        const updated = [...localSettings.savedPrompts];
+        const target = direction === 'up' ? idx - 1 : idx + 1;
+        if (target < 0 || target >= updated.length) return;
+        [updated[idx], updated[target]] = [updated[target], updated[idx]];
+        setLocalSettings(prev => ({ ...prev, savedPrompts: updated }));
+    };
+
+    const exportPrompts = async () => {
+        const payload = JSON.stringify(localSettings.savedPrompts, null, 2);
+        try {
+            await navigator.clipboard.writeText(payload);
+            setPromptMessage('Copied prompts JSON to clipboard.');
+        } catch {
+            setPromptMessage('Could not copy to clipboard. Please select and copy manually.');
+        }
+        setPromptImportText(payload);
+    };
+
+    const importPrompts = () => {
+        try {
+            const parsed = JSON.parse(promptImportText);
+            if (!Array.isArray(parsed)) throw new Error('Expected an array');
+            const sanitized = parsed
+                .filter((p: any) => p && (p.trigger || p.text))
+                .map((p: any, idx: number) => ({
+                    id: p.id ? String(p.id) : `imp-${Date.now()}-${idx}`,
+                    trigger: String(p.trigger || '').trim(),
+                    text: String(p.text || '').trim()
+                }))
+                .filter((p: any) => p.trigger && p.text);
+
+            if (sanitized.length === 0) throw new Error('No valid prompts found');
+            setLocalSettings(prev => ({ ...prev, savedPrompts: sanitized }));
+            setPromptMessage(`Imported ${sanitized.length} prompts.`);
+        } catch (err) {
+            setPromptMessage(`Import failed: ${(err as Error).message}`);
+        }
     };
 
     const testConnection = async (provider: string) => {
@@ -721,10 +764,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         <div className="space-y-6">
                             <div className="flex justify-between items-center border-b border-inherit pb-2">
                                 <h3 className="font-bold">Slash Commands (Prompt Library)</h3>
-                                <button onClick={addPrompt} className="text-xs bg-green-600 px-3 py-1 rounded text-white hover:bg-green-500">+ Add Prompt</button>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        value={promptSearch}
+                                        onChange={(e) => setPromptSearch(e.target.value)}
+                                        placeholder="Filter prompts..."
+                                        className={`text-xs px-2 py-1 rounded border ${inputClass}`}
+                                    />
+                                    <button onClick={addPrompt} className="text-xs bg-green-600 px-3 py-1 rounded text-white hover:bg-green-500">+ Add Prompt</button>
+                                </div>
                             </div>
+                            <div className="flex flex-wrap gap-2">
+                                <button onClick={exportPrompts} className="text-xs bg-blue-600 px-3 py-1 rounded text-white hover:bg-blue-500">Export (copy JSON)</button>
+                                <button onClick={importPrompts} className="text-xs bg-amber-600 px-3 py-1 rounded text-white hover:bg-amber-500">Import (from box)</button>
+                                {promptMessage && <span className="text-xs opacity-70">{promptMessage}</span>}
+                            </div>
+                            <textarea
+                                value={promptImportText}
+                                onChange={(e) => setPromptImportText(e.target.value)}
+                                placeholder="Paste prompt JSON here (array of { trigger, text, id? })"
+                                className={`w-full min-h-[120px] text-xs rounded px-3 py-2 ${inputClass}`}
+                            />
                             <div className="space-y-3">
-                                {localSettings.savedPrompts.map((p, idx) => (
+                                {localSettings.savedPrompts
+                                    .filter(p => p.trigger.toLowerCase().includes(promptSearch.toLowerCase()) || p.text.toLowerCase().includes(promptSearch.toLowerCase()))
+                                    .map((p, idx) => (
                                     <div key={idx} className="flex gap-2 items-start">
                                         <div className="w-1/4">
                                             <div className="relative">
@@ -735,7 +799,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <div className="flex-1">
                                             <input value={p.text} onChange={e => updatePrompt(idx, 'text', e.target.value)} className={`w-full px-3 py-2 text-sm rounded ${inputClass}`} placeholder="Prompt text..." />
                                         </div>
-                                        <button onClick={() => removePrompt(idx)} className="p-2 text-red-500 hover:text-red-400"><i className="fa-solid fa-trash"></i></button>
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => movePrompt(idx, 'up')} className="p-2 text-xs text-gray-400 hover:text-white" title="Move up">
+                                                <i className="fa-solid fa-chevron-up"></i>
+                                            </button>
+                                            <button onClick={() => movePrompt(idx, 'down')} className="p-2 text-xs text-gray-400 hover:text-white" title="Move down">
+                                                <i className="fa-solid fa-chevron-down"></i>
+                                            </button>
+                                            <button onClick={() => removePrompt(idx)} className="p-2 text-red-500 hover:text-red-400" title="Remove">
+                                                <i className="fa-solid fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
