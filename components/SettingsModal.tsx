@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppSettings, AgentConfig, ModelType, SavedPrompt, VoiceConfig, Currency } from '../types';
+import { AppSettings, AgentConfig, ModelType, SavedPrompt, VoiceConfig, Currency, DEFAULT_SAVED_PROMPTS } from '../types';
 import { checkOllamaConnection, pullOllamaModel } from '../services/ollamaService';
 import { fetchGeminiModels, fetchOllamaModels, fetchOpenAIModels } from '../services/modelRegistry';
 import { processAvatarImage } from '../services/imageProcessing';
@@ -267,6 +267,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         } catch (err) {
             setPromptMessage(`Import failed: ${(err as Error).message}`);
         }
+    };
+
+    const resetPromptsToDefaults = () => {
+        setLocalSettings(prev => ({ ...prev, savedPrompts: DEFAULT_SAVED_PROMPTS.map(p => ({ ...p })) }));
+        setPromptMessage('Reset to 20 default prompts.');
+    };
+
+    const appendMissingDefaults = () => {
+        setLocalSettings(prev => {
+            const triggers = new Set(prev.savedPrompts.map(p => p.trigger));
+            const merged = [...prev.savedPrompts, ...DEFAULT_SAVED_PROMPTS.filter(p => !triggers.has(p.trigger))];
+            return { ...prev, savedPrompts: merged };
+        });
+        setPromptMessage('Added any missing defaults.');
     };
 
     const testConnection = async (provider: string) => {
@@ -777,6 +791,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             <div className="flex flex-wrap gap-2">
                                 <button onClick={exportPrompts} className="text-xs bg-blue-600 px-3 py-1 rounded text-white hover:bg-blue-500">Export (copy JSON)</button>
                                 <button onClick={importPrompts} className="text-xs bg-amber-600 px-3 py-1 rounded text-white hover:bg-amber-500">Import (from box)</button>
+                                <button onClick={resetPromptsToDefaults} className="text-xs bg-gray-700 px-3 py-1 rounded text-white hover:bg-gray-600">Reset to Defaults (20)</button>
+                                <button onClick={appendMissingDefaults} className="text-xs bg-purple-600 px-3 py-1 rounded text-white hover:bg-purple-500">Add Missing Defaults</button>
                                 {promptMessage && <span className="text-xs opacity-70">{promptMessage}</span>}
                             </div>
                             <textarea
