@@ -172,10 +172,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 const prompt = text.replace(/^\/imagine(_all)?/, '').replace(/^(draw|generate|create|make) (an )?image (of )?/i, '').trim();
                 const provider = text.startsWith('/imagine_all') ? 'all' : 'dall-e-3'; // default
 
+                const imageStart = Date.now();
                 const images = await generateImage(prompt, provider, settings);
+                const latency = Date.now() - imageStart;
+                const primaryProvider = images[0]?.provider || provider;
+
+                const stats = {
+                    model: primaryProvider,
+                    latencyMs: latency,
+                    inputTokens: 0,
+                    outputTokens: 0
+                };
+
+                const metaLine = `Model: ${primaryProvider} • Latency: ${latency} ms • Tokens: 0 • Cost: n/a`;
                 onUpdateMessages(prev => [...prev, {
-                    id: uuidv4(), sender: Sender.AI, text: `Generated ${images.length} image(s) for: "${prompt}"`,
-                    timestamp: Date.now(), generatedImages: images
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: `Generated ${images.length} image(s) for: "${prompt}"\n${metaLine}`,
+                    timestamp: Date.now(),
+                    generatedImages: images,
+                    stats
                 }]);
                 setIsStreaming(false);
                 setProcessingStatus(null);
@@ -335,7 +351,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         "OpenAI": settings.availableModels.openai,
         "Anthropic": settings.availableModels.anthropic,
         "Perplexity": [ModelType.PERPLEXITY_SONAR, ModelType.PERPLEXITY_SONAR_PRO],
-        "Grok (xAI)": [ModelType.GROK_BETA, ModelType.GROK_2],
+        "Grok (xAI)": settings.availableModels.grok,
         "HuggingFace": settings.availableModels.huggingface,
         "Local": settings.availableModels.ollama
     };
