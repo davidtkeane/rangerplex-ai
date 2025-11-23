@@ -559,21 +559,23 @@ const App: React.FC = () => {
               })}
             />
             <div className="flex-1">
-              <div className={`relative h-3 w-52 max-w-sm rounded-full overflow-hidden border ${isTron ? 'bg-black/60 border-tron-cyan/40' : 'bg-gray-200 dark:bg-zinc-800 border-white/10'}`}>
-                <div className={`scanner-bar rounded-full blur-[1px] ${
-                  scannerMode === 'rainbow'
-                    ? 'scanner-rainbow shadow-[0_0_14px_rgba(255,255,255,0.5)]'
-                    : scannerMode === 'red'
-                      ? 'bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.7)]'
-                    : scannerMode === 'gold'
-                      ? 'bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.7)]'
-                    : scannerMode === 'matrix'
-                      ? 'bg-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.6)]'
-                    : scannerMode === 'teal'
-                        ? 'bg-teal-400 shadow-[0_0_14px_rgba(45,212,191,0.5)]'
-                        : 'bg-tron-cyan shadow-[0_0_14px_rgba(0,243,255,0.6)]'
-                }`}></div>
-              </div>
+              {settings.showScannerBeam !== false && (
+                <div className={`relative h-3 w-52 max-w-sm rounded-full overflow-hidden border ${isTron ? 'bg-black/60 border-tron-cyan/40' : 'bg-gray-200 dark:bg-zinc-800 border-white/10'}`}>
+                  <div className={`scanner-bar rounded-full blur-[1px] ${
+                    scannerMode === 'rainbow'
+                      ? 'scanner-rainbow shadow-[0_0_14px_rgba(255,255,255,0.5)]'
+                      : scannerMode === 'red'
+                        ? 'bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.7)]'
+                      : scannerMode === 'gold'
+                        ? 'bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.7)]'
+                      : scannerMode === 'matrix'
+                        ? 'bg-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.6)]'
+                      : scannerMode === 'teal'
+                          ? 'bg-teal-400 shadow-[0_0_14px_rgba(45,212,191,0.5)]'
+                          : 'bg-tron-cyan shadow-[0_0_14px_rgba(0,243,255,0.6)]'
+                  }`}></div>
+                </div>
+              )}
             </div>
           </div>
           {isStudyNotesOpen ? (
