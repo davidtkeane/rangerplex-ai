@@ -37,6 +37,18 @@ const App: React.FC = () => {
   const [wasVisionModeAutoActivated, setWasVisionModeAutoActivated] = useState(false);
   const [radioToggleSignal, setRadioToggleSignal] = useState(0); // external play/pause signal for Ranger Radio
 
+  const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
+    if (!prompts || prompts.length === 0) return DEFAULT_SAVED_PROMPTS;
+    const idx = prompts.findIndex(p => p.trigger === 'imagine');
+    if (idx === 0) return prompts;
+    if (idx === -1) {
+      return [{ id: '0', trigger: 'imagine', text: '/imagine ' }, ...prompts];
+    }
+    const clone = [...prompts];
+    const [imagine] = clone.splice(idx, 1);
+    return [imagine, ...clone];
+  };
+
   // Initialize database and sync
   useEffect(() => {
     const initDB = async () => {
@@ -174,6 +186,7 @@ const App: React.FC = () => {
           gemini: sanitizeModels(mergedSettings.availableModels?.gemini, DEFAULT_SETTINGS.availableModels.gemini),
           openai: sanitizeModels(mergedSettings.availableModels?.openai, DEFAULT_SETTINGS.availableModels.openai)
         };
+        mergedSettings.savedPrompts = ensureImagineFirst(mergedSettings.savedPrompts);
 
         finalSettings = mergedSettings;
         console.log('🟢 Merged settings from IndexedDB:', { radioEnabled: finalSettings.radioEnabled, currency: finalSettings.currency });
@@ -211,6 +224,7 @@ const App: React.FC = () => {
               gemini: sanitizeModels(mergedFromServer.availableModels?.gemini, DEFAULT_SETTINGS.availableModels.gemini),
               openai: sanitizeModels(mergedFromServer.availableModels?.openai, DEFAULT_SETTINGS.availableModels.openai)
             };
+            mergedFromServer.savedPrompts = ensureImagineFirst(mergedFromServer.savedPrompts);
 
             finalSettings = mergedFromServer;
             console.log('☁️ Merged settings from server:', { radioEnabled: finalSettings.radioEnabled, currency: finalSettings.currency });
