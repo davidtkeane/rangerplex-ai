@@ -1,5 +1,7 @@
 # ⚔️ RangerPlex AI
 
+> 🚀 Skip the bull and install right now: `bash install-me-now.sh`
+
 <div align="center">
 
 ![Version](https://img.shields.io/badge/Version-2.4.2-cyan?style=for-the-badge)
