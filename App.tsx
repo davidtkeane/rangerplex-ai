@@ -26,7 +26,7 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTrainingOpen, setIsTrainingOpen] = useState(false);
   const [isStudyNotesOpen, setIsStudyNotesOpen] = useState(false);
-  const [noteDraft, setNoteDraft] = useState<{ title?: string; content?: string } | null>(null);
+  const [noteDraft, setNoteDraft] = useState<{ title?: string; content?: string; imageUrl?: string; savedImagePath?: string } | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [syncStatus, setSyncStatus] = useState({ connected: false, lastSync: 0 });
@@ -407,12 +407,32 @@ const App: React.FC = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
-  const openNoteDraft = useCallback((draft: { title?: string; content?: string }) => {
-    setNoteDraft(draft);
+  const saveImageToLocal = useCallback(async (url?: string) => {
+    if (!url) return undefined;
+    try {
+      const proxy = (settings.corsProxyUrl || 'http://localhost:3010').replace(/\/$/, '');
+      const resp = await fetch(`${proxy}/api/save-image?url=${encodeURIComponent(url)}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      return data.savedPath || data.filename;
+    } catch (err) {
+      console.warn('Save image failed, will use remote URL', err);
+      return undefined;
+    }
+  }, [settings.corsProxyUrl]);
+
+  const openNoteDraft = useCallback(async (draft: { title?: string; content?: string; imageUrl?: string }) => {
+    let savedImagePath: string | undefined;
+    if (draft.imageUrl) {
+      savedImagePath = await saveImageToLocal(draft.imageUrl);
+    }
+    const safeTitle = typeof draft.title === 'string' ? draft.title : draft.title ? String(draft.title) : '';
+    const safeContent = typeof draft.content === 'string' ? draft.content : draft.content ? String(draft.content) : '';
+    setNoteDraft({ ...draft, title: safeTitle, content: safeContent, savedImagePath });
     setIsStudyNotesOpen(true);
     setIsTrainingOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
-  }, []);
+  }, [saveImageToLocal]);
 
   const updateMessages = useCallback(async (sessionId: string, messagesOrUpdater: Message[] | ((msgs: Message[]) => Message[])) => {
     setSessions((prev) => {
@@ -451,6 +471,15 @@ const App: React.FC = () => {
   const themeClass = isMatrix ? 'dark' : (settings.theme === 'dark' || isTron ? 'dark' : '');
   return (
     <div className={themeClass}>
+      <style>{`
+        @keyframes scanner {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-scanner {
+          animation: scanner 2s ease-in-out infinite alternate;
+        }
+      `}</style>
       <div className={`flex h-screen w-full overflow-hidden font-sans ${isMatrix ? 'bg-black text-green-500 font-mono' : isTron ? 'bg-tron-dark text-tron-cyan font-tron' : 'bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100'}`}>
 
         {isMatrix && <MatrixRain />}
@@ -500,6 +529,16 @@ const App: React.FC = () => {
         />
 
         <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 ${isSidebarOpen ? 'md:ml-0' : ''} pt-14 md:pt-0 z-10`}>
+          <div className={`h-14 px-4 hidden md:flex items-center gap-3 border-b ${isTron ? 'border-tron-cyan/40 bg-black/70 backdrop-blur shadow-[0_0_10px_rgba(0,243,255,0.15)]' : 'bg-white/80 dark:bg-zinc-900/80 border-gray-200 dark:border-zinc-800 backdrop-blur-sm'}`}>
+            <img src="/image/rangerplex_logo.png" alt="logo" className="h-10 w-10 rounded" />
+            <div className="flex-1">
+              <div className={`relative h-3 w-40 max-w-xs rounded-full overflow-hidden border ${isTron ? 'bg-black/60 border-tron-cyan/40' : 'bg-gray-200 dark:bg-zinc-800 border-white/10'}`}>
+                <div className={`absolute inset-y-0 w-14 rounded-full blur-[1px] animate-scanner
+                  ${isTron ? 'bg-tron-cyan shadow-[0_0_14px_rgba(0,243,255,0.6)]' : 'bg-teal-400 shadow-[0_0_14px_rgba(45,212,191,0.5)]'}
+                `}></div>
+              </div>
+            </div>
+          </div>
           {isStudyNotesOpen ? (
             <StudyNotes currentUser={currentUser} settings={settings} initialDraft={noteDraft || undefined} />
           ) : isTrainingOpen ? (
@@ -512,7 +551,7 @@ const App: React.FC = () => {
               onUpdateModel={(model) => updateSession(currentSession.id, { model })}
               onAddKnowledge={(chunks) => addToKnowledgeBase(currentSession.id, chunks)}
               settings={settings}
-              onMakeNote={(title, content) => openNoteDraft({ title, content })}
+              onMakeNote={(draft) => openNoteDraft(draft)}
               onOpenSettings={() => setIsSettingsOpen(true)}
               onToggleHolidayMode={toggleHolidayMode}
               onCycleHolidayEffect={cycleHolidayEffect}
