@@ -256,6 +256,36 @@ app.get('/v1/brave', async (req, res) => {
     }
 });
 
+// Save image server-side to /image/saved_*.{ext}
+app.get('/api/save-image', async (req, res) => {
+    try {
+        const imageUrl = req.query.url;
+        if (!imageUrl) return res.status(400).json({ error: 'Missing url' });
+
+        const imagesDir = path.join(__dirname, 'image');
+        if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
+
+        const urlObj = new URL(imageUrl);
+        const extMatch = urlObj.pathname.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+        const ext = extMatch ? extMatch[1] : 'png';
+        const filename = `saved_${Date.now()}.${ext}`;
+        const filepath = path.join(imagesDir, filename);
+
+        const response = await fetch(imageUrl);
+        if (!response.ok) return res.status(response.status).send(await response.text());
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        fs.writeFileSync(filepath, buffer);
+
+        const relativePath = `image/${filename}`;
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json({ savedPath: relativePath, filename });
+    } catch (error) {
+        console.error('❌ Save image error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // DuckDuckGo proxy (fallback search)
 app.get('/v1/ddg', async (req, res) => {
     try {
