@@ -20,7 +20,7 @@ interface MessageItemProps {
   isMatrix?: boolean;
   onRegenerate?: () => void;
   onRate?: (rating: 'up' | 'down', reason?: string) => void;
-  onMakeNote?: () => void;
+  onMakeNote?: (message: Message) => void;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar, isTron, isMatrix, onRegenerate, onRate, onMakeNote }) => {
@@ -216,7 +216,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
                     {onMakeNote && (
                         <div className="flex justify-center">
                             <button
-                                onClick={onMakeNote}
+                                onClick={() => onMakeNote(message)}
                                 className={`text-[10px] px-2 py-1 rounded-full border ${isTron ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/20' : 'border-gray-300 text-gray-600 dark:text-zinc-200 hover:bg-yellow-300 hover:text-gray-900'}`}
                                 title="Send to Study Notes"
                             >
