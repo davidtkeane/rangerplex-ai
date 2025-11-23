@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.4.2-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.4.3-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -336,11 +336,24 @@ RangerPlex connects to multiple AI providers. Here's how to get your API keys:
 6. Paste into RangerPlex Settings → **Hugging Face Access Token**
 
 ### 🦅 Grok (xAI)
-1. Go to **[console.x.ai](https://console.x.ai)**
-2. Sign in with X/Twitter account
-3. Navigate to **API Keys**
-4. Create new API key
-5. Copy and paste into RangerPlex Settings → **Grok API Key**
+1. Go to **[console.x.ai](https://console.x.ai)** (official xAI console)
+2. Sign in with your **X/Twitter account**
+3. Navigate to **API Keys** section (left sidebar)
+4. Click **"Create API Key"** or **"New API Key"**
+5. **Copy the key immediately** (shown only once!)
+6. Paste into RangerPlex Settings → **Grok API Key** field
+7. **IMPORTANT**: Add credits to your account (Billing tab) before using
+   - xAI has **no free tier** - you must purchase credits first
+   - Start with $5-$10 for testing
+
+**Test your key**:
+```bash
+bash test-grok-api.sh
+```
+
+**Pricing** (pay-as-you-go):
+- grok-3: ~$2-5 per 1M tokens
+- grok-3-mini: ~$0.50-1 per 1M tokens
 
 ### 🔎 Brave Search (Web Search)
 1. Go to **[brave.com/search/api](https://brave.com/search/api)**
@@ -498,6 +511,35 @@ Pros/cons and data/UX notes are in that doc.
        - **Windows PowerShell:** `$env:OLLAMA_ORIGINS="*"; ollama serve`
     3. Verify Ollama is running: `curl http://localhost:11434` (should respond)
     4. Check Ollama URL in Settings → Providers is set to `http://localhost:11434`
+
+### "Grok/xAI says 'Incorrect API key' (HTTP 400)"
+*   **Cause**: The API key you entered is invalid or incorrect.
+*   **Error**: `"Incorrect API key provided: xx***xx. You can obtain an API key from https://console.x.ai"`
+*   **Fix**:
+    1. Go to **[console.x.ai](https://console.x.ai)** (official xAI console)
+    2. Sign in with your X/Twitter account
+    3. Navigate to **API Keys** section (left sidebar)
+    4. Click **"Create API Key"** (keys are shown only once when created)
+    5. Copy the **entire key** (starts with `xai-`)
+    6. Paste into RangerPlex Settings → Providers → **Grok API Key**
+    7. Click **Save**
+*   **Common mistakes**:
+    - Copying only part of the key (keys are long!)
+    - Extra spaces before/after the key
+    - Using an old/expired key (keys expire after 90 days)
+*   **Test your key**: Run `bash test-grok-api.sh` from project root
+
+### "Grok/xAI says 'no credits' (HTTP 403)"
+*   **Cause**: Your API key is valid, but your xAI account doesn't have credits yet.
+*   **Error**: `"Your newly created teams doesn't have any credits yet"`
+*   **Fix**:
+    1. Go to **[console.x.ai](https://console.x.ai)**
+    2. Click your team name (top right) → **Billing** or **Credits**
+    3. Add a payment method
+    4. Purchase credits (start with $5-$10 for testing)
+    5. xAI uses pay-as-you-go pricing (~$0.50-$5 per 1M tokens depending on model)
+*   **Test your key**: Run `bash test-grok-api.sh` from project root
+*   **Note**: Unlike some APIs, xAI has **no free tier** - you must add credits to use the API
 
 ### "better-sqlite3 won't compile"
 *   **Cause**: Using Node.js v25 (too new, experimental) or incompatible version.
