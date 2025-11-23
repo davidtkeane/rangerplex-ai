@@ -184,7 +184,10 @@ const App: React.FC = () => {
           ...DEFAULT_SETTINGS.availableModels,
           ...mergedSettings.availableModels,
           gemini: sanitizeModels(mergedSettings.availableModels?.gemini, DEFAULT_SETTINGS.availableModels.gemini),
-          openai: sanitizeModels(mergedSettings.availableModels?.openai, DEFAULT_SETTINGS.availableModels.openai)
+          openai: sanitizeModels(mergedSettings.availableModels?.openai, DEFAULT_SETTINGS.availableModels.openai),
+          anthropic: sanitizeModels(mergedSettings.availableModels?.anthropic, DEFAULT_SETTINGS.availableModels.anthropic),
+          grok: DEFAULT_SETTINGS.availableModels.grok, // Always use latest Grok models (updated Nov 2025)
+          huggingface: sanitizeModels(mergedSettings.availableModels?.huggingface, DEFAULT_SETTINGS.availableModels.huggingface)
         };
         mergedSettings.savedPrompts = ensureImagineFirst(mergedSettings.savedPrompts);
 
@@ -222,7 +225,10 @@ const App: React.FC = () => {
               ...DEFAULT_SETTINGS.availableModels,
               ...mergedFromServer.availableModels,
               gemini: sanitizeModels(mergedFromServer.availableModels?.gemini, DEFAULT_SETTINGS.availableModels.gemini),
-              openai: sanitizeModels(mergedFromServer.availableModels?.openai, DEFAULT_SETTINGS.availableModels.openai)
+              openai: sanitizeModels(mergedFromServer.availableModels?.openai, DEFAULT_SETTINGS.availableModels.openai),
+              anthropic: sanitizeModels(mergedFromServer.availableModels?.anthropic, DEFAULT_SETTINGS.availableModels.anthropic),
+              grok: DEFAULT_SETTINGS.availableModels.grok, // Always use latest Grok models (updated Nov 2025)
+              huggingface: sanitizeModels(mergedFromServer.availableModels?.huggingface, DEFAULT_SETTINGS.availableModels.huggingface)
             };
             mergedFromServer.savedPrompts = ensureImagineFirst(mergedFromServer.savedPrompts);
 
