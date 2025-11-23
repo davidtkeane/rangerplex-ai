@@ -558,6 +558,7 @@ const App: React.FC = () => {
                 return 'tron';
               })}
             />
+            <span className={`text-lg font-bold flex-shrink-0 whitespace-nowrap ${isTron ? 'text-tron-cyan' : 'text-gray-800 dark:text-gray-100'}`}>RANGERPLEX</span>
             <div className="flex-1">
               {settings.showScannerBeam !== false && (
                 <div className={`relative h-3 w-52 max-w-sm rounded-full overflow-hidden border ${isTron ? 'bg-black/60 border-tron-cyan/40' : 'bg-gray-200 dark:bg-zinc-800 border-white/10'}`}>
