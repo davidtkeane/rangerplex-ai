@@ -84,6 +84,27 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
     *   Total Claude models now: 9 (was 8).
     *   Includes vision capability badge 👁️.
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
+*   **Auto-Sync Every 5 Minutes**: Automatic synchronization of all data to server when cloud sync is enabled.
+    *   Runs immediately on app launch, then every 5 minutes (300000ms).
+    *   Syncs all chats from IndexedDB to SQLite server.
+    *   Syncs all settings including avatars and preferences.
+    *   Updates last sync timestamp automatically.
+    *   Only runs when cloud sync is enabled and user is logged in.
+    *   Implemented in `App.tsx` using `setInterval` with cleanup on unmount.
+*   **Sync Now Button with Progress Visualization**: Manual sync trigger with beautiful progress bar.
+    *   Located in Data & Backup tab of Settings modal.
+    *   Shows real-time progress: "Loading chats...", "Syncing chat 3/6...", etc.
+    *   Displays percentage completion (0-100%) with visual progress bar.
+    *   Gradient progress bar: teal-to-cyan with pulsing animation.
+    *   Updates storage stats after sync completes.
+    *   Saves last sync timestamp to IndexedDB for persistence.
+    *   Disabled during sync operation to prevent multiple simultaneous syncs.
+*   **Enable Web Search for LLMs Toggle**: Added UI control for web search feature.
+    *   Toggle now visible in Search tab of Settings modal.
+    *   Allows users to enable/disable automatic web search for LLM responses.
+    *   Works in conjunction with 🌐 WEB button in chat interface.
+    *   When enabled, LLMs can search the web for up-to-date information.
+    *   Previously existed in code but hidden from UI - now fully accessible.
 
 ### ✅ Verified Systems
 *   **Claude API**: All 9 Claude models (including 3.5 Sonnet) now working through proxy with vision badges.
@@ -91,6 +112,12 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
 *   **Chat Loading**: Chats load from server correctly even with empty browser storage.
 *   **Image Downloads**: DALL-E 3, Imagen 3, and Flux.1 images download successfully through proxy.
 *   **Data Persistence**: Chats, settings, and avatars now save to server automatically (cloud sync enabled).
+*   **Auto-Sync**: 5-minute automatic sync runs reliably, updating all chats and settings to server.
+*   **Sync Now Button**: Manual sync with progress visualization works correctly, updates storage stats.
+*   **Storage Stats**: IndexedDB and server storage sizes now display accurate KB values (no longer 0.0 KB).
+*   **Last Sync Timestamp**: Timestamp persists across browser sessions and setting modal opens/closes.
+*   **Auto-Save Settings**: Cloud Sync toggle and avatar uploads save immediately without requiring Save button.
+*   **Web Search Toggle**: "Enable Web Search for LLMs" toggle now visible and functional in Settings → Search tab.
 *   **Radio Streaming**: All 50+ SomaFM stations now play correctly through proxy.
 *   **Database Module**: SQLite module properly compiled for active Node.js version.
 *   **Development Server**: Both Vite (port 5173) and proxy server (port 3010) running stable.
@@ -109,6 +136,14 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
 *   **Modified**: `types.ts:420-486` - Added `ModelCapabilities` interface, `getModelCapabilities()`, and `getModelBadges()` helper functions.
 *   **Modified**: `components/ChatInterface.tsx` - Added model capability badges to dropdown and selector button with capability legend.
 *   **Modified**: `App.tsx:139-140` - Fixed cloud sync check to use fallback chain for chat loading from server.
+*   **Modified**: `App.tsx:82-116` - Added auto-sync functionality that runs every 5 minutes when cloud sync is enabled.
+*   **Modified**: `App.tsx:253-256` - Enhanced avatar logging to show sizes for verification.
+*   **Modified**: `components/SettingsModal.tsx:610-614` - Added "Enable Web Search for LLMs" toggle to Search tab.
+*   **Modified**: `components/SettingsModal.tsx:938-1017` - Added "Sync Now" button with gradient progress bar and real-time status messages.
+*   **Modified**: `components/SettingsModal.tsx:95-120` - Added `loadStorageStats()` function to calculate actual IndexedDB and server storage sizes.
+*   **Modified**: `components/SettingsModal.tsx:75-93` - Added last sync timestamp persistence (save/load from IndexedDB).
+*   **Modified**: `components/SettingsModal.tsx:936-941` - Made Cloud Sync toggle save immediately without requiring Save button.
+*   **Modified**: `components/SettingsModal.tsx:152-168` - Made avatar uploads save immediately to prevent data loss.
 
 ---
 

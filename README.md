@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.4.1-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.4.2-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -24,12 +24,18 @@ It runs locally on your machine (`localhost`), stores data privately in your bro
 ## ✨ Features
 
 ### 🧠 The Intelligence
-*   **Multi-Model Matrix**: Seamlessly switch between **Gemini 2.0**, **GPT-4o/4.1**, **Claude Sonnet 4.5** (8 Claude models total), **Perplexity**, **Grok**, and **Llama 3** (via HuggingFace or Ollama).
+*   **Multi-Model Matrix**: Seamlessly switch between **Gemini 2.0**, **GPT-4o/4.1**, **Claude Sonnet 4.5** (9 Claude models total including 3.5 Sonnet), **Perplexity**, **Grok**, and **Llama 3** (via HuggingFace or Ollama).
+*   **Smart Model Selection**: Visual capability badges show what each model can do at a glance:
+    - 👁️ **Vision** - Can analyze uploaded images (Claude 3+, Gemini, GPT-4o, Grok Vision)
+    - 🧠 **Advanced Reasoning** - Deep thinking models (o1, o1-mini, o3-mini)
+    - ⚡ **Fast Speed** - Quick responses (Haiku, Flash, Perplexity, local models)
+    - 💎 **Most Powerful** - Maximum capabilities (Opus, Gemini Pro, o1/o3)
 *   **The Council**: Assemble a team of AI Agents (The Researcher, The Skeptic, The Synthesizer) to debate and solve complex problems for you.
 *   **Deep Research**: Autonomous agent loop that plans, searches the web, and writes academic-grade reports.
 
 ### 🛠️ The Tools
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.
+*   **Web Search Integration**: Toggle web search for LLMs with the 🌐 WEB button. Enable/disable automatic web search in Settings → Search tab.
 *   **Ranger Lens**: A split-screen "Reader Mode" that strips ads from websites for distraction-free analysis.
 *   **Code Interpreter**: Runs **Python** code directly in your browser using Pyodide to analyze data and generate charts.
 *   **Live Artifacts**: Renders HTML/React code (games, dashboards) directly in the chat stream.
@@ -49,13 +55,26 @@ It runs locally on your machine (`localhost`), stores data privately in your bro
 *   **Persistent Settings**: Remembers your volume, last station, and player state.
 *   **Theme Integration**: Adapts to Dark, Light, and Tron themes with matching effects.
 
-### 💾 Triple-Layer Data Persistence (v2.2.0 - Enhanced in v2.4.1)
+### 💾 Triple-Layer Data Persistence (v2.2.0 - Enhanced in v2.4.2)
 *   **IndexedDB** (Browser): Fast, local storage that survives page refreshes.
 *   **SQLite** (Server): Persistent database that survives browser cache clears.
 *   **File Export**: Auto-backup to JSON files every 5 minutes in `./backups/`.
+*   **Auto-Sync Every 5 Minutes** (NEW in v2.4.2): Automatic synchronization of all chats and settings to server when cloud sync is enabled.
+    - Runs immediately on app launch, then every 5 minutes
+    - Syncs all chats, settings, and avatars from IndexedDB to SQLite
+    - Updates last sync timestamp automatically
+    - Only runs when cloud sync is enabled (Settings → Data & Backup)
+*   **Manual Sync with Progress** (NEW in v2.4.2): Click "Sync Now" button in Settings → Data & Backup tab.
+    - Beautiful gradient progress bar (teal-to-cyan with pulsing animation)
+    - Real-time status: "Loading chats...", "Syncing chat 3/6...", "Sync complete!"
+    - Shows percentage completion (0-100%)
+    - Updates storage stats after completion
+    - Saves last sync timestamp for reference
+*   **Storage Stats** (NEW in v2.4.2): View actual storage usage in KB for both browser (IndexedDB) and server (SQLite) in Data & Backup tab.
+*   **Instant Save for Critical Settings** (NEW in v2.4.2): Cloud Sync toggle and avatar uploads now save immediately without requiring Save button.
 *   **Real-Time Sync**: WebSocket connection keeps browser and server in perfect sync.
 *   **No Data Loss**: Even if you clear your browser cache, your data is safe in the server database.
-*   **Rock-Solid Persistence**: Settings now save and load correctly with improved race condition handling (v2.4.1).
+*   **Rock-Solid Persistence**: Settings now save and load correctly with improved race condition handling.
 
 ### 🕶️ The Aesthetic
 *   **Tron Theme ("The Grid")**: A glowing, animated 3D interface.
@@ -199,11 +218,16 @@ RangerPlex uses a **triple-layer backup system** to ensure your data is never lo
 - **Cleared by**: Manual deletion only
 
 ### 🔄 How Sync Works
-1. You make a change (new chat, edit settings)
+1. You make a change (new chat, edit settings, upload avatar)
 2. Change is saved to **IndexedDB** (instant)
-3. Change is sent to **Server** via WebSocket (real-time)
-4. Server saves to **SQLite** database
-5. Every 5 minutes, server exports to **JSON file**
+3. Critical settings (Cloud Sync toggle, avatars) save immediately without requiring Save button
+4. Change is sent to **Server** via WebSocket (real-time)
+5. Server saves to **SQLite** database
+6. Every 5 minutes, **Auto-Sync** runs (when cloud sync enabled):
+   - Syncs all chats from IndexedDB to SQLite
+   - Syncs all settings including avatars
+   - Updates last sync timestamp
+7. Every 5 minutes, server exports to **JSON file** (backup layer)
 
 ### 🗄️ Database Setup
 **No installation required!** SQLite is embedded via npm package.
@@ -217,12 +241,15 @@ The database is automatically created at `./data/rangerplex.db` on first run.
 
 ### 📦 Managing Your Data
 Go to **Settings → Data & Backup** to:
-- View storage stats across all three layers
-- Export all data to a JSON file
-- Import a backup file
-- Clear browser cache
-- Wipe server database
-- Delete backup files
+- **Enable/Disable Cloud Sync**: Toggle automatic synchronization to server (auto-saves immediately)
+- **Sync Now**: Manually trigger sync with beautiful progress bar showing real-time status
+- **View Storage Stats**: See actual storage usage in KB for browser (IndexedDB) and server (SQLite)
+- **Last Sync Time**: View when data was last synchronized to server
+- **Export Data**: Download all data to a JSON file for backup
+- **Import Backup**: Restore data from a previous backup file
+- **Clear Browser Cache**: Remove local IndexedDB data (server data remains safe)
+- **Wipe Server Database**: Delete all data from SQLite server (use with caution!)
+- **Delete Backup Files**: Remove old JSON backup files from disk
 
 ### 🔑 API Key Configuration (.env File)
 RangerPlex supports loading API keys from a `.env` file for convenience.
@@ -442,11 +469,13 @@ rangerplex-ai/
 ```
 
 ### Data Flow
-1. User action (new chat, edit settings)
+1. User action (new chat, edit settings, upload avatar)
 2. Saved to **IndexedDB** (instant, browser)
-3. Sent to **Server** via WebSocket (real-time)
-4. Server saves to **SQLite** database (persistent)
-5. Every 5 minutes, server exports to **JSON file** (backup)
+3. Critical settings auto-save immediately (Cloud Sync toggle, avatars)
+4. Sent to **Server** via WebSocket (real-time)
+5. Server saves to **SQLite** database (persistent)
+6. Every 5 minutes, **Auto-Sync** verifies all data is synchronized (chats, settings, avatars)
+7. Every 5 minutes, server exports to **JSON file** (backup layer)
 
 ---
 
