@@ -388,6 +388,14 @@ npm run dev
 ```
 Then open `http://localhost:5173`.
 
+### 🪪 Registration Options (Concept)
+We’re planning a lightweight registration flow (collect email, issue a code, show a “Registered” sticker). See `docs/registration_options.md` for approaches:
+- Option A: In-app code (no email service)
+- Option B: SMTP (nodemailer)
+- Option C: Email API (SendGrid/Mailgun/SES/Postmark)
+- Option D: Deferred/manual send
+Pros/cons and data/UX notes are in that doc.
+
 ---
 
 ## ❓ Troubleshooting
