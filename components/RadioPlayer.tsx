@@ -7,6 +7,7 @@ interface RadioStation {
   url: string;
   genre: string;
   description: string;
+  metadataUrl?: string; // optional now-playing/metadata endpoint
 }
 
 // 🎵 ALL SomaFM Radio Stations (50+ channels!)
@@ -357,6 +358,8 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
   const [volume, setVolume] = useState(settings.radioVolume);
   const [isMinimized, setIsMinimized] = useState(settings.radioMinimized);
   const [error, setError] = useState<string | null>(null);
+  const [nowPlaying, setNowPlaying] = useState<string>('');
+  const [nowPlayingTimer, setNowPlayingTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Helper function to get proxied stream URL (bypass CORS)
   const getProxiedUrl = (originalUrl: string) => {
@@ -370,6 +373,34 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
       handlePlay();
     }
   }, []);
+
+  // Fetch now-playing metadata if station exposes it (placeholder; SomaFM needs specific endpoints per station)
+  useEffect(() => {
+    if (nowPlayingTimer) clearInterval(nowPlayingTimer);
+    const fetchNowPlaying = async () => {
+      if (!currentStation.metadataUrl) {
+        setNowPlaying('');
+        return;
+      }
+      try {
+        const res = await fetch(currentStation.metadataUrl);
+        if (!res.ok) throw new Error('metadata fetch failed');
+        const data = await res.json();
+        // Expecting data.nowPlaying or similar; this is station-specific.
+        const title = data.nowPlaying || data.title || data.song || '';
+        setNowPlaying(title);
+      } catch (e) {
+        setNowPlaying('');
+      }
+    };
+
+    fetchNowPlaying();
+    const t = setInterval(fetchNowPlaying, 30000); // refresh every 30s
+    setNowPlayingTimer(t as any);
+    return () => {
+      clearInterval(t);
+    };
+  }, [currentStation]);
 
   // Update audio volume when changed
   useEffect(() => {
@@ -528,6 +559,12 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
               <div className="text-xs uppercase tracking-wide mb-1">Now Playing</div>
               <div className={`text-sm font-bold ${textClass}`}>{currentStation.name}</div>
               <div className="text-xs mt-0.5">{currentStation.description}</div>
+              {nowPlaying && (
+                <div className="text-xs mt-1 opacity-80">
+                  <i className="fa-solid fa-music mr-1"></i>
+                  {nowPlaying}
+                </div>
+              )}
             </div>
 
             {/* Controls */}
