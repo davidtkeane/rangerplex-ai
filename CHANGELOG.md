@@ -84,6 +84,8 @@ Critical fixes for API proxying, image downloads, data persistence, and developm
     *   Total Claude models now: 9 (was 8).
     *   Includes vision capability badge 👁️.
 *   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
+*   **Registration Concepts Doc**: Added `docs/registration_options.md` outlining multiple registration flows (in-app code, SMTP, API providers, deferred) with pros/cons and UX/abuse notes.
+*   **One-Command Installer**: Added `install-me-now.sh` for macOS/Linux/WSL to auto-install Node.js 22 (via nvm), npm deps, and guided API key setup (.env). Outputs clear start commands (`npm start` recommended; manual `npm run server` + `npm run dev` alternative).
 *   **Auto-Sync Every 5 Minutes**: Automatic synchronization of all data to server when cloud sync is enabled.
     *   Runs immediately on app launch, then every 5 minutes (300000ms).
     *   Syncs all chats from IndexedDB to SQLite server.
