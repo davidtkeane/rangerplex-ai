@@ -444,6 +444,15 @@ export interface ModelCapabilities {
 }
 
 export const getModelCapabilities = (modelId: string): ModelCapabilities => {
+  if (!modelId) {
+    return {
+      vision: false,
+      reasoning: false,
+      speed: 'balanced',
+      imageGen: false
+    };
+  }
+
   const defaults: ModelCapabilities = {
     vision: false,
     reasoning: false,
@@ -497,6 +506,7 @@ export const getModelCapabilities = (modelId: string): ModelCapabilities => {
 };
 
 export const getModelBadges = (modelId: string): string => {
+  if (!modelId) return '';
   const caps = getModelCapabilities(modelId);
   const badges: string[] = [];
 
