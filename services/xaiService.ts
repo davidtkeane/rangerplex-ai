@@ -6,7 +6,16 @@ export const streamGrokResponse = async (
     history: Message[],
     model: string,
     apiKey: string,
-    onChunk: (text: string) => void
+    onChunk: (text: string) => void,
+    options?: {
+        temperature?: number;      // 0.0-2.0, default 1.0
+        maxTokens?: number;        // 1-131072 (Grok-3: 128k context)
+        topP?: number;             // 0.0-1.0, default 1.0
+        frequencyPenalty?: number; // -2.0 to 2.0, default 0.0
+        presencePenalty?: number;  // -2.0 to 2.0, default 0.0
+        stop?: string[];           // Stop sequences
+        seed?: number;             // For reproducible outputs
+    }
 ) => {
     if (!apiKey) throw new Error("xAI API Key Missing");
 
@@ -17,17 +26,29 @@ export const streamGrokResponse = async (
     messages.push({ role: 'user', content: prompt });
 
     try {
+        // Build request body with optional parameters
+        const requestBody: any = {
+            model,
+            messages,
+            stream: true
+        };
+
+        // Add optional parameters if provided
+        if (options?.temperature !== undefined) requestBody.temperature = options.temperature;
+        if (options?.maxTokens !== undefined) requestBody.max_tokens = options.maxTokens;
+        if (options?.topP !== undefined) requestBody.top_p = options.topP;
+        if (options?.frequencyPenalty !== undefined) requestBody.frequency_penalty = options.frequencyPenalty;
+        if (options?.presencePenalty !== undefined) requestBody.presence_penalty = options.presencePenalty;
+        if (options?.stop !== undefined) requestBody.stop = options.stop;
+        if (options?.seed !== undefined) requestBody.seed = options.seed;
+
         const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`
             },
-            body: JSON.stringify({
-                model,
-                messages,
-                stream: true
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) throw new Error("Grok API Error");
