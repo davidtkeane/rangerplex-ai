@@ -36,6 +36,7 @@ interface ChatInterfaceProps {
     onToggleHolidayMode: () => void;
     onCycleHolidayEffect: () => void;
     showHolidayButtons: boolean;
+    onPetCommand: () => void; // New prop
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -49,7 +50,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     onOpenSettings,
     onToggleHolidayMode,
     onCycleHolidayEffect,
-    showHolidayButtons
+    showHolidayButtons,
+    onPetCommand // Destructure new prop
 }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
     const [isStreaming, setIsStreaming] = useState(false);
@@ -458,6 +460,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     holidayMode={settings.holidayMode}
                     holidayEffect={settings.holidayEffect}
                     showHolidayButtons={showHolidayButtons}
+                    onPetCommand={onPetCommand} // Pass the new prop
                 />
             </div>
 

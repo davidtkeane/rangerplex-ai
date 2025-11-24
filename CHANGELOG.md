@@ -8,6 +8,7 @@
 A lovable, no-guilt virtual pet companion joins your sidebar! Based on the proven WordPress Tamagotchi system, your Ranger Pet is always happy to see you and ready to support your study sessions.
 
 ### 🐾 Ranger Pet Features
+*   **Slash Command**: Added `/pet` command to chat box for instant positive reinforcement.
 *   **Virtual Pet Widget**: Added interactive Cyber Cat companion to sidebar (between chat logs and user controls).
 *   **Interactive Actions**:
     *   🍎 **Feed** - Give your pet a treat with satisfying meow sound effect

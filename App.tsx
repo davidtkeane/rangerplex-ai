@@ -13,6 +13,7 @@ import SnowOverlay from './components/SnowOverlay';
 import ConfettiOverlay from './components/ConfettiOverlay';
 import SparkleOverlay from './components/SparkleOverlay';
 import StudyNotes from './components/StudyNotes';
+import RangerPet from './components/RangerPet'; // Import RangerPet
 import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS } from './types';
 import { generateTitle } from './services/geminiService';
 import { dbService } from './services/dbService';
@@ -37,6 +38,8 @@ const App: React.FC = () => {
   const [wasVisionModeAutoActivated, setWasVisionModeAutoActivated] = useState(false);
   const [radioToggleSignal, setRadioToggleSignal] = useState(0); // external play/pause signal for Ranger Radio
   const [scannerMode, setScannerMode] = useState<'tron' | 'teal' | 'rainbow' | 'matrix' | 'red' | 'gold'>('tron');
+  const [isPetVisible, setIsPetVisible] = useState(false); // State for RangerPet visibility
+  const [petMessage, setPetMessage] = useState(''); // State for RangerPet message
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
     if (!prompts || prompts.length === 0) return DEFAULT_SAVED_PROMPTS;
@@ -463,6 +466,38 @@ const App: React.FC = () => {
     setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, knowledgeBase: [...(s.knowledgeBase || []), ...chunks] } : s));
   }, []);
 
+  const handlePetCommand = useCallback(() => {
+    const messages = [
+      "The Ranger Pet purrs happily at your attention!",
+      "Ranger Pet wags its tail! You're doing great!",
+      "A friendly nudge from your Ranger Pet: Keep up the excellent work!",
+      "Ranger Pet smiles! Your presence brightens its day!",
+      "Feeling motivated? Your Ranger Pet is right there with you!",
+      "Woof! (That's 'You're awesome!' in pet speak)",
+      "Meow! (Translation: 'Success is within reach!')",
+      "Ranger Pet offers a paw of encouragement!",
+      "You got this, Commander! - Ranger Pet",
+      "Ranger Pet believes in you!",
+    ];
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+
+    setPetMessage(randomMessage);
+    setIsPetVisible(true);
+    // Add pet message to chat for record
+    if (currentSessionId) {
+      updateMessages(currentSessionId, (prevMessages) => [
+        ...prevMessages,
+        {
+          id: uuidv4(),
+          sender: Sender.AI,
+          text: `*Ranger Pet says:* ${randomMessage}`,
+          timestamp: Date.now(),
+          model: ModelType.FAST, // Or a specific pet model if you implement one
+        }
+      ]);
+    }
+  }, [currentSessionId, updateMessages]);
+
   if (!currentUser) return <AuthPage onLogin={handleLogin} securityMode={settings.securityMode} />;
   if (isLocked) return <AuthPage onLogin={() => setIsLocked(false)} securityMode={settings.securityMode} isLocked={true} lockedUser={currentUser} />;
 
@@ -596,6 +631,7 @@ const App: React.FC = () => {
               onToggleHolidayMode={toggleHolidayMode}
               onCycleHolidayEffect={cycleHolidayEffect}
               showHolidayButtons={settings.showHeaderControls === true}
+              onPetCommand={handlePetCommand} // Pass the new pet command handler
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -640,6 +676,12 @@ const App: React.FC = () => {
           />
         )}
       </div>
+
+      <RangerPet
+        isVisible={isPetVisible}
+        onClose={() => setIsPetVisible(false)}
+        message={petMessage}
+      />
     </div>
   );
 };

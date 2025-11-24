@@ -16,6 +16,7 @@ interface InputAreaProps {
     holidayMode: boolean;
     holidayEffect: 'snow' | 'confetti' | 'sparkles';
     showHolidayButtons: boolean;
+    onPetCommand: () => void; // New prop for handling /pet command
 }
 
 const MAX_FILES = 5;
@@ -32,7 +33,8 @@ const InputArea: React.FC<InputAreaProps> = ({
     onCycleHolidayEffect,
     holidayMode,
     holidayEffect,
-    showHolidayButtons
+    showHolidayButtons,
+    onPetCommand // Destructure new prop
 }) => {
     const [input, setInput] = useState('');
     const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -78,7 +80,18 @@ const InputArea: React.FC<InputAreaProps> = ({
     };
 
     const handleSubmit = () => {
-        if ((!input.trim() && attachments.length === 0) || isStreaming) return;
+        const trimmedInput = input.trim();
+        if ((!trimmedInput && attachments.length === 0) || isStreaming) return;
+
+        if (trimmedInput === '/pet') {
+            onPetCommand(); // Call the new pet command handler
+            setInput('');
+            setAttachments([]);
+            setCommandState({ web: false, visual: false, flash: false, deep: false }); // Reset flags
+            if (textareaRef.current) textareaRef.current.style.height = 'auto';
+            return;
+        }
+
         onSend(input, attachments, commandState);
         setInput('');
         setAttachments([]);
