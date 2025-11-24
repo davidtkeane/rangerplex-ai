@@ -227,7 +227,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Pet Widget */}
                 <div className="flex-shrink-0">
-                    <PetWidget isTron={isTron} />
+                    <PetWidget isTron={isTron} settings={settings} />
                 </div>
 
                 <div className={`flex-shrink-0 p-4 border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900'}`}>
@@ -248,7 +248,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                         </div>
                     )}
-                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.4.4 // RANGER PET 🐾</div>
+                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.4.5 // PET EVOLUTION 🐾</div>
                 </div>
             </aside>
         </>

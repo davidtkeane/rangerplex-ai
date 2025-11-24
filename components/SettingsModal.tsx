@@ -420,7 +420,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                 {/* Tabs */}
                 <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                    {['general', 'media', 'params', 'providers', 'ollama', 'search', 'council', 'prompts', 'security', 'radio', 'data', 'help'].map((tab) => (
+                    {['general', 'media', 'params', 'providers', 'ollama', 'search', 'council', 'prompts', 'security', 'radio', 'tamagotchi', 'data', 'help'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -1015,6 +1015,57 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         </div>
                     )}
 
+                    {/* TAMAGOTCHI TAB */}
+                    {activeTab === 'tamagotchi' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold mb-4 border-b border-inherit pb-2">🐾 Ranger Pet</h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">Pet Name</label>
+                                    <input
+                                        type="text"
+                                        value={localSettings.petName}
+                                        onChange={e => setLocalSettings({ ...localSettings, petName: e.target.value })}
+                                        className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">Sound Volume: {Math.round(localSettings.petVolume * 100)}%</label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        value={localSettings.petVolume}
+                                        onChange={e => setLocalSettings({ ...localSettings, petVolume: parseFloat(e.target.value) })}
+                                        className="w-full accent-current"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">Happiness Decay Rate</label>
+                                    <input
+                                        type="number"
+                                        value={localSettings.happinessDecayRate}
+                                        onChange={e => setLocalSettings({ ...localSettings, happinessDecayRate: parseInt(e.target.value) })}
+                                        className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                    />
+                                    <span className="text-[10px] opacity-60">Points deducted per 5 seconds.</span>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">Hunger Increase Rate</label>
+                                    <input
+                                        type="number"
+                                        value={localSettings.hungerIncreaseRate}
+                                        onChange={e => setLocalSettings({ ...localSettings, hungerIncreaseRate: parseInt(e.target.value) })}
+                                        className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                    />
+                                    <span className="text-[10px] opacity-60">Points added per 5 seconds.</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* DATA & BACKUP TAB */}
                     {activeTab === 'data' && (
                         <div className="space-y-6">
@@ -1211,6 +1262,47 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <div className="text-right">
                                             <div className="text-blue-500 font-bold">Auto-Export</div>
                                             <div className="text-[10px] opacity-60">Every 5 min</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Auto-Backup Settings */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                    <i className="fa-solid fa-file-archive"></i>
+                                    Auto-Backup Settings
+                                </h4>
+                                <div className="space-y-4">
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={localSettings.autoBackupEnabled}
+                                            onChange={e => setLocalSettings({ ...localSettings, autoBackupEnabled: e.target.checked })}
+                                            className="accent-teal-500 w-5 h-5"
+                                        />
+                                        Enable Auto-Backup
+                                    </label>
+                                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${!localSettings.autoBackupEnabled ? 'opacity-50' : ''}`}>
+                                        <div>
+                                            <label className="block text-xs font-bold mb-1">Backup Interval (minutes)</label>
+                                            <input
+                                                type="number"
+                                                value={localSettings.autoBackupInterval}
+                                                onChange={e => setLocalSettings({ ...localSettings, autoBackupInterval: parseInt(e.target.value) })}
+                                                className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                                disabled={!localSettings.autoBackupEnabled}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold mb-1">Backup Location</label>
+                                            <input
+                                                type="text"
+                                                value={localSettings.autoBackupLocation}
+                                                onChange={e => setLocalSettings({ ...localSettings, autoBackupLocation: e.target.value })}
+                                                className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                                disabled={!localSettings.autoBackupEnabled}
+                                            />
                                         </div>
                                     </div>
                                 </div>

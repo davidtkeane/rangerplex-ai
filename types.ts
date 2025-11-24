@@ -266,6 +266,17 @@ export interface AppSettings {
   radioVolume: number; // 0.0 to 1.0
   radioLastStation: string | null; // station ID
   radioMinimized: boolean;
+
+  // Data & Backup
+  autoBackupEnabled: boolean;
+  autoBackupInterval: number; // minutes
+  autoBackupLocation: string;
+
+  // Pet Settings
+  petName: string;
+  petVolume: number; // 0.0 to 1.0
+  happinessDecayRate: number; // points per interval
+  hungerIncreaseRate: number; // points per interval
 }
 
 export const DEFAULT_AGENTS: AgentConfig[] = [
@@ -427,7 +438,16 @@ export const DEFAULT_SETTINGS: AppSettings = {
   radioAutoPlay: false,
   radioVolume: 0.3,
   radioLastStation: 'soma-defcon', // 💻 DEF CON Radio - Music for hacking and coding
-  radioMinimized: true
+  radioMinimized: true,
+
+  autoBackupEnabled: true,
+  autoBackupInterval: 5, // minutes
+  autoBackupLocation: './backups/',
+
+  petName: 'Pixel',
+  petVolume: 0.7,
+  happinessDecayRate: 2,
+  hungerIncreaseRate: 3
 };
 
 export interface TrainingExample {

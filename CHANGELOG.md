@@ -2,6 +2,29 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.4.5 - "Pet Evolution & Settings Restoration" (Current)
+*Released: Nov 23, 2025*
+
+This update enhances the Ranger Pet with new interactive stats and restores missing UI controls in the settings panel.
+
+### ✨ New Features
+*   **Pet Gamification**: The Ranger Pet is now more interactive!
+    *   **Happiness Bar**: A visual bar that decays over time. Use the "Play" button to increase it.
+    *   **Hunger Bar**: A new stat that increases over time. Use the "Feed" button to decrease it.
+    *   **Level Up System**: Gain XP by feeding and playing with your pet to watch it level up.
+*   **Settings Integration**: A new "Tamagotchi" tab has been added to the settings modal, allowing users to customize their Ranger Pet:
+    *   **Change Pet Name**: Update the pet's display name.
+    *   **Pet Sound Volume**: Adjust the volume of the pet's sound effects.
+    *   **Happiness Decay Rate**: Configure how quickly the pet's happiness decreases.
+    *   **Hunger Increase Rate**: Configure how quickly the pet's hunger increases.
+*   **Dynamic Pet Moods**: The pet's mood (e.g., 'Happy', 'Content', 'Bored') now changes dynamically based on its happiness level.
+
+### 🐛 Bug Fixes
+*   **Restored Auto-Backup Settings**: The "Auto-Backup Settings" section in the Data & Backup tab has been restored. Users can now again configure the backup interval and location.
+*   **Fixed Critical Pet Error**: Resolved a "useEffect is not defined" error in the `PetWidget` component that was causing a startup failure.
+
+---
+
 ## v2.4.4 - "Ranger Pet - Your Study Companion" (Current)
 *Released: Nov 23, 2025*
 
