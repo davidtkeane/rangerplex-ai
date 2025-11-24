@@ -116,7 +116,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setProcessingStatus(null);
     };
 
-    const handleSendMessage = async (text: string, attachments: Attachment[], commandState: CommandState) => {
+    const handleSendMessage = async (text: string, attachments: Attachment[], commandState: CommandState, isPetChat: boolean) => {
         setError(null);
 
         // 🎖️ EASTER EGGS: Check for special names (case insensitive)
@@ -160,6 +160,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         const startTime = Date.now();
 
         try {
+            let textToSend = text;
+            let modelToUse = localModel;
+            let isPetResponse = false;
+
+            // --- PET CHAT HANDLING ---
+            if (isPetChat) {
+                const petName = settings.petName || 'Pixel';
+                const petPersonality = `You are ${petName}, a friendly and loyal cyber-cat. You are talking to your owner, the Commander. Respond in a cute, slightly curious, cat-like manner. Keep your responses short and sweet (1-2 sentences). Use purrs, meows, and other cat sounds occasionally.`;
+                textToSend = `${petPersonality}\n\nCommander says: "${text}"`;
+                modelToUse = ModelType.FAST; // Force Gemini Flash for pet chat
+                isPetResponse = true;
+                console.log(`🐾 Pet Chat initiated with ${petName}!`);
+            }
+
             // --- COMMAND HANDLING ---
 
             // 1. Image Generation (/imagine or Visual Flag)
@@ -276,54 +290,56 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             };
 
             const finalParams = (fullText: string, stats: any, sources?: any) => {
-                const msg = {
+                const msg: Message = {
                     ...aiPlaceholder, text: fullText, isThinking: false, groundingSources: sources,
-                    contextUsed: relevantContext, stats: { model: localModel, latencyMs: Date.now() - startTime, ...stats }
+                    contextUsed: relevantContext, stats: { model: modelToUse, latencyMs: Date.now() - startTime, ...stats },
+                    agentName: isPetResponse ? (settings.petName || 'Pixel') : undefined,
+                    agentColor: isPetResponse ? 'bg-purple-600' : undefined,
                 };
                 onUpdateMessages([...currentMessages, msg]);
-                if (settings.enableVoiceResponse) speakText(fullText.replace(/<[^>]*>?/gm, ''));
+                if (settings.enableVoiceResponse && !isPetResponse) speakText(fullText.replace(/<[^>]*>?/gm, ''));
             };
 
             // Provider Routing
-            if (localModel === ModelType.MULTI_AGENT) {
+            if (modelToUse === ModelType.MULTI_AGENT && !isPetChat) {
                 await runMultiAgentCouncil(
-                    text, imageAttachments, session.messages, relevantContext, settings.geminiApiKey, settings.councilAgents,
+                    textToSend, imageAttachments, session.messages, relevantContext, settings.geminiApiKey, settings.councilAgents,
                     (msg) => { currentMessages = [...currentMessages, msg]; onUpdateMessages(currentMessages); },
                     (id, txt) => { currentMessages = currentMessages.map(m => m.id === id ? { ...m, text: txt, isThinking: false } : m); onUpdateMessages(currentMessages); }
                 );
-            } else if (localModel.includes('sonar')) {
-                const res = await streamPerplexityResponse(text, session.messages, localModel, settings.perplexityApiKey || '',
+            } else if (modelToUse.includes('sonar') && !isPetChat) {
+                const res = await streamPerplexityResponse(textToSend, session.messages, modelToUse, settings.perplexityApiKey || '',
                     (txt, sources) => onUpdateMessages([...currentMessages, { ...aiPlaceholder, text: txt, isThinking: false, groundingSources: sources }]));
                 finalParams(res.text, {}, res.sources);
-            } else if (localModel.includes('gpt') || localModel.includes('o1')) {
+            } else if ((modelToUse.includes('gpt') || modelToUse.includes('o1')) && !isPetChat) {
                 const promptWithSearch = (searchContext || studyContextText)
-                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${text}`
-                    : text;
-                const res = await streamOpenAIResponse(promptWithSearch, imageAttachments, session.messages, localModel, relevantContext, settings.openaiApiKey || '', commonParams, settings.modelParams);
+                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
+                    : textToSend;
+                const res = await streamOpenAIResponse(promptWithSearch, imageAttachments, session.messages, modelToUse, relevantContext, settings.openaiApiKey || '', commonParams, settings.modelParams);
                 finalParams(res.text, res.usage);
-            } else if (localModel.includes('claude')) {
+            } else if (modelToUse.includes('claude') && !isPetChat) {
                 const promptWithSearch = (searchContext || studyContextText)
-                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${text}`
-                    : text;
-                const res = await streamAnthropicResponse(promptWithSearch, imageAttachments, session.messages, localModel, relevantContext, settings.anthropicApiKey || '', settings.corsProxyUrl || '', commonParams, settings.modelParams);
+                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
+                    : textToSend;
+                const res = await streamAnthropicResponse(promptWithSearch, imageAttachments, session.messages, modelToUse, relevantContext, settings.anthropicApiKey || '', settings.corsProxyUrl || '', commonParams, settings.modelParams);
                 finalParams(res.text, res.usage);
-            } else if (localModel.includes('grok')) {
-                const res = await streamGrokResponse(text, session.messages, localModel, settings.xaiApiKey || '', commonParams);
+            } else if (modelToUse.includes('grok') && !isPetChat) {
+                const res = await streamGrokResponse(textToSend, session.messages, modelToUse, settings.xaiApiKey || '', commonParams);
                 finalParams(res, {});
-            } else if (localModel.includes('meta') || localModel.includes('mistral')) {
+            } else if ((modelToUse.includes('meta') || modelToUse.includes('mistral')) && !isPetChat) {
                 // Hugging Face
-                const res = await generateHFChat(text, session.messages, localModel, settings.huggingFaceApiKey || '');
+                const res = await generateHFChat(textToSend, session.messages, modelToUse, settings.huggingFaceApiKey || '');
                 finalParams(res, {});
-            } else if (localModel === ModelType.LOCAL || !localModel.includes('gemini')) {
+            } else if (modelToUse === ModelType.LOCAL || (!modelToUse.includes('gemini') && !isPetChat)) {
                 const promptWithSearch = (searchContext || studyContextText)
-                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${text}`
-                    : text;
+                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
+                    : textToSend;
                 const res = await streamOllamaResponse(promptWithSearch, session.messages, settings.ollamaBaseUrl, settings.ollamaModelId, commonParams);
                 finalParams(res.text, res.usage);
             } else {
-                // Gemini
+                // Gemini (Handles normal Gemini chats and the Pet Chat)
                 const res = await streamGeminiResponse(
-                    text, imageAttachments, session.messages, localModel as any, commandState.web, relevantContext,
+                    textToSend, imageAttachments, session.messages, modelToUse as any, commandState.web, relevantContext,
                     (txt, sources) => onUpdateMessages([...currentMessages, { ...aiPlaceholder, text: txt, isThinking: false, groundingSources: sources }]),
                     settings.geminiApiKey, settings.matrixMode, settings.theme === 'tron', settings.modelParams, commandState
                 );

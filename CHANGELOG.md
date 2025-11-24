@@ -18,6 +18,7 @@ This update enhances the Ranger Pet with new interactive stats and restores miss
     *   **Happiness Decay Rate**: Configure how quickly the pet's happiness decreases.
     *   **Hunger Increase Rate**: Configure how quickly the pet's hunger increases.
 *   **Dynamic Pet Moods**: The pet's mood (e.g., 'Happy', 'Content', 'Bored') now changes dynamically based on its happiness level.
+*   **Pet Chat**: Added `/pet-chat` command to talk directly with your pet, which uses a custom Gemini personality prompt.
 
 ### 🐛 Bug Fixes
 *   **Restored Auto-Backup Settings**: The "Auto-Backup Settings" section in the Data & Backup tab has been restored. Users can now again configure the backup interval and location.

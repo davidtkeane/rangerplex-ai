@@ -103,15 +103,27 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **Persistent Settings**: Remembers your volume, last station, and player state.
 *   **Theme Integration**: Adapts to Dark, Light, and Tron themes with matching effects.
 
-### 🐾 Ranger Pet (NEW in v2.4.4)
-*   **Your Study Companion**: A lovable Cyber Cat that lives in your sidebar and keeps you company while you work.
+### 🐾 Ranger Pet (NEW in v2.4.5 - Pet Evolution!)
+*   **Your Evolving Study Companion**: A lovable Cyber Cat that lives in your sidebar, offering positive reinforcement and evolving as you interact with it.
+*   **New Gamification**:
+    *   **Happiness Bar**: A visual bar that slowly decays. Keep your pet happy by interacting with it!
+    *   **Hunger Bar**: A new stat that slowly increases. Feed your pet to keep it content!
+    *   **Level Up System**: Gain XP by feeding and playing with your pet, watching it grow and level up.
+*   **Dynamic Pet Moods**: The pet's mood (e.g., 'Ecstatic', 'Happy', 'Content', 'Bored', 'Sad') changes based on its happiness level, providing subtle feedback.
 *   **Interactive Actions**: Feed your pet 🍎 or play with it 🎾 - complete with sound effects (meow/purr).
-*   **Always Happy**: No-guilt design - your pet never dies, gets sick, or makes you feel bad. It's always excited to see you!
+*   **Slash Command**: Use the `/pet` command in the chat box for an instant dose of positive reinforcement and a happy pet appearance.
+*   **Pet Chat**: Use the `/pet-chat` command to talk directly with your pet, which uses a custom Gemini personality prompt for fun, cat-like responses.
+*   **Customization (Settings)**:
+    *   **Change Pet Name**: Personalize your companion with a unique name.
+    *   **Pet Sound Volume**: Adjust the volume of the pet's sound effects.
+    *   **Happiness Decay Rate**: Configure how quickly your pet's happiness decreases over time.
+    *   **Hunger Increase Rate**: Control how quickly your pet gets hungry.
+*   **Always Happy Design**: No-guilt system - your pet never dies, gets sick, or makes you feel bad. It's always excited to see you!
 *   **Breathing Animation**: Gentle idle animation makes your pet feel alive and present.
 *   **Theme Integration**: Adapts to Dark, Light, and Tron modes with matching colors and effects.
 *   **Perfect Placement**: Sits in the sidebar between chat logs and user controls - always visible, never intrusive.
 *   **High-Quality Graphics**: Crisp 1024×1024 pixel art scaled to sidebar size for perfect clarity.
-*   **Future-Ready**: Built on the proven WordPress Tamagotchi system, ready for XP, leveling, evolution, and study session integration.
+*   **Future-Ready**: Built on the proven WordPress Tamagotchi system, designed for future evolutions and study session integration.
 
 ### 💾 Triple-Layer Data Persistence (v2.2.0 - Enhanced in v2.4.2)
 *   **IndexedDB** (Browser): Fast, local storage that survives page refreshes.

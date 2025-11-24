@@ -5,7 +5,7 @@ import CommandDeck from './CommandDeck';
 import { startListening, stopListening } from '../services/voiceService';
 
 interface InputAreaProps {
-    onSend: (text: string, attachments: Attachment[], commandState: CommandState) => void;
+    onSend: (text: string, attachments: Attachment[], commandState: CommandState, isPetChat: boolean) => void;
     onStop: () => void;
     isStreaming: boolean;
     settings: AppSettings;
@@ -83,6 +83,9 @@ const InputArea: React.FC<InputAreaProps> = ({
         const trimmedInput = input.trim();
         if ((!trimmedInput && attachments.length === 0) || isStreaming) return;
 
+        const isPetChat = trimmedInput.startsWith('/pet-chat');
+        const textToSend = isPetChat ? trimmedInput.replace('/pet-chat', '').trim() : trimmedInput;
+
         if (trimmedInput === '/pet') {
             onPetCommand(); // Call the new pet command handler
             setInput('');
@@ -92,7 +95,7 @@ const InputArea: React.FC<InputAreaProps> = ({
             return;
         }
 
-        onSend(input, attachments, commandState);
+        onSend(textToSend, attachments, commandState, isPetChat);
         setInput('');
         setAttachments([]);
         setCommandState({ web: false, visual: false, flash: false, deep: false }); // Reset flags

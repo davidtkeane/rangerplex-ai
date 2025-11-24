@@ -152,11 +152,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
 
   return (
     <div className={`flex gap-4 mb-6 group ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden border border-white/10 ${isUser ? 'bg-zinc-800' : 'bg-teal-900'}`}>
+      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden border border-white/10 ${isUser ? 'bg-zinc-800' : (message.agentColor || 'bg-teal-900')}`}>
         {isUser ? (
             userAvatar ? <img src={userAvatar} alt="User" className="w-full h-full object-cover" /> : <i className="fa-solid fa-user text-sm"></i>
         ) : (
-            aiAvatar ? <img src={aiAvatar} alt="AI" className="w-full h-full object-cover" /> : <i className="fa-solid fa-robot text-sm"></i>
+            (message.agentName && aiAvatar) ? <img src={aiAvatar} alt={message.agentName} className="w-full h-full object-cover" /> :
+            aiAvatar ? <img src={aiAvatar} alt="AI" className="w-full h-full object-cover" /> : 
+            message.agentName ? <i className="fa-solid fa-paw text-sm"></i> :
+            <i className="fa-solid fa-robot text-sm"></i>
         )}
       </div>
 
