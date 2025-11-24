@@ -43,6 +43,7 @@ interface StudyNotesProps {
   currentUser: string;
   settings: AppSettings;
   initialDraft?: { title?: string; content?: string; imageUrl?: string; savedImagePath?: string };
+  onOpenSettings: () => void;
 }
 
 const COLORS: { key: NoteColor; label: string; bg: string }[] = [
@@ -60,7 +61,7 @@ const PRIORITIES: { key: NotePriority; label: string; badge: string }[] = [
   { key: 'low', label: 'Low', badge: 'bg-green-100 text-green-800' }
 ];
 
-const StudyNotes: React.FC<StudyNotesProps> = ({ currentUser, settings, initialDraft }) => {
+const StudyNotes: React.FC<StudyNotesProps> = ({ currentUser, settings, initialDraft, onOpenSettings }) => {
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
@@ -407,6 +408,13 @@ const StudyNotes: React.FC<StudyNotesProps> = ({ currentUser, settings, initialD
               }}
             />
           </label>
+          <button
+            onClick={onOpenSettings}
+            className="px-3 py-2 rounded text-sm border border-gray-300 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800"
+            title="Open Settings"
+          >
+            <i className="fa-solid fa-gear"></i>
+          </button>
         </div>
       </div>
 

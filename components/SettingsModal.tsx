@@ -152,18 +152,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         }
     };
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'user' | 'ai') => {
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'user' | 'ai' | 'pet') => {
         if (e.target.files && e.target.files[0]) {
             try {
                 const base64 = await processAvatarImage(e.target.files[0]);
                 const newSettings = {
                     ...localSettings,
-                    [type === 'user' ? 'userAvatar' : 'aiAvatar']: base64
+                    [type === 'user' ? 'userAvatar' : type === 'ai' ? 'aiAvatar' : 'petAvatar']: base64
                 };
                 setLocalSettings(newSettings);
                 // Save immediately - avatars are important!
                 onSave(newSettings);
-                console.log(`✅ ${type === 'user' ? 'User' : 'AI'} avatar saved automatically`);
+                console.log(`✅ ${type} avatar saved automatically`);
             } catch (err) {
                 alert("Failed to process image.");
             }
@@ -1021,6 +1021,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             <h3 className="font-bold mb-4 border-b border-inherit pb-2">🐾 Ranger Pet</h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">Pet Avatar</label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border border-inherit bg-zinc-800 flex items-center justify-center">
+                                            {localSettings.petAvatar ? <img src={localSettings.petAvatar} className="w-full h-full object-cover" /> : <i className="fa-solid fa-paw text-zinc-500"></i>}
+                                        </div>
+                                        <label className={`px-3 py-2 text-xs font-bold rounded cursor-pointer ${inputClass} hover:opacity-80`}>
+                                            Upload
+                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleAvatarUpload(e, 'pet')} />
+                                        </label>
+                                    </div>
+                                </div>
                                 <div>
                                     <label className="block text-xs font-bold mb-1 opacity-80">Pet Name</label>
                                     <input

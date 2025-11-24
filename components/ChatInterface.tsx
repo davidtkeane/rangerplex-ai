@@ -37,6 +37,7 @@ interface ChatInterfaceProps {
     onCycleHolidayEffect: () => void;
     showHolidayButtons: boolean;
     onPetCommand: () => void; // New prop
+    saveImageToLocal: (url?: string) => Promise<string | undefined>;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -51,7 +52,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     onToggleHolidayMode,
     onCycleHolidayEffect,
     showHolidayButtons,
-    onPetCommand // Destructure new prop
+    onPetCommand, // Destructure new prop
+    saveImageToLocal
 }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
     const [isStreaming, setIsStreaming] = useState(false);
@@ -193,6 +195,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 const latency = Date.now() - imageStart;
                 const primaryProvider = images[0]?.provider || provider;
 
+                // --- Auto-save generated images ---
+                setProcessingStatus("Saving Artwork...");
+                const savedImages = await Promise.all(
+                    images.map(async (img) => {
+                        const savedUrl = await saveImageToLocal(img.url);
+                        return { ...img, url: savedUrl || img.url }; // Fallback to original URL if save fails
+                    })
+                );
+
                 const stats = {
                     model: primaryProvider,
                     latencyMs: latency,
@@ -204,9 +215,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 onUpdateMessages(prev => [...prev, {
                     id: uuidv4(),
                     sender: Sender.AI,
-                    text: `Generated ${images.length} image(s) for: "${prompt}"\n${metaLine}`,
+                    text: `Generated ${savedImages.length} image(s) for: "${prompt}"\n${metaLine}`,
                     timestamp: Date.now(),
-                    generatedImages: images,
+                    generatedImages: savedImages,
                     stats
                 }]);
                 setIsStreaming(false);
@@ -440,6 +451,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         message={msg}
                         userAvatar={settings.userAvatar}
                         aiAvatar={settings.aiAvatar}
+                        petAvatar={settings.petAvatar}
                         isTron={isTron}
                         isMatrix={settings.matrixMode}
                         onRegenerate={handleRegenerate}

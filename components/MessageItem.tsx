@@ -16,6 +16,7 @@ interface MessageItemProps {
   message: Message;
   userAvatar?: string;
   aiAvatar?: string;
+  petAvatar?: string;
   isTron?: boolean;
   isMatrix?: boolean;
   onRegenerate?: () => void;
@@ -23,7 +24,7 @@ interface MessageItemProps {
   onMakeNote?: (message: Message) => void;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar, isTron, isMatrix, onRegenerate, onRate, onMakeNote }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar, petAvatar, isTron, isMatrix, onRegenerate, onRate, onMakeNote }) => {
   const isUser = message.sender === Sender.USER;
   const [output, setOutput] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -156,9 +157,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
         {isUser ? (
             userAvatar ? <img src={userAvatar} alt="User" className="w-full h-full object-cover" /> : <i className="fa-solid fa-user text-sm"></i>
         ) : (
-            (message.agentName && aiAvatar) ? <img src={aiAvatar} alt={message.agentName} className="w-full h-full object-cover" /> :
+            (message.agentName && petAvatar) ? <img src={petAvatar} alt={message.agentName} className="w-full h-full object-cover" /> :
+            (message.agentName) ? <i className="fa-solid fa-paw text-sm"></i> :
             aiAvatar ? <img src={aiAvatar} alt="AI" className="w-full h-full object-cover" /> : 
-            message.agentName ? <i className="fa-solid fa-paw text-sm"></i> :
             <i className="fa-solid fa-robot text-sm"></i>
         )}
       </div>

@@ -58,7 +58,57 @@ const App: React.FC = () => {
     const initDB = async () => {
       await dbService.init();
 
-      // Check if migration is needed
+      // Check if migration is needed for image paths
+      const imagePathMigrationNeeded = await dbService.getSetting('image_path_migration_20251123') !== 'completed';
+      if (imagePathMigrationNeeded) {
+        console.log('🔄 Performing one-time image path migration...');
+        try {
+          // Migrate chat messages
+          const chats = await dbService.getAllChats();
+          for (const chat of chats) {
+            let chatUpdated = false;
+            for (const message of chat.messages) {
+              if (message.generatedImages) {
+                for (const image of message.generatedImages) {
+                  if (image.url && image.url.startsWith('image/')) {
+                    image.url = `http://localhost:3010/${image.url}`;
+                    chatUpdated = true;
+                  }
+                }
+              }
+            }
+            if (chatUpdated) {
+              await dbService.saveChat(chat);
+            }
+          }
+
+          // Migrate study notes
+          const users = await dbService.getAllUsers(); // Assuming you have a way to get all users
+          for (const user of users) {
+             const storageKey = `study_notes_${user.username}`;
+             const stored = await dbService.getSetting(storageKey);
+             if (stored && Array.isArray(stored.notes)) {
+                let notesUpdated = false;
+                for (const note of stored.notes) {
+                    if (note.content && note.content.includes('](image/')) {
+                        note.content = note.content.replace(/\]\(image\//g, '](http://localhost:3010/image/');
+                        notesUpdated = true;
+                    }
+                }
+                if (notesUpdated) {
+                    await dbService.saveSetting(storageKey, stored);
+                }
+             }
+          }
+
+          await dbService.saveSetting('image_path_migration_20251123', 'completed');
+          console.log('✅ Image path migration complete!');
+        } catch (error) {
+            console.error('❌ Image path migration failed:', error);
+        }
+      }
+
+      // Check if migration from localStorage is needed
       const migrated = await dbService.getSetting('migrated');
       if (!migrated) {
         console.log('🔄 Migrating from localStorage to IndexedDB...');
@@ -615,7 +665,7 @@ const App: React.FC = () => {
             </div>
           </div>
           {isStudyNotesOpen ? (
-            <StudyNotes currentUser={currentUser} settings={settings} initialDraft={noteDraft || undefined} />
+            <StudyNotes currentUser={currentUser} settings={settings} initialDraft={noteDraft || undefined} onOpenSettings={() => setIsSettingsOpen(true)} />
           ) : isTrainingOpen ? (
             <TrainingPage sessions={sessions} onClose={() => setIsTrainingOpen(false)} />
           ) : currentSession ? (
@@ -632,6 +682,7 @@ const App: React.FC = () => {
               onCycleHolidayEffect={cycleHolidayEffect}
               showHolidayButtons={settings.showHeaderControls === true}
               onPetCommand={handlePetCommand} // Pass the new pet command handler
+              saveImageToLocal={saveImageToLocal} // Pass the image saving function
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">

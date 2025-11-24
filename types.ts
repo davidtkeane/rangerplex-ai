@@ -277,6 +277,7 @@ export interface AppSettings {
   petVolume: number; // 0.0 to 1.0
   happinessDecayRate: number; // points per interval
   hungerIncreaseRate: number; // points per interval
+  petAvatar?: string;
 }
 
 export const DEFAULT_AGENTS: AgentConfig[] = [
@@ -447,7 +448,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   petName: 'Pixel',
   petVolume: 0.7,
   happinessDecayRate: 2,
-  hungerIncreaseRate: 3
+  hungerIncreaseRate: 3,
+  petAvatar: ''
 };
 
 export interface TrainingExample {

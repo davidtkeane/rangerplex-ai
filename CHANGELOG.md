@@ -2,25 +2,31 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.4.6 - "Pet Chat & Evolution" (Current)
+## v2.4.7 - "Image Persistence & Pet Evolution" (Current)
 *Released: Nov 23, 2025*
 
-This update enhances the Ranger Pet with new interactive stats and restores missing UI controls in the settings panel.
+This critical update enhances the Ranger Pet, fixes the "broken image" bug for AI-generated images, ensures all generated assets are permanently saved locally, and adds more customization options.
 
 ### ✨ New Features
+*   **Custom Pet Avatar**: You can now upload a custom avatar for your Ranger Pet in the "Tamagotchi" settings tab. This avatar will be used in pet chats.
 *   **Pet Gamification**: The Ranger Pet is now more interactive!
     *   **Happiness Bar**: A visual bar that decays over time. Use the "Play" button to increase it.
     *   **Hunger Bar**: A new stat that increases over time. Use the "Feed" button to decrease it.
     *   **Level Up System**: Gain XP by feeding and playing with your pet to watch it level up.
-*   **Settings Integration**: A new "Tamagotchi" tab has been added to the settings modal, allowing users to customize their Ranger Pet:
+*   **Pet Settings Integration**: A new "Tamagotchi" tab has been added to the settings modal, allowing users to customize their Ranger Pet:
     *   **Change Pet Name**: Update the pet's display name.
     *   **Pet Sound Volume**: Adjust the volume of the pet's sound effects.
     *   **Happiness Decay Rate**: Configure how quickly the pet's happiness decreases.
     *   **Hunger Increase Rate**: Configure how quickly the pet's hunger increases.
 *   **Dynamic Pet Moods**: The pet's mood (e.g., 'Happy', 'Content', 'Bored') now changes dynamically based on its happiness level.
 *   **Pet Chat**: Added `/pet-chat` command to talk directly with your pet, which uses a custom Gemini personality prompt.
+*   **Study Notes Settings Button**: Added a dedicated settings button to the Study Notes view for direct access to configuration.
 
 ### 🐛 Bug Fixes
+*   **Fixed Broken Image Links**: AI-generated images will no longer expire and show as broken links.
+    *   All generated images are now automatically downloaded and saved to the local `/image/` folder in the background.
+    *   Chat history and study notes now reference the permanent local URL, ensuring images persist across sessions.
+*   **Data Migration for Old Images**: A one-time script now runs on startup to find and fix any existing broken image paths in your database, converting them to the new permanent local format.
 *   **Restored Auto-Backup Settings**: The "Auto-Backup Settings" section in the Data & Backup tab has been restored. Users can now again configure the backup interval and location.
 *   **Fixed Critical Pet Error**: Resolved a "useEffect is not defined" error in the `PetWidget` component that was causing a startup failure.
 

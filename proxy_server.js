@@ -16,6 +16,7 @@ const PORT = 3010;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.use('/image', express.static(path.join(__dirname, 'image')));
 
 // Ensure data and backups directories exist
 const dataDir = path.join(__dirname, 'data');
@@ -277,9 +278,9 @@ app.get('/api/save-image', async (req, res) => {
         const buffer = Buffer.from(await response.arrayBuffer());
         fs.writeFileSync(filepath, buffer);
 
-        const relativePath = `image/${filename}`;
+        const fullUrl = `http://localhost:${PORT}/${relativePath}`;
         res.set('Access-Control-Allow-Origin', '*');
-        res.json({ savedPath: relativePath, filename });
+        res.json({ savedPath: fullUrl, filename });
     } catch (error) {
         console.error('❌ Save image error:', error);
         res.status(500).json({ error: error.message });
