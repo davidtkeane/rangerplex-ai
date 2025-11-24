@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.4.4-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.4.6-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -103,7 +103,7 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **Persistent Settings**: Remembers your volume, last station, and player state.
 *   **Theme Integration**: Adapts to Dark, Light, and Tron themes with matching effects.
 
-### 🐾 Ranger Pet (NEW in v2.4.5 - Pet Evolution!)
+### 🐾 Ranger Pet (NEW in v2.4.6 - Pet Evolution!)
 *   **Your Evolving Study Companion**: A lovable Cyber Cat that lives in your sidebar, offering positive reinforcement and evolving as you interact with it.
 *   **New Gamification**:
     *   **Happiness Bar**: A visual bar that slowly decays. Keep your pet happy by interacting with it!

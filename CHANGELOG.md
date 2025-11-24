@@ -2,7 +2,7 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.4.5 - "Pet Evolution & Settings Restoration" (Current)
+## v2.4.6 - "Pet Chat & Evolution" (Current)
 *Released: Nov 23, 2025*
 
 This update enhances the Ranger Pet with new interactive stats and restores missing UI controls in the settings panel.
