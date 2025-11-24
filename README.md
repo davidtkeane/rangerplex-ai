@@ -125,23 +125,32 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **High-Quality Graphics**: Crisp 1024×1024 pixel art scaled to sidebar size for perfect clarity.
 *   **Future-Ready**: Built on the proven WordPress Tamagotchi system, designed for future evolutions and study session integration.
 
-### 💾 Triple-Layer Data Persistence (v2.2.0 - Enhanced in v2.4.2)
+### 💾 Triple-Layer Data Persistence (v2.2.0 - Enhanced in v2.4.7)
 *   **IndexedDB** (Browser): Fast, local storage that survives page refreshes.
 *   **SQLite** (Server): Persistent database that survives browser cache clears.
 *   **File Export**: Auto-backup to JSON files every 5 minutes in `./backups/`.
-*   **Auto-Sync Every 5 Minutes** (NEW in v2.4.2): Automatic synchronization of all chats and settings to server when cloud sync is enabled.
+*   **Enhanced Export Options** (NEW in v2.4.7):
+    - **Export Current Chat**: Save individual conversations as Markdown files
+    - **Export All Data**: Complete system backup including chats, settings, canvas boards, and all user data
+    - **Smart Backups**: Includes timestamps, version info, and all storage tiers
+*   **Safe Data Purge** (NEW in v2.4.7):
+    - Custom warning dialog with detailed information about what gets deleted
+    - **"Download Backup First"** button to export data before purging
+    - Clears all data from IndexedDB and localStorage safely
+    - Prevents accidental data loss with clear confirmation steps
+*   **Auto-Sync Every 5 Minutes** (v2.4.2): Automatic synchronization of all chats and settings to server when cloud sync is enabled.
     - Runs immediately on app launch, then every 5 minutes
     - Syncs all chats, settings, and avatars from IndexedDB to SQLite
     - Updates last sync timestamp automatically
     - Only runs when cloud sync is enabled (Settings → Data & Backup)
-*   **Manual Sync with Progress** (NEW in v2.4.2): Click "Sync Now" button in Settings → Data & Backup tab.
+*   **Manual Sync with Progress** (v2.4.2): Click "Sync Now" button in Settings → Data & Backup tab.
     - Beautiful gradient progress bar (teal-to-cyan with pulsing animation)
     - Real-time status: "Loading chats...", "Syncing chat 3/6...", "Sync complete!"
     - Shows percentage completion (0-100%)
     - Updates storage stats after completion
     - Saves last sync timestamp for reference
-*   **Storage Stats** (NEW in v2.4.2): View actual storage usage in KB for both browser (IndexedDB) and server (SQLite) in Data & Backup tab.
-*   **Instant Save for Critical Settings** (NEW in v2.4.2): Cloud Sync toggle and avatar uploads now save immediately without requiring Save button.
+*   **Storage Stats** (v2.4.2): View actual storage usage in KB for both browser (IndexedDB) and server (SQLite) in Data & Backup tab.
+*   **Instant Save for Critical Settings** (v2.4.2): Cloud Sync toggle and avatar uploads now save immediately without requiring Save button.
 *   **Real-Time Sync**: WebSocket connection keeps browser and server in perfect sync.
 *   **No Data Loss**: Even if you clear your browser cache, your data is safe in the server database.
 *   **Rock-Solid Persistence**: Settings now save and load correctly with improved race condition handling.
@@ -151,6 +160,11 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **Matrix Mode**: Digital rain overlay and "Operator" persona.
 *   **Celebration Overlays**: Holiday Mode with Snow / Confetti / Sparkles plus inline rename sparkles (all toggles in Settings).
 *   **Light/Dark Modes**: For day and night operations.
+
+### 🎁 Special Features
+*   **Easter Eggs**: RangerPlex has hidden surprises throughout. Try typing interesting things in chat to discover them!
+*   **Personality Commands**: Various slash commands unlock unique experiences and interactions.
+*   **Exploration Encouraged**: The best way to discover all features is to explore and experiment!
 
 ---
 
@@ -320,13 +334,18 @@ The database is automatically created at `./data/rangerplex.db` on first run.
 Go to **Settings → Data & Backup** to:
 - **Enable/Disable Cloud Sync**: Toggle automatic synchronization to server (auto-saves immediately)
 - **Sync Now**: Manually trigger sync with beautiful progress bar showing real-time status
+- **Backup & Restore Manager** (NEW): Full system backup/restore UI.
+    - **Export**: Download all data (chats, settings, canvas) to JSON.
+    - **Import**: Restore from backup files with Merge/Replace options.
 - **View Storage Stats**: See actual storage usage in KB for browser (IndexedDB) and server (SQLite)
 - **Last Sync Time**: View when data was last synchronized to server
-- **Export Data**: Download all data to a JSON file for backup
-- **Import Backup**: Restore data from a previous backup file
 - **Clear Browser Cache**: Remove local IndexedDB data (server data remains safe)
 - **Wipe Server Database**: Delete all data from SQLite server (use with caution!)
-- **Delete Backup Files**: Remove old JSON backup files from disk
+
+### 🔄 System Updates
+Go to **Settings → Help** to:
+- **Check for Updates**: One-click check against GitHub to see if you are running the latest version.
+
 
 ### 🔑 API Key Configuration (.env File)
 RangerPlex supports loading API keys from a `.env` file for convenience.

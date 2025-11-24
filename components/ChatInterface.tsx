@@ -9,6 +9,7 @@ import DavidEasterEgg from './DavidEasterEgg';
 import FazalEasterEgg from './FazalEasterEgg';
 import SowmyaEasterEgg from './SowmyaEasterEgg';
 import MichaelEasterEgg from './MichaelEasterEgg';
+import Win95EasterEgg from './Win95EasterEgg';
 import { streamGeminiResponse } from '../services/geminiService';
 import { streamOllamaResponse } from '../services/ollamaService';
 import { streamOpenAIResponse } from '../services/openaiService';
@@ -37,6 +38,7 @@ interface ChatInterfaceProps {
     onCycleHolidayEffect: () => void;
     showHolidayButtons: boolean;
     onPetCommand: () => void; // New prop
+    onOpenCanvas?: () => void; // Canvas Easter egg
     saveImageToLocal: (url?: string) => Promise<string | undefined>;
 }
 
@@ -53,6 +55,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     onCycleHolidayEffect,
     showHolidayButtons,
     onPetCommand, // Destructure new prop
+    onOpenCanvas, // Destructure Canvas opener
     saveImageToLocal
 }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -66,6 +69,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const [showFazalEasterEgg, setShowFazalEasterEgg] = useState(false);
     const [showSowmyaEasterEgg, setShowSowmyaEasterEgg] = useState(false);
     const [showMichaelEasterEgg, setShowMichaelEasterEgg] = useState(false);
+    const [showWin95EasterEgg, setShowWin95EasterEgg] = useState(false);
 
     const [isModelLoading, setIsModelLoading] = useState(false);
 
@@ -144,6 +148,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             return;
         }
 
+        if (lowerText.includes('window 95') || lowerText.includes('win95')) {
+            setShowWin95EasterEgg(true);
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '💾 Launching Windows 95...',
+                    timestamp: Date.now()
+                }
+            ]);
+            return;
+        }
+
+        // 🎨 CANVAS EASTER EGG: Type "canvas" to open Canvas Board
+        if (lowerText.trim() === 'canvas' && onOpenCanvas) {
+            onOpenCanvas();
+            return; // Don't process as normal message
+        }
+
         const docAttachments = attachments.filter(att => !att.mimeType.startsWith('image/'));
         const imageAttachments = attachments.filter(att => att.mimeType.startsWith('image/'));
 
@@ -180,10 +204,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
             // 1. Image Generation (/imagine or Visual Flag)
             // Auto-detect plain English requests for images
-            const lowerText = text.toLowerCase();
-            const isImageRequest = lowerText.startsWith('/imagine') ||
+            const lowerTextForImages = text.toLowerCase();
+            const isImageRequest = lowerTextForImages.startsWith('/imagine') ||
                 commandState.visual ||
-                lowerText.match(/^(draw|generate|create|make) (an )?image/i);
+                lowerTextForImages.match(/^(draw|generate|create|make) (an )?image/i);
 
             if (isImageRequest) {
                 setProcessingStatus("Generating Art...");
@@ -534,6 +558,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {showFazalEasterEgg && <FazalEasterEgg onClose={() => setShowFazalEasterEgg(false)} />}
         {showSowmyaEasterEgg && <SowmyaEasterEgg onClose={() => setShowSowmyaEasterEgg(false)} />}
         {showMichaelEasterEgg && <MichaelEasterEgg onClose={() => setShowMichaelEasterEgg(false)} />}
+        {showWin95EasterEgg && (
+            <Win95EasterEgg
+                onClose={() => setShowWin95EasterEgg(false)}
+                currentUser={currentUser}
+            />
+        )}
         </div>
     );
 };

@@ -267,6 +267,10 @@ export interface AppSettings {
   radioLastStation: string | null; // station ID
   radioMinimized: boolean;
 
+  // Notifications
+  saveStatusNotifications: boolean;
+  saveStatusDurationMs: number;
+
   // Data & Backup
   autoBackupEnabled: boolean;
   autoBackupInterval: number; // minutes
@@ -440,6 +444,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   radioVolume: 0.3,
   radioLastStation: 'soma-defcon', // 💻 DEF CON Radio - Music for hacking and coding
   radioMinimized: true,
+
+  saveStatusNotifications: true,
+  saveStatusDurationMs: 5000,
 
   autoBackupEnabled: true,
   autoBackupInterval: 5, // minutes

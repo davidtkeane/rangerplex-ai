@@ -7,21 +7,48 @@ import { processAvatarImage } from '../services/imageProcessing';
 import { fetchElevenLabsVoices, Voice } from '../services/elevenLabsService';
 import { dbService } from '../services/dbService';
 import { syncService } from '../services/syncService';
+import { updateService, UpdateInfo } from '../services/updateService';
 
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     settings: AppSettings;
     onSave: (newSettings: AppSettings) => void;
+    onOpenBackupManager?: () => void;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
+const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }: any) => (
+    <div>
+        <label className="block text-xs font-bold mb-1 opacity-80"><i className={`${icon} w-4`}></i> {label}</label>
+        <div className="flex gap-2">
+            <input type={label.includes('Key') || label.includes('Token') ? 'password' : 'text'} value={value} onChange={e => onChange(e.target.value)} className={`flex-1 rounded px-4 py-2 outline-none ${inputClass}`} />
+            {onTest && (
+                <button onClick={onTest} className={`px-4 py-1 rounded border border-inherit whitespace-nowrap min-w-[80px] flex items-center justify-center ${status === 'success' ? 'bg-green-500/10 text-green-500' : status === 'error' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5'}`}>
+                    {status === 'success' ? <i className="fa-solid fa-check"></i> : status === 'loading' ? <i className="fa-solid fa-circle-notch fa-spin"></i> : status === 'error' ? <i className="fa-solid fa-xmark"></i> : 'Test'}
+                </button>
+            )}
+        </div>
+    </div>
+);
+
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
     const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'search' | 'council' | 'prompts' | 'security' | 'data' | 'help'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
     const [loadingModels, setLoadingModels] = useState(false);
     const [promptSearch, setPromptSearch] = useState('');
     const [promptImportText, setPromptImportText] = useState('');
+
+    // Update Checker State
+    const [updateStatus, setUpdateStatus] = useState<UpdateInfo | null>(null);
+    const [checkingUpdate, setCheckingUpdate] = useState(false);
+
+    const handleCheckUpdate = async () => {
+        setCheckingUpdate(true);
+        const info = await updateService.checkForUpdates();
+        setUpdateStatus(info);
+        setCheckingUpdate(false);
+    };
     const [promptMessage, setPromptMessage] = useState<string | null>(null);
 
     // Ollama Management
@@ -809,29 +836,29 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 {localSettings.savedPrompts
                                     .filter(p => p.trigger.toLowerCase().includes(promptSearch.toLowerCase()) || p.text.toLowerCase().includes(promptSearch.toLowerCase()))
                                     .map((p, idx) => (
-                                    <div key={idx} className="flex gap-2 items-start">
-                                        <div className="w-1/4">
-                                            <div className="relative">
-                                                <span className="absolute left-2 top-2 text-xs opacity-50">/</span>
-                                                <input value={p.trigger} onChange={e => updatePrompt(idx, 'trigger', e.target.value)} className={`w-full pl-4 pr-2 py-2 text-sm rounded ${inputClass}`} placeholder="trigger" />
+                                        <div key={idx} className="flex gap-2 items-start">
+                                            <div className="w-1/4">
+                                                <div className="relative">
+                                                    <span className="absolute left-2 top-2 text-xs opacity-50">/</span>
+                                                    <input value={p.trigger} onChange={e => updatePrompt(idx, 'trigger', e.target.value)} className={`w-full pl-4 pr-2 py-2 text-sm rounded ${inputClass}`} placeholder="trigger" />
+                                                </div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <input value={p.text} onChange={e => updatePrompt(idx, 'text', e.target.value)} className={`w-full px-3 py-2 text-sm rounded ${inputClass}`} placeholder="Prompt text..." />
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => movePrompt(idx, 'up')} className="p-2 text-xs text-gray-400 hover:text-white" title="Move up">
+                                                    <i className="fa-solid fa-chevron-up"></i>
+                                                </button>
+                                                <button onClick={() => movePrompt(idx, 'down')} className="p-2 text-xs text-gray-400 hover:text-white" title="Move down">
+                                                    <i className="fa-solid fa-chevron-down"></i>
+                                                </button>
+                                                <button onClick={() => removePrompt(idx)} className="p-2 text-red-500 hover:text-red-400" title="Remove">
+                                                    <i className="fa-solid fa-trash"></i>
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <input value={p.text} onChange={e => updatePrompt(idx, 'text', e.target.value)} className={`w-full px-3 py-2 text-sm rounded ${inputClass}`} placeholder="Prompt text..." />
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <button onClick={() => movePrompt(idx, 'up')} className="p-2 text-xs text-gray-400 hover:text-white" title="Move up">
-                                                <i className="fa-solid fa-chevron-up"></i>
-                                            </button>
-                                            <button onClick={() => movePrompt(idx, 'down')} className="p-2 text-xs text-gray-400 hover:text-white" title="Move down">
-                                                <i className="fa-solid fa-chevron-down"></i>
-                                            </button>
-                                            <button onClick={() => removePrompt(idx)} className="p-2 text-red-500 hover:text-red-400" title="Remove">
-                                                <i className="fa-solid fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
                             </div>
                         </div>
                     )}
@@ -1082,6 +1109,51 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     {activeTab === 'data' && (
                         <div className="space-y-6">
                             <h3 className="font-bold mb-4 border-b border-inherit pb-2">Data & Backup</h3>
+                            <div className="flex flex-wrap gap-3 items-center">
+                                <button
+                                    onClick={() => {
+                                        onClose();
+                                        onOpenBackupManager?.();
+                                    }}
+                                    className="px-4 py-2 rounded-full font-bold text-sm bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow hover:shadow-lg transition-all"
+                                >
+                                    Open Backup & Restore
+                                </button>
+                                <span className="text-xs opacity-70">Launch the dedicated backup/import UI (includes preview, merge/replace, and progress).</span>
+                            </div>
+
+                            {/* Save status notifications */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <div className="flex flex-col gap-3">
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={localSettings.saveStatusNotifications}
+                                            onChange={e => setLocalSettings({ ...localSettings, saveStatusNotifications: e.target.checked })}
+                                            className="accent-teal-500 w-5 h-5"
+                                        />
+                                        Show save status notifications
+                                    </label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold mb-1">Display time (seconds)</label>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={60}
+                                                value={Math.round(localSettings.saveStatusDurationMs / 1000)}
+                                                onChange={e => {
+                                                    const seconds = Math.max(1, Math.min(60, parseInt(e.target.value) || 1));
+                                                    setLocalSettings({ ...localSettings, saveStatusDurationMs: seconds * 1000 });
+                                                }}
+                                                className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                                disabled={!localSettings.saveStatusNotifications}
+                                            />
+                                            <p className="text-[10px] opacity-60 mt-1">How long “All changes saved” stays visible.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             {/* Cloud Sync Toggle */}
                             <div className="p-4 border border-inherit rounded bg-opacity-5">
@@ -1320,67 +1392,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 </div>
                             </div>
 
+
                             {/* Data Management */}
                             <div className="p-4 border border-inherit rounded bg-opacity-5">
                                 <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
                                     <i className="fa-solid fa-tools"></i>
                                     Data Management
                                 </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="mb-4 p-4 bg-teal-500/10 border border-teal-500/30 rounded flex items-center justify-between">
+                                    <div>
+                                        <div className="font-bold text-sm">Backup & Restore Manager</div>
+                                        <div className="text-xs opacity-70">Full system backup, export, and restore tools.</div>
+                                    </div>
                                     <button
-                                        onClick={async () => {
-                                            setExportInProgress(true);
-                                            try {
-                                                const data = await syncService.exportData();
-                                                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                                                const url = URL.createObjectURL(blob);
-                                                const a = document.createElement('a');
-                                                a.href = url;
-                                                a.download = `RangerPlex_Backup_${new Date().toISOString().split('T')[0]}.json`;
-                                                a.click();
-                                                URL.revokeObjectURL(url);
-                                                alert('✅ Data exported successfully!');
-                                            } catch (error) {
-                                                alert('❌ Export failed: ' + error);
-                                            } finally {
-                                                setExportInProgress(false);
-                                            }
-                                        }}
-                                        disabled={exportInProgress}
-                                        className="px-4 py-3 bg-green-600 text-white rounded font-bold text-sm hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        onClick={onOpenBackupManager}
+                                        className="px-4 py-2 bg-teal-600 text-white rounded font-bold text-xs uppercase hover:bg-teal-500 shadow-lg flex items-center gap-2"
                                     >
-                                        <i className="fa-solid fa-download"></i>
-                                        {exportInProgress ? 'Exporting...' : 'Export All Data'}
+                                        <i className="fa-solid fa-box-archive"></i>
+                                        Open Manager
                                     </button>
+                                </div>
 
-                                    <button
-                                        onClick={() => {
-                                            const input = document.createElement('input');
-                                            input.type = 'file';
-                                            input.accept = '.json';
-                                            input.onchange = async (e: any) => {
-                                                const file = e.target.files[0];
-                                                if (!file) return;
-
-                                                try {
-                                                    const text = await file.text();
-                                                    const data = JSON.parse(text);
-                                                    await syncService.importData(data);
-                                                    await dbService.importAll(data);
-                                                    alert('✅ Data imported! Please refresh the page.');
-                                                    window.location.reload();
-                                                } catch (error) {
-                                                    alert('❌ Import failed: ' + error);
-                                                }
-                                            };
-                                            input.click();
-                                        }}
-                                        className="px-4 py-3 bg-blue-600 text-white rounded font-bold text-sm hover:bg-blue-500 flex items-center justify-center gap-2"
-                                    >
-                                        <i className="fa-solid fa-upload"></i>
-                                        Import Backup
-                                    </button>
-
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 opacity-80">
                                     <button
                                         onClick={async () => {
                                             if (!confirm('⚠️ Clear browser cache? (Server data will remain safe)')) return;
@@ -1415,73 +1448,87 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     </button>
                                 </div>
                             </div>
-
-                            {/* Info Box */}
-                            <div className="p-4 border border-blue-500/30 rounded bg-blue-900/10">
-                                <div className="flex gap-3">
-                                    <i className="fa-solid fa-info-circle text-blue-400 mt-1"></i>
-                                    <div className="text-xs opacity-80">
-                                        <p className="font-bold mb-1">Triple-Layer Protection:</p>
-                                        <ul className="list-disc list-inside space-y-1 opacity-70">
-                                            <li>Your data is stored in 3 places: Browser (IndexedDB), Server (SQLite), and Files (./backups/)</li>
-                                            <li>Even if you clear your browser cache, your data is safe on the server</li>
-                                            <li>Auto-backups run every 5 minutes to ensure you never lose work</li>
-                                            <li>Server must be running (<code>npm run server</code>) for sync to work</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     )}
 
                     {/* HELP TAB */}
                     {activeTab === 'help' && (
-                        <div className="space-y-6 prose prose-invert max-w-none">
-                            <h3 className="font-bold border-b border-inherit pb-2">User Manual</h3>
-                            <div className="p-4 border border-inherit rounded bg-opacity-5">
-                                <h4 className="font-bold text-sm mb-2">Getting Started</h4>
-                                <p className="text-xs opacity-80 mb-4">RangerPlex AI is a modular research assistant. Connect your API keys in the 'Providers' tab to unlock models.</p>
+                                <div className="space-y-6 prose prose-invert max-w-none">
+                                    <h3 className="font-bold border-b border-inherit pb-2">System & Help</h3>
 
-                                <h4 className="font-bold text-sm mb-2">Proxy Setup (Fixing CORS)</h4>
-                                <p className="text-xs opacity-80 mb-2">To use Anthropic or DuckDuckGo, you must run the local proxy:</p>
-                                <pre className="bg-black/30 p-2 rounded text-xs mb-4">
-                                    cd your-folder<br />
-                                    node proxy_server.js
-                                </pre>
+                                    {/* Update Checker */}
+                                    <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                        <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
+                                            <i className="fa-brands fa-github"></i>
+                                            System Updates
+                                        </h4>
+                                        <div className="flex items-center justify-between">
+                                            <div className="text-xs opacity-80">
+                                                Check for the latest version of RangerPlex AI from GitHub.
+                                            </div>
+                                            <button
+                                                onClick={handleCheckUpdate}
+                                                disabled={checkingUpdate}
+                                                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs font-bold flex items-center gap-2"
+                                            >
+                                                {checkingUpdate ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-rotate"></i>}
+                                                Check for Updates
+                                            </button>
+                                        </div>
+                                        {updateStatus && (
+                                            <div className={`mt-3 p-3 rounded text-xs border ${updateStatus.error ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+                                                {updateStatus.error ? (
+                                                    <div className="text-red-400">Error: {updateStatus.error}</div>
+                                                ) : (
+                                                    <div>
+                                                        <div className="font-bold text-green-400 mb-1">
+                                                            <i className="fa-solid fa-rocket mr-2"></i>
+                                                            Latest Version: {updateStatus.latestVersion} ({updateStatus.latestDate})
+                                                        </div>
+                                                        <div className="opacity-80 mb-2">"{updateStatus.latestMessage}"</div>
+                                                        <a
+                                                            href={updateStatus.htmlUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-400 hover:underline flex items-center gap-1"
+                                                        >
+                                                            View on GitHub <i className="fa-solid fa-external-link-alt text-[10px]"></i>
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
 
-                                <h4 className="font-bold text-sm mb-2">Keyboard Shortcuts</h4>
-                                <ul className="text-xs opacity-80 list-disc pl-4">
-                                    <li><strong>/</strong> : Open Prompt Library in chat</li>
-                                    <li><strong>Cmd/Ctrl + Enter</strong> : Send Message</li>
-                                </ul>
-                            </div>
+                                    <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                        <h4 className="font-bold text-sm mb-2">Getting Started</h4>
+                                        <p className="text-xs opacity-80 mb-4">RangerPlex AI is a modular research assistant. Connect your API keys in the 'Providers' tab to unlock models.</p>
+
+                                        <h4 className="font-bold text-sm mb-2">Proxy Setup (Fixing CORS)</h4>
+                                        <p className="text-xs opacity-80 mb-2">To use Anthropic or DuckDuckGo, you must run the local proxy:</p>
+                                        <pre className="bg-black/30 p-2 rounded text-xs mb-4">
+                                            cd your-folder<br />
+                                            node proxy_server.js
+                                        </pre>
+
+                                        <h4 className="font-bold text-sm mb-2">Keyboard Shortcuts</h4>
+                                        <ul className="text-xs opacity-80 list-disc pl-4">
+                                            <li><strong>/</strong> : Open Prompt Library in chat</li>
+                                            <li><strong>Cmd/Ctrl + Enter</strong> : Send Message</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    )}
 
-                </div>
-
-                {/* Footer */}
-                <div className="p-6 border-t border-inherit flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 opacity-70 hover:opacity-100 font-bold uppercase text-xs">Cancel</button>
-                    <button onClick={handleSave} className={`px-6 py-2 rounded font-bold uppercase text-xs shadow-lg ${localSettings.theme === 'tron' ? 'bg-tron-cyan text-black hover:bg-white' : 'bg-teal-600 text-white hover:bg-teal-500'}`}>Save Config</button>
+                        {/* Footer */}
+                    <div className="p-6 border-t border-inherit flex justify-end gap-3">
+                        <button onClick={onClose} className="px-4 py-2 opacity-70 hover:opacity-100 font-bold uppercase text-xs">Cancel</button>
+                        <button onClick={handleSave} className={`px-6 py-2 rounded font-bold uppercase text-xs shadow-lg ${localSettings.theme === 'tron' ? 'bg-tron-cyan text-black hover:bg-white' : 'bg-teal-600 text-white hover:bg-teal-500'}`}>Save Config</button>
+                    </div>
                 </div>
             </div>
-        </div >
-    );
+            );
 };
 
-const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }: any) => (
-    <div>
-        <label className="block text-xs font-bold mb-1 opacity-80"><i className={`${icon} w-4`}></i> {label}</label>
-        <div className="flex gap-2">
-            <input type={label.includes('Key') || label.includes('Token') ? 'password' : 'text'} value={value} onChange={e => onChange(e.target.value)} className={`flex-1 rounded px-4 py-2 outline-none ${inputClass}`} />
-            {onTest && (
-                <button onClick={onTest} className={`px-4 py-1 rounded border border-inherit whitespace-nowrap min-w-[80px] flex items-center justify-center ${status === 'success' ? 'bg-green-500/10 text-green-500' : status === 'error' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5'}`}>
-                    {status === 'success' ? <i className="fa-solid fa-check"></i> : status === 'loading' ? <i className="fa-solid fa-circle-notch fa-spin"></i> : status === 'error' ? <i className="fa-solid fa-xmark"></i> : 'Test'}
-                </button>
-            )}
-        </div>
-    </div>
-);
-
-export default SettingsModal;
+            export default SettingsModal;

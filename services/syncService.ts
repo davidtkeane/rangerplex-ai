@@ -9,11 +9,16 @@ class SyncService {
     private isConnected = false;
     private syncQueue: any[] = [];
     private listeners: Map<string, Set<Function>> = new Map();
-    private enabled = false;
+    private enabled = true;
+    private queueStorageKey = 'rangerplex_sync_queue';
 
     constructor() {
-        // Don't auto-connect - wait for enableSync() to be called
-        console.log('📴 Sync service initialized (disabled by default)');
+        this.loadQueue();
+        if (typeof window !== 'undefined') {
+            this.connect();
+        } else {
+            console.log('📴 Sync service initialized (SSR) - will connect in browser');
+        }
     }
 
     enableSync() {
@@ -27,6 +32,7 @@ class SyncService {
     }
 
     connect() {
+        if (typeof window === 'undefined') return;
         try {
             this.ws = new WebSocket(this.serverUrl);
 
@@ -108,6 +114,7 @@ class SyncService {
             // Queue for later
             this.syncQueue.push(data);
             console.log('📦 Queued for sync (offline):', data.type);
+            this.persistQueue();
         }
     }
 
@@ -122,6 +129,7 @@ class SyncService {
                 this.ws.send(JSON.stringify(data));
             }
         }
+        this.persistQueue();
     }
 
     // Event system
@@ -253,6 +261,33 @@ class SyncService {
             connected: this.isConnected,
             queuedMessages: this.syncQueue.length
         };
+    }
+
+    isEnabled() {
+        return this.enabled;
+    }
+
+    private persistQueue() {
+        if (typeof window === 'undefined') return;
+        try {
+            window.localStorage.setItem(this.queueStorageKey, JSON.stringify(this.syncQueue));
+        } catch (error) {
+            console.warn('Failed to persist sync queue:', error);
+        }
+    }
+
+    private loadQueue() {
+        if (typeof window === 'undefined') return;
+        try {
+            const saved = window.localStorage.getItem(this.queueStorageKey);
+            if (saved) {
+                this.syncQueue = JSON.parse(saved);
+                console.log(`🔁 Restored ${this.syncQueue.length} queued sync ops from storage`);
+            }
+        } catch (error) {
+            console.warn('Failed to load sync queue:', error);
+            this.syncQueue = [];
+        }
     }
 }
 

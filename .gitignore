@@ -14,6 +14,7 @@ node_modules
 dist
 dist-ssr
 *.local
+docs
 
 # Environment variables (SECURITY - DO NOT COMMIT!)
 .env
@@ -25,8 +26,7 @@ dist-ssr
 !.env-example
 !.env.example
 
-# Private documentation and Claude Code config (keep local!)
-docs/
+# Private Claude Code config (keep local!)
 .claude/
 
 # Database files

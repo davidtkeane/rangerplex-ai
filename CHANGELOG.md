@@ -3,11 +3,64 @@
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
 ## v2.4.7 - "Image Persistence & Pet Evolution" (Current)
-*Released: Nov 23, 2025*
+*Released: Nov 23, 2025 | Updated: Nov 24, 2025*
 
-This critical update enhances the Ranger Pet, fixes the "broken image" bug for AI-generated images, ensures all generated assets are permanently saved locally, and adds more customization options.
+This critical update enhances the Ranger Pet, fixes the "broken image" bug for AI-generated images, ensures all generated assets are permanently saved locally, and adds more customization options. **November 24 update** adds enhanced export/purge functionality and lays infrastructure for special features.
 
-### ✨ New Features
+### ✨ New Features (Nov 24, 2025)
+
+#### Data Management Enhancements
+*   **Enhanced Export Options** in Sidebar → Data & Export:
+    *   **Export Current Chat**: Save the active conversation as a Markdown (.md) file with sanitized filename
+    *   **Export All Data**: Complete system backup to timestamped JSON file (e.g., `rangerplex-backup-2025-11-24T12-00-00.json`)
+    *   Exports now include ALL user data: chats, settings, canvas boards, and special feature states
+    *   Smart backup includes version info (v2.4.7), export timestamp, and data from all storage tiers
+*   **Safe Data Purge System** replaces basic browser confirm dialog:
+    *   Beautiful custom warning dialog with theme support (light/dark/Tron)
+    *   Detailed list of what will be deleted (chats, canvas, settings, training data)
+    *   **"Download Backup First"** button with success confirmation before allowing deletion
+    *   Smart cleanup across both IndexedDB and localStorage (zero data left behind)
+    *   Dialog stays open after backup download so user can safely cancel
+    *   Prevents accidental data loss with clear, informative warnings
+
+#### Infrastructure Upgrades (Backend)
+*   **3-Tier Persistence Architecture** implementation for special features:
+    *   **Tier 1 (localStorage)**: Immediate, synchronous cache for instant UI feedback
+    *   **Tier 2 (IndexedDB)**: Robust, asynchronous storage that survives cache clears (source of truth)
+    *   **Tier 3 (Cloud Sync)**: Optional server synchronization via WebSocket with retry logic
+*   **IndexedDB Schema v4** upgrade:
+    *   Added new `win95_state` object store with `userId` keyPath
+    *   Includes `by-modified` index for efficient queries
+    *   Automatic migration from previous schema versions
+    *   CRUD operations with emoji logging (💾 save, 📖 load, 🗑️ delete)
+*   **New Database Service** (`services/win95DbService.ts`):
+    *   Dedicated service following 3-Tier Persistence Guide
+    *   `save()`, `load()`, `clear()` methods with error handling
+    *   `migrateFromLocalStorage()` for smooth upgrades from Tier 1 to Tier 2
+    *   `loadWithMigration()` with automatic fallback strategy
+    *   Full TypeScript interfaces for type safety
+*   **Auto-Save Integration**:
+    *   New `queueWin95StateSave()` function in autoSaveService
+    *   500ms debouncing prevents UI blocking
+    *   Queued saves to IndexedDB (Tier 2)
+    *   Optional cloud sync (Tier 3) via syncService
+    *   Follows same pattern as canvas boards for consistency
+
+#### Special Features Infrastructure
+*   **Hidden Feature Support**: Backend infrastructure for special interactive experiences
+*   **Static Asset Deployment**: Build pipeline for embedded applications
+*   **iframe Integration Ready**: Secure communication via postMessage API
+*   **State Persistence**: User preferences and progress saved across sessions
+
+### ✨ Original Features (Nov 23, 2025)
+*   **Backup & Restore Manager**: A complete UI for managing your data sovereignty.
+    *   **Export**: Download full system backups (chats, settings, canvas boards) to JSON.
+    *   **Import**: Drag & drop restore with smart "Merge" or "Replace" options.
+    *   **Preview**: See exactly what's in a backup file before importing (e.g., "5 chats, 2 boards").
+*   **System Update Checker**:
+    *   Added a "Check for Updates" button in **Settings > Help**.
+    *   Instantly queries GitHub to see if you are running the latest version.
+    *   Displays current commit hash, date, and release message.
 *   **Custom Pet Avatar**: You can now upload a custom avatar for your Ranger Pet in the "Tamagotchi" settings tab. This avatar will be used in pet chats.
 *   **Pet Gamification**: The Ranger Pet is now more interactive!
     *   **Happiness Bar**: A visual bar that decays over time. Use the "Play" button to increase it.
@@ -22,13 +75,81 @@ This critical update enhances the Ranger Pet, fixes the "broken image" bug for A
 *   **Pet Chat**: Added `/pet-chat` command to talk directly with your pet, which uses a custom Gemini personality prompt.
 *   **Study Notes Settings Button**: Added a dedicated settings button to the Study Notes view for direct access to configuration.
 
-### 🐛 Bug Fixes
+### 🐛 Bug Fixes (Nov 24, 2025)
+*   **SettingsModal JSX Structure** (Nov 24): Fixed critical compilation error caused by missing closing `)}` tag for DATA tab conditional rendering. The DATA tab (line 1109) was not properly closed before HELP tab started (line 1455), causing Babel parser to fail with "Unexpected token" errors. Also removed extra `</div>` tag that was breaking JSX structure.
+
+### 🐛 Bug Fixes (Nov 23, 2025)
+*   **Settings Modal**: Fixed missing "Open Backup Manager" button in Data tab.
+*   **InputGroup Scoping**: Resolved internal component scoping issues in SettingsModal.
 *   **Fixed Broken Image Links**: AI-generated images will no longer expire and show as broken links.
     *   All generated images are now automatically downloaded and saved to the local `/image/` folder in the background.
     *   Chat history and study notes now reference the permanent local URL, ensuring images persist across sessions.
 *   **Data Migration for Old Images**: A one-time script now runs on startup to find and fix any existing broken image paths in your database, converting them to the new permanent local format.
 *   **Restored Auto-Backup Settings**: The "Auto-Backup Settings" section in the Data & Backup tab has been restored. Users can now again configure the backup interval and location.
 *   **Fixed Critical Pet Error**: Resolved a "useEffect is not defined" error in the `PetWidget` component that was causing a startup failure.
+
+### 🔧 Technical Implementation (Nov 24, 2025)
+
+#### Files Modified
+*   **`services/dbService.ts`** (+60 lines):
+    - Upgraded database schema from v3 to v4
+    - Added `win95_state` object store to `RangerPlexDB` interface
+    - Implemented CRUD methods: `saveWin95State()`, `getWin95State()`, `clearWin95State()`, `clearAllWin95States()`
+    - Enhanced `exportAll()` to include `win95States` array in JSON exports
+    - Enhanced `importAll()` to restore Win95 states from backups
+*   **`services/win95DbService.ts`** (NEW - 114 lines):
+    - Dedicated database service following 3-Tier Persistence Architecture
+    - TypeScript interfaces: `Win95State` with `openApps`, `appStates`, `windowPositions`, `lastClosed`
+    - Migration support from localStorage to IndexedDB
+    - Smart loading with automatic fallback strategy
+    - Comprehensive error handling and logging
+*   **`services/autoSaveService.ts`** (+18 lines):
+    - Added `queueWin95StateSave()` export function
+    - Debounced saves (500ms) prevent UI blocking
+    - Integrated with existing syncService for cloud backup
+    - Follows established patterns for consistency
+*   **`components/Sidebar.tsx`** (+25 lines):
+    - Enhanced `handleConfirmPurge()` to clear Win95 states from both storage tiers
+    - Smart localStorage cleanup (removes all `win95_state_*` keys)
+    - Comprehensive purge dialog with detailed warnings
+    - "Download Backup First" workflow implementation
+*   **`components/SettingsModal.tsx`** (Bug Fix):
+    - Fixed missing closing `)}` tag for DATA tab conditional (activeTab === 'data')
+    - Removed extra `</div>` tag that was causing JSX structure errors
+    - Resolved Babel parser "Unexpected token" compilation failures
+    - All tabs now properly closed with balanced JSX structure
+
+#### Build & Deployment
+*   **Gemini 95 Application**:
+    - Installed 43 npm packages (0 vulnerabilities)
+    - Built with Vite in 713ms
+    - Deployed to `/public/gemini-95/` (32.89 KB HTML, 18.62 KB CSS, 411.67 KB JS)
+    - Accessible at `http://localhost:5173/gemini-95/index.html`
+    - Includes Google GenAI integration and Tailwind CSS
+*   **Vite Configuration**: Public folder serves at root (default behavior, no changes needed)
+
+#### Architecture & Design Patterns
+*   **3-Tier Persistence** implemented per Colonel Gemini's architecture guide:
+    - Follows zero data loss philosophy
+    - Proper tier separation and fallback strategies
+    - Migration paths between tiers
+    - Consistent with canvas boards implementation
+*   **TypeScript Type Safety**: All new services fully typed with interfaces
+*   **Error Handling**: Try/catch blocks with console logging (💾📖🗑️ emoji system)
+*   **Code Consistency**: Matches existing RangerPlex patterns and conventions
+
+#### Testing & Quality Assurance
+*   ✅ IndexedDB schema upgrade tested (v3 → v4)
+*   ✅ Export includes all data types (verified in JSON output)
+*   ✅ Import restores Win95 states correctly
+*   ✅ Purge clears all data from both storage tiers
+*   ✅ Hot module reload successful (no console errors)
+*   ✅ Build pipeline functional (Gemini 95 deployed successfully)
+
+#### Team Collaboration
+*   **ChatGPT**: Frontend components (Win95EasterEgg, useWin95State hook, ChatInterface integration) - ✅ COMPLETED
+*   **Claude (AIRanger)**: Backend services, database schema, build system - ✅ COMPLETED
+*   **Colonel Gemini**: Win95 modifications, postMessage handlers, comprehensive testing - ⏳ IN PROGRESS
 
 ---
 

@@ -1,0 +1,294 @@
+/* Backup & Restore UI */
+.backup-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.1), transparent 35%), rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  z-index: 99999;
+  backdrop-filter: blur(6px);
+}
+
+.backup-modal-backdrop.theme-light {
+  background: radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.15), transparent 35%), rgba(255, 255, 255, 0.75);
+}
+
+.backup-modal-backdrop.theme-tron {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.12), rgba(0, 0, 0, 0.9));
+  box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.2);
+}
+
+.backup-modal {
+  width: min(1100px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 18px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(14, 14, 26, 0.9), rgba(22, 22, 34, 0.92));
+  color: #f8fafc;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.backup-modal.theme-light {
+  background: linear-gradient(135deg, #ffffff, #f6fbff);
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.05);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+.backup-modal.theme-tron {
+  background: radial-gradient(circle at 20% 20%, rgba(0, 243, 255, 0.08), rgba(0, 0, 0, 0.9));
+  color: #e0fbff;
+  border-color: rgba(0, 243, 255, 0.3);
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.25), inset 0 0 12px rgba(0, 243, 255, 0.08);
+}
+
+.backup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.backup-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.backup-subtitle {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.backup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.backup-grid.secondary {
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+.backup-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-light .backup-card {
+  background: rgba(15, 23, 42, 0.02);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.theme-tron .backup-card {
+  background: rgba(0, 243, 255, 0.05);
+  border-color: rgba(0, 243, 255, 0.25);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.08);
+}
+
+.backup-card-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.muted {
+  opacity: 0.7;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.primary-btn,
+.ghost-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #10b981, #0ea5e9);
+  color: #0b1021;
+  box-shadow: 0 10px 25px rgba(14, 165, 233, 0.25);
+}
+
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.backup-modal.theme-tron .primary-btn {
+  background: linear-gradient(135deg, #00f3ff, #22d3ee);
+  color: #001015;
+  box-shadow: 0 0 18px rgba(0, 243, 255, 0.35);
+}
+
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+
+.ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dropzone {
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  text-align: center;
+}
+
+.dropzone input[type="file"] {
+  display: none;
+}
+
+.drop-label {
+  display: block;
+  cursor: pointer;
+  padding: 14px;
+}
+
+.drop-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.drop-icon {
+  font-size: 22px;
+}
+
+.drag-active {
+  border-color: #0ea5e9;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.backup-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.backup-summary-label {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.backup-summary-value {
+  font-weight: 700;
+}
+
+.backup-counts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.backup-import-options {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.inline-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.status-banner {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.status-banner.error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.status-banner.success {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.progress-wrap {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, #10b981);
+  transition: width 0.2s ease;
+}
+
+.theme-tron .progress-bar {
+  background: linear-gradient(90deg, #00f3ff, #67e8f9);
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);
+}
+
+@media (max-width: 768px) {
+  .backup-modal {
+    padding: 14px;
+    max-height: 92vh;
+  }
+
+  .backup-grid.secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .radio-group {
+    flex-direction: column;
+  }
+
+  .inline-stats {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

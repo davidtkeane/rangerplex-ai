@@ -21,12 +21,39 @@ interface RangerPlexDB extends DBSchema {
         key: string;
         value: any;
     };
+    canvas_boards: {
+        key: string;
+        value: {
+            id: string;
+            name: string;
+            background: string;
+            imageData: string;
+            created: number;
+            modified: number;
+        };
+        indexes: { 'by-modified': number; 'by-created': number };
+    };
+    win95_state: {
+        key: string; // Format: userId
+        value: {
+            userId: string;
+            state: {
+                openApps: string[];
+                appStates: any;
+                windowPositions: any;
+                lastClosed: number;
+            };
+            created: number;
+            modified: number;
+        };
+        indexes: { 'by-modified': number };
+    };
 }
 
 class DBService {
     private db: IDBPDatabase<RangerPlexDB> | null = null;
     private dbName = 'rangerplex-db';
-    private version = 2; // Bumped to trigger upgrade and create settings store
+    private version = 4; // Bumped to create win95_state store
 
     async init() {
         if (this.db) return this.db;
@@ -42,6 +69,20 @@ class DBService {
                 // Create settings store
                 if (!db.objectStoreNames.contains('settings')) {
                     db.createObjectStore('settings');
+                }
+
+                // Create canvas boards store
+                if (!db.objectStoreNames.contains('canvas_boards')) {
+                    const canvasStore = db.createObjectStore('canvas_boards', { keyPath: 'id' });
+                    canvasStore.createIndex('by-modified', 'modified');
+                    canvasStore.createIndex('by-created', 'created');
+                }
+
+                // Create Win95 state store
+                if (!db.objectStoreNames.contains('win95_state')) {
+                    const win95Store = db.createObjectStore('win95_state', { keyPath: 'userId' });
+                    win95Store.createIndex('by-modified', 'modified');
+                    console.log('✅ Created win95_state store');
                 }
             },
         });
@@ -107,6 +148,38 @@ class DBService {
         await db.clear('settings');
     }
 
+    // Win95 state operations
+    async saveWin95State(userId: string, state: any) {
+        const db = await this.init();
+        const record = {
+            userId,
+            state,
+            created: state.created || Date.now(),
+            modified: Date.now()
+        };
+        await db.put('win95_state', record);
+        console.log('💾 Win95 state saved:', userId);
+    }
+
+    async getWin95State(userId: string) {
+        const db = await this.init();
+        const result = await db.get('win95_state', userId);
+        console.log('📖 Win95 state loaded:', userId, result ? 'FOUND' : 'NOT FOUND');
+        return result;
+    }
+
+    async clearWin95State(userId: string) {
+        const db = await this.init();
+        await db.delete('win95_state', userId);
+        console.log('🗑️ Win95 state cleared:', userId);
+    }
+
+    async clearAllWin95States() {
+        const db = await this.init();
+        await db.clear('win95_state');
+        console.log('🗑️ All Win95 states cleared');
+    }
+
     // Migration from localStorage
     async migrateFromLocalStorage() {
         try {
@@ -146,19 +219,34 @@ class DBService {
 
     // Export all data
     async exportAll() {
+        const db = await this.init();
         const chats = await this.getAllChats();
         const settings = await this.getAllSettings();
 
+        // Export canvas boards from IndexedDB
+        const canvasBoards = await db.getAll('canvas_boards');
+
+        // Export Win95 states from IndexedDB
+        const win95States = await db.getAll('win95_state');
+
+        // Export canvas boards from localStorage (backup location)
+        const localCanvasBoards = localStorage.getItem('rangerplex_canvas_boards');
+
         return {
-            version: '2.2.0',
+            version: '2.4.7',
             exportedAt: Date.now(),
             chats,
-            settings
+            settings,
+            canvasBoards,
+            win95States,
+            localCanvasBoards: localCanvasBoards ? JSON.parse(localCanvasBoards) : null
         };
     }
 
     // Import data
     async importAll(data: any) {
+        const db = await this.init();
+
         await this.clearChats();
         await this.clearSettings();
 
@@ -170,7 +258,34 @@ class DBService {
             await this.saveSetting(key, value);
         }
 
+        // Import canvas boards to IndexedDB
+        if (data.canvasBoards && data.canvasBoards.length > 0) {
+            await db.clear('canvas_boards');
+            for (const board of data.canvasBoards) {
+                await db.put('canvas_boards', board);
+            }
+        }
+
+        // Import Win95 states to IndexedDB
+        if (data.win95States && data.win95States.length > 0) {
+            await db.clear('win95_state');
+            for (const state of data.win95States) {
+                await db.put('win95_state', state);
+            }
+            console.log('✅ Imported Win95 states');
+        }
+
+        // Import canvas boards to localStorage (backup location)
+        if (data.localCanvasBoards) {
+            localStorage.setItem('rangerplex_canvas_boards', JSON.stringify(data.localCanvasBoards));
+        }
+
         console.log('✅ Data imported successfully');
+    }
+
+    // Expose DB for other services that share the same database
+    async getDB() {
+        return this.init();
     }
 }
 

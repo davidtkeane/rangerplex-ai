@@ -14,10 +14,14 @@ import ConfettiOverlay from './components/ConfettiOverlay';
 import SparkleOverlay from './components/SparkleOverlay';
 import StudyNotes from './components/StudyNotes';
 import RangerPet from './components/RangerPet'; // Import RangerPet
+import { CanvasBoard } from './src/components/CanvasBoard'; // Import Canvas Board
+import { SaveStatusIndicator } from './components/SaveStatusIndicator';
+import { BackupManager } from './src/components/BackupManager';
 import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS } from './types';
 import { generateTitle } from './services/geminiService';
 import { dbService } from './services/dbService';
 import { syncService } from './services/syncService';
+import { autoSaveService, queueChatSave, queueSettingSave } from './services/autoSaveService';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -40,6 +44,10 @@ const App: React.FC = () => {
   const [scannerMode, setScannerMode] = useState<'tron' | 'teal' | 'rainbow' | 'matrix' | 'red' | 'gold'>('tron');
   const [isPetVisible, setIsPetVisible] = useState(false); // State for RangerPet visibility
   const [petMessage, setPetMessage] = useState(''); // State for RangerPet message
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false); // State for Canvas Board visibility
+  const [showBackupManager, setShowBackupManager] = useState(false);
+  const [needsBackupImport, setNeedsBackupImport] = useState(false);
+  const [hydrationSource, setHydrationSource] = useState<'none' | 'local' | 'server'>('none');
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
     if (!prompts || prompts.length === 0) return DEFAULT_SAVED_PROMPTS;
@@ -57,6 +65,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const initDB = async () => {
       await dbService.init();
+      syncService.enableSync();
 
       // Check if migration is needed for image paths
       const imagePathMigrationNeeded = await dbService.getSetting('image_path_migration_20251123') !== 'completed';
@@ -210,23 +219,26 @@ const App: React.FC = () => {
     }
 
     const loadUserData = async () => {
-      // Load chats from IndexedDB
-      const chats = await dbService.getAllChats();
-      if (chats.length > 0) {
-        setSessions(chats.reverse()); // Most recent first
-        setCurrentSessionId(chats[0].id);
-      }
-
-      // Load settings
-      console.log('🟢 LOADING SETTINGS for user:', currentUser);
-      const storedSettings = await dbService.getSetting(`settings_${currentUser}`);
-      console.log('🟢 Stored settings from IndexedDB:', storedSettings);
+      setNeedsBackupImport(false);
 
       const sanitizeModels = (list: string[] | undefined, allowed: string[]) => {
         const filtered = (list || []).filter(m => allowed.includes(m));
         const supplemented = Array.from(new Set([...allowed, ...filtered]));
         return supplemented.length > 0 ? supplemented : allowed;
       };
+
+      // Load from IndexedDB first
+      const chats = await dbService.getAllChats();
+      let sessionList: ChatSession[] = [];
+      if (chats.length > 0) {
+        sessionList = chats.reverse();
+        setCurrentSessionId(chats[0].id);
+        setHydrationSource('local');
+      }
+
+      console.log('🟢 LOADING SETTINGS for user:', currentUser);
+      const storedSettings = await dbService.getSetting(`settings_${currentUser}`);
+      console.log('🟢 Stored settings from IndexedDB:', storedSettings);
 
       let finalSettings = DEFAULT_SETTINGS;
 
@@ -240,40 +252,39 @@ const App: React.FC = () => {
           gemini: sanitizeModels(mergedSettings.availableModels?.gemini, DEFAULT_SETTINGS.availableModels.gemini),
           openai: sanitizeModels(mergedSettings.availableModels?.openai, DEFAULT_SETTINGS.availableModels.openai),
           anthropic: sanitizeModels(mergedSettings.availableModels?.anthropic, DEFAULT_SETTINGS.availableModels.anthropic),
-          grok: DEFAULT_SETTINGS.availableModels.grok, // Always use latest Grok models (updated Nov 2025)
+          grok: DEFAULT_SETTINGS.availableModels.grok,
           huggingface: sanitizeModels(mergedSettings.availableModels?.huggingface, DEFAULT_SETTINGS.availableModels.huggingface)
         };
         mergedSettings.savedPrompts = ensureImagineFirst(mergedSettings.savedPrompts);
 
         finalSettings = mergedSettings;
+        setHydrationSource('local');
         console.log('🟢 Merged settings from IndexedDB:', { radioEnabled: finalSettings.radioEnabled, currency: finalSettings.currency });
       } else {
         console.log('⚠️ No stored settings found in IndexedDB, using defaults');
       }
 
-      // Sync with server (only if cloud sync enabled - check merged settings OR defaults)
-      const shouldSyncFromServer = storedSettings?.enableCloudSync ?? finalSettings.enableCloudSync ?? DEFAULT_SETTINGS.enableCloudSync;
-      if (shouldSyncFromServer) {
-        console.log('☁️ Cloud sync enabled, checking server for updates...');
-        setIsLoadingFromServer(true); // Prevent save loop during server load
+      const shouldTryServer = sessionList.length === 0 || !storedSettings || (storedSettings?.enableCloudSync ?? finalSettings.enableCloudSync ?? DEFAULT_SETTINGS.enableCloudSync);
+
+      if (shouldTryServer) {
+        console.log('☁️ Checking server for updates...');
+        setIsLoadingFromServer(true);
         try {
           const serverChats = await syncService.getAllChats();
           const serverSettings = await syncService.getAllSettings();
 
-          // Merge server data (newer data wins based on updatedAt)
-          if (serverChats.length > 0) {
-            console.log(`☁️ Found ${serverChats.length} chats on server`);
+          if (serverChats && serverChats.length > 0) {
+            sessionList = serverChats;
+            setCurrentSessionId(serverChats[0].id);
+            setHydrationSource('server');
             for (const chat of serverChats) {
               await dbService.saveChat(chat);
             }
-            setSessions(serverChats);
+            console.log(`☁️ Restored ${serverChats.length} chats from server`);
           }
 
-          if (Object.keys(serverSettings).length > 0 && serverSettings[`settings_${currentUser}`]) {
-            console.log('☁️ Found settings on server, merging with local...');
+          if (serverSettings && serverSettings[`settings_${currentUser}`]) {
             const serverUserSettings = serverSettings[`settings_${currentUser}`];
-
-            // Merge: server settings override local (server is source of truth when sync enabled)
             const mergedFromServer = { ...DEFAULT_SETTINGS, ...finalSettings, ...serverUserSettings };
             mergedFromServer.availableModels = {
               ...DEFAULT_SETTINGS.availableModels,
@@ -281,28 +292,36 @@ const App: React.FC = () => {
               gemini: sanitizeModels(mergedFromServer.availableModels?.gemini, DEFAULT_SETTINGS.availableModels.gemini),
               openai: sanitizeModels(mergedFromServer.availableModels?.openai, DEFAULT_SETTINGS.availableModels.openai),
               anthropic: sanitizeModels(mergedFromServer.availableModels?.anthropic, DEFAULT_SETTINGS.availableModels.anthropic),
-              grok: DEFAULT_SETTINGS.availableModels.grok, // Always use latest Grok models (updated Nov 2025)
+              grok: DEFAULT_SETTINGS.availableModels.grok,
               huggingface: sanitizeModels(mergedFromServer.availableModels?.huggingface, DEFAULT_SETTINGS.availableModels.huggingface)
             };
             mergedFromServer.savedPrompts = ensureImagineFirst(mergedFromServer.savedPrompts);
 
             finalSettings = mergedFromServer;
-            console.log('☁️ Merged settings from server:', { radioEnabled: finalSettings.radioEnabled, currency: finalSettings.currency });
-          } else {
-            console.log('☁️ No settings found on server, will sync local settings to server');
+            setHydrationSource('server');
+            console.log('☁️ Merged settings from server');
+          }
+
+          if (sessionList.length === 0 && !storedSettings && (!serverSettings || Object.keys(serverSettings).length === 0)) {
+            setNeedsBackupImport(true);
           }
         } catch (error) {
           console.error('❌ Server sync failed, using local data only:', error);
-          console.error('Error details:', error);
+          if (sessionList.length === 0 && !storedSettings) {
+            setNeedsBackupImport(true);
+          }
         } finally {
-          setIsLoadingFromServer(false); // Re-enable saves
+          setIsLoadingFromServer(false);
         }
       }
 
-      // Set final settings and mark as loaded
+      if (sessionList.length > 0) {
+        setSessions(sessionList);
+      }
+
       setSettings(finalSettings);
-      setSettingsLoaded(true); // Mark settings as loaded - now safe to save changes
-      console.log('✅ Settings load complete:', { radioEnabled: finalSettings.radioEnabled, currency: finalSettings.currency });
+      setSettingsLoaded(true);
+      console.log('✅ Settings load complete:', { radioEnabled: finalSettings.radioEnabled, currency: finalSettings.currency, hydrationSource });
     };
 
     loadUserData();
@@ -311,16 +330,9 @@ const App: React.FC = () => {
   // Save chats to IndexedDB and sync to server
   useEffect(() => {
     if (currentUser && sessions.length > 0) {
-      const saveChats = async () => {
-        for (const session of sessions) {
-          await dbService.saveChat(session);
-          if (settings.enableCloudSync) {
-            await syncService.syncChat(session);
-          }
-        }
-        setSyncStatus(prev => ({ ...prev, lastSync: Date.now() }));
-      };
-      saveChats();
+      queueChatSave(`user:${currentUser}:chats`, sessions, settings.enableCloudSync, () =>
+        setSyncStatus(prev => ({ ...prev, lastSync: Date.now() }))
+      );
     }
   }, [sessions, currentUser, settings.enableCloudSync]);
 
@@ -328,28 +340,9 @@ const App: React.FC = () => {
   useEffect(() => {
     // Don't save if: no user, not loaded yet, or currently loading from server
     if (currentUser && settingsLoaded && !isLoadingFromServer) {
-      const saveSettings = async () => {
-        console.log('🔵 SAVING SETTINGS for user:', currentUser);
-        console.log('🔵 Radio enabled:', settings.radioEnabled, 'Currency:', settings.currency);
-        console.log('🔵 Avatars:', {
-          user: settings.userAvatar ? `${settings.userAvatar.substring(0, 30)}... (${settings.userAvatar.length} chars)` : 'none',
-          ai: settings.aiAvatar ? `${settings.aiAvatar.substring(0, 30)}... (${settings.aiAvatar.length} chars)` : 'none'
-        });
-        try {
-          await dbService.saveSetting(`settings_${currentUser}`, settings);
-          console.log('✅ Settings saved to IndexedDB');
-
-          if (settings.enableCloudSync) {
-            await syncService.syncSettings(`settings_${currentUser}`, settings);
-            console.log('✅ Settings synced to server (including avatars)');
-          }
-          setSyncStatus(prev => ({ ...prev, lastSync: Date.now() }));
-        } catch (error) {
-          console.error('❌ SETTINGS SAVE FAILED:', error);
-          console.error('Error details:', error);
-        }
-      };
-      saveSettings();
+      queueSettingSave(`settings_${currentUser}`, settings, settings.enableCloudSync, () =>
+        setSyncStatus(prev => ({ ...prev, lastSync: Date.now() }))
+      );
     }
   }, [settings, currentUser, settingsLoaded, isLoadingFromServer]);
 
@@ -458,6 +451,11 @@ const App: React.FC = () => {
   const openTraining = useCallback(() => {
     setIsTrainingOpen(true);
     setIsStudyNotesOpen(false);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, []);
+
+  const openCanvas = useCallback(() => {
+    setIsCanvasOpen(true);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
@@ -619,6 +617,7 @@ const App: React.FC = () => {
           onToggleMatrix={toggleMatrixMode}
           onOpenTraining={openTraining}
           onOpenStudyNotes={openStudyNotes}
+          onOpenCanvas={openCanvas}
           onLock={() => setIsLocked(true)}
           onOpenVisionMode={() => {
             setIsVisionModeOpen(true);
@@ -664,6 +663,22 @@ const App: React.FC = () => {
               )}
             </div>
           </div>
+          {hydrationSource !== 'none' && (
+            <div className="mx-4 mt-2 text-xs opacity-70">
+              Hydrated from {hydrationSource === 'local' ? 'local storage' : 'server backup'}.
+            </div>
+          )}
+          {needsBackupImport && (
+            <div className="mx-4 mt-3 rounded border border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 px-3 py-2 text-sm flex items-center justify-between gap-3">
+              <span>No local or server data detected. Import a backup to restore your workspace.</span>
+              <button
+                onClick={() => setShowBackupManager(true)}
+                className="px-3 py-1.5 rounded bg-amber-500 text-white text-xs font-bold hover:bg-amber-600"
+              >
+                Import Backup
+              </button>
+            </div>
+          )}
           {isStudyNotesOpen ? (
             <StudyNotes currentUser={currentUser} settings={settings} initialDraft={noteDraft || undefined} onOpenSettings={() => setIsSettingsOpen(true)} />
           ) : isTrainingOpen ? (
@@ -682,6 +697,7 @@ const App: React.FC = () => {
               onCycleHolidayEffect={cycleHolidayEffect}
               showHolidayButtons={settings.showHeaderControls === true}
               onPetCommand={handlePetCommand} // Pass the new pet command handler
+              onOpenCanvas={openCanvas} // Pass the canvas opener
               saveImageToLocal={saveImageToLocal} // Pass the image saving function
             />
           ) : (
@@ -704,7 +720,15 @@ const App: React.FC = () => {
           )}
         </main>
 
-        {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={settings} onSave={setSettings} />}
+        {isSettingsOpen && (
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            settings={settings}
+            onSave={setSettings}
+            onOpenBackupManager={() => setShowBackupManager(true)}
+          />
+        )}
 
         {/* Ranger Vision Mode */}
         <RangerVisionMode
@@ -726,12 +750,29 @@ const App: React.FC = () => {
             externalToggleSignal={radioToggleSignal}
           />
         )}
+
+        {/* Canvas Board */}
+        {isCanvasOpen && (
+          <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm">
+            <CanvasBoard
+              theme={settings.theme}
+              onClose={() => setIsCanvasOpen(false)}
+            />
+          </div>
+        )}
       </div>
 
       <RangerPet
         isVisible={isPetVisible}
         onClose={() => setIsPetVisible(false)}
         message={petMessage}
+      />
+      {showBackupManager && (
+        <BackupManager theme={settings.theme} onClose={() => setShowBackupManager(false)} />
+      )}
+      <SaveStatusIndicator
+        enabled={settings.saveStatusNotifications}
+        displayMs={settings.saveStatusDurationMs}
       />
     </div>
   );
