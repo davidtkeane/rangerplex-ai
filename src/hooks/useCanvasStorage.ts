@@ -17,7 +17,8 @@ export const useCanvasStorage = (
         if (!canvasRef.current) return false;
 
         try {
-            const dataUrl = canvasRef.current.toDataURL('image/png');
+            // Use JPEG 0.7 to save space
+            const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.7);
             localStorage.setItem(STORAGE_KEY, dataUrl);
             lastSaveRef.current = Date.now();
             console.log('✅ Canvas auto-saved to localStorage');
@@ -26,7 +27,8 @@ export const useCanvasStorage = (
             console.error('❌ Failed to save canvas:', error);
             // Check if localStorage is full
             if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-                alert('Storage quota exceeded! Please clear old canvases or download and delete current one.');
+                console.warn('Storage quota exceeded for auto-save. This is expected if you have many boards. Main storage is safe.');
+                // alert('Storage quota exceeded! Please clear old canvases or download and delete current one.');
             }
             return false;
         }
