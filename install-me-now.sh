@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 
-# RangerPlex AI Installer (v2.5.27+)
+# RangerPlex AI Installer (v2.5.28)
 # One-command setup for macOS/Linux/WSL. Installs Node.js 22, PM2, npm deps, and guides API key setup.
 # Safe defaults: prompts before package installs; writes .env only when you confirm.
 #
-# IMPROVEMENTS (v2.5.27+):
+# IMPROVEMENTS (v2.5.28):
+# ✅ ADDED: Beautiful colorful ASCII banner with RANGERPLEX branding
+# ✅ ADDED: Welcome message thanking users for downloading
+# ✅ ADDED: Documentation references (/manual command, rangerplex_manual.md)
+# ✅ ADDED: Shell alias setup (auto-detects zsh/bash, adds "rangerplex" alias)
+# ✅ ADDED: Interactive "Start now?" prompt with auto-start option
+# ✅ ADDED: Organized API dashboard links (16 services in 4 categories)
+# ✅ IMPROVED: Comprehensive UX - from welcome to running in one flow
+#
+# PREVIOUS (v2.5.27+):
 # ✅ ADDED: PM2 process manager installation (enables zero-downtime auto-restart)
 # ✅ ADDED: PM2 command instructions (pm2:start, pm2:status, pm2:logs, etc.)
 # ✅ IMPROVED: Recommended start command now uses PM2 for production-ready deployment
@@ -56,11 +65,39 @@ warn() { log "${yellow}⚠${reset} $*"; }
 fail() { log "${red}✗${reset} $*"; }
 
 banner() {
-  cat <<'EOF'
-┌─────────────────────────────────────────────┐
-│           R A N G E R P L E X   A I         │
-│    One-command install with guided setup    │
-└─────────────────────────────────────────────┘
+  cat <<EOF
+${cyan}╔═══════════════════════════════════════════════════════════════════════╗${reset}
+${cyan}║${reset}                                                                       ${cyan}║${reset}
+${cyan}║${reset}  ${bold}${green}██████╗  █████╗ ███╗   ██╗ ██████╗ ███████╗██████╗ ██████╗ ██╗     ███████╗██╗  ██╗${reset}  ${cyan}║${reset}
+${cyan}║${reset}  ${bold}${green}██╔══██╗██╔══██╗████╗  ██║██╔════╝ ██╔════╝██╔══██╗██╔══██╗██║     ██╔════╝╚██╗██╔╝${reset}  ${cyan}║${reset}
+${cyan}║${reset}  ${bold}${green}██████╔╝███████║██╔██╗ ██║██║  ███╗█████╗  ██████╔╝██████╔╝██║     █████╗   ╚███╔╝${reset}   ${cyan}║${reset}
+${cyan}║${reset}  ${bold}${green}██╔══██╗██╔══██║██║╚██╗██║██║   ██║██╔══╝  ██╔══██╗██╔═══╝ ██║     ██╔══╝   ██╔██╗${reset}   ${cyan}║${reset}
+${cyan}║${reset}  ${bold}${green}██║  ██║██║  ██║██║ ╚████║╚██████╔╝███████╗██║  ██║██║     ███████╗███████╗██╔╝ ██╗${reset}  ${cyan}║${reset}
+${cyan}║${reset}  ${bold}${green}╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝╚═╝  ╚═╝${reset}  ${cyan}║${reset}
+${cyan}║${reset}                                                                       ${cyan}║${reset}
+${cyan}║${reset}            ${bold}${yellow}🎖️  Multi-AI Command Center with Local AI Power 🎖️${reset}             ${cyan}║${reset}
+${cyan}║${reset}                                                                       ${cyan}║${reset}
+${cyan}║${reset}               ${dim}Gemini • Claude • GPT • Grok • Perplexity${reset}              ${cyan}║${reset}
+${cyan}║${reset}               ${dim}Ollama • LM Studio • HuggingFace • Brave${reset}              ${cyan}║${reset}
+${cyan}║${reset}                                                                       ${cyan}║${reset}
+${cyan}╚═══════════════════════════════════════════════════════════════════════╝${reset}
+
+${bold}${green}🎉 Thank you for downloading RangerPlex AI!${reset}
+
+${dim}This installer will guide you through:${reset}
+  ${cyan}•${reset} Node.js 22.x setup (via nvm)
+  ${cyan}•${reset} PM2 process manager (zero-downtime updates!)
+  ${cyan}•${reset} Ollama & LM Studio (optional local AI)
+  ${cyan}•${reset} API key collection for cloud providers
+  ${cyan}•${reset} Automatic alias setup (type ${bold}rangerplex${reset}${dim} to start anytime)${reset}
+
+${bold}${yellow}📚 Documentation:${reset}
+  ${cyan}•${reset} Type ${bold}/manual${reset} in chat for the complete user guide
+  ${cyan}•${reset} Or read: ${bold}rangerplex_manual.md${reset} in project folder
+  ${cyan}•${reset} README.md has quick start guide and features list
+
+${bold}${green}Let's get started!${reset} 🚀
+
 EOF
 }
 
@@ -481,6 +518,48 @@ collect_env() {
   fi
 }
 
+####################################
+# Shell Alias Setup                #
+####################################
+setup_alias() {
+  log
+  step "Setting up ${bold}rangerplex${reset} alias..."
+
+  # Detect shell
+  local shell_config=""
+  local shell_name=""
+
+  if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "$(command -v zsh)" ]; then
+    shell_config="$HOME/.zshrc"
+    shell_name="zsh"
+  elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "$(command -v bash)" ]; then
+    shell_config="$HOME/.bashrc"
+    shell_name="bash"
+  else
+    warn "Could not detect shell (zsh/bash). Skipping alias setup."
+    log "${dim}You can manually add: alias rangerplex='cd \"$PROJECT_ROOT\" && npm run pm2:start'${reset}"
+    return
+  fi
+
+  # Check if alias already exists
+  if [ -f "$shell_config" ] && grep -q "alias rangerplex=" "$shell_config" 2>/dev/null; then
+    ok "Alias 'rangerplex' already exists in $shell_name config."
+    return
+  fi
+
+  # Add alias to shell config
+  log "${dim}Adding alias to $shell_config...${reset}"
+  cat >> "$shell_config" <<EOF
+
+# RangerPlex AI alias (added by installer)
+alias rangerplex='cd "$PROJECT_ROOT" && npm run pm2:start'
+EOF
+
+  ok "Alias 'rangerplex' added to $shell_name config!"
+  log "${dim}Usage: Just type ${bold}rangerplex${reset}${dim} from anywhere to start RangerPlex${reset}"
+  log "${dim}Note: Open a new terminal or run: ${bold}source $shell_config${reset}"
+}
+
 ########################
 # Main sequence        #
 ########################
@@ -506,6 +585,9 @@ collect_env
 log
 verify_ports
 
+# Setup shell alias
+setup_alias
+
 log
 log "${green}${bold}╔════════════════════════════════════════════════════╗${reset}"
 log "${green}${bold}║   🎖️  INSTALLATION COMPLETE! RANGERS READY! 🎖️    ║${reset}"
@@ -513,37 +595,75 @@ log "${green}${bold}╚═══════════════════
 log
 ok "RangerPlex AI is ready to deploy!"
 log
-log "${bold}▶ QUICK START WITH PM2 (RECOMMENDED):${reset}"
-log "  ${cyan}${bold}npm run pm2:start${reset}"
-log "  ${dim}↳ Starts BOTH servers with PM2 (auto-restart + zero-downtime updates!)${reset}"
+log "${bold}${yellow}📚 Quick Reference:${reset}"
+log "  ${cyan}•${reset} Type ${bold}/manual${reset} in chat for complete user guide"
+log "  ${cyan}•${reset} Read ${bold}rangerplex_manual.md${reset} for detailed documentation"
+log "  ${cyan}•${reset} Use ${bold}rangerplex${reset} alias from anywhere to start (after new terminal)"
 log
-log "${bold}▶ PM2 COMMANDS:${reset}"
+log "${bold}${cyan}▶ PM2 COMMANDS (for future use):${reset}"
+log "  ${cyan}npm run pm2:start${reset}    ${dim}→ Start RangerPlex${reset}"
+log "  ${cyan}npm run pm2:stop${reset}     ${dim}→ Stop all servers${reset}"
 log "  ${cyan}npm run pm2:status${reset}   ${dim}→ Check server status${reset}"
 log "  ${cyan}npm run pm2:logs${reset}     ${dim}→ View real-time logs${reset}"
 log "  ${cyan}npm run pm2:restart${reset}  ${dim}→ Restart servers${reset}"
-log "  ${cyan}npm run pm2:stop${reset}     ${dim}→ Stop all servers${reset}"
 log
-log "${bold}▶ LEGACY START (if PM2 issues):${reset}"
-log "  ${cyan}npm start${reset}  ${dim}(fallback: runs both servers without PM2)${reset}"
-log
-log "${bold}▶ OPEN IN BROWSER:${reset}"
-log "  ${cyan}${bold}http://localhost:5173${reset}"
-log
-log "${bold}📝 NEXT STEPS:${reset}"
-log "  1. Run ${bold}npm run pm2:start${reset} to launch RangerPlex with PM2"
-log "  2. Open ${bold}http://localhost:5173${reset} in your browser"
-log "  3. Test your API keys in Settings (⚙️ gear icon)"
-log "  4. Use auto-update in Settings (one-click updates with zero downtime!)"
-log "  5. Start chatting with your AI squad! 🚀"
+log "${bold}${cyan}▶ BROWSER ACCESS:${reset}"
+log "  ${bold}${green}http://localhost:5173${reset}"
 log
 if [ -f "$PROJECT_ROOT/.env" ]; then
   log "${dim}💡 Tip: Your API keys are in .env (gitignored, safe)${reset}"
-  log "${dim}   Add more keys anytime by editing .env with VITE_ prefix${reset}"
+  log "${dim}   Add more keys anytime in Settings or by editing .env${reset}"
+  log
 fi
+log "${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}"
 log
-log "${dim}If you installed Node via nvm, you may need to:${reset}"
-log "${dim}  • Open a fresh terminal OR${reset}"
-log "${dim}  • Run: source ~/.nvm/nvm.sh${reset}"
+log "${bold}${green}🚀 Ready to launch RangerPlex now?${reset}"
 log
-log "${bold}Rangers lead the way!${reset} 🎖️"
+printf "${bold}Start RangerPlex with PM2? (Y/n): ${reset}"
+read -r start_now
+
+if [[ ! "$start_now" =~ ^[Nn]$ ]]; then
+  log
+  step "Starting RangerPlex with PM2..."
+  log
+
+  cd "$PROJECT_ROOT"
+  npm run pm2:start
+
+  local pm2_exit=$?
+  log
+
+  if [ $pm2_exit -eq 0 ]; then
+    log "${green}${bold}╔═══════════════════════════════════════════════════╗${reset}"
+    log "${green}${bold}║              🎉 RANGERPLEX IS LIVE! 🎉            ║${reset}"
+    log "${green}${bold}╚═══════════════════════════════════════════════════╝${reset}"
+    log
+    ok "Servers are running in background via PM2 daemon!"
+    log
+    log "${bold}${green}➜ Open in browser:${reset} ${cyan}${bold}http://localhost:5173${reset}"
+    log
+    log "${dim}💡 You can close this terminal - servers will keep running!${reset}"
+    log "${dim}   View logs anytime: ${bold}npm run pm2:logs${reset}"
+    log "${dim}   Stop servers: ${bold}npm run pm2:stop${reset}"
+    log
+  else
+    warn "PM2 start had issues. Try manually: ${bold}npm run pm2:start${reset}"
+    log "${dim}Or fallback to: ${bold}npm start${reset}"
+  fi
+else
+  log
+  ok "Skipped auto-start. Ready when you are!"
+  log
+  log "${bold}${yellow}To start RangerPlex:${reset}"
+  log "  ${cyan}${bold}npm run pm2:start${reset}  ${dim}(recommended - background daemon)${reset}"
+  log "  ${dim}Or just type: ${bold}rangerplex${reset}${dim} (after opening new terminal)${reset}"
+  log
+  log "${dim}If you installed Node via nvm, you may need to:${reset}"
+  log "${dim}  • Open a fresh terminal OR${reset}"
+  log "${dim}  • Run: ${bold}source ~/.nvm/nvm.sh${reset}"
+  log
+fi
+
+log
+log "${bold}${green}Rangers lead the way!${reset} 🎖️"
 log
