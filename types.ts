@@ -282,6 +282,9 @@ export interface AppSettings {
   happinessDecayRate: number; // points per interval
   hungerIncreaseRate: number; // points per interval
   petAvatar?: string;
+
+  // Canvas
+  defaultCanvasColor: 'black' | 'gray' | 'white';
 }
 
 export const DEFAULT_AGENTS: AgentConfig[] = [
@@ -456,7 +459,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   petVolume: 0.7,
   happinessDecayRate: 2,
   hungerIncreaseRate: 3,
-  petAvatar: ''
+  petAvatar: '',
+
+  defaultCanvasColor: 'white'
 };
 
 export interface TrainingExample {

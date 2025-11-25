@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { autoSaveService } from '../services/autoSaveService';
 
 type Status = 'idle' | 'saving' | 'saved' | 'error';
@@ -8,24 +8,86 @@ interface Props {
   displayMs?: number;
 }
 
+const SAVING_INDICATOR_DELAY = 200; // Avoid flicker for very short saves
+const QUIET_AFTER_SAVE_MS = 2200; // Wait for autosave to settle before showing "saved"
+
 export const SaveStatusIndicator: React.FC<Props> = ({ enabled = true, displayMs = 5000 }) => {
   const [status, setStatus] = useState<Status>('idle');
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const savingDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const clearTimers = () => {
+      if (savingDelayRef.current) clearTimeout(savingDelayRef.current);
+      if (savedDebounceRef.current) clearTimeout(savedDebounceRef.current);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      savingDelayRef.current = null;
+      savedDebounceRef.current = null;
+      hideTimerRef.current = null;
+    };
+
     const handleSaving = () => {
-      setStatus('saving');
-      setErrorMessage(null);
+      if (!enabled) return;
+
+      if (savedDebounceRef.current) {
+        clearTimeout(savedDebounceRef.current);
+        savedDebounceRef.current = null;
+      }
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+      if (savingDelayRef.current) clearTimeout(savingDelayRef.current);
+
+      savingDelayRef.current = setTimeout(() => {
+        setStatus('saving');
+        setErrorMessage(null);
+      }, SAVING_INDICATOR_DELAY);
     };
+
     const handleSaved = (ts?: number) => {
-      setStatus('saved');
-      setLastSaved(ts || Date.now());
+      if (!enabled) return;
+
+      const timestamp = ts || Date.now();
+      setLastSaved(timestamp);
+
+      if (savingDelayRef.current) {
+        clearTimeout(savingDelayRef.current);
+        savingDelayRef.current = null;
+      }
+      if (savedDebounceRef.current) clearTimeout(savedDebounceRef.current);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+
+      // Hide while autosave is still firing; only show "saved" after a quiet beat.
+      setStatus('idle');
       setErrorMessage(null);
+      savedDebounceRef.current = setTimeout(() => {
+        setStatus('saved');
+        hideTimerRef.current = setTimeout(() => {
+          setStatus('idle');
+        }, displayMs);
+      }, QUIET_AFTER_SAVE_MS);
     };
+
     const handleError = (err: unknown) => {
+      if (savingDelayRef.current) {
+        clearTimeout(savingDelayRef.current);
+        savingDelayRef.current = null;
+      }
+      if (savedDebounceRef.current) {
+        clearTimeout(savedDebounceRef.current);
+        savedDebounceRef.current = null;
+      }
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+
       setStatus('error');
       setErrorMessage(err instanceof Error ? err.message : 'Save failed');
+      hideTimerRef.current = setTimeout(() => {
+        setStatus('idle');
+      }, displayMs);
     };
 
     autoSaveService.on('saving', handleSaving);
@@ -36,15 +98,9 @@ export const SaveStatusIndicator: React.FC<Props> = ({ enabled = true, displayMs
       autoSaveService.off('saving', handleSaving);
       autoSaveService.off('saved', handleSaved);
       autoSaveService.off('error', handleError);
+      clearTimers();
     };
-  }, []);
-
-  useEffect(() => {
-    if (status === 'saved' || status === 'error') {
-      const timer = setTimeout(() => setStatus('idle'), displayMs);
-      return () => clearTimeout(timer);
-    }
-  }, [status, displayMs]);
+  }, [displayMs, enabled]);
 
   if (!enabled || status === 'idle') return null;
 

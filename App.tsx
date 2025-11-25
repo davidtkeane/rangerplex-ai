@@ -18,7 +18,7 @@ import { CanvasBoard } from './src/components/CanvasBoard'; // Import Canvas Boa
 import { SaveStatusIndicator } from './components/SaveStatusIndicator';
 import { BackupManager } from './src/components/BackupManager';
 import { StudyClock } from './components/StudyClock'; // Import Study Clock
-import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS } from './types';
+import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS, DEFAULT_SAVED_PROMPTS } from './types';
 import { generateTitle } from './services/geminiService';
 import { dbService } from './services/dbService';
 import { syncService } from './services/syncService';
@@ -98,26 +98,26 @@ const App: React.FC = () => {
           // Migrate study notes
           const users = await dbService.getAllUsers(); // Assuming you have a way to get all users
           for (const user of users) {
-             const storageKey = `study_notes_${user.username}`;
-             const stored = await dbService.getSetting(storageKey);
-             if (stored && Array.isArray(stored.notes)) {
-                let notesUpdated = false;
-                for (const note of stored.notes) {
-                    if (note.content && note.content.includes('](image/')) {
-                        note.content = note.content.replace(/\]\(image\//g, '](http://localhost:3010/image/');
-                        notesUpdated = true;
-                    }
+            const storageKey = `study_notes_${user.username}`;
+            const stored = await dbService.getSetting(storageKey);
+            if (stored && Array.isArray(stored.notes)) {
+              let notesUpdated = false;
+              for (const note of stored.notes) {
+                if (note.content && note.content.includes('](image/')) {
+                  note.content = note.content.replace(/\]\(image\//g, '](http://localhost:3010/image/');
+                  notesUpdated = true;
                 }
-                if (notesUpdated) {
-                    await dbService.saveSetting(storageKey, stored);
-                }
-             }
+              }
+              if (notesUpdated) {
+                await dbService.saveSetting(storageKey, stored);
+              }
+            }
           }
 
           await dbService.saveSetting('image_path_migration_20251123', 'completed');
           console.log('✅ Image path migration complete!');
         } catch (error) {
-            console.error('❌ Image path migration failed:', error);
+          console.error('❌ Image path migration failed:', error);
         }
       }
 
@@ -666,19 +666,18 @@ const App: React.FC = () => {
             <div className="flex-1">
               {settings.showScannerBeam !== false && (
                 <div className={`relative h-3 w-52 max-w-sm rounded-full overflow-hidden border ${isTron ? 'bg-black/60 border-tron-cyan/40' : 'bg-gray-200 dark:bg-zinc-800 border-white/10'}`}>
-                  <div className={`scanner-bar rounded-full blur-[1px] ${
-                    scannerMode === 'rainbow'
-                      ? 'scanner-rainbow shadow-[0_0_14px_rgba(255,255,255,0.5)]'
-                      : scannerMode === 'red'
-                        ? 'bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.7)]'
+                  <div className={`scanner-bar rounded-full blur-[1px] ${scannerMode === 'rainbow'
+                    ? 'scanner-rainbow shadow-[0_0_14px_rgba(255,255,255,0.5)]'
+                    : scannerMode === 'red'
+                      ? 'bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.7)]'
                       : scannerMode === 'gold'
                         ? 'bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.7)]'
-                      : scannerMode === 'matrix'
-                        ? 'bg-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.6)]'
-                      : scannerMode === 'teal'
-                          ? 'bg-teal-400 shadow-[0_0_14px_rgba(45,212,191,0.5)]'
-                          : 'bg-tron-cyan shadow-[0_0_14px_rgba(0,243,255,0.6)]'
-                  }`}></div>
+                        : scannerMode === 'matrix'
+                          ? 'bg-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.6)]'
+                          : scannerMode === 'teal'
+                            ? 'bg-teal-400 shadow-[0_0_14px_rgba(45,212,191,0.5)]'
+                            : 'bg-tron-cyan shadow-[0_0_14px_rgba(0,243,255,0.6)]'
+                    }`}></div>
                 </div>
               )}
             </div>
@@ -750,7 +749,7 @@ const App: React.FC = () => {
             onOpenBackupManager={() => setShowBackupManager(true)}
             onOpenTraining={openTraining}
             sessions={sessions}
-            currentId={currentId}
+            currentId={currentSessionId}
             onExportChat={(session) => {
               const md = `# ${session.title}\n\n${session.messages.map((m: any) => `**${m.role}:** ${m.content}`).join('\n\n')}`;
               const blob = new Blob([md], { type: 'text/markdown' });
@@ -791,7 +790,7 @@ const App: React.FC = () => {
                   }
                 });
                 setSessions([]);
-                setCurrentId(null);
+                setCurrentSessionId(null);
                 window.location.reload();
               } catch (error) {
                 console.error('Purge failed:', error);
@@ -837,8 +836,10 @@ const App: React.FC = () => {
         {isCanvasOpen && (
           <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm">
             <CanvasBoard
+              isOpen={isCanvasOpen}
               theme={settings.theme}
               onClose={() => setIsCanvasOpen(false)}
+              defaultColor={settings.defaultCanvasColor}
             />
           </div>
         )}

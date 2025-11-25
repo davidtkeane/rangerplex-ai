@@ -175,6 +175,11 @@ class DBService {
         await db.clear('settings');
     }
 
+    async getAllUsers() {
+        const users = await this.getSetting('users');
+        return Array.isArray(users) ? users : [];
+    }
+
     // Win95 state operations
     async saveWin95State(userId: string, state: any) {
         const db = await this.init();
@@ -263,7 +268,7 @@ class DBService {
         const localCanvasBoards = localStorage.getItem('rangerplex_canvas_boards');
 
         return {
-            version: '2.4.9',
+            version: '2.4.10',
             exportedAt: Date.now(),
             chats,
             settings,

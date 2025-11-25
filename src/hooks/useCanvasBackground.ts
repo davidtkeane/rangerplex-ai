@@ -92,12 +92,28 @@ export const useCanvasBackground = () => {
   const drawBackground = (
     canvas: HTMLCanvasElement,
     type: BackgroundType,
-    theme: 'dark' | 'light' | 'tron'
+    theme: 'dark' | 'light' | 'tron',
+    colorOverride?: 'black' | 'gray' | 'white'
   ) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { base, line } = getColors(theme);
+    let { base, line } = getColors(theme);
+
+    // Apply color override if present
+    if (colorOverride) {
+      if (colorOverride === 'black') {
+        base = '#000000';
+        line = '#333333';
+      } else if (colorOverride === 'gray') {
+        base = '#808080';
+        line = '#404040';
+      } else if (colorOverride === 'white') {
+        base = '#ffffff';
+        line = '#e5e5e5';
+      }
+    }
+
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 

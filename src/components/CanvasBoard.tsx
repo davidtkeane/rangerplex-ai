@@ -13,15 +13,19 @@ import { WarningDialog } from './WarningDialog';
 import '../styles/canvas.css';
 
 interface CanvasBoardProps {
+  isOpen: boolean;
+  onClose: () => void;
   theme: 'dark' | 'light' | 'tron';
-  onClose?: () => void;
+  defaultColor?: 'black' | 'gray' | 'white';
   width?: number;
   height?: number;
 }
 
 export const CanvasBoard: React.FC<CanvasBoardProps> = ({
-  theme,
+  isOpen,
   onClose,
+  theme,
+  defaultColor = 'white',
   width = window.innerWidth,
   height = window.innerHeight - 220
 }) => {
@@ -88,10 +92,10 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
 
   // Create first board if none exists
   useEffect(() => {
-    if (boardCount === 0) {
-      createBoard('blank');
+    if (boards.length === 0) {
+      createBoard('blank', undefined, defaultColor); // Use default color
     }
-  }, []);
+  }, []); // Run once on mount (or when boards is empty, but dependency array is empty to mimic mount)
 
   // Initialize canvas sizes
   useEffect(() => {
@@ -103,10 +107,10 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
 
       // Redraw background on resize
       if (currentBoard) {
-        drawBackground(bgCanvasRef.current, currentBoard.background, theme);
+        drawBackground(bgCanvasRef.current, currentBoard.background, theme, currentBoard.color);
       }
     }
-  }, [width, height, theme, currentBoard?.background]);
+  }, [width, height, theme, currentBoard?.background, currentBoard?.color]);
 
   // Load Board Content
   // FIX: Only run when currentBoardId changes to prevent flashing on auto-save
@@ -118,7 +122,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
 
     // 2. Draw Background (on bottom layer)
     if (bgCanvasRef.current) {
-      drawBackground(bgCanvasRef.current, currentBoard.background, theme);
+      drawBackground(bgCanvasRef.current, currentBoard.background, theme, currentBoard.color);
     }
 
     // 3. Draw Drawing (on top layer)
@@ -253,8 +257,8 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
   };
 
   // Board Ops
-  const handleCreateBoard = (bg: BackgroundType, name?: string) => {
-    const id = createBoard(bg, name);
+  const handleCreateBoard = (bg: BackgroundType, name?: string, color: 'black' | 'gray' | 'white' = 'white') => {
+    const id = createBoard(bg, name, color);
     if (id) setShowBoardModal(false);
   };
 

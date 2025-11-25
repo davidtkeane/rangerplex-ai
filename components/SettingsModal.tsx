@@ -39,7 +39,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'search' | 'council' | 'prompts' | 'security' | 'data' | 'help'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'data' | 'help'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
     const [loadingModels, setLoadingModels] = useState(false);
     const [promptSearch, setPromptSearch] = useState('');
@@ -453,7 +453,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                 {/* Tabs */}
                 <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                    {['general', 'media', 'params', 'providers', 'ollama', 'search', 'council', 'prompts', 'security', 'radio', 'tamagotchi', 'data', 'help'].map((tab) => (
+                    {['general', 'media', 'params', 'providers', 'ollama', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'data', 'help'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -762,6 +762,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     Enable Web Search for LLMs
                                 </label>
                                 <p className="text-xs opacity-60 ml-8">When enabled, LLMs will automatically search the web when the 🌐 WEB button is active</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* CANVAS TAB */}
+                    {activeTab === 'canvas' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold mb-4 border-b border-inherit pb-2">Canvas Settings</h3>
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-2">Default Board Appearance</h4>
+                                <p className="text-xs opacity-70 mb-4">Set the default background color for new canvas boards.</p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {['black', 'gray', 'white'].map((color) => (
+                                        <label key={color} className={`flex items-center gap-3 p-3 rounded border cursor-pointer transition-all ${localSettings.defaultCanvasColor === color ? 'border-teal-500 bg-teal-500/10' : 'border-inherit hover:bg-white/5'}`}>
+                                            <input
+                                                type="radio"
+                                                name="defaultCanvasColor"
+                                                checked={localSettings.defaultCanvasColor === color}
+                                                onChange={() => setLocalSettings({ ...localSettings, defaultCanvasColor: color as any })}
+                                                className="accent-teal-500"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-4 h-4 rounded-full border border-inherit" style={{ backgroundColor: color === 'black' ? '#000' : color === 'gray' ? '#808080' : '#fff' }}></div>
+                                                <div className="font-bold text-sm capitalize">{color}</div>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1528,82 +1557,82 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                     {/* HELP TAB */}
                     {activeTab === 'help' && (
-                                <div className="space-y-6 prose prose-invert max-w-none">
-                                    <h3 className="font-bold border-b border-inherit pb-2">System & Help</h3>
+                        <div className="space-y-6 prose prose-invert max-w-none">
+                            <h3 className="font-bold border-b border-inherit pb-2">System & Help</h3>
 
-                                    {/* Update Checker */}
-                                    <div className="p-4 border border-inherit rounded bg-opacity-5">
-                                        <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
-                                            <i className="fa-brands fa-github"></i>
-                                            System Updates
-                                        </h4>
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-xs opacity-80">
-                                                Check for the latest version of RangerPlex AI from GitHub.
-                                            </div>
-                                            <button
-                                                onClick={handleCheckUpdate}
-                                                disabled={checkingUpdate}
-                                                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs font-bold flex items-center gap-2"
-                                            >
-                                                {checkingUpdate ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-rotate"></i>}
-                                                Check for Updates
-                                            </button>
-                                        </div>
-                                        {updateStatus && (
-                                            <div className={`mt-3 p-3 rounded text-xs border ${updateStatus.error ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
-                                                {updateStatus.error ? (
-                                                    <div className="text-red-400">Error: {updateStatus.error}</div>
-                                                ) : (
-                                                    <div>
-                                                        <div className="font-bold text-green-400 mb-1">
-                                                            <i className="fa-solid fa-rocket mr-2"></i>
-                                                            Latest Version: {updateStatus.latestVersion} ({updateStatus.latestDate})
-                                                        </div>
-                                                        <div className="opacity-80 mb-2">"{updateStatus.latestMessage}"</div>
-                                                        <a
-                                                            href={updateStatus.htmlUrl}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-blue-400 hover:underline flex items-center gap-1"
-                                                        >
-                                                            View on GitHub <i className="fa-solid fa-external-link-alt text-[10px]"></i>
-                                                        </a>
-                                                    </div>
-                                                )}
+                            {/* Update Checker */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
+                                    <i className="fa-brands fa-github"></i>
+                                    System Updates
+                                </h4>
+                                <div className="flex items-center justify-between">
+                                    <div className="text-xs opacity-80">
+                                        Check for the latest version of RangerPlex AI from GitHub.
+                                    </div>
+                                    <button
+                                        onClick={handleCheckUpdate}
+                                        disabled={checkingUpdate}
+                                        className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs font-bold flex items-center gap-2"
+                                    >
+                                        {checkingUpdate ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-rotate"></i>}
+                                        Check for Updates
+                                    </button>
+                                </div>
+                                {updateStatus && (
+                                    <div className={`mt-3 p-3 rounded text-xs border ${updateStatus.error ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+                                        {updateStatus.error ? (
+                                            <div className="text-red-400">Error: {updateStatus.error}</div>
+                                        ) : (
+                                            <div>
+                                                <div className="font-bold text-green-400 mb-1">
+                                                    <i className="fa-solid fa-rocket mr-2"></i>
+                                                    Latest Version: {updateStatus.latestVersion} ({updateStatus.latestDate})
+                                                </div>
+                                                <div className="opacity-80 mb-2">"{updateStatus.latestMessage}"</div>
+                                                <a
+                                                    href={updateStatus.htmlUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-400 hover:underline flex items-center gap-1"
+                                                >
+                                                    View on GitHub <i className="fa-solid fa-external-link-alt text-[10px]"></i>
+                                                </a>
                                             </div>
                                         )}
                                     </div>
+                                )}
+                            </div>
 
-                                    <div className="p-4 border border-inherit rounded bg-opacity-5">
-                                        <h4 className="font-bold text-sm mb-2">Getting Started</h4>
-                                        <p className="text-xs opacity-80 mb-4">RangerPlex AI is a modular research assistant. Connect your API keys in the 'Providers' tab to unlock models.</p>
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-2">Getting Started</h4>
+                                <p className="text-xs opacity-80 mb-4">RangerPlex AI is a modular research assistant. Connect your API keys in the 'Providers' tab to unlock models.</p>
 
-                                        <h4 className="font-bold text-sm mb-2">Proxy Setup (Fixing CORS)</h4>
-                                        <p className="text-xs opacity-80 mb-2">To use Anthropic or DuckDuckGo, you must run the local proxy:</p>
-                                        <pre className="bg-black/30 p-2 rounded text-xs mb-4">
-                                            cd your-folder<br />
-                                            node proxy_server.js
-                                        </pre>
+                                <h4 className="font-bold text-sm mb-2">Proxy Setup (Fixing CORS)</h4>
+                                <p className="text-xs opacity-80 mb-2">To use Anthropic or DuckDuckGo, you must run the local proxy:</p>
+                                <pre className="bg-black/30 p-2 rounded text-xs mb-4">
+                                    cd your-folder<br />
+                                    node proxy_server.js
+                                </pre>
 
-                                        <h4 className="font-bold text-sm mb-2">Keyboard Shortcuts</h4>
-                                        <ul className="text-xs opacity-80 list-disc pl-4">
-                                            <li><strong>/</strong> : Open Prompt Library in chat</li>
-                                            <li><strong>Cmd/Ctrl + Enter</strong> : Send Message</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            )}
+                                <h4 className="font-bold text-sm mb-2">Keyboard Shortcuts</h4>
+                                <ul className="text-xs opacity-80 list-disc pl-4">
+                                    <li><strong>/</strong> : Open Prompt Library in chat</li>
+                                    <li><strong>Cmd/Ctrl + Enter</strong> : Send Message</li>
+                                </ul>
+                            </div>
                         </div>
+                    )}
+                </div>
 
-                        {/* Footer */}
-                    <div className="p-6 border-t border-inherit flex justify-end gap-3">
-                        <button onClick={onClose} className="px-4 py-2 opacity-70 hover:opacity-100 font-bold uppercase text-xs">Cancel</button>
-                        <button onClick={handleSave} className={`px-6 py-2 rounded font-bold uppercase text-xs shadow-lg ${localSettings.theme === 'tron' ? 'bg-tron-cyan text-black hover:bg-white' : 'bg-teal-600 text-white hover:bg-teal-500'}`}>Save Config</button>
-                    </div>
+                {/* Footer */}
+                <div className="p-6 border-t border-inherit flex justify-end gap-3">
+                    <button onClick={onClose} className="px-4 py-2 opacity-70 hover:opacity-100 font-bold uppercase text-xs">Cancel</button>
+                    <button onClick={handleSave} className={`px-6 py-2 rounded font-bold uppercase text-xs shadow-lg ${localSettings.theme === 'tron' ? 'bg-tron-cyan text-black hover:bg-white' : 'bg-teal-600 text-white hover:bg-teal-500'}`}>Save Config</button>
                 </div>
             </div>
-            );
+        </div>
+    );
 };
 
-            export default SettingsModal;
+export default SettingsModal;

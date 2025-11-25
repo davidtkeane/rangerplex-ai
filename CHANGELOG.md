@@ -2,7 +2,43 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.4.9 - "UI Polish & Timer Controls" (Current) ✨
+## v2.4.10 - "Canvas Customization & Polish" (Current) ✨
+*Released: Nov 25, 2025*
+
+**Canvas boards get a major upgrade!** You can now customize the background color of your infinite canvas boards, choosing between sleek Black, professional Gray, or classic White. Plus, critical bug fixes and polish for a smoother experience.
+
+### 🎨 Canvas Board Customization
+*   **Background Color Selection**: Choose your preferred canvas background color when creating a new board.
+    *   **Black**: High contrast, perfect for dark mode users (default for "Matrix" theme).
+    *   **Gray**: Balanced, professional look for diagrams and wireframes.
+    *   **White**: Classic whiteboard feel for sketching and notes.
+*   **Default Preference**: Set your preferred default background color in **Settings > Canvas**.
+    *   New boards will automatically use this color unless you override it.
+    *   The initial "landing" board respects this setting immediately.
+*   **Enhanced Creation Modal**: Updated UI to include color selection alongside pattern choice.
+
+### 🐛 Bug Fixes & Polish
+*   **App Stability**: Fixed a critical `isOpen` prop error that could cause the app to crash when opening the canvas.
+*   **Typo Fixes**: Resolved `currentId` vs `currentSessionId` variable naming inconsistencies in `App.tsx`.
+*   **Missing Imports**: Fixed `DEFAULT_SAVED_PROMPTS` import error.
+*   **Database Service**: Added missing `getAllUsers` method to `dbService.ts` to support data migration scripts.
+*   **Canvas Props**: Restored `width` and `height` props to `CanvasBoard` component for better control.
+
+### ⚙️ Files Modified
+*   `src/components/CanvasBoard.tsx` - Added color support and restored props.
+*   `src/components/BoardCreationModal.tsx` - Added color selector UI.
+*   `src/hooks/useCanvasBoards.ts` - Updated board data structure for color persistence.
+*   `src/hooks/useCanvasBackground.ts` - Updated drawing logic for colored backgrounds.
+*   `components/SettingsModal.tsx` - Added Canvas settings tab.
+*   `App.tsx` - Integrated default color settings and fixed bugs.
+*   `types.ts` - Updated AppSettings interface.
+*   `services/dbService.ts` - Added helper method.
+*   `package.json` - Version bump to 2.4.10.
+*   `README.md` - Version badge updated.
+
+---
+
+## v2.4.9 - "UI Polish & Timer Controls" ✨
 *Released: Nov 24, 2025*
 
 **Major UI refinements and Study Clock enhancements!** This update focuses on improving usability, maximizing screen real estate, and giving you complete control over your study timer. Every pixel counts, every click matters! 🎖️

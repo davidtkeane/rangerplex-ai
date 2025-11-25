@@ -5,7 +5,7 @@ import { BackgroundType } from '../hooks/useCanvasBackground';
 interface BoardCreationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreateBoard: (background: BackgroundType, name?: string) => void;
+    onCreateBoard: (background: BackgroundType, name?: string, color?: 'black' | 'gray' | 'white') => void;
     theme: 'dark' | 'light' | 'tron';
     maxBoardsReached: boolean;
     currentBoardCount: number;
@@ -32,6 +32,7 @@ export const BoardCreationModal: React.FC<BoardCreationModalProps> = ({
     currentBoardCount,
 }) => {
     const [selectedBackground, setSelectedBackground] = useState<BackgroundType>('blank');
+    const [selectedColor, setSelectedColor] = useState<'black' | 'gray' | 'white'>('white');
     const [boardName, setBoardName] = useState('');
 
     // Close on Escape key
@@ -52,6 +53,7 @@ export const BoardCreationModal: React.FC<BoardCreationModalProps> = ({
     useEffect(() => {
         if (isOpen) {
             setSelectedBackground('blank');
+            setSelectedColor('white'); // Default to white
             setBoardName('');
         }
     }, [isOpen]);
@@ -66,7 +68,7 @@ export const BoardCreationModal: React.FC<BoardCreationModalProps> = ({
 
     const handleCreate = () => {
         if (maxBoardsReached) return;
-        onCreateBoard(selectedBackground, boardName.trim() || undefined);
+        onCreateBoard(selectedBackground, boardName.trim() || undefined, selectedColor);
         onClose();
     };
 
@@ -111,7 +113,7 @@ export const BoardCreationModal: React.FC<BoardCreationModalProps> = ({
 
                     {/* Background type selector */}
                     <div className="background-selector">
-                        <label className="selector-label">Choose Background:</label>
+                        <label className="selector-label">Choose Pattern:</label>
                         <div className="background-options">
                             {BACKGROUND_OPTIONS.map(({ type, icon, label }) => (
                                 <button
@@ -120,11 +122,37 @@ export const BoardCreationModal: React.FC<BoardCreationModalProps> = ({
                                     onClick={() => setSelectedBackground(type)}
                                     disabled={maxBoardsReached}
                                     title={label}
-                                    aria-label={`Background: ${label}`}
+                                    aria-label={`Pattern: ${label}`}
                                     aria-pressed={selectedBackground === type}
                                 >
                                     <span className="bg-icon">{icon}</span>
                                     <span className="bg-label">{label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Background Color Selector */}
+                    <div className="background-selector">
+                        <label className="selector-label">Choose Color:</label>
+                        <div className="background-options" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                            {[
+                                { value: 'black', label: 'Black', color: '#000000', border: '#333' },
+                                { value: 'gray', label: 'Gray', color: '#808080', border: '#666' },
+                                { value: 'white', label: 'White', color: '#ffffff', border: '#ccc' }
+                            ].map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    className={`bg-option ${selectedColor === opt.value ? 'active' : ''}`}
+                                    onClick={() => setSelectedColor(opt.value as any)}
+                                    disabled={maxBoardsReached}
+                                    style={{
+                                        backgroundColor: opt.color,
+                                        borderColor: selectedColor === opt.value ? '#0ea5e9' : opt.border,
+                                        color: opt.value === 'white' ? '#000' : '#fff'
+                                    }}
+                                >
+                                    <span className="bg-label">{opt.label}</span>
                                 </button>
                             ))}
                         </div>

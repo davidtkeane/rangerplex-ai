@@ -7,6 +7,7 @@ export interface CanvasBoard {
   id: string;
   name: string;
   background: BackgroundType;
+  color: 'black' | 'gray' | 'white'; // New property
   imageData: string; // Base64 encoded canvas data
   created: number;
   modified: number;
@@ -114,7 +115,7 @@ export const useCanvasBoards = () => {
   }, [boards]);
 
   // Create new board
-  const createBoard = useCallback((background: BackgroundType, customName?: string): string | null => {
+  const createBoard = useCallback((background: BackgroundType, customName?: string, color: 'black' | 'gray' | 'white' = 'white'): string | null => {
     if (boards.length >= MAX_BOARDS) {
       console.error('Maximum number of boards reached');
       return null;
@@ -124,6 +125,7 @@ export const useCanvasBoards = () => {
       id: `board_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: customName || generateBoardName(background),
       background,
+      color, // Store the selected color
       imageData: '', // Empty canvas
       created: Date.now(),
       modified: Date.now()
