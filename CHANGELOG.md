@@ -2,6 +2,32 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.32 - "Weather Command & Auto-Updates" 🌦️
+*Released: Nov 25, 2025*
+
+**Weather Command & Auto-Update Notifications.** Added a new `/weather` command for real-time forecasts and implemented an automatic update notification system that alerts users when a new version is available on GitHub.
+
+### 🌦️ Weather Command
+*   **Command**: `/weather [location]` - Check weather for any location or auto-detect via IP.
+*   **Features**:
+    - Real-time current conditions (Temp, Feels Like, Wind, Humidity, Visibility)
+    - 3-Day Forecast with max/min temps and conditions
+    - Auto-location detection using IP address (no arguments needed)
+    - Privacy-respecting `wttr.in` integration (no API key required)
+    - Beautiful markdown formatting with weather emojis
+
+### 🚀 Auto-Update Notifications
+*   **Smart Detection**: RangerPlex now silently checks GitHub for updates on startup.
+*   **Notification**: If a new version is found (remote > local), a one-time chat notification appears.
+*   **Details**: Notification includes version number, release notes, and a direct link to GitHub.
+*   **Manual Check**: "Check for Updates" in Settings now compares versions accurately.
+
+### 🔧 Improvements
+*   **Company Lookup Fix**: Restored missing logic for `/company` command.
+*   **Version Sync**: Updated version numbers across all system files (Sidebar, DB, Package, Readme).
+
+---
+
 ## v2.5.28 - "Chuck Norris Edition" 🥋
 *Released: Nov 25, 2025*
 
