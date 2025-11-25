@@ -45,8 +45,26 @@
 
 ---
 
-## 🚀 Phase 8: Digital Forensics (Proposed)
+## 🚀 Phase 8: Digital Forensics (In Progress)
 **Objective:** Analyze files and hidden metadata.
-*   **Tool:** **Metadata Extractor** (Auto-run on file upload)
-*   **Command:** `/exif` or automatic.
-*   **Logic:** Extract EXIF data (GPS, Camera Model, Software) from images and PDF metadata (Author, Creator) using client-side libraries.
+*   **Tool:** **Metadata Extractor**
+*   **Command:** `/exif <url>` (or drag & drop).
+*   **Logic:** Extract EXIF data (GPS, Camera Model, Software) from images using `exif-reader`.
+
+## 🚀 Phase 9: Geolocation Intel (Planned)
+**Objective:** Pinpoint targets on the map.
+*   **Tool:** **IP Geolocation**
+*   **Command:** `/geoip <ip>`
+*   **Logic:** Resolve IP to City, Country, ISP, and Lat/Long.
+
+## 🚀 Phase 10: Hardware Recon (Planned)
+**Objective:** Identify device manufacturers.
+*   **Tool:** **MAC Lookup**
+*   **Command:** `/mac <address>`
+*   **Logic:** Identify manufacturer (Apple, Cisco, etc.) from MAC OUI.
+
+## 🚀 Phase 11: Comms Intel (Planned)
+**Objective:** Analyze phone numbers.
+*   **Tool:** **Phone Validator**
+*   **Command:** `/phone <number>`
+*   **Logic:** Identify Carrier, Line Type (VoIP/Mobile), and Region.

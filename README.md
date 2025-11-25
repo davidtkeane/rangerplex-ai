@@ -801,6 +801,7 @@ Every contribution helps keep the servers running and development moving forward
 - ☕ **Buy Me a Coffee** - One-time support for the project
 - 💖 **Ko-fi** - Flexible support with one-time or monthly options
 - 🎖️ **Patreon** - Become a monthly supporter and join the Ranger squad
+- ₿ **Bitcoin QR** - In-app: Settings → About & Support tab (scan `image/bitcoin.png`)
 
 **Other ways to contribute:**
 - ⭐ Star the repo on GitHub

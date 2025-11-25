@@ -39,7 +39,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'data' | 'help'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'data' | 'about' | 'help'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
     const [loadingModels, setLoadingModels] = useState(false);
     const [promptSearch, setPromptSearch] = useState('');
@@ -478,7 +478,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                 {/* Tabs */}
                 <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                    {['general', 'media', 'params', 'providers', 'ollama', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'data', 'help'].map((tab) => (
+                    {['general', 'media', 'params', 'providers', 'ollama', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'data', 'about', 'help'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -1568,6 +1568,48 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <i className="fa-solid fa-trash"></i>
                                         Wipe All Data
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ABOUT & SUPPORT TAB */}
+                    {activeTab === 'about' && (
+                        <div className="space-y-6">
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-lg flex items-center gap-2">
+                                    <i className="fa-solid fa-hand-holding-heart"></i>
+                                    Support the Mission
+                                </h4>
+                                <p className="text-sm opacity-80 mt-2">
+                                    RangerPlex is built to help turn disabilities into superpowers. If you’d like to support ongoing development, you can donate or contribute.
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 items-center">
+                                    <div className="space-y-2">
+                                        <h5 className="text-xs font-bold uppercase tracking-wide opacity-70">Buy Me a Coffee</h5>
+                                        <a
+                                            href="https://buymeacoffee.com/davidtkeane"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-500 hover:text-teal-300"
+                                        >
+                                            <i className="fa-solid fa-mug-hot"></i>
+                                            buymeacoffee.com/davidtkeane
+                                        </a>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h5 className="text-xs font-bold uppercase tracking-wide opacity-70">Bitcoin (QR)</h5>
+                                        <div className="w-32 h-32 border border-inherit rounded overflow-hidden bg-white flex items-center justify-center p-2">
+                                            <img src="/image/bitcoin.png" alt="Bitcoin donation QR" className="w-full h-full object-contain" />
+                                        </div>
+                                        <p className="text-[11px] opacity-70">Scan to donate via Bitcoin.</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h5 className="text-xs font-bold uppercase tracking-wide opacity-70">Contribute on GitHub</h5>
+                                        <p className="text-sm opacity-80">
+                                            Star the repo, file issues, or submit PRs to improve RangerPlex.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -25,6 +25,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - [Settings Reference](#settings-reference)
 - [Troubleshooting](#troubleshooting)
 - [Glossary](#glossary)
+- [Support & Contribute](#support--contribute)
 
 ---
 
@@ -164,6 +165,11 @@ Key areas (see Settings modal):
 - **Vision/Holiday not showing:** Ensure effects toggles are on in Settings; heavy browsers may block animations.  
 - **Training not visible:** Go to Settings → Data & Tools; feature moved off sidebar.  
 - **Sticky Notes not saving:** Use “Save all” to export JSON; reload and “Load” to restore.
+
+## Support & Contribute
+- **Buy Me a Coffee:** https://buymeacoffee.com/davidtkeane  
+- **Bitcoin:** Scan the QR in Settings → About (uses `image/bitcoin.png`).  
+- **Contribute:** Star the repo, open issues, and submit PRs to improve RangerPlex.
 
 ## Glossary
 - **Canvas Board:** Visual board for notes/ideas.  

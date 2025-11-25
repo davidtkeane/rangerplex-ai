@@ -40,6 +40,7 @@
 *   **New Command:** `/manual` opens the in-app manual viewer; Back returns to chat, “Open in new tab” uses a bundled copy.
 *   **Offline-Friendly:** Manual content is bundled via blob URL; works without network.
 *   **Doc Updates:** Manual expanded with command coverage and version bump.
+*   **Support Tab:** Settings now includes an “About & Support” section with BuyMeACoffee, Bitcoin QR, and GitHub contribution guidance.
 
 ### ⚙️ Files Modified
 *   `components/ManualViewer.tsx` - Added overlay viewer with back + new-tab.

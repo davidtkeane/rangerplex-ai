@@ -307,6 +307,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🔎  SHERLOCK    :: /sherlock <user>         ║\n`;
                     helpMsg += `║ 💰  CRYPTO      :: /crypto <coin>           ║\n`;
                     helpMsg += `║ 🏦  WALLET      :: /wallet <btc_addr>       ║\n`;
+                    helpMsg += `║ 📸  EXIF        :: /exif <url>              ║\n`;
                     helpMsg += `║ 🦠  VIRUS_SCAN  :: /scan <url>              ║\n`;
                     helpMsg += `╠════ RECONNAISSANCE ══════════════════════════╣\n`;
                     helpMsg += `║ 📡  WHOIS       :: /whois <domain>          ║\n`;
@@ -365,6 +366,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**⚠️ Note on HD Wallets (Sparrow/Electrum):**\n`;
                     helpMsg += `Modern wallets generate a new address for every transaction. This tool only scans the **specific address** you provide, not your entire wallet (xPub). If you see 0 BTC, your funds might be in a different address or a "change address" within your wallet.\n\n`;
                     helpMsg += `[Ask AI about HD Wallets?](Ask AI: How do HD Wallets and xPub keys work?)`;
+                }
+                else if (cmd === 'exif') {
+                    helpMsg = `### 📸 Command: /exif\n\n`;
+                    helpMsg += `**Usage:** \`/exif <url>\`\n`;
+                    helpMsg += `**Purpose:** Extracts hidden metadata (EXIF) from images, including GPS coordinates, camera model, software used, and timestamps.\n\n`;
+                    helpMsg += `**Pro Tip:** Use this on photos from social media or suspicious websites to find the original source location.\n\n`;
+                    helpMsg += `[Ask AI about Digital Forensics?](Ask AI: How does EXIF data help in investigations?)`;
                 }
                 else if (cmd === 'profile') {
                     helpMsg = `### 🕵️ Command: /profile\n\n`;

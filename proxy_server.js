@@ -10,6 +10,7 @@ import dns from 'dns';
 import tls from 'tls';
 import https from 'https';
 import { promisify } from 'util';
+import exifParser from 'exif-parser';
 
 const resolve4 = promisify(dns.resolve4);
 const resolve6 = promisify(dns.resolve6);
@@ -928,6 +929,42 @@ app.post('/api/tools/wallet', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Wallet error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 8. Digital Forensics (Exif)
+app.post('/api/tools/exif', async (req, res) => {
+    try {
+        const { url, image } = req.body;
+        let buffer;
+
+        if (url) {
+            console.log('📸 Exif Check URL:', url);
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+            const arrayBuffer = await response.arrayBuffer();
+            buffer = Buffer.from(arrayBuffer);
+        } else if (image) {
+            console.log('📸 Exif Check Base64');
+            const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+            buffer = Buffer.from(base64Data, 'base64');
+        } else {
+            return res.status(400).json({ error: 'Missing url or image data' });
+        }
+
+        const parser = exifParser.create(buffer);
+        const result = parser.parse();
+
+        res.json({
+            tags: result.tags,
+            imageSize: result.imageSize,
+            thumbnail: result.thumbnail ? true : false,
+            hasExif: Object.keys(result.tags).length > 0
+        });
+
+    } catch (error) {
+        console.error('❌ Exif error:', error);
         res.status(500).json({ error: error.message });
     }
 });
