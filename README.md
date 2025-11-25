@@ -923,6 +923,7 @@ Pros/cons and data/UX notes are in that doc.
   - ✅ Node v22 is stable and fully tested
 - **npm**: v10.x or higher
 - **OS**: Windows, macOS, or Linux
+- **Tested on**: M3 and M4 Apple MacBooks (fully operational)
 
 ### Architecture
 - **Frontend**: React + TypeScript + Vite
