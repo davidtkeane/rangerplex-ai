@@ -2,7 +2,32 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.4.11 - "Stability & Sync Polish" (Current) ✨
+## v2.4.12 - "Security & Stability" (Current) 🛡️
+*Released: Nov 25, 2025*
+
+**Critical security and stability update.** This release addresses a security incident involving accidental API key exposure, implements robust log sanitization to prevent future leaks, and improves the reliability of the Radio Player.
+
+### 🛡️ Security Enhancements
+*   **Log Sanitization**: Updated `dbService.ts` to automatically redact sensitive keys (apiKey, token, password, secret) from console logs.
+*   **Clean Logs**: Removed unsafe `console.log` statements in `App.tsx` that were printing entire settings objects.
+*   **Emergency Guide**: Added `docs/GIT_EMERGENCY_GUIDE.md` for handling accidental git commits of sensitive data.
+*   **Security Audit Script**: Added `docs/BROWSER_SECURITY_CHECK.js` to help users scan their browser storage for exposed keys.
+
+### 🐛 Bug Fixes
+*   **Radio Player Auto-Play**: Fixed `NotAllowedError` when radio attempts to auto-play without user interaction. It now gracefully waits for interaction instead of throwing an error.
+*   **TypeScript Fixes**: Resolved `audioContextRef` type error in `RadioPlayer.tsx`.
+
+### ⚙️ Files Modified
+*   `services/dbService.ts` - Added log redaction logic.
+*   `App.tsx` - Removed unsafe logging.
+*   `components/RadioPlayer.tsx` - Improved error handling and fixed types.
+*   `docs/GIT_EMERGENCY_GUIDE.md` - New guide.
+*   `docs/BROWSER_SECURITY_CHECK.js` - New script.
+*   `package.json` - Version bump to 2.4.12.
+
+---
+
+## v2.4.11 - "Stability & Sync Polish" ✨
 *Released: Nov 25, 2025*
 
 **Critical stability fixes and sync improvements!** This update resolves a major infinite loop issue in the Pet Widget, fixes server startup errors caused by dependency mismatches, and significantly improves the reliability of the data synchronization queue to prevent data loss during connection drops.
