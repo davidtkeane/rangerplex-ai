@@ -2,6 +2,24 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.8 - "Sherlock Scout" 🔎
+*Released: Nov 25, 2025*
+
+**The Hunt is On.** Added a powerful OSINT tool for tracking digital footprints across the social web.
+
+### 🔎 Sherlock Username Scout
+*   **New Command**: `/sherlock <username>`
+*   **Function**: Scans 12+ major platforms (GitHub, Reddit, Twitch, Steam, etc.) to find if a username is taken.
+*   **Privacy**: All scans are performed locally from your server, keeping your investigations private.
+
+### 📘 UI Enhancements
+*   **Tactical Dashboard**: Upgraded the `/help` menu to a futuristic, ASCII-art command center HUD.
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/sherlock` endpoint.
+*   `components/ChatInterface.tsx` - Added `/sherlock` command and updated Help UI.
+*   `package.json` - Version bump to 2.5.8.
+
 ## v2.5.7 - "Tactical Help System" 📘
 *Released: Nov 25, 2025*
 

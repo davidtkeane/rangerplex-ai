@@ -311,7 +311,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                         </div>
                     )}
-                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.5.7 // TACTICAL HELP 📘</div>
+                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.5.8 // SHERLOCK 🔎</div>
                 </div>
             </aside>
         </>
