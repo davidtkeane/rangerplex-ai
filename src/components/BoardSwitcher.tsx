@@ -81,19 +81,8 @@ export const BoardSwitcher: React.FC<BoardSwitcherProps> = ({
 
     const handleDeleteBoard = (e: React.MouseEvent, boardId: string) => {
         e.stopPropagation();
-
-        const board = boards.find(b => b.id === boardId);
-        if (!board) return;
-
-        // Use browser confirm for now (will be replaced with WarningDialog)
-        const confirmed = window.confirm(
-            `Delete '${board.name}'? This cannot be undone.`
-        );
-
-        if (confirmed) {
-            onDeleteBoard(boardId);
-            setIsOpen(false);
-        }
+        onDeleteBoard(boardId);
+        setIsOpen(false);
     };
 
     const formatTimeAgo = (timestamp: number): string => {
