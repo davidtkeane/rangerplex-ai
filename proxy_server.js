@@ -458,7 +458,10 @@ app.post('/api/ollama/*', async (req, res) => {
     try {
         const ollamaPath = req.params[0];
         const ollamaHost = req.headers['x-ollama-host'] || 'http://localhost:11434';
-        const url = `${ollamaHost}/api/${ollamaPath}`;
+
+        // Handle both /api/ollama/chat AND /api/ollama/api/chat patterns
+        const cleanPath = ollamaPath.startsWith('api/') ? ollamaPath.substring(4) : ollamaPath;
+        const url = `${ollamaHost}/api/${cleanPath}`;
 
         console.log(`🦙 Proxying Ollama API request to: ${url}`);
 

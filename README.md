@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.19-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.22-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -289,6 +289,93 @@ npm run dev
 
 ### 🚀 Launch
 Open your web browser and go to: **[http://localhost:5173](http://localhost:5173)**
+
+---
+
+## 🦙 Ollama Setup (Local AI Models)
+
+RangerPlex supports running AI models **locally** on your machine using Ollama! No API keys, no cloud dependenciesjust pure local AI power.
+
+### Why Use Ollama?
+- ✅ **100% Private** - All processing stays on your machine
+- ✅ **No API Costs** - Run unlimited queries for free
+- ✅ **Works Offline** - No internet needed after model download
+- ✅ **Powerful Models** - Run 7B to 70B parameter models (depending on your RAM)
+
+### Quick Start
+
+#### Step 1: Install Ollama
+Download from [https://ollama.ai](https://ollama.ai)
+
+#### Step 2: Pull a Model
+Open Terminal and run:
+```bash
+# Recommended models:
+ollama pull deepseek-r1:14b    # 9GB - Fast reasoning & coding
+ollama pull qwen2.5:32b         # 20GB - Very fast, great for general use
+ollama pull llama3.3:70b        # 40GB - Most capable (needs 64GB+ RAM)
+ollama pull mistral:latest      # 4GB - Lightweight & fast
+```
+
+#### Step 3: Configure RangerPlex
+1. Open RangerPlex Settings (⚙️ gear icon)
+2. Go to **"Ollama"** tab
+3. Set:
+   - **Ollama Base URL**: `http://localhost:3010/api/ollama`
+   - **Ollama Model ID**: `deepseek-r1:14b` (or your chosen model name)
+4. Click **"Test"** button - should show ✅
+5. Click **"Save"**
+
+#### Step 4: Chat with Local AI!
+1. Create a new chat
+2. Select **"Local"** model from dropdown
+3. Start chatting! 💬
+
+### Important Configuration Notes
+
+⚠️ **Use the Proxy URL, NOT direct Ollama URL!**
+- ✅ **Correct**: `http://localhost:3010/api/ollama` (proxy - works!)
+- ❌ **Wrong**: `http://localhost:11434` (direct - CORS errors!)
+
+The proxy eliminates browser CORS restrictions and enables proper streaming.
+
+### Model Recommendations by RAM
+
+| Your RAM | Recommended Model | Size | Speed |
+|----------|-------------------|------|-------|
+| 8GB | mistral:latest | 4GB | ⚡⚡⚡⚡⚡ |
+| 16GB | deepseek-r1:14b | 9GB | ⚡⚡⚡⚡ |
+| 32GB | qwen2.5:32b | 20GB | ⚡⚡⚡⚡ |
+| 64GB+ | llama3.3:70b | 40GB | ⚡⚡⚡ |
+| 128GB+ | qwen2.5:72b | 40GB | ⚡⚡⚡ |
+
+### Troubleshooting
+
+**"Ollama API Error: Not Found"**
+- Check Ollama is running: `ollama list`
+- Verify Base URL uses proxy: `http://localhost:3010/api/ollama`
+- Ensure model name matches exactly (check with `ollama list`)
+
+**"Connection Failed"**
+- Make sure RangerPlex server is running: `npm start` or `npm run dev`
+- Verify proxy is on port 3010: `lsof -i :3010`
+
+**Model too slow?**
+- Use a smaller model (14B instead of 70B)
+- Close other applications to free up RAM
+- Check Activity Monitor for RAM pressure
+
+### Advanced: Network Setup (M4 + M3)
+
+Want to run Ollama on a powerful Mac (like M4 Max) and access it from another Mac (M3)?
+
+📖 **See**: [SETUP_GUIDE_M4_M3.md](SETUP_GUIDE_M4_M3.md) for complete network configuration guide
+
+### Full Documentation
+
+For detailed Ollama setup, model selection, and troubleshooting:
+- 📖 **[OLLAMA_README.md](OLLAMA_README.md)** - Complete Ollama guide
+- 📖 **[SETUP_GUIDE_M4_M3.md](SETUP_GUIDE_M4_M3.md)** - Network setup (M4 + M3)
 
 ---
 

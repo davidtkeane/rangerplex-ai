@@ -2723,7 +2723,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
             </div>
 
-            <div className={`flex-1 overflow-y-auto p-4 pt-24 z-10 ${isTron ? 'font-tron text-tron-cyan' : ''}`}>
+            <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 pt-24 z-10 ${isTron ? 'font-tron text-tron-cyan' : ''}`}>
                 {session.messages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center opacity-50">
                         <i className={`fa-solid ${isTron ? 'fa-microchip text-tron-cyan animate-pulse-slow' : 'fa-fingerprint text-zinc-700'} text-6xl mb-6`}></i>

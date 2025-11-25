@@ -726,6 +726,40 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         <div className="space-y-6">
                             <h3 className="font-bold mb-4 border-b border-inherit pb-2">Local Intelligence (Ollama)</h3>
 
+                            {/* Connection Settings */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5 mb-6">
+                                <h4 className="font-bold text-sm mb-2">Connection Settings</h4>
+                                <p className="text-xs opacity-70 mb-4">
+                                    Configure how RangerPlex connects to Ollama. Use the proxy URL to avoid CORS issues.
+                                </p>
+                                <div className="space-y-4">
+                                    <InputGroup
+                                        label="Ollama Base URL"
+                                        value={localSettings.ollamaBaseUrl}
+                                        onChange={(v: any) => setLocalSettings({ ...localSettings, ollamaBaseUrl: v })}
+                                        icon="fa-solid fa-server"
+                                        onTest={() => testConnection('ollama')}
+                                        status={connectionStatus['ollama']}
+                                        inputClass={inputClass}
+                                    />
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">
+                                            <i className="fa-solid fa-microchip w-4"></i> Ollama Model ID
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={localSettings.ollamaModelId}
+                                            onChange={e => setLocalSettings({ ...localSettings, ollamaModelId: e.target.value })}
+                                            className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
+                                            placeholder="e.g. deepseek-r1:14b, llama3, qwen2.5:72b"
+                                        />
+                                        <p className="text-[10px] opacity-60 mt-1">
+                                            💡 <strong>Tip:</strong> Use <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3010/api/ollama</code> as Base URL (proxy) instead of <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:11434</code> (direct) to avoid CORS errors.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="p-4 border border-inherit rounded bg-opacity-5 mb-6">
                                 <h4 className="font-bold text-sm mb-2">Loading Effects</h4>
                                 <p className="text-xs opacity-70 mb-4">

@@ -2,6 +2,98 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.23 - "Network Recon Pack" 🛰️
+*Released: Nov 26, 2025*
+
+**Traceroute & Port/Cert Fixes.** Added `/trace` traceroute mapping, hardened Certificate Transparency handling, and refined chat layout overflow.
+
+### 🛰️ Traceroute Tool
+*   **`/trace <domain/ip>`**: Runs traceroute (20-hop limit, single probe per hop) and returns hop list with host/IP/RTT, plus notes on timeouts.
+*   **Output Formatting**: Clear hop table in chat with tips for using `/geoip` or `/shodan` on interesting hops.
+
+### 🔒 Certificate Transparency & Hash
+*   Improved `/certs` endpoint to safely handle non-JSON responses from crt.sh and return clearer errors instead of crashes.
+*   `/hash` (VirusTotal) already live; no change in behavior, but help/docs updated alongside new tools.
+
+### 🖥️ UI Polish
+*   Chat scroll container now hides horizontal overflow to prevent stray side-scroll bars above the input.
+
+### 📘 Docs & Plan
+*   `OSINT_TOOLS_PLAN.md`: Marked Phase 24 (`/trace`) as completed; updated counts/priorities.
+*   `README.md`: Added `/trace` to Domain Recon tool list.
+*   `rangerplex_manule.md`: Documented `/trace` in commands and OSINT sections.
+
+## v2.5.22 - "Ollama Integration Fix" 🦙
+*Released: Nov 25, 2025*
+
+**Major Ollama Integration Improvements.** Fixed missing UI settings, added proxy support to eliminate CORS errors, and created comprehensive setup documentation for local AI model support.
+
+### 🦙 Ollama Integration Fixes
+*   **Fixed Missing Settings UI**: Added Ollama Base URL and Model ID fields back to Settings > Ollama tab
+*   **Proxy Support**: Updated proxy_server.js to handle Ollama API calls properly (lines 456-529)
+*   **CORS Fix**: Implemented `/api/ollama/*` proxy endpoint to bypass browser CORS restrictions
+*   **Smart Path Handling**: Proxy now handles both `/api/ollama/chat` and `/api/ollama/api/chat` patterns
+*   **Connection Testing**: Added "Test" button functionality for Ollama connections
+*   **Model ID Field**: Added visible input field for selecting Ollama model names
+
+### 🛠️ Backend Enhancements
+*   **New Proxy Routes**:
+    - `POST /api/ollama/*` - Generic Ollama API proxy (supports all endpoints)
+    - `GET /api/ollama/tags` - List available Ollama models
+*   **Header Support**: `x-ollama-host` header for custom Ollama server locations
+*   **Streaming Support**: Full streaming response support for chat completions
+*   **Error Handling**: Improved error messages for connection and model issues
+
+### 📘 Documentation Updates
+*   **Created README.md**: Main project documentation with quick start guide
+*   **Created OLLAMA_README.md**: Complete Ollama setup guide with troubleshooting
+*   **Updated Settings UI**: Added helpful tips and correct URL examples
+*   **Created Setup Scripts**:
+    - `M4_OLLAMA_SETUP.sh` - Configure M4 Max as Ollama server
+    - `M3_RANGERPLEX_SETUP.sh` - Configure M3 Mac as RangerPlex client
+    - `FIX_OLLAMA_DATABASE.sh` - Emergency database fix script
+    - `START_RANGERPLEX.sh` - Easy startup script with instructions
+
+### 🎯 Configuration Improvements
+*   **Default Settings**: Proper defaults for Ollama Base URL and Model ID
+*   **UI Help Text**: Added inline tips about using proxy URL vs direct URL
+*   **Database Schema**: Maintained backward compatibility with existing settings
+*   **Auto-Detection**: Proxy automatically detects and lists available models
+
+### 🛡️ Network Setup Support
+*   **M4 + M3 Configuration**: Full support for using M4 Max as Ollama server from M3 client
+*   **Network Access**: LaunchAgent configuration for Ollama network listening
+*   **IP Detection**: Automatic M4 IP address detection and configuration
+*   **Connection Testing**: Built-in connection tests for local and network setups
+
+### 💡 Key Improvements
+*   **No More CORS Errors**: Proxy eliminates all browser CORS restrictions
+*   **Proper Model Names**: Support for full model names (e.g., `deepseek-r1:14b`)
+*   **User-Friendly**: Settings now visible and editable in UI
+*   **Multi-Setup Support**: Works for single Mac OR M4+M3 network configurations
+
+### 📝 Recommended Configuration
+```
+Ollama Base URL: http://localhost:3010/api/ollama
+Ollama Model ID: deepseek-r1:14b
+```
+
+### 🔧 Technical Details
+*   **Proxy Implementation**: Express middleware handles CORS and streaming
+*   **Path Normalization**: Cleans up duplicate `/api/` segments automatically
+*   **Default Fallback**: Uses `http://localhost:11434` as default Ollama host
+*   **Error Context**: Detailed error messages for debugging
+
+### 📊 Files Added/Modified
+*   ✅ **Created**: README.md, OLLAMA_README.md
+*   ✅ **Created**: M4_OLLAMA_SETUP.sh, M3_RANGERPLEX_SETUP.sh
+*   ✅ **Created**: FIX_OLLAMA_DATABASE.sh, START_RANGERPLEX.sh
+*   ✅ **Created**: SETUP_GUIDE_M4_M3.md, START_HERE_OLLAMA.md
+*   ✅ **Modified**: components/SettingsModal.tsx (added Ollama settings UI)
+*   ✅ **Modified**: proxy_server.js (added Ollama proxy endpoints)
+
+---
+
 ## v2.5.21 - "ASN Lookup" 🌐
 *Released: Nov 25, 2025*
 

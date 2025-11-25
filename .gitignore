@@ -58,3 +58,13 @@ Thumbs.db
 *.swp
 *~
 docs
+M4_OLLAMA_SETUP.sh
+ollama/M3_RANGERPLEX_SETUP.sh
+ollama/M4_OLLAMA_SETUP.sh
+ollama/OLLAMA_QUICK_START.md
+ollama/OLLAMA_SETUP.md
+ollama/OSINT_TOOLS_PLAN.md
+ollama/SETUP_GUIDE_M4_M3.md
+ollama/setup_ollama.sh
+ollama/START_HERE_OLLAMA.md
+M4_OLLAMA_SETUP.sh
