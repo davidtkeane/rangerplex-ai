@@ -35,7 +35,8 @@ dist-ssr
 *.db-wal
 
 # Backups
-backups/*.json
+backups/
+data/*.backup.*
 
 # Editor directories and files
 .vscode/*
