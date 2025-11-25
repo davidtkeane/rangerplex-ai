@@ -495,7 +495,7 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
   // External toggle (e.g., from screensaver)
   useEffect(() => {
-    if (externalToggleSignal === undefined) return;
+    if (externalToggleSignal === undefined || externalToggleSignal === 0) return;
     setIsMinimized(false);
     setError(null);
     if (isPlaying) {
