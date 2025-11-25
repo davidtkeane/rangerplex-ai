@@ -432,19 +432,20 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
         await playPromise;
         setIsPlaying(true);
         setError(null);
+        setIsLoading(false); // Success! Stop spinner.
       }
     } catch (err) {
       // Auto-play policy error is expected if user hasn't interacted yet
       if ((err as Error).name === 'NotAllowedError') {
         console.log('📻 Radio auto-play prevented by browser policy (waiting for interaction)');
         setIsPlaying(false);
+        setIsLoading(false); // Stop the spinner so the "Click to Start" button shows!
       } else {
         console.error('Radio play error:', err);
         setError('Failed to play stream');
         setIsPlaying(false);
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -589,7 +590,19 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3 relative">
+              {/* Overlay for blocked auto-play */}
+              {!isPlaying && !isLoading && settings.radioAutoPlay && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center">
+                  <button
+                    onClick={handlePlay}
+                    className="bg-teal-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse hover:bg-teal-500"
+                  >
+                    Click to Start
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={isPlaying ? handlePause : handlePlay}
                 disabled={isLoading}

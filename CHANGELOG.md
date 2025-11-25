@@ -2,7 +2,32 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.4.12 - "Security & Stability" (Current) 🛡️
+## v2.4.13 - "Radio Polish & Security Audit" (Current) 📻
+*Released: Nov 25, 2025*
+
+**Radio Player UX improvements and security tools.** This update refines the Radio Player's auto-play behavior to be more user-friendly and provides tools for auditing browser security.
+
+### 📻 Radio Player Enhancements
+*   **"Click to Start" Overlay**: Added a clear, pulsing button when the browser blocks auto-play. This replaces the confusing infinite spinner with a direct call to action.
+*   **Infinite Spinner Fix**: Resolved a logic bug where the loading spinner would persist indefinitely if auto-play was blocked or if the stream started successfully but the state wasn't updated.
+*   **Robust Error Handling**: Improved state management to ensure the player always exits the "loading" state, whether successful, blocked, or failed.
+
+### 🛡️ Security Tools
+*   **Browser Audit Guide**: Added `help-files/BROWSER_AUDIT_README.md` with a comprehensive guide on how to audit and surgically clean browser storage (LocalStorage/IndexedDB) without wiping all data.
+*   **Audit Script**: The guide includes a JavaScript snippet that can be run in the browser console to identify exposed API keys.
+
+### 🐛 Bug Fixes
+*   **Settings Persistence**: Confirmed that `dbService` correctly redacts sensitive data in logs while saving valid settings to IndexedDB.
+*   **API Key Fallback**: Verified that the application correctly falls back to `.env` values when user settings are cleared or missing.
+
+### ⚙️ Files Modified
+*   `components/RadioPlayer.tsx` - Added overlay button and fixed loading state logic.
+*   `help-files/BROWSER_AUDIT_README.md` - New help guide.
+*   `package.json` - Version bump to 2.4.13.
+
+---
+
+## v2.4.12 - "Security & Stability" 🛡️
 *Released: Nov 25, 2025*
 
 **Critical security and stability update.** This release addresses a security incident involving accidental API key exposure, implements robust log sanitization to prevent future leaks, and improves the reliability of the Radio Player.
