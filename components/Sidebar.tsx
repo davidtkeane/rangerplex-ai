@@ -311,7 +311,51 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                         </div>
                     )}
-                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.5.11 // HD WALLET READY 🏦</div>
+                    <div className={`text-[10px] flex items-center justify-center gap-2 ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>
+                        <span>v2.5.11 // HD WALLET READY 🏦</span>
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText('bc1q3jvxvhqt7u7qnnjjv5jtkh7wsgg9nrgk3hgsce');
+                                // Create a temporary toast element
+                                const toast = document.createElement('div');
+                                toast.textContent = '🪙 Bitcoin Address Copied!';
+
+                                // Theme-aware styling
+                                const isTronMode = document.documentElement.classList.contains('tron-theme');
+                                const bg = isTronMode ? 'rgba(0, 0, 0, 0.9)' : '#18181b'; // Black/Zinc-900
+                                const border = isTronMode ? '1px solid #00f3ff' : '1px solid #f59e0b'; // Cyan/Amber
+                                const text = isTronMode ? '#00f3ff' : '#f59e0b'; // Cyan/Amber
+                                const shadow = isTronMode ? '0 0 15px rgba(0, 243, 255, 0.3)' : '0 4px 6px rgba(0,0,0,0.3)';
+
+                                toast.style.cssText = `
+                                    position: fixed;
+                                    bottom: 20px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    background: ${bg};
+                                    color: ${text};
+                                    border: ${border};
+                                    padding: 8px 16px;
+                                    border-radius: 6px;
+                                    font-size: 12px;
+                                    font-family: 'JetBrains Mono', monospace;
+                                    font-weight: bold;
+                                    z-index: 9999;
+                                    box-shadow: ${shadow};
+                                    animation: fadeInOut 2s ease forwards;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                `;
+                                document.body.appendChild(toast);
+                                setTimeout(() => toast.remove(), 2000);
+                            }}
+                            className="hover:text-amber-500 transition-colors"
+                            title="Donate Bitcoin"
+                        >
+                            <i className="fa-brands fa-bitcoin"></i>
+                        </button>
+                    </div>
                 </div>
             </aside>
         </>

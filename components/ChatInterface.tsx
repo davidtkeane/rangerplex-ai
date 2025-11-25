@@ -271,6 +271,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                 aboutMsg += `*"Disabilities → Superpowers" is not just a motto, it's our mission.*\n\n`;
 
+                aboutMsg += `#### ☕ Support the Mission\n`;
+                aboutMsg += `If RangerPlex helps you, consider fueling the development:\n`;
+                aboutMsg += `**Bitcoin (BTC):** \`bc1q3jvxvhqt7u7qnnjjv5jtkh7wsgg9nrgk3hgsce\`\n\n`;
+
                 aboutMsg += `---\n`;
                 aboutMsg += `**Need help?** Type \`/help\` to see available commands.\n`;
                 aboutMsg += `**Ready to explore?** Try asking me anything or use one of the tactical modules!`;
