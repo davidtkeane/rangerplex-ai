@@ -223,6 +223,78 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
             // --- COMMAND HANDLING ---
 
+            // 0. Help System (/help)
+            if (text.startsWith('/help')) {
+                const cmd = text.replace('/help', '').trim().toLowerCase();
+
+                let helpMsg = "";
+
+                if (!cmd) {
+                    // Main Help Menu
+                    helpMsg = `### 🛠️ RangerPlex Tactical Manual\n\n`;
+                    helpMsg += `**Intelligence Tools**\n`;
+                    helpMsg += `- \`/profile <domain>\` - **The Profiler** (Automated Threat Agent)\n`;
+                    helpMsg += `- \`/shodan <ip>\` - **Shodan Intel** (Infrastructure Scan)\n`;
+                    helpMsg += `- \`/breach <email>\` - **Identity Defense** (HIBP Check)\n`;
+                    helpMsg += `- \`/scan <url>\` - **VirusTotal** (Malware Scanner)\n\n`;
+
+                    helpMsg += `**Reconnaissance**\n`;
+                    helpMsg += `- \`/whois <domain>\` - Domain Registration Info\n`;
+                    helpMsg += `- \`/dns <domain>\` - DNS Records (A, MX, TXT)\n`;
+                    helpMsg += `- \`/ssl <domain>\` - SSL Certificate Inspector\n`;
+                    helpMsg += `- \`/headers <url>\` - Security Headers Audit\n\n`;
+
+                    helpMsg += `**Creative**\n`;
+                    helpMsg += `- \`/imagine <prompt>\` - Generate AI Art\n`;
+                    helpMsg += `- \`canvas\` - Open Infinite Canvas Board\n\n`;
+
+                    helpMsg += `*Tip: Type \`/help <command>\` for detailed instructions (e.g., \`/help shodan\`)*`;
+                }
+                else if (cmd === 'shodan') {
+                    helpMsg = `### 👁️ Command: /shodan\n\n`;
+                    helpMsg += `**Usage:** \`/shodan <ip_address>\`\n`;
+                    helpMsg += `**Purpose:** Scans an IP address using the Shodan search engine to find open ports, running services, and potential vulnerabilities.\n\n`;
+                    helpMsg += `**Requires:** Shodan API Key (Free) in Settings.\n`;
+                    helpMsg += `**Pro Tip:** Use this to check your own server's exposure or analyze suspicious IPs found in logs.\n\n`;
+                    helpMsg += `[Ask AI to explain Shodan further?](Ask AI: What is Shodan and how do hackers use it?)`;
+                }
+                else if (cmd === 'profile') {
+                    helpMsg = `### 🕵️ Command: /profile\n\n`;
+                    helpMsg += `**Usage:** \`/profile <domain>\`\n`;
+                    helpMsg += `**Purpose:** Launches an automated agent that runs Whois, DNS, SSL, and Shodan scans in sequence, then uses AI to generate a comprehensive **Threat Intelligence Report**.\n\n`;
+                    helpMsg += `**Best For:** rapid situational awareness on a target domain.\n\n`;
+                    helpMsg += `[Ask AI about Threat Intel Reports?](Ask AI: How do I read a Threat Intelligence Report?)`;
+                }
+                else if (cmd === 'breach') {
+                    helpMsg = `### 🕵️ Command: /breach\n\n`;
+                    helpMsg += `**Usage:** \`/breach <email>\`\n`;
+                    helpMsg += `**Purpose:** Checks the *Have I Been Pwned* database to see if an email address has appeared in known data leaks.\n\n`;
+                    helpMsg += `**Requires:** HIBP API Key (Free) in Settings.\n\n`;
+                    helpMsg += `[Ask AI about Data Privacy?](Ask AI: What should I do if my email is pwned?)`;
+                }
+                else if (cmd === 'scan') {
+                    helpMsg = `### 🛡️ Command: /scan\n\n`;
+                    helpMsg += `**Usage:** \`/scan <url>\`\n`;
+                    helpMsg += `**Purpose:** Submits a URL to VirusTotal to check for malware, phishing, and suspicious activity across 70+ security vendors.\n\n`;
+                    helpMsg += `**Requires:** VirusTotal API Key (Free) in Settings.\n\n`;
+                    helpMsg += `[Ask AI about Phishing?](Ask AI: How does VirusTotal work?)`;
+                }
+                else {
+                    // Generic fallback for other commands or unknown inputs
+                    helpMsg = `### ❓ Unknown Command: ${cmd}\n\n`;
+                    helpMsg += `I don't have a specific manual page for that yet.\n`;
+                    helpMsg += `Try \`/help\` to see the full list of tools.\n\n`;
+                    helpMsg += `*Want to learn more? Ask me directly!*`;
+                }
+
+                onUpdateMessages(prev => [...prev, {
+                    id: uuidv4(), sender: Sender.AI, text: helpMsg, timestamp: Date.now()
+                }]);
+
+                setIsStreaming(false);
+                return;
+            }
+
             // 10. The Profiler (/profile)
             if (text.startsWith('/profile')) {
                 setProcessingStatus("Initializing Profiler...");
@@ -285,9 +357,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     `;
 
                     // Send invisible system prompt to AI
+                    const profilerPlaceholder: Message = { id: uuidv4(), sender: Sender.AI, text: '', timestamp: Date.now(), isThinking: true };
+
                     const res = await streamGeminiResponse(
-                        prompt, [], session.messages, modelToUse as any, false, relevantContext,
-                        (txt, sources) => onUpdateMessages([...currentMessages, { ...aiPlaceholder, text: txt, isThinking: false, groundingSources: sources }]),
+                        prompt, [], session.messages, modelToUse as any, false, [],
+                        (txt, sources) => onUpdateMessages([...currentMessages, { ...profilerPlaceholder, text: txt, isThinking: false, groundingSources: sources }]),
                         settings.geminiApiKey, settings.matrixMode, settings.theme === 'tron', settings.modelParams, commandState
                     );
 

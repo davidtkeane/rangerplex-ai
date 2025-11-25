@@ -2,6 +2,33 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.7 - "Tactical Help System" 📘
+*Released: Nov 25, 2025*
+
+**Master Your Tools.** A comprehensive help system is now built directly into the chat, providing instant manuals and AI-powered learning for every tool.
+
+### 📘 New Features
+*   **Help Command**: Added `/help` to list all available tools and commands.
+*   **Detailed Manuals**: Type `/help <command>` (e.g., `/help shodan`) to get specific usage instructions, purpose, and "Pro Tips."
+*   **AI Teaching Mode**: Help pages include "Ask AI" prompts (e.g., "What is Shodan?") that let you instantly learn more about the underlying technology from the AI.
+
+### ⚙️ Files Modified
+*   `components/ChatInterface.tsx` - Added `/help` command logic and manual pages.
+*   `package.json` - Version bump to 2.5.7.
+
+## v2.5.6 - "Profiler Hotfix" 🛠️
+*Released: Nov 25, 2025*
+
+**Stability Update.** Fixed a critical bug in the Profiler agent that caused crashes due to uninitialized context variables.
+
+### 🐛 Bug Fixes
+*   **Profiler Crash**: Resolved `Cannot access 'relevantContext' before initialization` error by decoupling the Profiler's AI call from the standard RAG pipeline.
+*   **Stability**: Improved error handling for failed API calls within the Profiler workflow.
+
+### ⚙️ Files Modified
+*   `components/ChatInterface.tsx` - Fixed `relevantContext` scope issue in `/profile` command.
+*   `package.json` - Version bump to 2.5.6.
+
 ## v2.5.5 - "The Profiler" 🕵️
 *Released: Nov 25, 2025*
 

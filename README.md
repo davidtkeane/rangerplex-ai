@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.5-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.7-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -38,6 +38,7 @@ It runs locally on your machine (`localhost`), stores data privately in your bro
 *   **Deep Research**: Autonomous agent loop that plans, searches the web, and writes academic-grade reports.
 
 ### 🛠️ The Tools
+*   **Tactical Help System** 📘: Type `/help` to see all available tools, or `/help <command>` (e.g., `/help shodan`) for detailed instructions and pro tips.
 *   **The Profiler** 🕵️: Automated threat intelligence agent. Run `/profile <domain>` to auto-scan Whois, DNS, SSL, and Shodan, then generate a comprehensive AI threat report.
 *   **VirusTotal Scanner** 🛡️: Check URLs for malware and phishing directly in chat using the `/scan <url>` command.
 *   **Shodan Intel** 👁️: Scan IPs for open ports, vulnerabilities, and services using `/shodan <ip>`.
