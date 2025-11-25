@@ -2698,6 +2698,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
 
                 try {
+                    // Profile command doesn't use document context
+                    const relevantContext: DocumentChunk[] = [];
+
                     // 1. Whois
                     setProcessingStatus("Step 1/4: Fetching Whois...");
                     const whoisRes = await fetch(`${proxyUrl}/api/tools/whois`, {
