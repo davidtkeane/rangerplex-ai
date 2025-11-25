@@ -42,6 +42,20 @@ export const streamLMStudioResponse = async (
   // We pass a dummy value since the OpenAI service expects one
   const apiKey = "not-needed";
 
+  // Debug logging
+  console.log('🤖 LM Studio Request:', {
+    baseUrl,
+    modelId,
+    modelIdType: typeof modelId,
+    modelIdLength: modelId?.length,
+    prompt: prompt.substring(0, 50) + '...'
+  });
+
+  // Validate model ID
+  if (!modelId || modelId.trim() === '') {
+    throw new Error('LM Studio Error: Model ID is empty. Please select a model from the dropdown.');
+  }
+
   try {
     // Use the OpenAI service with LM Studio's base URL
     return await streamOpenAIResponse(
