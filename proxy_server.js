@@ -805,27 +805,129 @@ app.post('/api/tools/sherlock', async (req, res) => {
                 });
                 clearTimeout(timeout);
 
-                let exists = false;
-                if (site.type === 'status') {
-                    exists = response.status === 200;
-                } else if (site.type === 'body') {
-                    const text = await response.text();
-                    exists = !text.includes(site.text);
+                let status = 'not_found';
+
+                // 1. Check HTTP Status
+                if (response.status === 200) {
+                    status = 'found';
+
+                    // 2. Check for "False Positive" text traps
+                    // Some sites return 200 OK but say "User not found" in the body
+                    const text = await response.text().then(t => t.toLowerCase()).catch(() => '');
+
+                    const TRAP_PHRASES = [
+                        'user not found',
+                        'page not found',
+                        'this channel does not exist',
+                        'sorry, nobody on reddit goes by that name',
+                        'the specified profile could not be found',
+                        'content not found'
+                    ];
+
+                    if (TRAP_PHRASES.some(phrase => text.includes(phrase))) {
+                        status = 'false_positive';
+                    }
                 }
 
-                return { name: site.name, url: site.url, exists, status: response.status };
+                return { name: site.name, url: site.url, status, http_code: response.status };
             } catch (e) {
-                return { name: site.name, url: site.url, exists: false, error: true };
+                return { name: site.name, url: site.url, status: 'error', error: true };
             }
         };
 
         const results = await Promise.all(SITES.map(checkSite));
-        const found = results.filter(r => r.exists);
 
-        res.json({ username, total_checked: SITES.length, found });
+        // We return ALL results that are not 'not_found' or 'error'
+        // This includes 'found' AND 'false_positive'
+        const matches = results.filter(r => r.status === 'found' || r.status === 'false_positive');
+
+        res.json({ username, total_checked: SITES.length, matches });
 
     } catch (error) {
         console.error('❌ Sherlock error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 6. Crypto Intelligence (CoinGecko)
+app.post('/api/tools/crypto', async (req, res) => {
+    try {
+        const { symbol } = req.body;
+        if (!symbol) return res.status(400).json({ error: 'Missing symbol' });
+
+        console.log('💰 Crypto Check:', symbol);
+
+        // 1. Search for the coin ID (e.g. "btc" -> "bitcoin")
+        const searchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${symbol}`);
+        const searchData = await searchRes.json();
+
+        if (!searchData.coins || searchData.coins.length === 0) {
+            return res.status(404).json({ error: 'Coin not found' });
+        }
+
+        // Find best match (exact symbol match preferred)
+        const coin = searchData.coins.find(c => c.symbol.toLowerCase() === symbol.toLowerCase()) || searchData.coins[0];
+
+        // 2. Get Price Data
+        const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true&include_last_updated_at=true`);
+        const priceData = await priceRes.json();
+        const data = priceData[coin.id];
+
+        if (!data) return res.status(404).json({ error: 'Price data unavailable' });
+
+        res.json({
+            name: coin.name,
+            symbol: coin.symbol,
+            rank: coin.market_cap_rank,
+            thumb: coin.thumb,
+            price: data.usd,
+            change_24h: data.usd_24h_change,
+            market_cap: data.usd_market_cap,
+            volume_24h: data.usd_24h_vol,
+            updated: data.last_updated_at
+        });
+
+    } catch (error) {
+        console.error('❌ Crypto error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 7. Bitcoin Wallet Inspector (BlockCypher)
+app.post('/api/tools/wallet', async (req, res) => {
+    try {
+        const { address } = req.body;
+        if (!address) return res.status(400).json({ error: 'Missing address' });
+
+        console.log('🏦 Wallet Check:', address);
+
+        // 1. Get Wallet Data
+        const walletRes = await fetch(`https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`);
+        if (walletRes.status === 404) return res.status(404).json({ error: 'Address not found' });
+        const walletData = await walletRes.json();
+
+        // 2. Get Current BTC Price for Conversion
+        const priceRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+        const priceData = await priceRes.json();
+        const btcPrice = priceData.bitcoin.usd;
+
+        // Convert Satoshis to BTC
+        const balanceBTC = walletData.balance / 100000000;
+        const totalReceivedBTC = walletData.total_received / 100000000;
+        const totalSentBTC = walletData.total_sent / 100000000;
+
+        res.json({
+            address: walletData.address,
+            balance_btc: balanceBTC,
+            balance_usd: balanceBTC * btcPrice,
+            total_received: totalReceivedBTC,
+            total_sent: totalSentBTC,
+            n_tx: walletData.n_tx,
+            unconfirmed_balance: walletData.unconfirmed_balance / 100000000
+        });
+
+    } catch (error) {
+        console.error('❌ Wallet error:', error);
         res.status(500).json({ error: error.message });
     }
 });

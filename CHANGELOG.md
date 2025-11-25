@@ -2,6 +2,78 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.10 - "In-App Manual & /manual Command" 📘
+*Released: Nov 25, 2025*
+
+**Docs, now in the chat flow.** A built-in manual overlay opens from `/manual`, with a back button and a new-tab link, bundling the markdown so it works offline.
+
+### 📘 Manual Enhancements
+*   **New Command:** `/manual` opens the in-app manual viewer; Back returns to chat, “Open in new tab” uses a bundled copy.
+*   **Offline-Friendly:** Manual content is bundled via blob URL; works without network.
+*   **Doc Updates:** Manual expanded with command coverage and version bump.
+
+### ⚙️ Files Modified
+*   `components/ManualViewer.tsx` - Added overlay viewer with back + new-tab.
+*   `components/ChatInterface.tsx` - `/manual` command opens the viewer.
+*   `App.tsx` - Wires manual overlay state.
+*   `rangerplex_manule.md` - Updated version and shortcuts with `/manual`.
+*   `components/Sidebar.tsx` - Version label to 2.5.10.
+*   `services/dbService.ts` - Export metadata version bump to 2.5.10.
+*   `package.json` - Version bump to 2.5.10.
+*   `README.md` - Version badge updated to 2.5.10.
+
+## v2.5.10 - "Wallet Inspector" 🏦
+*Released: Nov 25, 2025*
+
+**Follow the Blockchain.** Deep dive into Bitcoin transactions with the new Wallet Inspector.
+
+### 🏦 Bitcoin Wallet Inspector
+*   **New Command**: `/wallet <address>`
+*   **Function**: Scans the Bitcoin blockchain via BlockCypher to reveal balance, total received/sent, and transaction count.
+*   **Visuals**: Displays a detailed financial report including USD value conversion.
+*   **No API Key**: Uses public endpoints for instant access.
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/wallet` endpoint.
+*   `components/ChatInterface.tsx` - Added `/wallet` command and updated Help UI.
+*   `package.json` - Version bump to 2.5.10.
+
+## v2.5.9 - "Crypto Intel" 💰
+*Released: Nov 25, 2025*
+
+**Follow the Money.** Real-time cryptocurrency market intelligence is now at your fingertips.
+
+### 💰 Crypto Intelligence
+*   **New Command**: `/crypto <symbol>` (e.g., `/crypto btc`)
+*   **Function**: Fetches real-time price, 24h change, market cap, and rank from CoinGecko.
+*   **Visuals**: Displays a clean financial card with up/down trend indicators and coin icons.
+*   **No API Key**: Uses public endpoints for instant access.
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/crypto` endpoint.
+*   `components/ChatInterface.tsx` - Added `/crypto` command and updated Help UI.
+*   `package.json` - Version bump to 2.5.9.
+
+## v2.5.9 - "Welcome to RangerPlex" 💠
+*Released: Nov 25, 2025*
+
+**The Introduction.** Added a friendly `/about` command to introduce new users to RangerPlex, the Trinity, and the mission.
+
+### 💠 About Command
+*   **New Command**: `/about`
+*   **Function**: Displays a comprehensive welcome message introducing:
+    *   RangerPlex platform and its purpose
+    *   The Trinity AI system (Claude, Gemini, Ollama Rangers)
+    *   Commander David T. Keane (IrishRanger) and his mission
+    *   Core mission: "Disabilities → Superpowers"
+*   **Discoverability**: Added to `/help` menu under new "SYSTEM" section.
+*   **Help Integration**: Type `/help about` for details about the command.
+
+### ⚙️ Files Modified
+*   `components/ChatInterface.tsx` - Added `/about` command logic and updated Help menu with SYSTEM section.
+*   `package.json` - Version bump to 2.5.9.
+*   `README.md` - Updated version badge to 2.5.9.
+
 ## v2.5.8 - "Sherlock Scout" 🔎
 *Released: Nov 25, 2025*
 

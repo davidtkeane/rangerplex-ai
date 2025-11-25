@@ -18,6 +18,7 @@ import { CanvasBoard } from './src/components/CanvasBoard'; // Import Canvas Boa
 import { SaveStatusIndicator } from './components/SaveStatusIndicator';
 import { BackupManager } from './src/components/BackupManager';
 import { StudyClock } from './components/StudyClock'; // Import Study Clock
+import ManualViewer from './components/ManualViewer';
 import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS, DEFAULT_SAVED_PROMPTS } from './types';
 import { generateTitle } from './services/geminiService';
 import { dbService } from './services/dbService';
@@ -51,6 +52,7 @@ const App: React.FC = () => {
   const [needsBackupImport, setNeedsBackupImport] = useState(false);
   const [hydrationSource, setHydrationSource] = useState<'none' | 'local' | 'server'>('none');
   const [isStudyClockOpen, setIsStudyClockOpen] = useState(false); // State for Study Clock visibility
+  const [isManualOpen, setIsManualOpen] = useState(false); // Manual overlay
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
@@ -717,6 +719,7 @@ const App: React.FC = () => {
               showHolidayButtons={settings.showHeaderControls === true}
               onPetCommand={handlePetCommand} // Pass the new pet command handler
               onOpenCanvas={openCanvas} // Pass the canvas opener
+              onOpenManual={() => setIsManualOpen(true)}
               saveImageToLocal={saveImageToLocal} // Pass the image saving function
               petBridge={petBridge}
             />
@@ -843,6 +846,9 @@ const App: React.FC = () => {
             />
           </div>
         )}
+
+        {/* Manual Viewer */}
+        <ManualViewer open={isManualOpen} onClose={() => setIsManualOpen(false)} />
       </div>
 
       <RangerPet

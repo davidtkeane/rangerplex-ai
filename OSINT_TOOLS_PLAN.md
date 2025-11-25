@@ -25,22 +25,28 @@
 *   **Tools:** `/profile`
 *   **Tech:** AI Agent (Gemini/Claude) + Multi-tool orchestration.
 
+## ✅ Phase 6: Social Recon (Sherlock)
+**Status:** Completed
+*   **Tools:** `/sherlock`
+*   **Tech:** Multi-platform username scanner with "Entrapment Filter" (False Positive detection).
+
 ---
 
-## 🚀 Phase 6: Digital Forensics (Proposed)
+## 🚀 Phase 7: Digital Forensics (Proposed)
 **Objective:** Analyze files and hidden metadata.
 *   **Tool:** **Metadata Extractor** (Auto-run on file upload)
 *   **Command:** `/exif` or automatic.
 *   **Logic:** Extract EXIF data (GPS, Camera Model, Software) from images and PDF metadata (Author, Creator) using client-side libraries.
 
-## 🚀 Phase 7: Financial Intelligence (Proposed)
-**Objective:** Cryptocurrency and market reconnaissance.
-*   **Tool:** **Crypto Tracker**
-*   **Command:** `/crypto <symbol>` (Price) or `/wallet <address>` (Balance).
-*   **Logic:** Use public APIs (CoinGecko, Blockcypher) to track assets.
+## ✅ Phase 7: Financial Intelligence (Crypto)
+**Status:** Completed
+*   **Tools:** `/crypto`, `/wallet`
+*   **Tech:** CoinGecko API & BlockCypher API.
 
-## 🚀 Phase 8: Social Recon (Proposed)
-**Objective:** Find user footprints across the web.
-*   **Tool:** **Username Scout**
-*   **Command:** `/sherlock <username>`
-*   **Logic:** Check username availability across major platforms (GitHub, Reddit, Twitter, etc.) to identify potential targets.
+---
+
+## 🚀 Phase 8: Digital Forensics (Proposed)
+**Objective:** Analyze files and hidden metadata.
+*   **Tool:** **Metadata Extractor** (Auto-run on file upload)
+*   **Command:** `/exif` or automatic.
+*   **Logic:** Extract EXIF data (GPS, Camera Model, Software) from images and PDF metadata (Author, Creator) using client-side libraries.

@@ -40,6 +40,7 @@ interface ChatInterfaceProps {
     showHolidayButtons: boolean;
     onPetCommand: () => void; // New prop
     onOpenCanvas?: () => void; // Canvas Easter egg
+    onOpenManual?: () => void; // Manual viewer
     saveImageToLocal: (url?: string) => Promise<string | undefined>;
     petBridge?: {
         pet: PetState | null;
@@ -62,6 +63,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     showHolidayButtons,
     onPetCommand, // Destructure new prop
     onOpenCanvas, // Destructure Canvas opener
+    onOpenManual,
     saveImageToLocal,
     petBridge
 }) => {
@@ -223,7 +225,48 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
             // --- COMMAND HANDLING ---
 
-            // 0. Help System (/help)
+            // 0a. Manual (/manual) - opens the in-app manual overlay
+            if (text.trim() === '/manual') {
+                onOpenManual?.();
+                onUpdateMessages(prev => [...prev, {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '📘 Opening the RangerPlex Manual… (click Back to return)',
+                    timestamp: Date.now()
+                }]);
+                setIsStreaming(false);
+                return;
+            }
+
+            // 0. About RangerPlex (/about)
+            if (text.startsWith('/about')) {
+                let aboutMsg = `### 💠 Hello There! Welcome to RangerPlex!\n\n`;
+                aboutMsg += `**RangerPlex** is an advanced AI platform built to transform disabilities into superpowers.\n\n`;
+
+                aboutMsg += `#### 🎖️ The Trinity\n`;
+                aboutMsg += `RangerPlex is powered by three AI Rangers working together:\n`;
+                aboutMsg += `- **🤖 Claude Ranger** - Advanced reasoning and strategic operations\n`;
+                aboutMsg += `- **⚡ Gemini Ranger** - Fast responses and web grounding\n`;
+                aboutMsg += `- **🏠 Ollama Ranger** - Local AI running on your machine\n\n`;
+
+                aboutMsg += `#### 🍀 About the Commander\n`;
+                aboutMsg += `Created by **David T. Keane (IrishRanger)**, a combat veteran and tech innovator on a mission to help 1.3 billion people worldwide through RangerOS.\n\n`;
+
+                aboutMsg += `*"Disabilities → Superpowers" is not just a motto, it's our mission.*\n\n`;
+
+                aboutMsg += `---\n`;
+                aboutMsg += `**Need help?** Type \`/help\` to see available commands.\n`;
+                aboutMsg += `**Ready to explore?** Try asking me anything or use one of the tactical modules!`;
+
+                onUpdateMessages(prev => [...prev, {
+                    id: uuidv4(), sender: Sender.AI, text: aboutMsg, timestamp: Date.now()
+                }]);
+
+                setIsStreaming(false);
+                return;
+            }
+
+            // 1. Help System (/help)
             if (text.startsWith('/help')) {
                 const cmd = text.replace('/help', '').trim().toLowerCase();
 
@@ -233,11 +276,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     // Main Help Menu - Futuristic Dashboard
                     helpMsg = `### 💠 RANGERPLEX OS // TACTICAL MENU\n`;
                     helpMsg += `\`\`\`text\n`;
-                    helpMsg += `╔════ INTELLIGENCE MODULES ════════════════════╗\n`;
+                    helpMsg += `╔════ SYSTEM ══════════════════════════════════╗\n`;
+                    helpMsg += `║ 💠  ABOUT       :: /about                   ║\n`;
+                    helpMsg += `╠════ INTELLIGENCE MODULES ════════════════════╣\n`;
                     helpMsg += `║ 🕵️  PROFILER    :: /profile <domain>        ║\n`;
                     helpMsg += `║ 👁️  SHODAN      :: /shodan <ip>             ║\n`;
                     helpMsg += `║ 🛡️  BREACH      :: /breach <email>          ║\n`;
                     helpMsg += `║ 🔎  SHERLOCK    :: /sherlock <user>         ║\n`;
+                    helpMsg += `║ 💰  CRYPTO      :: /crypto <coin>           ║\n`;
+                    helpMsg += `║ 🏦  WALLET      :: /wallet <btc_addr>       ║\n`;
                     helpMsg += `║ 🦠  VIRUS_SCAN  :: /scan <url>              ║\n`;
                     helpMsg += `╠════ RECONNAISSANCE ══════════════════════════╣\n`;
                     helpMsg += `║ 📡  WHOIS       :: /whois <domain>          ║\n`;
@@ -251,6 +298,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `\`\`\`\n`;
                     helpMsg += `*SYSTEM READY. Awaiting command input...*\n`;
                     helpMsg += `*Type \`/help <command>\` for detailed specs (e.g. \`/help shodan\`)*`;
+                }
+                else if (cmd === 'about') {
+                    helpMsg = `### 💠 Command: /about\n\n`;
+                    helpMsg += `**Usage:** \`/about\`\n`;
+                    helpMsg += `**Purpose:** Learn about RangerPlex, the Trinity AI system, and the mission behind the platform.\n\n`;
+                    helpMsg += `**Discover:**\n`;
+                    helpMsg += `- The three AI Rangers that power RangerPlex\n`;
+                    helpMsg += `- David T. Keane's vision for transforming disabilities into superpowers\n`;
+                    helpMsg += `- The mission to help 1.3 billion people worldwide\n\n`;
+                    helpMsg += `*Perfect for new users who want to understand what makes RangerPlex special!*`;
                 }
                 else if (cmd === 'sherlock') {
                     helpMsg = `### 🔎 Command: /sherlock\n\n`;
@@ -401,13 +458,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                     let msg = `### 🔎 Sherlock Scan: '${username}'\n\n`;
                     msg += `**Scanned:** ${res.total_checked} platforms\n`;
-                    msg += `**Found:** ${res.found.length} matches\n\n`;
+                    msg += `**Matches:** ${res.matches.length}\n\n`;
 
-                    if (res.found.length > 0) {
+                    if (res.matches.length > 0) {
                         msg += `**✅ Positive Matches:**\n`;
-                        res.found.forEach((site: any) => {
-                            msg += `- **[${site.name}](${site.url})**\n`;
+                        res.matches.forEach((site: any) => {
+                            if (site.status === 'found') {
+                                msg += `- **[${site.name}](${site.url})**\n`;
+                            }
                         });
+
+                        const falsePositives = res.matches.filter((s: any) => s.status === 'false_positive');
+                        if (falsePositives.length > 0) {
+                            msg += `\n**⚠️ Potential False Positives (Entrapment Check):**\n`;
+                            msg += `*These sites returned "200 OK" but may be empty profiles or "User Not Found" pages designed to make you sign up.*\n`;
+                            falsePositives.forEach((site: any) => {
+                                msg += `- [${site.name}](${site.url}) (Status: ${site.status})\n`;
+                            });
+                        }
                     } else {
                         msg += `*No public profiles found for this username on major platforms.*\n`;
                     }
@@ -419,6 +487,84 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: `❌ Sherlock Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 12. Crypto Intelligence (/crypto)
+            if (text.startsWith('/crypto')) {
+                setProcessingStatus("Fetching Market Data...");
+                const symbol = text.replace('/crypto', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/crypto`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ symbol })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    const isUp = res.change_24h >= 0;
+                    const arrow = isUp ? '📈' : '📉';
+                    const color = isUp ? 'green' : 'red';
+
+                    let msg = `### 💰 ${res.name} (${res.symbol.toUpperCase()})\n\n`;
+                    msg += `**Price:** $${res.price.toLocaleString()}\n`;
+                    msg += `**24h Change:** ${arrow} ${res.change_24h.toFixed(2)}%\n`;
+                    msg += `**Market Cap:** $${(res.market_cap / 1e9).toFixed(2)}B\n`;
+                    msg += `**Rank:** #${res.rank}\n\n`;
+                    msg += `![Icon](${res.thumb})\n`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Crypto Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 13. Bitcoin Wallet Inspector (/wallet)
+            if (text.startsWith('/wallet')) {
+                setProcessingStatus("Scanning Blockchain...");
+                const address = text.replace('/wallet', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/wallet`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🏦 Bitcoin Wallet Inspector\n\n`;
+                    msg += `**Address:** \`${res.address}\`\n\n`;
+                    msg += `**💰 Balance:** ${res.balance_btc.toFixed(8)} BTC\n`;
+                    msg += `**💵 Value:** $${res.balance_usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n`;
+                    msg += `**📊 Activity:**\n`;
+                    msg += `- **Total Received:** ${res.total_received.toFixed(8)} BTC\n`;
+                    msg += `- **Total Sent:** ${res.total_sent.toFixed(8)} BTC\n`;
+                    msg += `- **Transactions:** ${res.n_tx}\n`;
+
+                    if (res.unconfirmed_balance !== 0) {
+                        msg += `\n*⚠️ Unconfirmed: ${res.unconfirmed_balance.toFixed(8)} BTC*\n`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Wallet Scan Failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);
