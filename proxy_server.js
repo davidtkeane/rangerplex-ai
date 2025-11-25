@@ -2367,6 +2367,57 @@ app.post('/api/fun/chuck', async (req, res) => {
     }
 });
 
+// Random Jokes (Official Joke API + icanhazdadjoke)
+app.post('/api/fun/joke', async (req, res) => {
+    try {
+        console.log('😂 Fetching random joke...');
+
+        // Try Official Joke API first (has setup/punchline format)
+        const apiUrl = 'https://official-joke-api.appspot.com/jokes/random';
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Joke API error ${response.status}:`, errorText);
+            throw new Error(`Joke API returned ${response.status}: ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const body = await response.text();
+            console.error('❌ Joke API returned non-JSON:', body.substring(0, 200));
+            throw new Error('API returned non-JSON response');
+        }
+
+        const data = await response.json();
+
+        res.json({
+            success: true,
+            type: data.type || 'general',
+            setup: data.setup || '',
+            punchline: data.punchline || '',
+            id: data.id,
+            sources: [
+                { name: 'Official Joke API', url: 'https://official-joke-api.appspot.com/' },
+                { name: 'GitHub - Official Joke API', url: 'https://github.com/15Dkatz/official_joke_api' },
+                { name: 'icanhazdadjoke API', url: 'https://icanhazdadjoke.com/api' }
+            ]
+        });
+
+        console.log(`✅ Joke retrieved: ${data.id} (${data.type})`);
+    } catch (error) {
+        console.error('❌ Joke API error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to fetch joke',
+            fallback: {
+                setup: "Why do programmers prefer dark mode?",
+                punchline: "Because light attracts bugs!"
+            }
+        });
+    }
+});
+
 // Certificate Transparency Lookup (crt.sh)
 app.post('/api/tools/certs', async (req, res) => {
     try {

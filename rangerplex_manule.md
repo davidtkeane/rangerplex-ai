@@ -89,7 +89,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
   - **Social Intel:** `/sherlock <username>` → Username search across 300+ platforms.
   - **Financial:** `/crypto <coin>`, `/wallet <btc_address>`.
   - **Digital Forensics:** `/exif <url>`, `/wayback <url>`, `/screenshot <url>`.
-  - **Fun & Entertainment:** `/chuck` → Random Chuck Norris facts (no API key required).
+  - **Fun & Entertainment:** `/chuck` → Random Chuck Norris facts, `/joke` → Random jokes (programming, dad jokes, general humor).
 - **Manual:** `/manual` opens the in-app manual overlay (Back button returns to chat).
 - **Voice:** Mic toggle in input area; speech-to-text fills the box.
 - **Copy Last Message:** Button under the chat input copies the most recent turn.
@@ -438,6 +438,12 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
   - **Example:** `/chuck`
   - **Sources:** [api.chucknorris.io](https://api.chucknorris.io/), [GitHub](https://github.com/chucknorris-io/chuck-api), [Free Public APIs](https://www.freepublicapis.com/chuck-norris-jokes-api)
   - **Output:** Displays Chuck Norris fact with 🥋 icon, category (if available), and clickable source links
+
+- **`/joke`** - Get a random joke from multiple curated joke databases. Features classic setup/punchline format with programming jokes, dad jokes, and general humor. No API key required. Perfect for long coding sessions!
+  - **Example:** `/joke`
+  - **Sources:** [Official Joke API](https://official-joke-api.appspot.com/), [GitHub](https://github.com/15Dkatz/official_joke_api), [icanhazdadjoke](https://icanhazdadjoke.com/api)
+  - **Output:** Displays joke with 😂 icon in setup/punchline format, category (when available), and clickable source links
+  - **Categories:** Programming, general, dad jokes, and more
 
 ### Tool Integration
 - **Type `/help <command>`** for detailed docs on any tool (e.g., `/help shodan`, `/help screenshot`).

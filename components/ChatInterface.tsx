@@ -337,6 +337,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
                     helpMsg += `╠════ FUN & ENTERTAINMENT ═════════════════════╣\n`;
                     helpMsg += `║ 🥋  CHUCK       :: /chuck                   ║\n`;
+                    helpMsg += `║ 😂  JOKE        :: /joke                    ║\n`;
                     helpMsg += `╠════ CREATIVE SUITE ══════════════════════════╣\n`;
                     helpMsg += `║ 🎨  IMAGINE     :: /imagine <prompt>        ║\n`;
                     helpMsg += `║ ♾️   CANVAS      :: canvas                   ║\n`;
@@ -678,6 +679,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- [GitHub - chucknorris-io](https://github.com/chucknorris-io/chuck-api)\n`;
                     helpMsg += `- [Free Public APIs](https://www.freepublicapis.com/chuck-norris-jokes-api)\n\n`;
                     helpMsg += `**Pro Tip:** Need a laugh during intense OSINT sessions? Chuck's got your back! 💪`;
+                }
+                else if (cmd === 'joke') {
+                    helpMsg = `### 😂 Command: /joke\n\n`;
+                    helpMsg += `**Usage:** \`/joke\`\n`;
+                    helpMsg += `**Purpose:** Fetches a random joke from multiple curated joke databases. Includes programming jokes, dad jokes, and general humor.\n\n`;
+                    helpMsg += `**Features:**\n`;
+                    helpMsg += `- Setup/punchline format for classic joke delivery\n`;
+                    helpMsg += `- Multiple joke categories (programming, general, etc.)\n`;
+                    helpMsg += `- Free API (no key required)\n`;
+                    helpMsg += `- Full source attribution\n\n`;
+                    helpMsg += `**Sources:**\n`;
+                    helpMsg += `- [Official Joke API](https://official-joke-api.appspot.com/)\n`;
+                    helpMsg += `- [GitHub - Official Joke API](https://github.com/15Dkatz/official_joke_api)\n`;
+                    helpMsg += `- [icanhazdadjoke API](https://icanhazdadjoke.com/api)\n\n`;
+                    helpMsg += `**Pro Tip:** Perfect for lightening the mood during long coding sessions! 😄`;
                 }
                 else {
                     // Generic fallback for other commands or unknown inputs
@@ -2528,7 +2544,64 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 11. Certificate Transparency (/certs)
+            // 11. Random Jokes (/joke)
+            if (text.startsWith('/joke')) {
+                setProcessingStatus("Fetching a joke...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/fun/joke`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+
+                    const res = await response.json();
+
+                    if (!res.success && res.error) {
+                        throw new Error(res.error);
+                    }
+
+                    let msg = `## 😂 Random Joke\n\n`;
+
+                    // Check if it has setup/punchline format
+                    if (res.setup && res.punchline) {
+                        msg += `**${res.setup}**\n\n`;
+                        msg += `${res.punchline}\n\n`;
+                    } else if (res.joke) {
+                        // Fallback format
+                        msg += `${res.joke}\n\n`;
+                    }
+
+                    if (res.type && res.type !== 'general') {
+                        msg += `**Category:** ${res.type}\n\n`;
+                    }
+
+                    msg += `---\n\n**Sources:**\n`;
+                    res.sources.forEach((source: any) => {
+                        msg += `- [${source.name}](${source.url})\n`;
+                    });
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    // Use fallback joke if API fails
+                    const fallbackMsg = `## 😂 Random Joke\n\n**Why do programmers prefer dark mode?**\n\nBecause light attracts bugs!\n\n*Note: ${e.message}*`;
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: fallbackMsg, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 12. Certificate Transparency (/certs)
             if (text.startsWith('/certs')) {
                 setProcessingStatus("Querying Certificate Transparency logs...");
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';

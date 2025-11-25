@@ -73,6 +73,7 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 
 ### 🥋 Fun & Entertainment
 *   **Chuck Norris Facts** 🥋: Get random Chuck Norris jokes using `/chuck`. Hand-curated facts from the legendary Chuck Norris database. No API key required. Includes full source attribution from [api.chucknorris.io](https://api.chucknorris.io/), [GitHub](https://github.com/chucknorris-io/chuck-api), and [Free Public APIs](https://www.freepublicapis.com/chuck-norris-jokes-api). Perfect for lightening the mood during intense OSINT sessions!
+*   **Random Jokes** 😂: Get random jokes using `/joke`. Features setup/punchline format with programming jokes, dad jokes, and general humor from multiple curated databases. No API key required. Includes attribution from [Official Joke API](https://official-joke-api.appspot.com/), [GitHub](https://github.com/15Dkatz/official_joke_api), and [icanhazdadjoke](https://icanhazdadjoke.com/api). Perfect for long coding sessions!
 
 ### 🛠️ Productivity Tools
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.
