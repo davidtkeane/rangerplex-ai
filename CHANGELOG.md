@@ -2,6 +2,57 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.24 - "Git Security Emergency Response" 🚨
+*Released: Nov 25, 2025*
+
+**Critical Security Fix.** Responded to GitHub secret scanner detection of API keys in backup file committed to history. Performed complete git history rewrite to purge sensitive data and prevent future backup leaks.
+
+### 🚨 Security Incident Response
+*   **Issue Detected**: GitHub secret scanner blocked push due to API keys in `data/rangerplex.db.backup.20251125132745`
+*   **Keys Exposed**: OpenAI, Anthropic, and Perplexity API keys were in the backup file
+*   **Root Cause**: Database backup file was accidentally committed to git history (commit `857a2d9`)
+*   **Impact**: Keys were in local git history but not pushed to public repository (caught in time)
+
+### 🔧 Emergency Fix Applied
+*   **Git Filter-Branch**: Rewrote entire repository history (119 commits) to remove backup file
+*   **Complete Purge**: Removed file from commit `857a2d9` and all subsequent commits
+*   **Git Cleanup**: Removed backup refs, expired reflog, ran aggressive garbage collection
+*   **Force Push**: Successfully pushed clean history to GitHub (new commit: `ba769f8`)
+*   **Verification**: Confirmed backup file no longer exists in any commit history
+
+### 🛡️ Prevention Measures
+*   **Updated `.gitignore`**:
+    - Added `backups/` directory exclusion
+    - Added `data/*.backup.*` pattern exclusion
+    - Prevents future backup file commits
+*   **Documentation**: Created detailed emergency response guide in `docs/GIT_EMERGENCY_GUIDE.md`
+*   **Action Required**: API keys require rotation as they were exposed in local history
+
+### 📘 Documentation Updates
+*   **GIT_EMERGENCY_GUIDE.md**: Added "Nuclear Option" section for complete history rewrites
+*   **CHANGELOG.md**: Documented incident, response, and prevention measures
+*   **Commands Documented**:
+    ```bash
+    git filter-branch --force --index-filter \
+      'git rm --cached --ignore-unmatch <file>' \
+      --prune-empty --tag-name-filter cat -- --all
+    ```
+
+### 🎯 Lessons Learned
+*   Database backups should never be in project directory
+*   Always verify `.gitignore` before committing large files
+*   Git filter-branch is the nuclear option for history rewrites
+*   GitHub secret scanner provides critical last-line defense
+*   Pre-commit hooks should scan for sensitive patterns
+
+### ⏱️ Response Time
+*   **Detection to Resolution**: ~15 minutes
+*   **Commits Rewritten**: 119
+*   **Processing Time**: 8 seconds
+*   **Status**: ✅ Repository clean, push successful
+
+---
+
 ## v2.5.23 - "Network Recon Pack" 🛰️
 *Released: Nov 26, 2025*
 
