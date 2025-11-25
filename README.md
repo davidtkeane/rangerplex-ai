@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.28-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.31-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -27,11 +27,33 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 
 ![RangerPlex Promo](./image/rangerplex_dall-e-3_1763935594087.png)
 
+## 💻 Platform Compatibility
+
+**✅ Fully Tested & Production-Ready:**
+
+### Apple Silicon Macs
+- ✅ **M1** (MacBook Air, Mac Mini, iMac) - Verified working!
+- ✅ **M2** (MacBook Air, MacBook Pro, Mac Mini) - Verified working!
+- ✅ **M3** (MacBook Pro, iMac) - Verified working!
+- ✅ **M4** (MacBook Pro, Mac Mini, iMac) - Verified working!
+
+### Intel Macs
+- ✅ **Intel x86_64** - Fully supported
+
+### Other Platforms
+- ✅ **Windows** (10, 11) - Full support
+- ✅ **Linux** (Ubuntu, Debian, Fedora, Arch) - Full support
+- ✅ **WSL** (Windows Subsystem for Linux) - Full support
+
+**Native ARM64 binaries** for all Apple Silicon Macs ensure maximum performance with Ollama, LM Studio, and all native modules (better-sqlite3, Puppeteer, etc.).
+
+---
+
 ## ✨ Features
 
 ### 🧠 The Intelligence
 *   **Multi-Model Matrix**: Seamlessly switch between **Gemini 2.0**, **GPT-4o/4.1**, **Claude Sonnet 4.5** (9 Claude models total including 3.5 Sonnet), **Perplexity**, **Grok**, **Llama 3** (via HuggingFace or Ollama), and **LM Studio** (local AI with GUI).
-*   **Dual Local AI**: Run **Ollama** AND **LM Studio** simultaneously! Perfect for multi-device setups (M4 Max + M3 Mac) or testing different models side-by-side.
+*   **Dual Local AI**: Run **Ollama** AND **LM Studio** simultaneously! Perfect for multi-device setups or testing different models side-by-side. **Fully tested and working on M1, M2, M3, and M4 Apple Silicon Macs!**
 *   **Smart Model Selection**: Visual capability badges show what each model can do at a glance:
     - 👁️ **Vision** - Can analyze uploaded images (Claude 3+, Gemini, GPT-4o, Grok Vision)
     - 🧠 **Advanced Reasoning** - Deep thinking models (o1, o1-mini, o3-mini)
@@ -297,6 +319,34 @@ sudo apt install nodejs npm
 
 ## 💿 Installation
 
+### 🚀 Option A: Automated Installer (Recommended)
+
+**One-command setup** that handles everything for you:
+
+```bash
+bash install-me-now.sh
+```
+
+**What it does:**
+- ✅ Installs Node.js 22.x (via nvm) if needed
+- ✅ Installs PM2 process manager for zero-downtime updates
+- ✅ Installs all npm dependencies
+- ✅ Rebuilds native modules for your platform (M1/M2/M3/M4 optimized!)
+- ✅ Guides you through API key setup with confirmation
+- ✅ Optionally installs Ollama for local AI
+- ✅ Sets up `rangerplex` command alias
+- ✅ Offers to start the app immediately
+
+**Fully tested on:**
+- ✅ M1, M2, M3, M4 Apple Silicon Macs
+- ✅ Intel Macs
+- ✅ Linux (Ubuntu, Debian, Fedora, Arch)
+- ✅ WSL (Windows Subsystem for Linux)
+
+---
+
+### 🛠️ Option B: Manual Installation
+
 1.  **Download the Code**: Unzip the RangerPlex folder to a location of your choice (e.g., `Documents/RangerPlex`).
 2.  **Open Terminal**: Open your Terminal/Command Prompt and navigate to that folder:
     ```bash
@@ -448,7 +498,7 @@ RangerPlex now supports **LM Studio** as a second local AI provider! LM Studio o
 - ✅ **Beautiful GUI** - Download and manage models with clicks, not commands
 - ✅ **OpenAI-Compatible API** - Works seamlessly with RangerPlex
 - ✅ **Multiple Models** - Load and switch between 3+ models simultaneously
-- ✅ **Hardware Acceleration** - Optimized for Apple Silicon (Metal), NVIDIA (CUDA), and CPU
+- ✅ **Hardware Acceleration** - Optimized for Apple Silicon (M1, M2, M3, M4 with Metal), NVIDIA (CUDA), and CPU
 - ✅ **Run Alongside Ollama** - Use both local AI providers at the same time!
 
 ### Quick Setup (5 Minutes)
@@ -755,7 +805,7 @@ bash test-grok-api.sh
 
 **Installation:**
 
-#### macOS (Intel or Apple Silicon)
+#### macOS (Intel and Apple Silicon: M1, M2, M3, M4)
 1. Go to **[ollama.com/download](https://ollama.com/download)**
 2. Download the **.dmg** installer
 3. Drag Ollama to Applications folder
