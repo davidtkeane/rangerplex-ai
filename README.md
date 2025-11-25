@@ -66,6 +66,7 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
     *   `/ports <ip_or_host> [ports]`: Scan TCP ports for service discovery and security audits. Default scan covers 40 common ports. Requires authorization.
     *   `/nmap <target> [flags]`: Full-featured Nmap integration for comprehensive port scanning and service detection. Whitelisted flags: `-A`, `-sV`, `-sC`, `-p-`, `-p`, `-Pn`, `-T4`, `-v`. Perfect for TryHackMe and CTFs. Requires nmap installation (`brew install nmap`).
     *   `/hash <hash>`: VirusTotal hash intelligence (MD5/SHA1/SHA256/SHA512) for malware verdicts and filenames. Requires VT API key.
+*   **Privacy Snapshot** 🔍: Type `/privacy` to see what a site learns on first request: public IP, ISP/ASN, coarse geolocation, timezone, and the request headers your browser sent (User-Agent, Accept-Language, DNT, Referer, client hints). Great for validating VPN/proxy setups and header hardening.
 *   **Company Intelligence** 🏢: Lookup company registry data using `/company <name|reg_number> [country]`. Returns legal name, status, officers, registered address, and filing history. Defaults to UK Companies House; supports OpenCorporates for international lookups. Requires API key(s).
 *   **Screenshot Capture** 📸: Capture live screenshots of websites using `/screenshot <url>`. High-quality 1920x1080 captures with Puppeteer (headless Chrome) for evidence collection, change detection, and phishing documentation. No API key required.
 *   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
@@ -196,6 +197,9 @@ RangerPlex has **TWO different image features** that work in completely differen
     - **NO TERMINAL WINDOW NEEDED** → servers run as background daemons
     - Close terminal anytime → servers keep running
     - Ollama and LM Studio keep working → **Pure magic!** 🚀
+*   **🚀 PROVEN ON M4 MAC!** Terminal server stopped, closed terminal, **app kept running with Ollama!**
+    - This is the ultimate validation: true daemon mode like professional Mac apps
+    - No terminal needed, no manual intervention, production-grade deployment ✨
 *   **Zero-Downtime Restart**: PM2 gracefully reloads both servers without dropping connections
 *   **Production Ready**: PM2 process manager handles server lifecycle, auto-restart on crash
 *   **Daemon Mode**: Unlike `npm start`, PM2 runs servers in background - no terminal window hogging your screen!

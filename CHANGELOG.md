@@ -14,6 +14,15 @@
     - Both Ollama and LM Studio confirmed working after update
     - Zero manual intervention required - **pure magic!** ✨
 
+### 🚀 PM2 Daemon Mode Validation (M4 Mac)
+*   **ULTIMATE PROOF - Terminal closed, app still running with Ollama!**
+    - M4 Mac: Terminal server stopped (Ctrl+C or closed terminal)
+    - RangerPlex continued running in background via PM2 daemon
+    - Ollama model still accessible and responding
+    - **True daemon operation confirmed - like professional Mac apps!**
+    - No terminal window needed, no manual intervention
+    - This is production-grade deployment ✨
+
 ### 🐛 Critical Bug Fixes
 *   **LM Studio "Invalid Model ID" Error** (`components/ChatInterface.tsx:2857-2864`):
     - **Issue**: Models like `openai/gpt-oss-20b` showed "invalid model ID" error

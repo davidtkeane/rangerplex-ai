@@ -70,6 +70,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
   - `/imagine_all` → Multi-provider image generation.
   - `/pet` → Open Kitty widget. `/pet-chat <msg>` → Talk as/with Kitty.
   - `/scan <url>` → VirusTotal file scan.
+  - `/privacy` → Privacy snapshot (public IP, ISP/ASN, coarse geo, and browser headers visible to sites).
   - `/company <name|reg_number> [country]` → Company registry lookup (legal name, status, officers, address). Defaults to UK Companies House; falls back to OpenCorporates for other countries.
   - `/trace <domain_or_ip>` → Traceroute hops (20-hop limit, single probe).
   - `/hash <hash>` → VirusTotal hash intelligence (VT key required).
@@ -396,6 +397,9 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
 - **`/asn <asn_number or ip>`** - ASN (Autonomous System Number) lookup. Find all IP ranges (CIDR blocks) owned by organizations. Accepts ASN numbers (AS15169 for Google) or IP addresses. Returns organization name, network ranges, and routing info. No API key required (HackerTarget API).
 - **`/trace <domain or ip>`** - Traceroute network path mapping. Discover routing path from your location to target, identify ISPs and intermediate hops. Shows hop number, IP address, hostname, and round-trip time (RTT). Handles timeouts and filtered hops gracefully. 20-hop limit with single probe per hop. No API key required (native CLI).
 - **`/reputation <domain>`** - Check domain against Google Safe Browsing for malware, phishing, and threats. Protects 5+ billion devices. Requires API key (free tier: 10,000 requests/day).
+
+### Privacy Snapshot
+- **`/privacy`** - Shows what a website can learn from your first request: public IP, ISP/ASN, coarse geolocation, timezone, and the exact request headers your browser sent (User-Agent, Accept-Language, DNT, Referer, client hints). Helpful to validate VPN/proxy setups and header hardening.
 
 ### Company & Registry Intelligence
 - **`/company <name|reg_number> [country]`** - Company registry lookup. Returns legal name, registration number, status (active/dissolved), incorporation date, registered address, SIC/industry codes, active officers, people with significant control (PSC), and last filing date. Defaults to UK Companies House; falls back to OpenCorporates for other countries. Specify country codes like `uk`, `us-de`, `ie`. Requires API key(s); results are flagged when sourced from fallback or partial data.
