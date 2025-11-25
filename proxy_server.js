@@ -2328,7 +2328,16 @@ app.post('/api/fun/chuck', async (req, res) => {
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
-            throw new Error(`Chuck Norris API returned ${response.status}`);
+            const errorText = await response.text();
+            console.error(`❌ Chuck Norris API error ${response.status}:`, errorText);
+            throw new Error(`Chuck Norris API returned ${response.status}: ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const body = await response.text();
+            console.error('❌ Chuck Norris API returned non-JSON:', body.substring(0, 200));
+            throw new Error('API returned non-JSON response');
         }
 
         const data = await response.json();

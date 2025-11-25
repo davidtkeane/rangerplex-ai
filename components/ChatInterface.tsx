@@ -2485,10 +2485,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
 
                 try {
-                    const res = await fetch(`${proxyUrl}/api/fun/chuck`, {
+                    const response = await fetch(`${proxyUrl}/api/fun/chuck`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
-                    }).then(r => r.json());
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+
+                    const res = await response.json();
 
                     if (!res.success && res.error) {
                         throw new Error(res.error);
