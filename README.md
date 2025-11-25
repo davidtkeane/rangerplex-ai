@@ -59,6 +59,8 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
     *   `/subdomains <domain>`: Discover all subdomains via Certificate Transparency logs. Map attack surfaces and find hidden infrastructure.
     *   `/certs <domain>`: Enumerate SSL certificates via Certificate Transparency logs to uncover hidden hostnames and issuers.
     *   `/reverse <ip>`: Find all domains hosted on an IP address. No API key required. Identifies shared vs dedicated hosting.
+    *   `/trace <domain/ip>`: Map network hops via traceroute (20-hop limit, single probe per hop).
+    *   `/asn <asn_number or ip>`: Lookup Autonomous System Number (ASN) data. Find all IP ranges owned by organizations. Accepts ASN numbers (AS15169) or IP addresses. No API key required.
     *   `/reputation <domain>`: Check domains against Google Safe Browsing for malware, phishing, and threats. Protects 5+ billion devices.
     *   `/ports <ip_or_host> [ports]`: Scan TCP ports for service discovery and security audits. Default scan covers 40 common ports. Requires authorization.
     *   `/hash <hash>`: VirusTotal hash intelligence (MD5/SHA1/SHA256/SHA512) for malware verdicts and filenames. Requires VT API key.

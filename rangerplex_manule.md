@@ -68,6 +68,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
   - `/imagine_all` → Multi-provider image generation.
   - `/pet` → Open Kitty widget. `/pet-chat <msg>` → Talk as/with Kitty.
   - `/scan <url>` → VirusTotal file scan.
+  - `/trace <domain_or_ip>` → Traceroute hops (20-hop limit, single probe).
   - `/hash <hash>` → VirusTotal hash intelligence (VT key required).
   - `/certs <domain>` → Certificate Transparency lookup.
   - `/profile <target>` → AI-powered OSINT profiler (automated recon).
@@ -75,7 +76,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - **OSINT Commands (Intelligence Gathering):**
   - **Infrastructure:** `/shodan <ip>` → Shodan port/service scan.
   - **Domain Recon:** `/whois <domain>`, `/dns <domain>`, `/subdomains <domain>`, `/certs <domain>`, `/reputation <domain>`.
-  - **Network Intel:** `/geoip <ip>`, `/myip`, `/ipinfo <ip>`, `/iprecon <ip>`, `/reverse <ip>`.
+  - **Network Intel:** `/geoip <ip>`, `/myip`, `/ipinfo <ip>`, `/iprecon <ip>`, `/reverse <ip>`, `/asn <asn/ip>`, `/trace <domain/ip>`.
   - **Port Scanning:** `/ports <ip_or_host> [ports]` → TCP scan (40 default ports; authorization required).
   - **Security Checks:** `/ssl <domain>`, `/headers <url>`, `/breach <email>`, `/hash <hash>`.
   - **Hardware:** `/mac <address>`, `/sys` → MAC vendor lookup and system info.
@@ -145,7 +146,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 
 ## OSINT & Security Tools
 
-RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal with **19 completed tools** covering domain recon, network intel, security audits, social reconnaissance, financial tracking, and digital forensics.
+RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal with **21 completed tools** covering domain recon, network intel, security audits, social reconnaissance, financial tracking, and digital forensics.
 
 ### Infrastructure & Network Intelligence
 - **`/shodan <ip>`** - Query Shodan API for open ports, vulnerabilities, and services. Requires API key (Settings → Providers).
@@ -154,6 +155,7 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
 - **`/ipinfo <ip>`** - Detailed IP information lookup.
 - **`/iprecon <ip>`** - Complete IP reconnaissance (combines multiple intel sources).
 - **`/ports <ip_or_host> [ports]`** - TCP port scanner. Default: 40 common ports. Custom: comma-separated list (up to 100). Shows open/closed/filtered status, latency, and service identification (28 services). **Authorization required!**
+- **`/trace <domain_or_ip>`** - Traceroute to map network hops (20-hop limit, single probe per hop). Timeouts mid-path are common.
 
 ### Domain & DNS Reconnaissance
 - **`/whois <domain>`** - Domain registration details (registrar, expiry, name servers, contact info).
@@ -161,6 +163,8 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
 - **`/subdomains <domain>`** - Discover subdomains via Certificate Transparency logs (crt.sh). Maps attack surfaces and finds hidden infrastructure.
 - **`/certs <domain>`** - Enumerate issued SSL certificates from Certificate Transparency logs; highlights wildcards, issuers, and history.
 - **`/reverse <ip>`** - Reverse DNS lookup. Find all domains hosted on an IP address. No API key required (HackerTarget API).
+- **`/asn <asn_number or ip>`** - ASN (Autonomous System Number) lookup. Find all IP ranges (CIDR blocks) owned by organizations. Accepts ASN numbers (AS15169 for Google) or IP addresses. Returns organization name, network ranges, and routing info. No API key required (HackerTarget API).
+- **`/trace <domain or ip>`** - Traceroute network path mapping. Discover routing path from your location to target, identify ISPs and intermediate hops. Shows hop number, IP address, hostname, and round-trip time (RTT). Handles timeouts and filtered hops gracefully. 20-hop limit with single probe per hop. No API key required (native CLI).
 - **`/reputation <domain>`** - Check domain against Google Safe Browsing for malware, phishing, and threats. Protects 5+ billion devices. Requires API key (free tier: 10,000 requests/day).
 
 ### Security Auditing

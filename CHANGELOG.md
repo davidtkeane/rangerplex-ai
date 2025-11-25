@@ -2,6 +2,55 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.21 - "ASN Lookup" 🌐
+*Released: Nov 25, 2025*
+
+**ASN (Autonomous System Number) Lookup Integration.** Added `/asn` command for discovering IP ranges owned by organizations. Essential for network research, infrastructure mapping, and security audits.
+
+### 🌐 ASN Lookup Tool
+*   **`/asn <asn_number or ip>`**: Query Autonomous System Numbers and their IP ranges
+*   **Dual Input**: Accepts ASN numbers (AS15169) or IP addresses (8.8.8.8)
+*   **Organization Data**: Returns company name, all CIDR blocks, and network info
+*   **No API Key Required**: Uses HackerTarget free API
+*   **Network Mapping**: Essential for understanding an organization's internet presence
+
+### 🛠️ Backend Implementation
+*   New endpoint: `/api/tools/asn` (proxy_server.js:2119-2211)
+*   HackerTarget ASN Lookup API integration (free, no key)
+*   CSV response parsing: "IP","ASN","Network","Name"
+*   Returns primary ASN, organization, IP ranges, and detailed entries
+*   Proper error handling for not-found cases
+
+### 📘 Help System Integration
+*   Added `/asn` to main `/help` menu under RECONNAISSANCE section
+*   Created comprehensive `/help asn` documentation
+*   Includes ASN explanation and real-world examples (Google, Amazon, Cloudflare)
+*   Tool integration suggestions for deeper analysis
+
+### 🎯 Use Cases
+*   **Infrastructure Mapping**: Discover all IP ranges owned by a company
+*   **Network Research**: Understand an organization's internet footprint
+*   **Security Audits**: Identify all network assets for penetration testing
+*   **Threat Intelligence**: Track malicious ASNs and their IP ranges
+
+### 🛡️ Features
+*   **No API Key Required**: Free tier HackerTarget API
+*   **Dual Query Mode**: ASN number OR IP address lookup
+*   **CIDR Blocks**: Lists all IP ranges with network/organization info
+*   **Tool Chaining**: Integrates with `/geoip`, `/shodan`, `/reverse`, `/ports`
+
+### 💡 Example ASNs
+*   AS15169 = Google LLC
+*   AS16509 = Amazon.com, Inc.
+*   AS13335 = Cloudflare, Inc.
+*   AS32934 = Facebook, Inc.
+
+### 📊 Arsenal Update
+*   **Total OSINT Tools**: 20 completed / 25 total (80% complete)
+*   **Phase 25**: ASN Lookup - ✅ COMPLETED
+
+---
+
 ## v2.5.20 - "Screenshot Capture" 📸
 *Released: Nov 25, 2025*
 

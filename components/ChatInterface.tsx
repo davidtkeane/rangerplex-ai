@@ -324,6 +324,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
                     helpMsg += `║ 🔄  REVERSE_DNS :: /reverse <ip>            ║\n`;
+                    helpMsg += `║ 🛰️  TRACE       :: /trace <host>            ║\n`;
                     helpMsg += `║ 🔌  PORT_SCAN   :: /ports <ip>              ║\n`;
                     helpMsg += `║ 📜  CERTS       :: /certs <domain>          ║\n`;
                     helpMsg += `║ 🧬  HASH LOOKUP :: /hash <hash>             ║\n`;
@@ -560,6 +561,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Pro Tip:** Combine with other tools: Use \`/geoip <ip>\` to see location/ISP, \`/shodan <ip>\` to scan ports, or run \`/reputation <domain>\` on discovered domains to check for threats.\n\n`;
                     helpMsg += `[Ask AI about Reverse DNS?](Ask AI: How does reverse DNS lookup work in OSINT?)`;
                 }
+                else if (cmd === 'asn') {
+                    helpMsg = `### 🌐 Command: /asn\n\n`;
+                    helpMsg += `**Usage:** \`/asn <asn_number or ip>\`\n`;
+                    helpMsg += `**Purpose:** Lookup Autonomous System Number (ASN) information to find IP ranges owned by organizations.\n\n`;
+                    helpMsg += `**No API Key Required!** Uses HackerTarget's free API.\n\n`;
+                    helpMsg += `**What you discover:**\n`;
+                    helpMsg += `- Organization name and ASN number\n`;
+                    helpMsg += `- All IP ranges (CIDR blocks) owned by the ASN\n`;
+                    helpMsg += `- Country and registry information (ARIN, RIPE, APNIC)\n`;
+                    helpMsg += `- Allocation dates for IP ranges\n\n`;
+                    helpMsg += `**Input Formats:**\n`;
+                    helpMsg += `- **ASN Number**: \`/asn AS15169\` or \`/asn 15169\` (Google)\n`;
+                    helpMsg += `- **IP Address**: \`/asn 8.8.8.8\` (finds the ASN for that IP)\n\n`;
+                    helpMsg += `**Why it's valuable:**\n`;
+                    helpMsg += `- **Infrastructure Mapping**: See all IP ranges owned by a company\n`;
+                    helpMsg += `- **Network Research**: Understand an organization's internet presence\n`;
+                    helpMsg += `- **Security Audits**: Identify all network assets for a target\n`;
+                    helpMsg += `- **Threat Intelligence**: Track malicious ASNs and their IP ranges\n\n`;
+                    helpMsg += `**About ASN:**\n`;
+                    helpMsg += `An **Autonomous System Number (ASN)** is a unique identifier for a collection of IP networks operated by one or more network operators. `;
+                    helpMsg += `Large organizations like Google (AS15169), Amazon (AS16509), and Cloudflare (AS13335) have their own ASNs. `;
+                    helpMsg += `Universities, ISPs, and hosting providers also typically have dedicated ASNs.\n\n`;
+                    helpMsg += `**Example ASNs:**\n`;
+                    helpMsg += `- AS15169 = Google LLC\n`;
+                    helpMsg += `- AS16509 = Amazon.com, Inc.\n`;
+                    helpMsg += `- AS13335 = Cloudflare, Inc.\n`;
+                    helpMsg += `- AS32934 = Facebook, Inc.\n\n`;
+                    helpMsg += `**Pro Tip:** Once you have IP ranges from an ASN, use \`/geoip <ip>\` to check locations, \`/shodan <ip>\` to scan for services, \`/reverse <ip>\` to find hosted domains, or \`/ports <ip>\` to scan ports (requires authorization).\n\n`;
+                    helpMsg += `[Ask AI about ASN?](Ask AI: What is an Autonomous System Number and how is it used in networking?)`;
+                }
                 else if (cmd === 'ports') {
                     helpMsg = `### 🔌 Command: /ports\n\n`;
                     helpMsg += `**Usage:** \`/ports <ip_or_host> [ports]\`\n`;
@@ -572,6 +603,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- Validate firewall rules and hardening\n`;
                     helpMsg += `- Prioritize follow-up checks (e.g., run \`/shodan <ip>\` or audit SSL/headers on web ports)\n\n`;
                     helpMsg += `[Ask AI about port scanning legality?](Ask AI: When is port scanning allowed?)`;
+                }
+                else if (cmd === 'trace') {
+                    helpMsg = `### 🛰️ Command: /trace\n\n`;
+                    helpMsg += `**Usage:** \`/trace <domain_or_ip>\`\n`;
+                    helpMsg += `**Purpose:** Runs a traceroute to map the network path (hops) from you to the target.\n\n`;
+                    helpMsg += `**What you see:** Hop number, host/IP (when resolvable), and latency.\n`;
+                    helpMsg += `**Limits:** Max 20 hops, 1 probe per hop, ~20s timeout.\n\n`;
+                    helpMsg += `**Tips:**\n`;
+                    helpMsg += `- Use alongside \`/geoip <ip>\` on interesting hops\n`;
+                    helpMsg += `- Compare with \`/shodan <ip>\` on final endpoints\n`;
+                    helpMsg += `- Hops with * are timeouts or filtered\n`;
+                    helpMsg += `- Results depend on your network path and ISP\n\n`;
+                    helpMsg += `**Note:** Some networks rate-limit ICMP/UDP probes, so mid-path hops may show timeouts while the route still succeeds.`;
                 }
                 else if (cmd === 'certs') {
                     helpMsg = `### 📜 Command: /certs\n\n`;
@@ -1627,6 +1671,98 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
+            // 25. ASN Lookup (/asn)
+            if (text.startsWith('/asn')) {
+                setProcessingStatus("Looking up ASN...");
+                const query = text.replace('/asn', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                if (!query) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/asn <number or IP>` (e.g., `/asn AS15169` or `/asn 8.8.8.8`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/asn`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🌐 ASN Lookup: ${res.query}\n\n`;
+
+                    if (res.status === 'not_found') {
+                        msg += `**Status:** ❌ Not Found\n\n`;
+                        msg += `${res.message}\n\n`;
+                        msg += `#### 💡 Troubleshooting\n`;
+                        msg += `- Verify the ASN number (e.g., AS15169) or IP address is correct\n`;
+                        msg += `- Try a different format (with or without "AS" prefix)\n`;
+                        msg += `- Some private or reserved ASNs may not have public data\n`;
+                        msg += `- Try \`/geoip <ip>\` for alternative IP information`;
+                    } else {
+                        msg += `**Primary ASN:** ${res.primary_asn}\n`;
+                        msg += `**Organization:** ${res.organization}\n`;
+                        msg += `**Total IP Ranges:** ${res.total_ranges}\n`;
+                        msg += `**Data Source:** ${res.source}\n\n`;
+
+                        msg += `#### 📊 IP Ranges (CIDR Blocks)\n\n`;
+
+                        // Show first 10 IP ranges
+                        const displayRanges = res.ip_ranges.slice(0, 10);
+                        displayRanges.forEach((range: string) => {
+                            msg += `- \`${range}\`\n`;
+                        });
+
+                        if (res.ip_ranges.length > 10) {
+                            msg += `\n*...and ${res.ip_ranges.length - 10} more ranges*\n`;
+                        }
+
+                        msg += `\n#### 📋 Detailed Entries\n\n`;
+
+                        // Show first 5 detailed entries
+                        const displayEntries = res.entries.slice(0, 5);
+                        displayEntries.forEach((entry: any) => {
+                            msg += `**${entry.network}** (${entry.ip})\n`;
+                            msg += `- ASN: ${entry.asn}\n`;
+                            msg += `- Org: ${entry.organization}\n\n`;
+                        });
+
+                        if (res.entries.length > 5) {
+                            msg += `*...and ${res.entries.length - 5} more entries*\n\n`;
+                        }
+
+                        msg += `#### 🔗 Further Analysis\n`;
+                        msg += `- Use \`/geoip <ip>\` to check geolocation of specific IPs in these ranges\n`;
+                        msg += `- Use \`/shodan <ip>\` to scan for services on IPs in this ASN\n`;
+                        msg += `- Use \`/reverse <ip>\` to find domains hosted on IPs in this ASN\n`;
+                        msg += `- Use \`/ports <ip>\` to scan ports on IPs (requires authorization)\n\n`;
+
+                        msg += `#### ℹ️ About ASN\n`;
+                        msg += `An **Autonomous System Number (ASN)** is a unique identifier for a collection of IP networks operated by one or more network operators. `;
+                        msg += `Large organizations like Google, Amazon, and universities typically have their own ASNs. `;
+                        msg += `This data helps identify who owns and operates specific IP ranges on the internet.`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ ASN Lookup Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // 1. Image Generation (/imagine or Visual Flag)
             // Auto-detect plain English requests for images
             const lowerTextForImages = text.toLowerCase();
@@ -1935,7 +2071,69 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 8. Certificate Transparency (/certs)
+            // 8. Traceroute (/trace)
+            if (text.startsWith('/trace')) {
+                setProcessingStatus("Running traceroute...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const target = text.replace('/trace', '').trim();
+
+                if (!target) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/trace <domain_or_ip>` (e.g., `/trace example.com`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/trace`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ target })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🛰️ Traceroute: ${res.target}\n\n`;
+                    msg += `**Hops:** ${res.total_hops}\n`;
+                    msg += `**Source:** ${res.source}\n\n`;
+                    msg += `#### Path\n`;
+                    msg += '```text\n';
+                    res.hops.forEach((hop: any) => {
+                        const hopNum = hop.hop || '?';
+                        if (hop.status === 'timeout') {
+                            msg += `${hopNum}\t*\t(timeout)\n`;
+                        } else {
+                            const host = hop.host || '';
+                            const ip = hop.ip ? ` (${hop.ip})` : '';
+                            const rtt = hop.rtt_ms != null ? `${hop.rtt_ms} ms` : '';
+                            msg += `${hopNum}\t${host}${ip}\t${rtt}\n`;
+                        }
+                    });
+                    msg += '```\n\n';
+
+                    if (res.note) {
+                        msg += `*Note: ${res.note}*\n\n`;
+                    }
+
+                    msg += `**Tips:** Timeouts mid-path are common; the final hop may still respond. Use \`/geoip <ip>\` or \`/shodan <ip>\` on interesting hops.`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Traceroute Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 9. Certificate Transparency (/certs)
             if (text.startsWith('/certs')) {
                 setProcessingStatus("Querying Certificate Transparency logs...");
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';

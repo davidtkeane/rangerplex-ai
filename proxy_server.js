@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
 import dns from 'dns';
 import tls from 'tls';
 import https from 'https';
@@ -448,6 +449,81 @@ app.post('/v1/messages', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Anthropic proxy error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Ollama API proxy (to bypass CORS and enable M3 -> M4 access)
+app.post('/api/ollama/*', async (req, res) => {
+    try {
+        const ollamaPath = req.params[0];
+        const ollamaHost = req.headers['x-ollama-host'] || 'http://localhost:11434';
+        const url = `${ollamaHost}/api/${ollamaPath}`;
+
+        console.log(`🦙 Proxying Ollama API request to: ${url}`);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(req.body)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Ollama API error:', response.status, errorText);
+            return res.status(response.status).send(errorText);
+        }
+
+        // Set CORS headers
+        res.set({
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': response.headers.get('content-type') || 'application/json',
+            'Cache-Control': 'no-cache'
+        });
+
+        // Stream the response back
+        const reader = response.body.getReader();
+        const pump = async () => {
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (!res.write(value)) {
+                        await new Promise(resolve => res.once('drain', resolve));
+                    }
+                }
+                res.end();
+                console.log('✅ Ollama stream completed');
+            } catch (error) {
+                console.error('❌ Stream pump error:', error);
+                res.end();
+            }
+        };
+        pump();
+
+    } catch (error) {
+        console.error('❌ Ollama proxy error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Ollama tags endpoint (list models)
+app.get('/api/ollama/tags', async (req, res) => {
+    try {
+        const ollamaHost = req.headers['x-ollama-host'] || 'http://localhost:11434';
+        const url = `${ollamaHost}/api/tags`;
+
+        console.log(`🦙 Fetching Ollama models from: ${url}`);
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(data);
+    } catch (error) {
+        console.error('❌ Ollama tags error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1657,6 +1733,99 @@ app.post('/api/tools/ports', async (req, res) => {
     }
 });
 
+// Traceroute
+app.post('/api/tools/trace', async (req, res) => {
+    try {
+        const { target } = req.body;
+        if (!target) return res.status(400).json({ error: 'Target domain or IP is required' });
+
+        const cleanTarget = String(target).trim();
+        const safeTarget = cleanTarget.replace(/[^a-zA-Z0-9:.\-]/g, '');
+        if (!safeTarget || safeTarget !== cleanTarget) {
+            return res.status(400).json({ error: 'Invalid target. Use domain or IP only.' });
+        }
+
+        const isWin = process.platform === 'win32';
+        const cmd = isWin ? 'tracert' : 'traceroute';
+        const args = isWin ? ['-d', '-h', '20', cleanTarget] : ['-m', '20', '-q', '1', cleanTarget];
+
+        const stdoutChunks = [];
+        const stderrChunks = [];
+
+        const child = spawn(cmd, args);
+
+        const killer = setTimeout(() => {
+            child.kill('SIGKILL');
+        }, 20000);
+
+        child.stdout.on('data', (d) => stdoutChunks.push(d.toString()));
+        child.stderr.on('data', (d) => stderrChunks.push(d.toString()));
+
+        child.on('error', (err) => {
+            clearTimeout(killer);
+            console.error('❌ Traceroute spawn error:', err);
+            res.status(500).json({ error: `Traceroute command failed: ${err.message}` });
+        });
+
+        child.on('close', (code) => {
+            clearTimeout(killer);
+            const stdout = stdoutChunks.join('');
+            const stderr = stderrChunks.join('');
+
+            if (!stdout && stderr) {
+                return res.status(500).json({ error: `Traceroute failed: ${stderr.trim() || 'Unknown error'}` });
+            }
+
+            const lines = stdout.split('\n').map(l => l.trim()).filter(Boolean);
+            const hops = [];
+
+            const hopRegex = /^\d+\s+/;
+
+            lines.forEach((line) => {
+                if (!hopRegex.test(line)) return;
+                const numMatch = line.match(/^(\d+)/);
+                const hopNum = numMatch ? parseInt(numMatch[1], 10) : null;
+
+                const isTimeout = line.includes('*');
+                let ip = null;
+                let host = null;
+                const ipMatch = line.match(/(\d{1,3}(?:\.\d{1,3}){3})/);
+                if (ipMatch) {
+                    ip = ipMatch[1];
+                    const hostMatch = line.match(/^\d+\s+([^\s(]+)?/);
+                    host = hostMatch && hostMatch[1] && hostMatch[1] !== ip ? hostMatch[1] : null;
+                }
+
+                const rttMatch = line.match(/(\d+(?:\.\d+)?)\s*ms/);
+                const rtt = rttMatch ? parseFloat(rttMatch[1]) : null;
+
+                hops.push({
+                    hop: hopNum,
+                    host: host || (ip && !isTimeout ? ip : null),
+                    ip: ip || null,
+                    rtt_ms: isTimeout ? null : rtt,
+                    status: isTimeout ? 'timeout' : 'ok'
+                });
+            });
+
+            if (hops.length === 0) {
+                return res.status(500).json({ error: stderr.trim() || 'Traceroute produced no output' });
+            }
+
+            res.json({
+                target: cleanTarget,
+                total_hops: hops.length,
+                hops,
+                source: cmd,
+                note: code !== 0 ? `Traceroute exited with code ${code}` : undefined
+            });
+        });
+    } catch (error) {
+        console.error('❌ Traceroute error:', error);
+        res.status(500).json({ error: error.message || 'Traceroute failed' });
+    }
+});
+
 // Certificate Transparency Lookup (crt.sh)
 app.post('/api/tools/certs', async (req, res) => {
     try {
@@ -2019,6 +2188,100 @@ app.post('/api/tools/screenshot', async (req, res) => {
             error: error.message,
             details: 'Failed to capture screenshot. The URL may be unreachable or blocked.'
         });
+    }
+});
+
+// ASN Lookup (Autonomous System Number)
+app.post('/api/tools/asn', async (req, res) => {
+    try {
+        const { query } = req.body;
+        console.log('🌐 ASN Lookup Request:', query);
+
+        if (!query) {
+            return res.status(400).json({ error: 'ASN or IP address is required' });
+        }
+
+        const cleanQuery = query.trim();
+
+        // HackerTarget ASN Lookup API (free, no key required)
+        const apiUrl = `https://api.hackertarget.com/aslookup/?q=${encodeURIComponent(cleanQuery)}`;
+
+        const response = await fetch(apiUrl, {
+            headers: {
+                'User-Agent': 'RangerPlex-OSINT/2.5.20'
+            }
+        });
+
+        const textData = await response.text();
+
+        // Check for errors
+        if (textData.includes('error') || textData.includes('invalid')) {
+            return res.json({
+                status: 'not_found',
+                query: cleanQuery,
+                message: 'No ASN data found for this query'
+            });
+        }
+
+        // Parse the response (format: "IP","ASN","Network","Name")
+        const lines = textData.trim().split('\n').filter(line => line.length > 0);
+
+        if (lines.length === 0) {
+            return res.json({
+                status: 'not_found',
+                query: cleanQuery,
+                message: 'No ASN data found'
+            });
+        }
+
+        const entries = [];
+        let primaryASN = null;
+        let primaryOrg = null;
+        const ipRanges = [];
+        const organizations = new Set();
+
+        for (const line of lines) {
+            // Parse CSV format: "IP","ASN","Network","Name"
+            const matches = line.match(/"([^"]*)"/g);
+            if (!matches || matches.length < 4) continue;
+
+            const ip = matches[0].replace(/"/g, '');
+            const asn = matches[1].replace(/"/g, '');
+            const network = matches[2].replace(/"/g, '');
+            const name = matches[3].replace(/"/g, '');
+
+            // Store first ASN as primary
+            if (!primaryASN) {
+                primaryASN = 'AS' + asn;
+                primaryOrg = name;
+            }
+
+            ipRanges.push(network);
+            organizations.add(name);
+
+            entries.push({
+                ip: ip,
+                asn: 'AS' + asn,
+                network: network,
+                organization: name
+            });
+        }
+
+        res.json({
+            status: 'found',
+            query: cleanQuery,
+            primary_asn: primaryASN,
+            organization: primaryOrg,
+            total_ranges: ipRanges.length,
+            ip_ranges: ipRanges,
+            organizations: Array.from(organizations),
+            entries: entries,
+            source: 'HackerTarget ASN Lookup'
+        });
+
+    } catch (error) {
+        console.error('❌ ASN Lookup error:', error);
+        res.status(500).json({ error: error.message || 'ASN lookup failed' });
     }
 });
 
