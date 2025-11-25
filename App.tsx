@@ -719,6 +719,7 @@ const App: React.FC = () => {
               showHolidayButtons={settings.showHeaderControls === true}
               onPetCommand={handlePetCommand} // Pass the new pet command handler
               onOpenCanvas={openCanvas} // Pass the canvas opener
+              onOpenStudyClock={() => setIsStudyClockOpen(true)} // Pass the study clock opener
               onOpenManual={() => setIsManualOpen(true)}
               saveImageToLocal={saveImageToLocal} // Pass the image saving function
               petBridge={petBridge}

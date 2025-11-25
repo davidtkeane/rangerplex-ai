@@ -2,6 +2,35 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.11 - "Study Clock Command" 🕐
+*Released: Nov 25, 2025*
+
+**Focus from the Chat.** Added `/study` command to open the Study Clock directly from chat without switching to the sidebar.
+
+### 🕐 Study Clock Integration
+*   **New Command**: `/study`
+*   **Function**: Opens the Study Clock widget with an encouraging message
+*   **Quick Access**: No need to click sidebar button - just type the command
+*   **Motivational Response**: Shows keyboard shortcuts and pro tips when activated
+*   **Discoverability**: Added to `/help` menu under SYSTEM section
+*   **Help Integration**: Type `/help study` for full feature list and usage guide
+
+### 📘 Features Highlighted
+*   🍅 Pomodoro Mode (25-min work, 5-min breaks)
+*   ⚙️ Custom Timers (set any duration)
+*   ⌨️ Keyboard Shortcuts (Space, R, M)
+*   📊 Today's Stats (study time + pomodoros)
+*   🔔 Desktop Notifications
+*   💾 3-Tier Persistence
+
+### ⚙️ Files Modified
+*   `App.tsx` - Added `onOpenStudyClock` prop to ChatInterface
+*   `components/ChatInterface.tsx` - Added `/study` command handler with motivational message
+*   `components/Sidebar.tsx` - Version bump to 2.5.11
+*   `services/dbService.ts` - Export metadata version bump to 2.5.11
+*   `package.json` - Version bump to 2.5.11
+*   `README.md` - Version badge updated to 2.5.11
+
 ## v2.5.10 - "In-App Manual & /manual Command" 📘
 *Released: Nov 25, 2025*
 
@@ -21,6 +50,20 @@
 *   `services/dbService.ts` - Export metadata version bump to 2.5.10.
 *   `package.json` - Version bump to 2.5.10.
 *   `README.md` - Version badge updated to 2.5.10.
+
+## v2.5.11 - "HD Wallet Ready" 🏦
+*Released: Nov 25, 2025*
+
+**Smarter Blockchain Analysis.** The Wallet Inspector now includes critical guidance on Hierarchical Deterministic (HD) wallets to prevent confusion.
+
+### 🏦 Wallet Inspector Upgrade
+*   **HD Wallet Awareness**: Added comprehensive help documentation explaining why single-address scans might show 0 BTC for HD wallets (Sparrow/Electrum).
+*   **Help System Fix**: Resolved a UI glitch where the Profile command help was merged with Wallet help.
+*   **Verified Accuracy**: Validated against real-world Sparrow Wallet UTXO data.
+
+### ⚙️ Files Modified
+*   `components/ChatInterface.tsx` - Updated `/help wallet` and fixed `/help profile`.
+*   `package.json` - Version bump to 2.5.11.
 
 ## v2.5.10 - "Wallet Inspector" 🏦
 *Released: Nov 25, 2025*

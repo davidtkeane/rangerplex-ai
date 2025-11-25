@@ -40,6 +40,7 @@ interface ChatInterfaceProps {
     showHolidayButtons: boolean;
     onPetCommand: () => void; // New prop
     onOpenCanvas?: () => void; // Canvas Easter egg
+    onOpenStudyClock?: () => void; // Study Clock opener
     onOpenManual?: () => void; // Manual viewer
     saveImageToLocal: (url?: string) => Promise<string | undefined>;
     petBridge?: {
@@ -63,6 +64,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     showHolidayButtons,
     onPetCommand, // Destructure new prop
     onOpenCanvas, // Destructure Canvas opener
+    onOpenStudyClock, // Destructure Study Clock opener
     onOpenManual,
     saveImageToLocal,
     petBridge
@@ -186,6 +188,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             return; // Don't process as normal message
         }
 
+        // 🕐 STUDY CLOCK: Type "/study" to open Study Clock
+        if (lowerText.trim() === '/study' && onOpenStudyClock) {
+            onOpenStudyClock();
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '🕐 **Study Clock Activated!**\n\nTime to focus, Ranger! 🎖️\n\nYour study timer is now open and ready to go. Hit **Start** when you\'re ready to begin your session.\n\n*Pro Tip: Use keyboard shortcuts - Space (Play/Pause), R (Reset), M (Minimize)*',
+                    timestamp: Date.now()
+                }
+            ]);
+            return; // Don't process as normal message
+        }
+
         const docAttachments = attachments.filter(att => !att.mimeType.startsWith('image/'));
         const imageAttachments = attachments.filter(att => att.mimeType.startsWith('image/'));
 
@@ -278,6 +295,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `\`\`\`text\n`;
                     helpMsg += `╔════ SYSTEM ══════════════════════════════════╗\n`;
                     helpMsg += `║ 💠  ABOUT       :: /about                   ║\n`;
+                    helpMsg += `║ 🕐  STUDY       :: /study                   ║\n`;
                     helpMsg += `╠════ INTELLIGENCE MODULES ════════════════════╣\n`;
                     helpMsg += `║ 🕵️  PROFILER    :: /profile <domain>        ║\n`;
                     helpMsg += `║ 👁️  SHODAN      :: /shodan <ip>             ║\n`;
@@ -309,6 +327,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- The mission to help 1.3 billion people worldwide\n\n`;
                     helpMsg += `*Perfect for new users who want to understand what makes RangerPlex special!*`;
                 }
+                else if (cmd === 'study') {
+                    helpMsg = `### 🕐 Command: /study\n\n`;
+                    helpMsg += `**Usage:** \`/study\`\n`;
+                    helpMsg += `**Purpose:** Opens the Study Clock - a Pomodoro timer designed to help you focus and track your study sessions.\n\n`;
+                    helpMsg += `**Features:**\n`;
+                    helpMsg += `- 🍅 **Pomodoro Mode**: 25-minute work sessions with 5-minute breaks\n`;
+                    helpMsg += `- ⚙️ **Custom Timers**: Set any duration you need\n`;
+                    helpMsg += `- ⌨️ **Keyboard Shortcuts**: Space (Play/Pause), R (Reset), M (Minimize)\n`;
+                    helpMsg += `- 📊 **Today's Stats**: Track total study time and pomodoros completed\n`;
+                    helpMsg += `- 🔔 **Notifications**: Desktop alerts when sessions complete\n\n`;
+                    helpMsg += `*Pro Tip: The Study Clock uses 3-Tier Persistence - your progress is never lost!*`;
+                }
                 else if (cmd === 'sherlock') {
                     helpMsg = `### 🔎 Command: /sherlock\n\n`;
                     helpMsg += `**Usage:** \`/sherlock <username>\`\n`;
@@ -323,6 +353,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Requires:** Shodan API Key (Free) in Settings.\n`;
                     helpMsg += `**Pro Tip:** Use this to check your own server's exposure or analyze suspicious IPs found in logs.\n\n`;
                     helpMsg += `[Ask AI to explain Shodan further?](Ask AI: What is Shodan and how do hackers use it?)`;
+                }
+                else if (cmd === 'wallet') {
+                    helpMsg = `### 🏦 Command: /wallet\n\n`;
+                    helpMsg += `**Usage:** \`/wallet <btc_address>\`\n`;
+                    helpMsg += `**Purpose:** Inspects a *single* Bitcoin address for balance and history.\n\n`;
+                    helpMsg += `**⚠️ Note on HD Wallets (Sparrow/Electrum):**\n`;
+                    helpMsg += `Modern wallets generate a new address for every transaction. This tool only scans the **specific address** you provide, not your entire wallet (xPub). If you see 0 BTC, your funds might be in a different address or a "change address" within your wallet.\n\n`;
+                    helpMsg += `[Ask AI about HD Wallets?](Ask AI: How do HD Wallets and xPub keys work?)`;
                 }
                 else if (cmd === 'profile') {
                     helpMsg = `### 🕵️ Command: /profile\n\n`;

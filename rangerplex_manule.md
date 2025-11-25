@@ -79,6 +79,11 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 ## Study Tools
 - **Study Clock:** Floating timer with customizable durations, quick +/- buttons, work/break cycles, session stats. Saves sessions to IndexedDB and (optionally) sync.
 - **Notes / Study Notes:** Send any message to notes via “Make Note” button; manage in Notes view.
+- **/study Command:** Type `/study` to open the Study Clock instantly. AI replies with encouragement and keyboard shortcuts (Space: play/pause, R: reset, M: minimize). Also discoverable via `/help` (SYSTEM section) and `/help study` for full docs.
+  - 🍅 Pomodoro mode (25/5) + custom timers
+  - ⌨️ Shortcuts: Space, R, M
+  - 📊 Today’s stats, 🔔 desktop notifications (where supported)
+  - 💾 3-tier persistence (local + sync if enabled)
 
 ## Vision Mode & Holiday FX
 - **Ranger Vision Mode:** Toggle to overlay special visuals; launch via sidebar/action.  
