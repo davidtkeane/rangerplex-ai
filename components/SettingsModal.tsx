@@ -160,6 +160,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         }
     };
 
+    const fetchOllamaModelsOnly = async () => {
+        try {
+            const ollama = await fetchOllamaModels(localSettings.ollamaBaseUrl);
+            if (ollama.length > 0) {
+                setLocalSettings(prev => ({
+                    ...prev,
+                    availableModels: {
+                        ...prev.availableModels,
+                        ollama: ollama
+                    }
+                }));
+                // Auto-set the first model if current one isn't in the list
+                if (!ollama.includes(localSettings.ollamaModelId)) {
+                    setLocalSettings(prev => ({ ...prev, ollamaModelId: ollama[0] }));
+                }
+                console.log(`✅ Fetched ${ollama.length} Ollama model(s):`, ollama);
+            } else {
+                console.warn('⚠️ Ollama: No models found. Pull a model first with "ollama pull <model>".');
+            }
+        } catch (e) {
+            console.error('Failed to fetch Ollama models:', e);
+        }
+    };
+
     const checkProxyStatus = async () => {
         setProxyStatus('checking');
         try {
@@ -837,15 +861,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     />
                                     <div>
                                         <label className="block text-xs font-bold mb-1 opacity-80">
-                                            <i className="fa-solid fa-microchip w-4"></i> Ollama Model ID
+                                            <i className="fa-solid fa-microchip w-4"></i> Ollama Model
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={localSettings.ollamaModelId}
-                                            onChange={e => setLocalSettings({ ...localSettings, ollamaModelId: e.target.value })}
-                                            className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
-                                            placeholder="e.g. deepseek-r1:14b, llama3, qwen2.5:72b"
-                                        />
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={localSettings.ollamaModelId}
+                                                onChange={e => setLocalSettings({ ...localSettings, ollamaModelId: e.target.value })}
+                                                className={`flex-1 rounded px-4 py-2 outline-none ${inputClass}`}
+                                            >
+                                                {localSettings.availableModels.ollama.length === 0 && (
+                                                    <option value="">No models - click Refresh</option>
+                                                )}
+                                                {localSettings.availableModels.ollama.map(m => (
+                                                    <option key={m} value={m}>{m}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={fetchOllamaModelsOnly}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold uppercase hover:bg-blue-500 transition-colors flex items-center gap-2"
+                                                title="Refresh model list from Ollama"
+                                            >
+                                                <i className="fa-solid fa-sync"></i>
+                                                Refresh
+                                            </button>
+                                        </div>
                                         <p className="text-[10px] opacity-60 mt-1">
                                             💡 <strong>Tip:</strong> Use <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3010/api/ollama</code> as Base URL (proxy) instead of <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:11434</code> (direct) to avoid CORS errors.
                                         </p>

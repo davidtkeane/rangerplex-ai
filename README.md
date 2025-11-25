@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.26-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.27-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -912,6 +912,38 @@ Pros/cons and data/UX notes are in that doc.
 *   **Fix**: Your keys are safe! Either:
     - Re-enter them in Settings (they'll be saved to IndexedDB + Server)
     - Or add them to `.env` file (they'll auto-load as defaults)
+
+### "LM Studio says 'invalid model ID'"
+*   **Cause**: Models with "gpt" in their name (e.g., `openai/gpt-oss-20b`) were being routed to OpenAI instead of LM Studio.
+*   **Fix**: Update to v2.5.27 or later. The routing logic now checks LM Studio models before checking for "gpt" in the model name.
+*   **Workaround** (older versions): Use models without "gpt" in their name.
+
+### "Port 3010 already in use (EADDRINUSE)"
+*   **Cause**: A previous instance of the proxy server is still running.
+*   **Fix**:
+    ```bash
+    # Kill the process using port 3010
+    lsof -ti:3010 | xargs kill -9
+    # Then restart
+    npm start
+    ```
+
+### "better-sqlite3 version mismatch (NODE_MODULE_VERSION)"
+*   **Cause**: The native module was compiled for a different Node.js version.
+*   **Error**: `was compiled against NODE_MODULE_VERSION 141. This version requires 127`
+*   **Fix**:
+    ```bash
+    rm -rf node_modules/better-sqlite3
+    npm install better-sqlite3
+    ```
+
+### "Ollama says 'Not Found'"
+*   **Cause**: The configured model doesn't exist in Ollama.
+*   **Fix**:
+    1. Go to Settings → Ollama tab
+    2. Click the **Refresh** button to fetch available models
+    3. Select an installed model from the dropdown
+    4. If empty, pull a model first: `ollama pull llama3`
 
 ---
 

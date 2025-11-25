@@ -115,10 +115,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         onUpdateModel(model);
         setIsDropdownOpen(false);
 
-        // Trigger loading effect for Ollama models
-        if (settings.availableModels.ollama.includes(model) && settings.ollamaLoadingEffect !== 'none') {
+        // Trigger loading effect for any model change
+        if (settings.ollamaLoadingEffect !== 'none') {
             setIsModelLoading(true);
-            setTimeout(() => setIsModelLoading(false), 3000); // Simulate 3s load time
+            setTimeout(() => setIsModelLoading(false), 2000); // 2s display time
         }
     };
 
@@ -2854,6 +2854,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 const res = await streamPerplexityResponse(textToSend, session.messages, modelToUse, settings.perplexityApiKey || '',
                     (txt, sources) => onUpdateMessages([...currentMessages, { ...aiPlaceholder, text: txt, isThinking: false, groundingSources: sources }]));
                 finalParams(res.text, {}, res.sources);
+            } else if ((modelToUse === ModelType.LMSTUDIO || settings.availableModels.lmstudio.includes(modelToUse)) && !isPetChat) {
+                // LM Studio - check BEFORE OpenAI since LM Studio models might contain "gpt" in their names
+                const promptWithSearch = (searchContext || studyContextText)
+                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
+                    : textToSend;
+                const actualModelId = modelToUse === ModelType.LMSTUDIO ? settings.lmstudioModelId : modelToUse;
+                const res = await streamLMStudioResponse(promptWithSearch, imageAttachments, session.messages, settings.lmstudioBaseUrl, actualModelId, relevantContext, commonParams, settings.modelParams);
+                finalParams(res.text, res.usage);
             } else if ((modelToUse.includes('gpt') || modelToUse.includes('o1')) && !isPetChat) {
                 const promptWithSearch = (searchContext || studyContextText)
                     ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
@@ -2873,14 +2881,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 // Hugging Face
                 const res = await generateHFChat(textToSend, session.messages, modelToUse, settings.huggingFaceApiKey || '');
                 finalParams(res, {});
-            } else if ((modelToUse === ModelType.LMSTUDIO || settings.availableModels.lmstudio.includes(modelToUse)) && !isPetChat) {
-                // LM Studio - check both enum and actual model names
-                const promptWithSearch = (searchContext || studyContextText)
-                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
-                    : textToSend;
-                const actualModelId = modelToUse === ModelType.LMSTUDIO ? settings.lmstudioModelId : modelToUse;
-                const res = await streamLMStudioResponse(promptWithSearch, imageAttachments, session.messages, settings.lmstudioBaseUrl, actualModelId, relevantContext, commonParams, settings.modelParams);
-                finalParams(res.text, res.usage);
             } else if (modelToUse === ModelType.LOCAL || (!modelToUse.includes('gemini') && !isPetChat)) {
                 const promptWithSearch = (searchContext || studyContextText)
                     ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`

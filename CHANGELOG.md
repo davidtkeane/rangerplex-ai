@@ -2,6 +2,41 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.27 - "Local AI Polish" 🔧
+*Released: Nov 25, 2025*
+
+**Critical routing fix & UX improvements for local AI providers.** Fixed a bug where LM Studio models containing "gpt" in their names were incorrectly routed to OpenAI. Added Ollama model refresh button and extended the beautiful loading effect to all model changes.
+
+### 🐛 Critical Bug Fix
+*   **LM Studio "Invalid Model ID" Error** (`components/ChatInterface.tsx:2857-2864`):
+    - **Issue**: Models like `openai/gpt-oss-20b` showed "invalid model ID" error
+    - **Root Cause**: Routing checked for "gpt" in model name BEFORE checking LM Studio
+    - **Fix**: Moved LM Studio check before OpenAI check in routing logic
+    - This was a **blocking bug** preventing use of many popular LM Studio models
+
+### ✨ New Features
+*   **Ollama Model Refresh Button** (`components/SettingsModal.tsx:866-886`):
+    - New dropdown selector for Ollama models (was text input)
+    - "Refresh" button fetches available models from Ollama server
+    - Auto-selects first model if current selection doesn't exist
+    - Matches LM Studio settings UX
+*   **Universal Model Loading Effect** (`components/ChatInterface.tsx:118-122`):
+    - Loading animation now shows for ALL model changes (was Ollama-only)
+    - Applies to Gemini, OpenAI, Claude, Grok, LM Studio, Ollama, etc.
+    - Reduced duration to 2s (was 3s) for snappier feel
+
+### 🔧 Developer Notes
+*   Added `fetchOllamaModelsOnly()` function to SettingsModal
+*   Model routing order is now: Perplexity → **LM Studio** → OpenAI → Claude → Grok → HuggingFace → Ollama → Gemini
+
+### 📚 Documentation
+*   **Bug Fixes Doc** (`docs/BUGFIXES-2025-11-25.md`): **NEW FILE**
+    - Detailed documentation of all issues and fixes
+    - Includes troubleshooting for common errors (EADDRINUSE, better-sqlite3)
+    - Testing checklist
+
+---
+
 ## v2.5.26 - "LM Studio Integration" 🤖
 *Released: Nov 25, 2025*
 
