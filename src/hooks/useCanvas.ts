@@ -78,6 +78,10 @@ export const useCanvas = () => {
 
     const ctx = canvasRef.current.getContext('2d');
     if (ctx) {
+      // Ensure we start with the correct mode. If we don't have a tool yet, default to source-over.
+      // But usually, draw() is called immediately after with the tool.
+      // Safest is to reset to source-over here to avoid "stuck" eraser mode from previous sessions.
+      ctx.globalCompositeOperation = 'source-over';
       ctx.beginPath();
       ctx.moveTo(point.x, point.y);
     }
@@ -88,6 +92,10 @@ export const useCanvas = () => {
 
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
+
+    // IMPORTANT: Reset composite operation if switching tools mid-stream (rare but possible)
+    // or if the context state was lost.
+    ctx.globalCompositeOperation = tool.type === 'eraser' ? 'destination-out' : 'source-over';
 
     lastToolRef.current = tool;
     applyToolSettings(ctx, tool);
