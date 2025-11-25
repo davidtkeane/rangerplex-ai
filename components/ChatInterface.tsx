@@ -311,6 +311,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🦠  VIRUS_SCAN  :: /scan <url>              ║\n`;
                     helpMsg += `╠════ RECONNAISSANCE ══════════════════════════╣\n`;
                     helpMsg += `║ 📡  WHOIS       :: /whois <domain>          ║\n`;
+                    helpMsg += `║ 🌍  GEOIP       :: /geoip <ip>              ║\n`;
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
@@ -373,6 +374,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Purpose:** Extracts hidden metadata (EXIF) from images, including GPS coordinates, camera model, software used, and timestamps.\n\n`;
                     helpMsg += `**Pro Tip:** Use this on photos from social media or suspicious websites to find the original source location.\n\n`;
                     helpMsg += `[Ask AI about Digital Forensics?](Ask AI: How does EXIF data help in investigations?)`;
+                }
+                else if (cmd === 'geoip') {
+                    helpMsg = `### 🌍 Command: /geoip\n\n`;
+                    helpMsg += `**Usage:** \`/geoip <ip_address>\`\n`;
+                    helpMsg += `**Purpose:** Pinpoints the physical location of an IP address, including City, Country, ISP, and Organization.\n\n`;
+                    helpMsg += `**Pro Tip:** Use this to trace the origin of suspicious login attempts or server attacks.\n\n`;
+                    helpMsg += `[Ask AI about IP Tracking?](Ask AI: How accurate is IP geolocation?)`;
                 }
                 else if (cmd === 'profile') {
                     helpMsg = `### 🕵️ Command: /profile\n\n`;
@@ -615,6 +623,42 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: `❌ Wallet Scan Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 15. IP Geolocation (/geoip)
+            if (text.startsWith('/geoip')) {
+                setProcessingStatus("Locating Target...");
+                const ip = text.replace('/geoip', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/geoip`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🌍 GeoIP Intelligence: ${res.query}\n\n`;
+                    msg += `**📍 Location:** ${res.city}, ${res.regionName}, ${res.country} (${res.countryCode})\n`;
+                    msg += `**🏢 ISP:** ${res.isp}\n`;
+                    msg += `**🏢 Organization:** ${res.org}\n`;
+                    msg += `**📡 AS Number:** ${res.as}\n`;
+                    msg += `**🗺️ Coordinates:** ${res.lat}, ${res.lon}\n`;
+                    msg += `**🕒 Timezone:** ${res.timezone}\n\n`;
+                    msg += `[View on Google Maps](https://www.google.com/maps?q=${res.lat},${res.lon})`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ GeoIP Failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);

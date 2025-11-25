@@ -969,6 +969,29 @@ app.post('/api/tools/exif', async (req, res) => {
     }
 });
 
+// 9. IP Geolocation (ip-api.com)
+app.post('/api/tools/geoip', async (req, res) => {
+    try {
+        const { ip } = req.body;
+        if (!ip) return res.status(400).json({ error: 'Missing IP address' });
+
+        console.log('🌍 GeoIP Check:', ip);
+
+        const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
+        const data = await response.json();
+
+        if (data.status === 'fail') {
+            return res.status(404).json({ error: data.message });
+        }
+
+        res.json(data);
+
+    } catch (error) {
+        console.error('❌ GeoIP error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // WebSocket Server
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
