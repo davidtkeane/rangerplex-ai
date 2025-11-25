@@ -2,7 +2,29 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.5.2 - "Copy Parity & UX Polish" (Current) ✨
+## v2.5.3 - "The Eye of God" 👁️
+*Released: Nov 25, 2025*
+
+**Complete Situational Awareness.** This update adds the final pieces to the security suite: Shodan for infrastructure reconnaissance and Have I Been Pwned for identity defense.
+
+### 👁️ New Intelligence Tools
+*   **Shodan Integration**: Added `/shodan <ip>` command.
+    *   **"The Search Engine for Hackers"**: Scans IP addresses for open ports, services, OS details, and vulnerabilities.
+    *   **Deep Intel**: Reveals what a server is actually running (e.g., Apache, Nginx, webcams) and any known CVEs.
+    *   *Requires a free Shodan API key.*
+*   **Identity Defense**: Added `/breach <email>` command.
+    *   **Have I Been Pwned**: Checks if an email address has appeared in known data breaches.
+    *   **Detailed Reports**: Lists specific breaches, dates, and exactly what data was compromised (passwords, phone numbers, etc.).
+    *   *Requires a free HIBP API key.*
+
+### ⚙️ Files Modified
+*   `components/ChatInterface.tsx` - Added `/shodan` and `/breach` command logic.
+*   `components/SettingsModal.tsx` - Added API key inputs for Shodan and HIBP.
+*   `proxy_server.js` - Added secure proxy endpoints for Shodan and HIBP.
+*   `types.ts` - Updated settings interfaces.
+*   `package.json` - Version bump to 2.5.3.
+
+## v2.5.2 - "Copy Parity & UX Polish" ✨
 *Released: Nov 25, 2025*
 
 **Copy controls now match for you and the AI.** Added quick copy buttons under every message (user + AI) and a “copy last message” control under the chat box for fast sharing.

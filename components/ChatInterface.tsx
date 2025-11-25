@@ -473,6 +473,64 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
+            // 7. Shodan Lookup (/shodan)
+            if (text.startsWith('/shodan')) {
+                if (!settings.shodanApiKey) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: "⚠️ Please configure your Shodan API Key in Settings > Providers to use this feature.", timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+
+                setProcessingStatus("Scanning Shodan...");
+                const ip = text.replace('/shodan', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/tools/shodan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ip, apiKey: settings.shodanApiKey })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) throw new Error(result.error);
+
+                    let msg = `### 👁️ Shodan Intel: ${ip}\n\n`;
+                    msg += `**Organization:** ${result.org || 'Unknown'}\n`;
+                    msg += `**OS:** ${result.os || 'Unknown'}\n`;
+                    msg += `**Ports:** ${result.ports?.join(', ') || 'None'}\n\n`;
+
+                    if (result.vulns?.length) {
+                        msg += `**⚠️ Vulnerabilities:**\n${result.vulns.slice(0, 5).map((v: string) => `- ${v}`).join('\n')}\n`;
+                        if (result.vulns.length > 5) msg += `*(and ${result.vulns.length - 5} more)*\n`;
+                        msg += '\n';
+                    }
+
+                    if (result.data?.length) {
+                        msg += `**Services:**\n`;
+                        result.data.slice(0, 3).forEach((service: any) => {
+                            msg += `- **Port ${service.port}** (${service.transport}): ${service.product || 'Unknown'}\n`;
+                        });
+                    }
+
+                    msg += `\n[View Full Report](https://www.shodan.io/host/${ip})`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Shodan Lookup Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // --- STANDARD CHAT FLOW ---
 
             // RAG Ingestion
@@ -714,12 +772,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         onClick={handleCopyLastMessage}
                         disabled={!lastMessageText}
                         className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${lastMessageText
-                                ? isTron
-                                    ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
-                                    : settings.matrixMode
-                                        ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
-                                        : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
-                                : 'border-zinc-800 text-zinc-600 cursor-not-allowed'
+                            ? isTron
+                                ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
+                                : settings.matrixMode
+                                    ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
+                                    : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
+                            : 'border-zinc-800 text-zinc-600 cursor-not-allowed'
                             }`}
                         title="Copy the most recent chat message"
                     >

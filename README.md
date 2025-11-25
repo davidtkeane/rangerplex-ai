@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.2-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.3-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -39,7 +39,9 @@ It runs locally on your machine (`localhost`), stores data privately in your bro
 
 ### 🛠️ The Tools
 *   **VirusTotal Scanner** 🛡️: Check URLs for malware and phishing directly in chat using the `/scan <url>` command.
-*   **Domain Recon** 🕵️:
+*   **Shodan Intel** 👁️: Scan IPs for open ports, vulnerabilities, and services using `/shodan <ip>`.
+*   **Identity Defense** 🕵️: Check if an email has been compromised in data breaches using `/breach <email>` (via Have I Been Pwned).
+*   **Domain Recon** 📡:
     *   `/whois <domain>`: Get registration details, expiry dates, and registrar info.
     *   `/dns <domain>`: Fetch technical DNS records (A, MX, TXT, NS) for infrastructure analysis.
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.

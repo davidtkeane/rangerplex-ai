@@ -658,6 +658,34 @@ app.post('/api/tools/breach', async (req, res) => {
     }
 });
 
+// Shodan Host Lookup Tool
+app.post('/api/tools/shodan', async (req, res) => {
+    try {
+        const { ip, apiKey } = req.body;
+        if (!ip || !apiKey) return res.status(400).json({ error: 'Missing ip or apiKey' });
+
+        console.log('👁️ Shodan Lookup:', ip);
+
+        const response = await fetch(`https://api.shodan.io/shodan/host/${ip}?key=${apiKey}`);
+
+        if (response.status === 404) {
+            return res.status(404).json({ error: 'IP not found in Shodan database' });
+        }
+
+        if (!response.ok) {
+            const errText = await response.text();
+            return res.status(response.status).json({ error: `Shodan Error: ${errText}` });
+        }
+
+        const data = await response.json();
+        res.json(data);
+
+    } catch (error) {
+        console.error('❌ Shodan error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // WebSocket Server
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
