@@ -2,6 +2,24 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.4.14 - "Final Polish & Release Candidate" 🚀
+*Released: Nov 25, 2025*
+
+**The final polish before public release!** This update streamlines the Radio Player experience by removing problematic auto-play features that conflict with modern browser policies, ensuring a smooth, error-free startup every time.
+
+### 📻 Radio Player Refinement
+*   **Removed Auto-Play**: Deprecated the "Auto-play on startup" feature. Browser policies strictly block audio from playing without user interaction, causing confusion and "spinning wheel" errors.
+*   **Startup Fix**: Fixed a race condition where the radio player would show a loading spinner indefinitely on page refresh. The player now correctly initializes in a "ready" state, waiting for user input.
+*   **Cleaned Settings**: Removed the obsolete auto-play toggle from the Settings menu to prevent user confusion.
+
+### ⚙️ Files Modified
+*   `components/RadioPlayer.tsx` - Logic improvements for startup state.
+*   `components/SettingsModal.tsx` - Removed deprecated UI elements.
+*   `types.ts` - Cleaned up obsolete type definitions.
+*   `package.json` - Version bump to 2.4.14.
+
+---
+
 ## v2.4.13 - "Radio Polish & Security Audit" (Current) 📻
 *Released: Nov 25, 2025*
 
