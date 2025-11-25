@@ -2,6 +2,256 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.26 - "LM Studio Integration" 🤖
+*Released: Nov 25, 2025*
+
+**LM Studio Local AI Provider.** Added full LM Studio integration as a second local AI provider alongside Ollama. Users can now run multiple local AI providers simultaneously (Ollama on M4 Max, LM Studio on M3 Mac). Professional implementation with proxy support, auto-sync, and comprehensive error handling.
+
+### 🤖 LM Studio Integration
+*   **Service Layer** (`services/lmstudioService.ts:1-139`): **NEW FILE**
+    - `streamLMStudioResponse()` - Streams chat responses from LM Studio
+    - `fetchLMStudioModels()` - Gets available models from LM Studio server
+    - `checkLMStudioConnection()` - Tests server connectivity & checks for loaded models
+    - OpenAI-compatible API wrapper (reuses `openaiService.ts`)
+    - Enhanced error messages for common issues (server not running, model not loaded, CORS)
+    - No API key required (local server)
+*   **Proxy Support** (`proxy_server.js:534-603`): **70 lines added**
+    - New endpoint: `/api/lmstudio/*` - Full proxy for LM Studio API
+    - Bypasses CORS restrictions (same pattern as Ollama)
+    - Handles streaming responses with backpressure management
+    - Supports both GET and POST methods
+    - Enables network access (M3 → M4 Max setups)
+    - Default forwards to `http://localhost:1234/v1`
+*   **OpenAI Service Enhancement** (`services/openaiService.ts:4-13`):
+    - Added optional `baseUrl` parameter (defaults to OpenAI API)
+    - Now supports ANY OpenAI-compatible server (LM Studio, LocalAI, Oobabooga, etc.)
+*   **Model Registry** (`services/modelRegistry.ts:35-41`):
+    - Added `fetchLMStudioModels()` - Fetches models via `/v1/models` endpoint
+    - Returns empty array on error (graceful degradation)
+*   **Chat Interface Routing** (`components/ChatInterface.tsx:2714-2721`): **CRITICAL FIX**
+    - Fixed model routing bug: Now checks `settings.availableModels.lmstudio.includes(modelToUse)`
+    - Previously only checked enum, causing "Ollama API Error" when selecting LM Studio models
+    - Passes actual model name (e.g., `deepseek-r1-0528-qwen3-8b-mlx`) to service
+    - This was the final bug that prevented LM Studio from working!
+*   **Settings UI** (`components/SettingsModal.tsx:875-970`): **95+ lines added**
+    - New **"LMSTUDIO"** tab in Settings
+    - Yellow warning box with step-by-step setup instructions
+    - Connection settings (Base URL, Model ID)
+    - Test connection button (checks server AND loaded models)
+    - Manual refresh models button
+    - About LM Studio section (info + website link)
+    - Auto-sync models when tab opens (no manual refresh needed!)
+*   **Type Definitions** (`types.ts:219-220, 367-368, 400`):
+    - Added `ModelType.LMSTUDIO` enum
+    - Added `lmstudioBaseUrl` and `lmstudioModelId` to AppSettings
+    - Added `lmstudio: string[]` to availableModels
+    - Default Base URL: `http://localhost:3010/api/lmstudio` (via proxy)
+    - Default models: `[]` (auto-populated from server)
+
+### ✅ Features Supported
+*   ✅ Streaming responses (real-time output)
+*   ✅ Conversation history (multi-turn chats)
+*   ✅ Web search integration (🌐 WEB button)
+*   ✅ Document context (RAG support)
+*   ✅ Image attachments (if model supports vision)
+*   ✅ Custom model parameters (temperature, top_p, max tokens)
+*   ✅ Token counting (input/output tracking)
+*   ✅ Connection testing (verifies server + loaded models)
+*   ✅ Auto model discovery (lists loaded models)
+*   ✅ Auto-sync on settings open (no manual refresh!)
+*   ✅ Multiple models support (can load 3+ models simultaneously)
+*   ✅ Network access via proxy (multi-device setups)
+
+### 🐛 Bugs Fixed
+*   **Model Routing Bug**: Fixed selection of LM Studio models from dropdown
+    - Issue: Selecting `deepseek-r1-0528-qwen3-8b-mlx` → "Ollama API Error"
+    - Root cause: Code only checked enum, not actual model names
+    - Fix: Check `settings.availableModels.lmstudio.includes(modelToUse)`
+*   **CORS Policy Block**: Added proxy endpoint to bypass browser CORS restrictions
+*   **Placeholder Models**: Removed fake placeholder models, now auto-syncs from server
+*   **Error Messages**: Enhanced error messages for common issues (server not running, model not loaded)
+
+### 📚 Documentation
+*   **Setup Guide** (`docs/LM_STUDIO_SETUP_GUIDE.md`): **NEW FILE - 350+ lines**
+    - Quick start guide (7 steps)
+    - Troubleshooting (8 common issues with solutions)
+    - Advanced configuration (network access, multiple models)
+    - Performance tips for M3/M4 Max
+    - Ollama vs LM Studio comparison
+    - Recommended workflows and models
+    - Error messages explained
+*   **Integration Summary** (`docs/LM_STUDIO_INTEGRATION_SUMMARY.md`): **NEW FILE - 500+ lines**
+    - Complete technical overview
+    - Architecture breakdown
+    - Files modified summary (1,143 lines total)
+    - Testing results (DeepSeek R1 8B on M4 Max)
+    - Issues encountered & fixes
+    - Lessons learned
+    - Future enhancements
+
+### 🧪 Testing Results
+*   **Test Date**: November 25, 2025
+*   **Test System**: M4 Max Mac with 128GB RAM
+*   **Models Tested**: DeepSeek R1 8B MLX, Nomic Embed v1.5, Gemma 3 12B
+*   **Result**: ✅ **FULLY OPERATIONAL**
+*   **Tested By**: David Keane (IrishRanger IR240474)
+
+### 💡 Usage Example
+```
+1. Install LM Studio from https://lmstudio.ai
+2. Download and LOAD a model (e.g., DeepSeek R1 8B)
+3. START SERVER in LM Studio (port 1234)
+4. RangerPlex Settings → LMSTUDIO tab
+5. Base URL: http://localhost:3010/api/lmstudio
+6. Click Test button → Should show GREEN ✓
+7. Select model from dropdown and chat!
+```
+
+### 🎖️ Dual Local AI Power
+Users can now run:
+- **Ollama** on M4 Max (heavy models like 70B)
+- **LM Studio** on M3 Mac (lighter models like 7B-13B)
+- **RangerPlex** talks to BOTH simultaneously!
+
+---
+
+## v2.5.25 - "Nmap Integration & UX Improvements" 🎯
+*Released: Nov 25, 2025*
+
+**Nmap Network Scanner Integration + Auto-Update + First-Run Experience.** Added native `/nmap` command for comprehensive port scanning, one-click auto-updates from Settings, and improved onboarding flow for fresh installations. Perfect for TryHackMe, CTF competitions, and multi-machine setups.
+
+### 🎯 Nmap Integration
+*   **Command**: `/nmap <target> [flags]` - Full-featured Nmap integration for network reconnaissance
+*   **Backend Implementation** (`proxy_server.js:1832-1962`):
+    - New endpoint: `POST /api/tools/nmap`
+    - Whitelisted flags only: `-A`, `-sV`, `-sC`, `-p-`, `-p`, `-Pn`, `-T4`, `-v`
+    - Target sanitization (regex validation prevents command injection)
+    - 60-second timeout per scan
+    - Smart output parsing (extracts ports, services, OS info, latency)
+    - Graceful error handling (detects if nmap not installed)
+    - Returns structured JSON + raw nmap output
+*   **Frontend Handler** (`ChatInterface.tsx:2136-2215`):
+    - Usage examples in error messages
+    - Status indicator: "Running nmap scan..."
+    - Beautiful markdown table output with emoji indicators (🟢 open, 🟡 filtered, 🔴 closed)
+    - Displays scan info, open ports count, service details
+    - Includes raw nmap output in code block for advanced analysis
+*   **Help Menu**: Added `/nmap` to `/help` command list with NMAP emoji (🎯)
+
+### 🛡️ Security Features
+*   **Whitelisted Flags Only**: No arbitrary nmap options allowed
+*   **Input Sanitization**: Target validation with regex (only alphanumeric, dots, colons, hyphens)
+*   **Command Injection Prevention**: Strict flag parsing and validation
+*   **Port Specification Safety**: Sanitized to allow only numbers, commas, hyphens
+*   **Timeout Protection**: 60-second hard limit prevents hanging scans
+*   **Safe for CTFs**: Perfect for TryHackMe VPNs and authorized penetration testing
+
+### 📘 Supported Flags
+*   **`-A`**: Aggressive scan (OS detection, version detection, script scanning, traceroute)
+*   **`-sV`**: Service version detection
+*   **`-sC`**: Default script scan (safe NSE scripts)
+*   **`-p-`**: Scan all 65535 ports
+*   **`-p <ports>`**: Scan specific ports (e.g., `-p 80,443` or `-p 1-1000`)
+*   **`-Pn`**: Skip host discovery (treat host as online, useful for filtered targets)
+*   **`-T4`**: Aggressive timing template (faster scans)
+*   **`-v`**: Verbose output
+
+### 💡 Usage Examples
+*   **Basic scan**: `/nmap 10.10.10.50` - Scans top 1000 ports
+*   **Aggressive scan**: `/nmap 10.10.10.50 -A` - OS and version detection with scripts
+*   **All ports**: `/nmap 10.10.10.50 -p-` - Scan all 65535 ports
+*   **Version detection**: `/nmap scanme.nmap.org -sV -sC` - Service versions + safe scripts
+*   **Filtered hosts**: `/nmap 10.10.10.50 -Pn -sV` - Skip ping, detect services
+
+### 📊 Output Format
+*   **Structured Table**: Port | Protocol | State | Service
+*   **Scan Metadata**: Target, flags used, latency, OS detection (if available)
+*   **Open Ports Count**: Total number of open ports found
+*   **Raw Output**: Complete nmap output for advanced analysis
+*   **Tips Section**: Suggests using `/shodan` or `/geoip` for additional intel
+
+### 🔧 Requirements
+*   **Nmap Installation**:
+    - Mac: `brew install nmap`
+    - Linux: `apt install nmap` or `yum install nmap`
+*   **Authorization**: Only use on networks/systems you own or have permission to scan
+*   **TryHackMe**: Works perfectly with TryHackMe VPN connections
+
+### 📝 Documentation Updates
+*   **rangerplex_manule.md**: Updated to v2.5.25
+    - Tool count: 21 → 22 completed OSINT tools
+    - Comprehensive `/nmap` documentation with all flags explained
+    - 4 usage examples provided
+    - Installation instructions included
+    - Security notes emphasized
+*   **Help System**: `/help` now lists `/nmap` in Network Intel section
+
+### 🎮 Perfect For
+*   **TryHackMe Labs**: Scan CTF machine targets (10.10.x.x)
+*   **CTF Competitions**: Quick reconnaissance and service enumeration
+*   **Penetration Testing**: Professional-grade port scanning with whitelisted options
+*   **Network Reconnaissance**: Discover open services and versions
+*   **Security Audits**: Identify exposed services and potential vulnerabilities
+
+### 🔄 Auto-Update System
+*   **One-Click Updates**: New "Install Update" button in Settings → System Updates
+*   **Backend Endpoint** (`proxy_server.js:2556-2671`):
+    - New endpoint: `POST /api/system/update`
+    - Runs `git pull origin main` automatically
+    - Smart dependency detection (checks if package.json changed)
+    - Auto-runs `npm install` if dependencies updated
+    - Handles "Already up to date" gracefully
+    - 2-minute timeout protection
+    - Returns detailed status + output
+*   **Frontend UI** (`SettingsModal.tsx:52-100, 1910-1950`):
+    - Green "Install Update" button appears when updates available
+    - Real-time status: "Installing..." with spinner during update
+    - Success/error messages with detailed feedback
+    - Restart reminder if server needs restart
+    - Auto-refreshes update status after completion
+*   **User Flow**:
+    1. Click "Check for Updates" in Settings
+    2. View latest version from GitHub
+    3. Click "Install Update" button (green with download icon)
+    4. Watch progress with spinner
+    5. Restart server if prompted
+*   **Safety Features**:
+    - Already up to date? No restart needed
+    - Only code changes? Restart required
+    - Dependencies changed? Runs npm install + restart required
+    - Git pull fails? Shows error details
+    - Timeout protection (2 minutes max)
+
+### 🎉 Improved First-Run Experience
+*   **Welcoming Onboarding Dialog**: Replaced confusing backup import warning with friendly two-option welcome screen
+*   **Frontend Implementation** (`App.tsx:692-744`):
+    - Friendly welcome message with 🎖️ RangerPlex branding
+    - Clear explanation: "No existing data detected. This looks like a fresh installation or new machine."
+    - Two clear options presented in side-by-side cards:
+*   **Option 1: Start Fresh** (Green button with 🚀 icon):
+    - For first-time installations
+    - Creates new user profile and dismisses onboarding
+    - Clear description: "First time here? Create your first user and start exploring RangerPlex features."
+*   **Option 2: Restore from Backup** (Blue button with 📥 icon):
+    - For multi-machine setups (e.g., M4 Max → M1 Air)
+    - Opens BackupManager for importing data
+    - Clear description: "Moving from another machine? Import your backup to restore chats, settings, and data."
+*   **Helpful Tips**: Added tip about accessing backup/restore later in Settings
+*   **User Experience**:
+    - No more confusion on fresh installs!
+    - Perfect for multi-machine workflows (export from M4, import on M1 Air)
+    - Three-tier data persistence still works: IndexedDB → SQLite → JSON backups
+
+### 🏆 Arsenal Update
+*   **Total OSINT Tools**: 23/25 completed (92% complete!)
+*   **Latest Additions**:
+    - Nmap Integration (/nmap) - Network Intelligence & Port Scanning
+    - Company Lookup (/company) - Company Registry Intelligence
+*   **Categories**: Network Intelligence, Port Scanning, Company Intelligence
+*   **No API Key Required**: Nmap uses native CLI (must be installed)
+
+---
+
 ## v2.5.24 - "Git Security Emergency Response" 🚨
 *Released: Nov 25, 2025*
 

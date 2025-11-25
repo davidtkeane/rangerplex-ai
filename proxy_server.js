@@ -531,6 +531,77 @@ app.get('/api/ollama/tags', async (req, res) => {
     }
 });
 
+// LM Studio API proxy (to bypass CORS)
+app.all('/api/lmstudio/*', async (req, res) => {
+    try {
+        const lmstudioPath = req.params[0];
+        const lmstudioHost = req.headers['x-lmstudio-host'] || 'http://localhost:1234';
+
+        // Build the full URL (LM Studio uses /v1/ prefix)
+        const url = `${lmstudioHost}/v1/${lmstudioPath}`;
+
+        console.log(`🤖 Proxying LM Studio API request to: ${url}`);
+
+        const fetchOptions = {
+            method: req.method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+
+        // Include body for POST requests
+        if (req.method === 'POST' && req.body) {
+            fetchOptions.body = JSON.stringify(req.body);
+        }
+
+        const response = await fetch(url, fetchOptions);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ LM Studio API error:', response.status, errorText);
+            return res.status(response.status).send(errorText);
+        }
+
+        // Set CORS headers
+        res.set({
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': response.headers.get('content-type') || 'application/json',
+            'Cache-Control': 'no-cache'
+        });
+
+        // Handle streaming responses
+        if (response.headers.get('content-type')?.includes('text/event-stream') ||
+            response.headers.get('transfer-encoding') === 'chunked') {
+            const reader = response.body.getReader();
+            const pump = async () => {
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        if (!res.write(value)) {
+                            await new Promise(resolve => res.once('drain', resolve));
+                        }
+                    }
+                    res.end();
+                    console.log('✅ LM Studio stream completed');
+                } catch (error) {
+                    console.error('❌ Stream pump error:', error);
+                    res.end();
+                }
+            };
+            pump();
+        } else {
+            // Non-streaming response
+            const data = await response.json();
+            res.json(data);
+        }
+
+    } catch (error) {
+        console.error('❌ LM Studio proxy error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Radio stream proxy (to bypass CORS)
 app.get('/api/radio/stream', async (req, res) => {
     try {
@@ -708,6 +779,202 @@ app.post('/api/tools/whois', async (req, res) => {
     } catch (error) {
         console.error('❌ Whois error:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Company Registry Lookup (Companies House primary, OpenCorporates fallback)
+app.post('/api/tools/company', async (req, res) => {
+    try {
+        const { query, country, chApiKey, ocApiKey } = req.body;
+        if (!query) return res.status(400).json({ error: 'Missing company query' });
+
+        const normalizedCountry = (country || 'uk').toLowerCase();
+        const preferCompaniesHouse = normalizedCountry === 'uk' || normalizedCountry === 'gb' || !country;
+        const sanitizedQuery = String(query).trim();
+
+        const looksLikeNumber = (candidate) => /^[A-Za-z0-9]{6,12}$/.test(candidate.replace(/\s+/g, ''));
+        const formatAddress = (addr) => {
+            if (!addr || typeof addr !== 'object') return null;
+            const parts = [
+                addr.address_line_1,
+                addr.address_line_2,
+                addr.premises,
+                addr.locality,
+                addr.region,
+                addr.postal_code,
+                addr.country
+            ].filter(Boolean);
+            return parts.join(', ');
+        };
+
+        const companiesHouseLookup = async () => {
+            if (!chApiKey) return null;
+            const base = 'https://api.company-information.service.gov.uk';
+            const authHeader = { Authorization: 'Basic ' + Buffer.from(`${chApiKey}:`).toString('base64') };
+
+            let companyNumber = looksLikeNumber(sanitizedQuery) ? sanitizedQuery.replace(/\s+/g, '') : null;
+            let matchedFromSearch = false;
+            let matchedName = null;
+
+            // Search by name when no clean number provided
+            if (!companyNumber) {
+                const searchRes = await fetch(`${base}/search/companies?q=${encodeURIComponent(sanitizedQuery)}&items_per_page=5`, { headers: authHeader });
+                if (!searchRes.ok) {
+                    const msg = await searchRes.text();
+                    return { error: `Companies House search failed (${searchRes.status}): ${msg}` };
+                }
+                const searchData = await searchRes.json();
+                const top = searchData?.items?.[0];
+                if (top) {
+                    companyNumber = top.company_number;
+                    matchedFromSearch = true;
+                    matchedName = top.title;
+                }
+            }
+
+            if (!companyNumber) {
+                return { status: 'not_found', source: 'companies_house', country: normalizedCountry, query: sanitizedQuery };
+            }
+
+            // Company profile
+            const companyRes = await fetch(`${base}/company/${companyNumber}`, { headers: authHeader });
+            if (!companyRes.ok) {
+                const msg = await companyRes.text();
+                return { error: `Companies House lookup failed (${companyRes.status}): ${msg}` };
+            }
+            const company = await companyRes.json();
+
+            // Parallel officer + PSC + filing pulls (best-effort)
+            const [officers, pscs, filings] = await Promise.all([
+                fetch(`${base}/company/${companyNumber}/officers?items_per_page=10`, { headers: authHeader })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(d => d?.items || [])
+                    .catch(() => []),
+                fetch(`${base}/company/${companyNumber}/persons-with-significant-control?items_per_page=10`, { headers: authHeader })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(d => d?.items || [])
+                    .catch(() => []),
+                fetch(`${base}/company/${companyNumber}/filing-history?items_per_page=5`, { headers: authHeader })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(d => d?.items || [])
+                    .catch(() => [])
+            ]);
+
+            return {
+                status: 'ok',
+                source: 'companies_house',
+                country: normalizedCountry,
+                query: sanitizedQuery,
+                matchedFromSearch,
+                company: {
+                    name: company.company_name || matchedName,
+                    number: company.company_number || companyNumber,
+                    status: company.company_status,
+                    category: company.type,
+                    jurisdiction: company.jurisdiction || 'uk',
+                    incorporation_date: company.date_of_creation,
+                    dissolution_date: company.date_of_cessation,
+                    address: formatAddress(company.registered_office_address),
+                    sic_codes: company.sic_codes || [],
+                    last_accounts: company.accounts?.last_accounts?.made_up_to,
+                    last_confirmation_statement: company.confirmation_statement?.last_made_up_to,
+                    has_insolvency_history: company.has_insolvency_history
+                },
+                officers: officers.map((o) => ({
+                    name: o.name,
+                    role: o.officer_role,
+                    appointed_on: o.appointed_on,
+                    resigned_on: o.resigned_on,
+                    nationality: o.nationality,
+                    country_of_residence: o.country_of_residence
+                })),
+                pscs: pscs.map((p) => ({
+                    name: p.name,
+                    natures_of_control: p.natures_of_control,
+                    notified_on: p.notified_on,
+                    ceased_on: p.ceased_on
+                })),
+                filings: filings.map((f) => ({
+                    type: f.type,
+                    category: f.category,
+                    description: f.description || f.description_values?.description,
+                    date: f.date
+                }))
+            };
+        };
+
+        const openCorporatesLookup = async (reason = 'direct') => {
+            if (!ocApiKey) return null;
+
+            const base = 'https://api.opencorporates.com/v0.4';
+            const searchUrl = `${base}/companies/search?q=${encodeURIComponent(sanitizedQuery)}${normalizedCountry ? `&jurisdiction_code=${normalizedCountry}` : ''}&api_token=${ocApiKey}`;
+
+            const searchRes = await fetch(searchUrl);
+            if (!searchRes.ok) {
+                const msg = await searchRes.text();
+                return { error: `OpenCorporates search failed (${searchRes.status}): ${msg}` };
+            }
+
+            const searchData = await searchRes.json();
+            const company = searchData?.results?.companies?.[0]?.company;
+
+            if (!company) {
+                return { status: 'not_found', source: 'opencorporates', country: normalizedCountry, query: sanitizedQuery, usedFallback: reason !== 'direct' };
+            }
+
+            return {
+                status: 'ok',
+                source: 'opencorporates',
+                country: normalizedCountry,
+                query: sanitizedQuery,
+                usedFallback: reason !== 'direct',
+                company: {
+                    name: company.name,
+                    number: company.company_number,
+                    status: company.current_status,
+                    incorporation_date: company.incorporation_date,
+                    dissolution_date: company.dissolution_date,
+                    jurisdiction: company.jurisdiction_code,
+                    address: company.registered_address || company.registered_address_in_full,
+                    industry_codes: company.industry_codes,
+                    opencorporates_url: company.opencorporates_url
+                }
+            };
+        };
+
+        // Primary preference: Companies House for UK queries (when key present)
+        if (preferCompaniesHouse && chApiKey) {
+            const result = await companiesHouseLookup();
+            if (result) {
+                if (result.error) return res.status(400).json(result);
+                return res.json(result);
+            }
+        }
+
+        // Fallback to OpenCorporates if UK key missing or non-UK query
+        if (ocApiKey) {
+            const result = await openCorporatesLookup(preferCompaniesHouse ? 'fallback_no_ch_key' : 'direct');
+            if (result) {
+                if (result.error) return res.status(400).json(result);
+                return res.json(result);
+            }
+        }
+
+        // If still nothing, try Companies House even when non-UK but key exists
+        if (!preferCompaniesHouse && chApiKey) {
+            const result = await companiesHouseLookup();
+            if (result) {
+                if (result.error) return res.status(400).json(result);
+                return res.json(result);
+            }
+        }
+
+        res.status(400).json({
+            error: 'API key required. Add a Companies House key (UK) or OpenCorporates API token in Settings > Providers.'
+        });
+    } catch (error) {
+        console.error('❌ Company lookup error:', error);
+        res.status(500).json({ error: error.message || 'Company lookup failed' });
     }
 });
 
@@ -1829,6 +2096,138 @@ app.post('/api/tools/trace', async (req, res) => {
     }
 });
 
+// Nmap Port Scanner (/nmap)
+app.post('/api/tools/nmap', async (req, res) => {
+    try {
+        const { target, flags } = req.body;
+        if (!target) return res.status(400).json({ error: 'Target IP or hostname is required' });
+
+        const cleanTarget = String(target).trim();
+
+        // Sanitize target (prevent command injection)
+        const safeTarget = cleanTarget.replace(/[^a-zA-Z0-9:.\-]/g, '');
+        if (!safeTarget || safeTarget !== cleanTarget) {
+            return res.status(400).json({ error: 'Invalid target. Use IP or hostname only.' });
+        }
+
+        // Whitelist safe nmap flags only
+        const whitelistFlags = ['-A', '-sV', '-sC', '-p-', '-Pn', '-T4', '-v', '-p'];
+        const parsedFlags = [];
+
+        if (flags) {
+            const flagArray = String(flags).trim().split(/\s+/);
+            for (let i = 0; i < flagArray.length; i++) {
+                const flag = flagArray[i];
+
+                // Check if flag is whitelisted
+                if (whitelistFlags.includes(flag)) {
+                    parsedFlags.push(flag);
+
+                    // If -p flag, get the port specification (next argument)
+                    if (flag === '-p' && i + 1 < flagArray.length) {
+                        const portSpec = flagArray[i + 1];
+                        // Sanitize port specification (allow numbers, commas, hyphens only)
+                        if (/^[0-9,\-]+$/.test(portSpec)) {
+                            parsedFlags.push(portSpec);
+                            i++; // Skip next argument
+                        }
+                    }
+                } else if (flag.startsWith('-p') && /^-p[0-9,\-]+$/.test(flag)) {
+                    // Handle combined -p80,443 format
+                    parsedFlags.push(flag);
+                }
+            }
+        }
+
+        // Build nmap command
+        const args = [...parsedFlags, safeTarget];
+
+        console.log(`🔍 Running nmap scan: nmap ${args.join(' ')}`);
+
+        const stdoutChunks = [];
+        const stderrChunks = [];
+
+        const child = spawn('nmap', args);
+
+        // 60 second timeout for scans
+        const killer = setTimeout(() => {
+            child.kill('SIGKILL');
+        }, 60000);
+
+        child.stdout.on('data', (d) => stdoutChunks.push(d.toString()));
+        child.stderr.on('data', (d) => stderrChunks.push(d.toString()));
+
+        child.on('error', (err) => {
+            clearTimeout(killer);
+            console.error('❌ Nmap spawn error:', err);
+
+            if (err.code === 'ENOENT') {
+                return res.status(500).json({
+                    error: 'Nmap is not installed. Install with: brew install nmap (Mac) or apt install nmap (Linux)'
+                });
+            }
+
+            res.status(500).json({ error: `Nmap command failed: ${err.message}` });
+        });
+
+        child.on('close', (code) => {
+            clearTimeout(killer);
+            const stdout = stdoutChunks.join('');
+            const stderr = stderrChunks.join('');
+
+            if (!stdout && stderr) {
+                return res.status(500).json({ error: `Nmap failed: ${stderr.trim() || 'Unknown error'}` });
+            }
+
+            // Parse nmap output for structured data
+            const lines = stdout.split('\n');
+            const openPorts = [];
+            let scanInfo = {};
+
+            lines.forEach((line) => {
+                // Extract open ports (format: "22/tcp   open  ssh")
+                const portMatch = line.match(/^(\d+)\/(tcp|udp)\s+(open|filtered|closed)\s+(.+)$/);
+                if (portMatch) {
+                    openPorts.push({
+                        port: parseInt(portMatch[1]),
+                        protocol: portMatch[2],
+                        state: portMatch[3],
+                        service: portMatch[4].trim()
+                    });
+                }
+
+                // Extract scan info
+                if (line.includes('Nmap scan report for')) {
+                    scanInfo.target = line.replace('Nmap scan report for ', '').trim();
+                }
+                if (line.includes('Host is up')) {
+                    const latencyMatch = line.match(/\((.+?) latency\)/);
+                    if (latencyMatch) {
+                        scanInfo.latency = latencyMatch[1];
+                    }
+                }
+                if (line.includes('OS details:')) {
+                    scanInfo.os = line.replace('OS details:', '').trim();
+                }
+            });
+
+            res.json({
+                target: cleanTarget,
+                flags: parsedFlags.join(' ') || 'default',
+                scan_info: scanInfo,
+                open_ports: openPorts,
+                total_open: openPorts.filter(p => p.state === 'open').length,
+                raw_output: stdout,
+                exit_code: code,
+                note: code !== 0 ? `Nmap exited with code ${code}` : undefined
+            });
+        });
+    } catch (error) {
+        console.error('❌ Nmap error:', error);
+        res.status(500).json({ error: error.message || 'Nmap scan failed' });
+    }
+});
+
 // Certificate Transparency Lookup (crt.sh)
 app.post('/api/tools/certs', async (req, res) => {
     try {
@@ -2349,6 +2748,123 @@ setInterval(() => {
         console.error('Auto-backup failed:', error);
     }
 }, 5 * 60 * 1000); // 5 minutes
+
+// System Update Endpoint
+app.post('/api/system/update', async (req, res) => {
+    try {
+        console.log('🔄 Starting system update...');
+
+        // Run git pull
+        const gitPull = spawn('git', ['pull', 'origin', 'main']);
+        const gitOutput = [];
+        const gitErrors = [];
+
+        gitPull.stdout.on('data', (data) => {
+            const output = data.toString();
+            gitOutput.push(output);
+            console.log('Git:', output);
+        });
+
+        gitPull.stderr.on('data', (data) => {
+            const error = data.toString();
+            gitErrors.push(error);
+            console.error('Git Error:', error);
+        });
+
+        gitPull.on('close', async (code) => {
+            const fullOutput = gitOutput.join('');
+            const fullErrors = gitErrors.join('');
+
+            if (code !== 0) {
+                console.error('❌ Git pull failed:', fullErrors);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Git pull failed',
+                    details: fullErrors || 'Unknown error'
+                });
+            }
+
+            // Check if already up to date
+            if (fullOutput.includes('Already up to date') || fullOutput.includes('Already up-to-date')) {
+                console.log('✅ Already up to date');
+                return res.json({
+                    success: true,
+                    message: 'Already up to date',
+                    needsRestart: false,
+                    output: fullOutput
+                });
+            }
+
+            // Check if npm install is needed (package.json was updated)
+            const needsNpmInstall = fullOutput.includes('package.json') || fullOutput.includes('package-lock.json');
+
+            if (needsNpmInstall) {
+                console.log('📦 Running npm install...');
+                const npmInstall = spawn('npm', ['install']);
+                const npmOutput = [];
+                const npmErrors = [];
+
+                npmInstall.stdout.on('data', (data) => {
+                    const output = data.toString();
+                    npmOutput.push(output);
+                    console.log('NPM:', output);
+                });
+
+                npmInstall.stderr.on('data', (data) => {
+                    const error = data.toString();
+                    npmErrors.push(error);
+                    // npm uses stderr for normal output too
+                    console.log('NPM:', error);
+                });
+
+                npmInstall.on('close', (npmCode) => {
+                    if (npmCode !== 0) {
+                        console.error('❌ npm install failed');
+                        return res.status(500).json({
+                            success: false,
+                            error: 'npm install failed',
+                            details: npmErrors.join('')
+                        });
+                    }
+
+                    console.log('✅ Update complete! Please restart the server.');
+                    res.json({
+                        success: true,
+                        message: 'Update successful! Dependencies installed.',
+                        needsRestart: true,
+                        output: fullOutput,
+                        npmOutput: npmOutput.join('')
+                    });
+                });
+            } else {
+                console.log('✅ Update complete!');
+                res.json({
+                    success: true,
+                    message: 'Update successful!',
+                    needsRestart: true,
+                    output: fullOutput
+                });
+            }
+        });
+
+        // 2 minute timeout for git operations
+        setTimeout(() => {
+            gitPull.kill('SIGTERM');
+            res.status(500).json({
+                success: false,
+                error: 'Update timeout (2 minutes)',
+                details: 'Git pull took too long'
+            });
+        }, 120000);
+
+    } catch (error) {
+        console.error('❌ Update error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Update failed'
+        });
+    }
+});
 
 // Start server
 server.listen(PORT, () => {

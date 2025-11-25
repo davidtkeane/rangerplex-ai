@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { AppSettings, AgentConfig, ModelType, SavedPrompt, VoiceConfig, Currency, DEFAULT_SAVED_PROMPTS } from '../types';
 import { checkOllamaConnection, pullOllamaModel } from '../services/ollamaService';
-import { fetchGeminiModels, fetchOllamaModels, fetchOpenAIModels } from '../services/modelRegistry';
+import { checkLMStudioConnection } from '../services/lmstudioService';
+import { fetchGeminiModels, fetchOllamaModels, fetchOpenAIModels, fetchLMStudioModels } from '../services/modelRegistry';
 import { processAvatarImage } from '../services/imageProcessing';
 import { fetchElevenLabsVoices, Voice } from '../services/elevenLabsService';
 import { dbService } from '../services/dbService';
@@ -39,7 +40,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'data' | 'about' | 'help'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'data' | 'about' | 'help'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
     const [loadingModels, setLoadingModels] = useState(false);
     const [promptSearch, setPromptSearch] = useState('');
@@ -48,12 +49,54 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Update Checker State
     const [updateStatus, setUpdateStatus] = useState<UpdateInfo | null>(null);
     const [checkingUpdate, setCheckingUpdate] = useState(false);
+    const [installingUpdate, setInstallingUpdate] = useState(false);
+    const [updateResult, setUpdateResult] = useState<{ success: boolean; message: string; needsRestart?: boolean } | null>(null);
 
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true);
+        setUpdateResult(null);
         const info = await updateService.checkForUpdates();
         setUpdateStatus(info);
         setCheckingUpdate(false);
+    };
+
+    const handleInstallUpdate = async () => {
+        setInstallingUpdate(true);
+        setUpdateResult(null);
+        try {
+            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/system/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setUpdateResult({
+                    success: true,
+                    message: result.message,
+                    needsRestart: result.needsRestart
+                });
+
+                // Refresh update status after successful update
+                if (!result.needsRestart) {
+                    setTimeout(() => handleCheckUpdate(), 2000);
+                }
+            } else {
+                setUpdateResult({
+                    success: false,
+                    message: result.error || 'Update failed'
+                });
+            }
+        } catch (error) {
+            setUpdateResult({
+                success: false,
+                message: error instanceof Error ? error.message : 'Update failed'
+            });
+        } finally {
+            setInstallingUpdate(false);
+        }
     };
     const [promptMessage, setPromptMessage] = useState<string | null>(null);
 
@@ -89,8 +132,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 loadStorageStats();
                 loadLastSyncTime();
             }
+
+            // Auto-fetch LM Studio models when opening LM Studio tab
+            if (activeTab === 'lmstudio' && localSettings.lmstudioBaseUrl) {
+                fetchLMStudioModelsOnly();
+            }
         }
     }, [settings, isOpen, activeTab]);
+
+    const fetchLMStudioModelsOnly = async () => {
+        try {
+            const lmstudio = await fetchLMStudioModels(localSettings.lmstudioBaseUrl);
+            if (lmstudio.length > 0) {
+                setLocalSettings(prev => ({
+                    ...prev,
+                    availableModels: {
+                        ...prev.availableModels,
+                        lmstudio: lmstudio
+                    }
+                }));
+                console.log(`✅ Auto-fetched ${lmstudio.length} LM Studio model(s):`, lmstudio);
+            } else {
+                console.warn('⚠️ LM Studio: No models loaded. Start the server and load a model first.');
+            }
+        } catch (e) {
+            console.error('Failed to auto-fetch LM Studio models:', e);
+        }
+    };
 
     const checkProxyStatus = async () => {
         setProxyStatus('checking');
@@ -166,6 +234,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             const gemini = await fetchGeminiModels(localSettings.geminiApiKey);
             const openai = await fetchOpenAIModels(localSettings.openaiApiKey || '');
             const ollama = await fetchOllamaModels(localSettings.ollamaBaseUrl);
+            const lmstudio = await fetchLMStudioModels(localSettings.lmstudioBaseUrl);
 
             setLocalSettings(prev => ({
                 ...prev,
@@ -173,10 +242,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     ...prev.availableModels,
                     gemini: gemini.length > 0 ? gemini : prev.availableModels.gemini,
                     openai: openai.length > 0 ? openai : prev.availableModels.openai,
-                    ollama: ollama.length > 0 ? ollama : prev.availableModels.ollama
+                    ollama: ollama.length > 0 ? ollama : prev.availableModels.ollama,
+                    lmstudio: lmstudio.length > 0 ? lmstudio : prev.availableModels.lmstudio
                 }
             }));
-            alert(`Models Updated!\nGemini: ${gemini.length}\nOpenAI: ${openai.length}\nOllama: ${ollama.length}`);
+            alert(`Models Updated!\nGemini: ${gemini.length}\nOpenAI: ${openai.length}\nOllama: ${ollama.length}\nLM Studio: ${lmstudio.length}`);
         } catch (e) {
             console.error(e);
             alert("Error fetching models. Check API Keys.");
@@ -326,6 +396,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 success = await checkOllamaConnection(localSettings.ollamaBaseUrl);
             }
 
+            // LM Studio - Real test via service
+            else if (provider === 'lmstudio') {
+                success = await checkLMStudioConnection(localSettings.lmstudioBaseUrl);
+            }
+
             // Gemini - Real API test
             else if (provider === 'gemini' && localSettings.geminiApiKey) {
                 const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + localSettings.geminiApiKey);
@@ -446,6 +521,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 success = response.ok;
             }
 
+            // Companies House (UK) - Real API test
+            else if (provider === 'companieshouse' && localSettings.companiesHouseApiKey) {
+                const response = await fetch('https://api.company-information.service.gov.uk/search/companies?q=test', {
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(`${localSettings.companiesHouseApiKey}:`)
+                    }
+                });
+                success = response.ok;
+            }
+
+            // OpenCorporates - Real API test
+            else if (provider === 'opencorporates' && localSettings.openCorporatesApiKey) {
+                const response = await fetch(`https://api.opencorporates.com/v0.4/companies/search?q=test&api_token=${localSettings.openCorporatesApiKey}`);
+                success = response.ok;
+            }
+
             // IPInfo - Real API test
             else if (provider === 'ipinfo' && localSettings.ipinfoToken) {
                 const response = await fetch(`https://ipinfo.io/8.8.8.8?token=${localSettings.ipinfoToken}`);
@@ -505,7 +596,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                 {/* Tabs */}
                 <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                    {['general', 'media', 'params', 'providers', 'ollama', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'data', 'about', 'help'].map((tab) => (
+                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'data', 'about', 'help'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -675,6 +766,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             <InputGroup label="VirusTotal API Key" value={localSettings.virusTotalApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, virusTotalApiKey: v })} icon="fa-solid fa-shield-virus" onTest={() => testConnection('virustotal')} status={connectionStatus['virustotal']} inputClass={inputClass} />
                             <InputGroup label="Have I Been Pwned Key" value={localSettings.hibpApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, hibpApiKey: v })} icon="fa-solid fa-user-shield" onTest={() => testConnection('hibp')} status={connectionStatus['hibp']} inputClass={inputClass} />
                             <InputGroup label="Shodan API Key" value={localSettings.shodanApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, shodanApiKey: v })} icon="fa-solid fa-eye" onTest={() => testConnection('shodan')} status={connectionStatus['shodan']} inputClass={inputClass} />
+                            <InputGroup label="Companies House API Key" value={localSettings.companiesHouseApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, companiesHouseApiKey: v })} icon="fa-solid fa-building-columns" onTest={() => testConnection('companieshouse')} status={connectionStatus['companieshouse']} inputClass={inputClass} />
+                            <InputGroup label="OpenCorporates API Token" value={localSettings.openCorporatesApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, openCorporatesApiKey: v })} icon="fa-solid fa-globe" onTest={() => testConnection('opencorporates')} status={connectionStatus['opencorporates']} inputClass={inputClass} />
                             <InputGroup label="IPInfo Token" value={localSettings.ipinfoToken || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, ipinfoToken: v })} icon="fa-solid fa-location-dot" onTest={() => testConnection('ipinfo')} status={connectionStatus['ipinfo']} inputClass={inputClass} />
                             <InputGroup label="NumVerify API Key" value={localSettings.numverifyApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, numverifyApiKey: v })} icon="fa-solid fa-phone" onTest={() => testConnection('numverify')} status={connectionStatus['numverify']} inputClass={inputClass} />
                             <InputGroup label="AbstractAPI Email Key" value={localSettings.abstractEmailApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, abstractEmailApiKey: v })} icon="fa-solid fa-envelope" onTest={() => testConnection('abstractemail')} status={connectionStatus['abstractemail']} inputClass={inputClass} />
@@ -834,6 +927,114 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* LM STUDIO TAB */}
+                    {activeTab === 'lmstudio' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold mb-4 border-b border-inherit pb-2">LM Studio Integration</h3>
+
+                            {/* Important Notice */}
+                            <div className="p-4 border-2 border-yellow-500/50 bg-yellow-500/10 rounded">
+                                <div className="flex items-start gap-3">
+                                    <i className="fa-solid fa-exclamation-triangle text-yellow-500 text-xl mt-1"></i>
+                                    <div>
+                                        <h4 className="font-bold text-sm text-yellow-500 mb-2">⚠️ Important: Load Model + Start Server!</h4>
+                                        <p className="text-xs opacity-90 mb-2">
+                                            LM Studio requires TWO steps: <strong>LOAD a model</strong> AND <strong>START the server</strong>.
+                                        </p>
+                                        <ol className="text-xs opacity-90 space-y-1 ml-4 list-decimal">
+                                            <li>Open LM Studio app</li>
+                                            <li>Go to <strong>"Local Server"</strong> or <strong>"Developer"</strong> tab</li>
+                                            <li>Select a model from the left sidebar</li>
+                                            <li>Click <strong>"Load Model"</strong> button and wait</li>
+                                            <li>Click <strong>"Start Server"</strong> button (CRITICAL!)</li>
+                                            <li>Verify it says <code className="px-1 py-0.5 bg-black/30 rounded">Server running on http://localhost:1234</code></li>
+                                            <li>Come back here and models will auto-refresh! ✨</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Connection Settings */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5 mb-6">
+                                <h4 className="font-bold text-sm mb-2">Connection Settings</h4>
+                                <p className="text-xs opacity-70 mb-4">
+                                    Configure how RangerPlex connects to LM Studio. LM Studio uses an OpenAI-compatible API.
+                                </p>
+                                <div className="space-y-4">
+                                    <InputGroup
+                                        label="LM Studio Base URL"
+                                        value={localSettings.lmstudioBaseUrl}
+                                        onChange={(v: any) => setLocalSettings({ ...localSettings, lmstudioBaseUrl: v })}
+                                        icon="fa-solid fa-server"
+                                        onTest={() => testConnection('lmstudio')}
+                                        status={connectionStatus['lmstudio']}
+                                        inputClass={inputClass}
+                                    />
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">
+                                            <i className="fa-solid fa-microchip w-4"></i> LM Studio Model ID
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={localSettings.lmstudioModelId}
+                                            onChange={e => setLocalSettings({ ...localSettings, lmstudioModelId: e.target.value })}
+                                            className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
+                                            placeholder="e.g. mistral-7b-instruct, llama-3-8b"
+                                        />
+                                        <p className="text-[10px] opacity-60 mt-1">
+                                            💡 <strong>Recommended:</strong> Use proxy URL <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3010/api/lmstudio</code> to avoid CORS errors
+                                        </p>
+                                        <p className="text-[10px] opacity-60 mt-1">
+                                            🔧 <strong>Direct (advanced):</strong> <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:1234/v1</code> (may have CORS issues)
+                                        </p>
+                                        <p className="text-[10px] opacity-60 mt-2">
+                                            📖 <strong>Note:</strong> Use the LM Studio app to download and load models. Once a model is loaded, it will appear in the model selector.
+                                        </p>
+                                    </div>
+
+                                    {/* Refresh Models Button */}
+                                    <div className="mt-4">
+                                        <button
+                                            onClick={fetchLMStudioModelsOnly}
+                                            className="w-full px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold uppercase hover:bg-blue-500 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <i className="fa-solid fa-sync"></i>
+                                            Refresh Models from LM Studio
+                                        </button>
+                                        <p className="text-[10px] opacity-60 mt-2 text-center">
+                                            Click after loading a new model in LM Studio
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* About LM Studio */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-2">About LM Studio</h4>
+                                <p className="text-xs opacity-70 mb-3">
+                                    LM Studio is a desktop application for running local LLMs with an OpenAI-compatible API server.
+                                </p>
+                                <ul className="text-xs opacity-70 space-y-2">
+                                    <li>✅ Download and manage models with a GUI</li>
+                                    <li>✅ OpenAI-compatible API (no code changes needed)</li>
+                                    <li>✅ Hardware acceleration (Metal, CUDA)</li>
+                                    <li>✅ Cross-platform (Mac, Windows, Linux)</li>
+                                </ul>
+                                <div className="mt-4">
+                                    <a
+                                        href="https://lmstudio.ai"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                                    >
+                                        <i className="fa-solid fa-external-link"></i>
+                                        Visit LM Studio Website
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1715,14 +1916,52 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                     Latest Version: {updateStatus.latestVersion} ({updateStatus.latestDate})
                                                 </div>
                                                 <div className="opacity-80 mb-2">"{updateStatus.latestMessage}"</div>
-                                                <a
-                                                    href={updateStatus.htmlUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-400 hover:underline flex items-center gap-1"
-                                                >
-                                                    View on GitHub <i className="fa-solid fa-external-link-alt text-[10px]"></i>
-                                                </a>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <a
+                                                        href={updateStatus.htmlUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-400 hover:underline flex items-center gap-1"
+                                                    >
+                                                        View on GitHub <i className="fa-solid fa-external-link-alt text-[10px]"></i>
+                                                    </a>
+                                                    <button
+                                                        onClick={handleInstallUpdate}
+                                                        disabled={installingUpdate}
+                                                        className="ml-auto px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:opacity-50 rounded text-white font-bold flex items-center gap-2"
+                                                    >
+                                                        {installingUpdate ? (
+                                                            <>
+                                                                <i className="fa-solid fa-circle-notch fa-spin"></i>
+                                                                Installing...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <i className="fa-solid fa-download"></i>
+                                                                Install Update
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {updateResult && (
+                                    <div className={`mt-3 p-3 rounded text-xs border ${updateResult.success ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                                        <div className={`font-bold mb-1 ${updateResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                                            <i className={`fa-solid ${updateResult.success ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2`}></i>
+                                            {updateResult.success ? 'Update Complete!' : 'Update Failed'}
+                                        </div>
+                                        <div className="opacity-80">{updateResult.message}</div>
+                                        {updateResult.needsRestart && (
+                                            <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded">
+                                                <i className="fa-solid fa-rotate-right mr-2"></i>
+                                                <strong>Action Required:</strong> Please restart the proxy server:
+                                                <pre className="mt-1 bg-black/30 p-1 rounded text-[10px]">
+                                                    # Stop current server (Ctrl+C), then:
+                                                    node proxy_server.js
+                                                </pre>
                                             </div>
                                         )}
                                     </div>

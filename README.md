@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.22-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.26-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -30,7 +30,8 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 ## ✨ Features
 
 ### 🧠 The Intelligence
-*   **Multi-Model Matrix**: Seamlessly switch between **Gemini 2.0**, **GPT-4o/4.1**, **Claude Sonnet 4.5** (9 Claude models total including 3.5 Sonnet), **Perplexity**, **Grok**, and **Llama 3** (via HuggingFace or Ollama).
+*   **Multi-Model Matrix**: Seamlessly switch between **Gemini 2.0**, **GPT-4o/4.1**, **Claude Sonnet 4.5** (9 Claude models total including 3.5 Sonnet), **Perplexity**, **Grok**, **Llama 3** (via HuggingFace or Ollama), and **LM Studio** (local AI with GUI).
+*   **Dual Local AI**: Run **Ollama** AND **LM Studio** simultaneously! Perfect for multi-device setups (M4 Max + M3 Mac) or testing different models side-by-side.
 *   **Smart Model Selection**: Visual capability badges show what each model can do at a glance:
     - 👁️ **Vision** - Can analyze uploaded images (Claude 3+, Gemini, GPT-4o, Grok Vision)
     - 🧠 **Advanced Reasoning** - Deep thinking models (o1, o1-mini, o3-mini)
@@ -63,7 +64,9 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
     *   `/asn <asn_number or ip>`: Lookup Autonomous System Number (ASN) data. Find all IP ranges owned by organizations. Accepts ASN numbers (AS15169) or IP addresses. No API key required.
     *   `/reputation <domain>`: Check domains against Google Safe Browsing for malware, phishing, and threats. Protects 5+ billion devices.
     *   `/ports <ip_or_host> [ports]`: Scan TCP ports for service discovery and security audits. Default scan covers 40 common ports. Requires authorization.
+    *   `/nmap <target> [flags]`: Full-featured Nmap integration for comprehensive port scanning and service detection. Whitelisted flags: `-A`, `-sV`, `-sC`, `-p-`, `-p`, `-Pn`, `-T4`, `-v`. Perfect for TryHackMe and CTFs. Requires nmap installation (`brew install nmap`).
     *   `/hash <hash>`: VirusTotal hash intelligence (MD5/SHA1/SHA256/SHA512) for malware verdicts and filenames. Requires VT API key.
+*   **Company Intelligence** 🏢: Lookup company registry data using `/company <name|reg_number> [country]`. Returns legal name, status, officers, registered address, and filing history. Defaults to UK Companies House; supports OpenCorporates for international lookups. Requires API key(s).
 *   **Screenshot Capture** 📸: Capture live screenshots of websites using `/screenshot <url>`. High-quality 1920x1080 captures with Puppeteer (headless Chrome) for evidence collection, change detection, and phishing documentation. No API key required.
 *   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.
@@ -184,6 +187,26 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **Real-Time Sync**: WebSocket connection keeps browser and server in perfect sync.
 *   **No Data Loss**: Even if you clear your browser cache, your data is safe in the server database.
 *   **Rock-Solid Persistence**: Settings now save and load correctly with improved race condition handling.
+
+### 🔄 Auto-Update System (NEW in v2.5.25)
+*   **One-Click Updates**: New "Install Update" button in Settings → System Updates
+*   **Automatic Git Pull**: Click "Install Update" to automatically run `git pull origin main`
+*   **Smart Dependency Management**: Auto-detects if `package.json` changed and runs `npm install`
+*   **Real-Time Status**: Live progress indicator with spinner during update process
+*   **Update Flow**:
+    1. Click "Check for Updates" to see latest version from GitHub
+    2. View commit message and date
+    3. Click green "Install Update" button
+    4. Watch progress: "Installing..." with spinner
+    5. Get success confirmation or error details
+    6. Restart proxy server if prompted
+*   **Safety Features**:
+    - Already up to date? No restart needed
+    - Only code changes? Restart required notification
+    - Dependencies changed? Auto-runs `npm install` + restart prompt
+    - Git pull fails? Shows detailed error messages
+    - Timeout protection: 2-minute maximum for operations
+*   **No More Manual Updates**: Never run `git pull` manually again - just click the button!
 
 ### 🕶️ The Aesthetic
 *   **Tron Theme ("The Grid")**: A glowing, animated 3D interface.
@@ -376,6 +399,85 @@ Want to run Ollama on a powerful Mac (like M4 Max) and access it from another Ma
 For detailed Ollama setup, model selection, and troubleshooting:
 - 📖 **[OLLAMA_README.md](OLLAMA_README.md)** - Complete Ollama guide
 - 📖 **[SETUP_GUIDE_M4_M3.md](SETUP_GUIDE_M4_M3.md)** - Network setup (M4 + M3)
+
+---
+
+## 🤖 LM Studio Setup (Local AI with GUI)
+
+RangerPlex now supports **LM Studio** as a second local AI provider! LM Studio offers an easy-to-use GUI for downloading and running models locally.
+
+### Why Use LM Studio?
+
+- ✅ **Beautiful GUI** - Download and manage models with clicks, not commands
+- ✅ **OpenAI-Compatible API** - Works seamlessly with RangerPlex
+- ✅ **Multiple Models** - Load and switch between 3+ models simultaneously
+- ✅ **Hardware Acceleration** - Optimized for Apple Silicon (Metal), NVIDIA (CUDA), and CPU
+- ✅ **Run Alongside Ollama** - Use both local AI providers at the same time!
+
+### Quick Setup (5 Minutes)
+
+#### Step 1: Install LM Studio
+Download from [https://lmstudio.ai](https://lmstudio.ai)
+
+#### Step 2: Download & Load a Model
+1. Open LM Studio → **"Search"** tab
+2. Search for a model: `deepseek-r1`, `mistral-7b`, `llama-3-8b`, etc.
+3. Click **"Download"**
+4. Go to **"Local Server"** tab
+5. Select your downloaded model
+6. Click **"Load Model"** button
+7. **CRITICAL**: Click **"Start Server"** button!
+
+**Tested Models:**
+- `deepseek-r1-0528-qwen3-8b-mlx` ✅ (Excellent reasoning - TESTED!)
+- `mistral-7b-instruct` (Fast & balanced)
+- `llama-3-8b` (Great for chat)
+- `google/gemma-3-12b` (Quality responses)
+
+#### Step 3: Configure RangerPlex
+1. Make sure RangerPlex is running: `npm start`
+2. Open Settings → **"LMSTUDIO"** tab
+3. Configure:
+   - **Base URL**: `http://localhost:3010/api/lmstudio` ← **USE THIS (via proxy)**
+   - **Model ID**: Auto-populated from loaded models
+4. Click **"Test"** button → Should show **green ✓**
+5. Click **"Refresh Models from LM Studio"** if needed
+
+#### Step 4: Chat with LM Studio!
+1. Select your LM Studio model from the dropdown
+2. Start chatting! 🚀
+
+### Common Issues
+
+**"Failed to fetch" or "Connection Refused"**
+- ✅ Make sure LM Studio server is **RUNNING** (most common issue!)
+- ✅ Check you clicked **"Start Server"** in LM Studio
+- ✅ Verify server shows: `Server running on http://localhost:1234`
+
+**"Ollama API Error" when using LM Studio model**
+- ✅ Refresh RangerPlex page (Ctrl+Shift+R or Cmd+Shift+R)
+- ✅ Make sure you saved settings
+- ✅ This was a bug fixed in v2.5.26!
+
+**Test button shows red X**
+- ✅ Ensure a model is **LOADED** in LM Studio (not just downloaded)
+- ✅ Verify server is running
+- ✅ Check Base URL uses proxy: `http://localhost:3010/api/lmstudio`
+
+### Full Documentation
+
+For detailed LM Studio setup and troubleshooting:
+- 📖 **[docs/LM_STUDIO_SETUP_GUIDE.md](docs/LM_STUDIO_SETUP_GUIDE.md)** - Complete setup guide
+- 📖 **[docs/LM_STUDIO_INTEGRATION_SUMMARY.md](docs/LM_STUDIO_INTEGRATION_SUMMARY.md)** - Technical overview
+
+### Dual Local AI Power! 🚀
+
+**Pro Setup**: Run BOTH Ollama AND LM Studio!
+```
+M4 Max:     Ollama with heavy models (70B+)
+M3 Mac:     LM Studio with lighter models (7B-13B)
+RangerPlex: Talks to BOTH simultaneously!
+```
 
 ---
 

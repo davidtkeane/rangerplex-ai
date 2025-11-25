@@ -21,6 +21,7 @@ export enum ModelType {
 
   // Local
   LOCAL = 'local-llm',
+  LMSTUDIO = 'lmstudio',
 
   // OpenAI (Future & Latest Series)
   GPT_4_1 = 'gpt-4.1',
@@ -206,6 +207,8 @@ export interface AppSettings {
   virusTotalApiKey?: string;
   hibpApiKey?: string; // Have I Been Pwned
   shodanApiKey?: string; // Shodan
+  companiesHouseApiKey?: string; // Companies House (UK)
+  openCorporatesApiKey?: string; // OpenCorporates (global)
   ipinfoToken?: string; // IPInfo
   numverifyApiKey?: string; // NumVerify
   abstractEmailApiKey?: string; // AbstractAPI Email
@@ -215,6 +218,8 @@ export interface AppSettings {
   corsProxyUrl?: string;
   ollamaBaseUrl: string;
   ollamaModelId: string;
+  lmstudioBaseUrl: string;
+  lmstudioModelId: string;
 
   // Lists (Cached)
   availableModels: {
@@ -222,6 +227,7 @@ export interface AppSettings {
     openai: string[];
     anthropic: string[];
     ollama: string[];
+    lmstudio: string[];
     huggingface: string[];
     grok: string[];
   };
@@ -360,6 +366,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   corsProxyUrl: 'http://localhost:3010',
   ollamaBaseUrl: 'http://localhost:11434',
   ollamaModelId: 'llama3',
+  lmstudioBaseUrl: 'http://localhost:3010/api/lmstudio',
+  lmstudioModelId: 'mistral-7b-instruct',
 
   availableModels: {
     gemini: [
@@ -391,6 +399,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
       'claude-3-haiku-20240307'      // Claude 3 Haiku
     ],
     ollama: ['deepseek-coder:6.7b', 'llama3.2', 'mistral', 'deepseek-r1'],
+    lmstudio: [], // Will be auto-populated from LM Studio server
     huggingface: [
       'meta-llama/Meta-Llama-3.1-70B-Instruct',
       'mistralai/Mistral-Large-Instruct-2411',
@@ -472,6 +481,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   virusTotalApiKey: import.meta.env.VITE_VIRUSTOTAL_API_KEY || '',
   hibpApiKey: import.meta.env.VITE_HIBP_API_KEY || '',
   shodanApiKey: import.meta.env.VITE_SHODAN_API_KEY || '',
+  companiesHouseApiKey: import.meta.env.VITE_COMPANIES_HOUSE_API_KEY || '',
+  openCorporatesApiKey: import.meta.env.VITE_OPENCORPORATES_API_KEY || '',
   ipinfoToken: import.meta.env.VITE_IPINFO_TOKEN || '',
   numverifyApiKey: import.meta.env.VITE_NUMVERIFY_API_KEY || '',
   abstractEmailApiKey: import.meta.env.VITE_ABSTRACT_EMAIL_API_KEY || '',

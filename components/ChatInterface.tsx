@@ -13,6 +13,7 @@ import Win95EasterEgg from './Win95EasterEgg';
 import { PetState } from '../src/hooks/usePetState';
 import { streamGeminiResponse } from '../services/geminiService';
 import { streamOllamaResponse } from '../services/ollamaService';
+import { streamLMStudioResponse } from '../services/lmstudioService';
 import { streamOpenAIResponse } from '../services/openaiService';
 import { streamAnthropicResponse } from '../services/anthropicService';
 import { streamPerplexityResponse } from '../services/perplexityService';
@@ -321,11 +322,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 📟  MAC_LOOKUP  :: /mac <address>           ║\n`;
                     helpMsg += `║ 📱  PHONE       :: /phone <number>          ║\n`;
                     helpMsg += `║ 📧  EMAIL       :: /email <address>         ║\n`;
+                    helpMsg += `║ 🏢  COMPANY     :: /company <name|reg>      ║\n`;
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
                     helpMsg += `║ 🔄  REVERSE_DNS :: /reverse <ip>            ║\n`;
                     helpMsg += `║ 🛰️  TRACE       :: /trace <host>            ║\n`;
                     helpMsg += `║ 🔌  PORT_SCAN   :: /ports <ip>              ║\n`;
+                    helpMsg += `║ 🎯  NMAP        :: /nmap <target> [flags]   ║\n`;
                     helpMsg += `║ 📜  CERTS       :: /certs <domain>          ║\n`;
                     helpMsg += `║ 🧬  HASH LOOKUP :: /hash <hash>             ║\n`;
                     helpMsg += `║ 🛡️  REPUTATION  :: /reputation <domain>     ║\n`;
@@ -500,6 +503,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- Identify cloud services and third-party integrations\n\n`;
                     helpMsg += `**Pro Tip:** Combine with other tools: Run \`/shodan <ip>\` on discovered IPs, check \`/ssl <subdomain>\` for certificate validity, or use \`/headers <subdomain>\` to audit security headers.\n\n`;
                     helpMsg += `[Ask AI about Attack Surface?](Ask AI: What is attack surface mapping in cybersecurity?)`;
+                }
+                else if (cmd === 'company') {
+                    helpMsg = `### 🏢 Command: /company\n\n`;
+                    helpMsg += `**Usage:** \`/company <name|reg_number> [country]\`\n`;
+                    helpMsg += `**Purpose:** Looks up company registry records (status, officers, PSCs, address, filings).\n\n`;
+                    helpMsg += `**Sources:** Companies House (UK) as primary; OpenCorporates as fallback for other jurisdictions.\n`;
+                    helpMsg += `**Requires:** Companies House API Key (UK) or OpenCorporates API Token (global) in Settings → Providers.\n\n`;
+                    helpMsg += `**Outputs:** Legal name, registration number, status (active/dissolved), incorporation date, registered address, SIC/industry codes, active officers, people with significant control, and recent filings.\n\n`;
+                    helpMsg += `**Country Codes:** \`uk\`/ \`gb\` for UK; US states as \`us-de\`, \`us-ca\`; Ireland \`ie\`; Germany \`de\`; etc.\n`;
+                    helpMsg += `**Examples:**\n`;
+                    helpMsg += `- \`/company "Acme Widgets Ltd" uk\`\n`;
+                    helpMsg += `- \`/company 01234567\`\n`;
+                    helpMsg += `- \`/company Stripe us-de\`\n\n`;
+                    helpMsg += `**Pro Tip:** Pair with \`/reputation <domain>\` for web safety and \`/wayback <url>\` to see historical site changes for the company.`;
                 }
                 else if (cmd === 'reputation') {
                     helpMsg = `### 🛡️ Command: /reputation\n\n`;
@@ -1412,6 +1429,150 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
+            // Company Registry Lookup (/company)
+            if (text.startsWith('/company')) {
+                setProcessingStatus("Fetching company record...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const raw = text.replace('/company', '').trim();
+
+                if (!raw) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/company <name|reg_number> [country]` (e.g., `/company "Acme Widgets Ltd" uk`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                if (!settings.companiesHouseApiKey && !settings.openCorporatesApiKey) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: "⚠️ Please add a Companies House API key (UK) or an OpenCorporates API token in Settings → Providers to use `/company`.",
+                        timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                const parts = raw.match(/\"[^\"]+\"|“[^”]+”|[^\s]+/g) || [];
+                let country = '';
+                let query = raw;
+                if (parts.length > 1) {
+                    const candidate = parts[parts.length - 1].replace(/^["“]|["”]$/g, '');
+                    if (/^[a-z]{2}(?:-[a-z0-9]{2,3})?$/i.test(candidate)) {
+                        country = candidate.toLowerCase();
+                        parts.pop();
+                        query = parts.join(' ');
+                    }
+                }
+                query = query.replace(/^["“]|["”]$/g, '').trim();
+
+                if (!query) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/company <name|reg_number> [country]`', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/company`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            query,
+                            country,
+                            chApiKey: settings.companiesHouseApiKey,
+                            ocApiKey: settings.openCorporatesApiKey
+                        })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    if (res.status === 'not_found') {
+                        onUpdateMessages(prev => [...prev, {
+                            id: uuidv4(),
+                            sender: Sender.AI,
+                            text: `⚠️ No company match found for \`${query}\`${country ? ` in \`${country}\`` : ''}.`,
+                            timestamp: Date.now()
+                        }]);
+                        setIsStreaming(false);
+                        setProcessingStatus(null);
+                        return;
+                    }
+
+                    const company = res.company || {};
+                    const officers = (res.officers || []).slice(0, 5);
+                    const pscs = (res.pscs || []).slice(0, 5);
+                    const filings = (res.filings || []).slice(0, 5);
+                    const address = company.address || company.registered_address || company.registered_address_in_full;
+                    const industryCodes = (company.sic_codes && company.sic_codes.length > 0)
+                        ? company.sic_codes
+                        : (company.industry_codes || [])
+                            .map((c: any) => c.code || c.industry_code || c.description)
+                            .filter(Boolean);
+
+                    const sourceLabel = res.source === 'companies_house' ? 'Companies House (UK)' : 'OpenCorporates';
+                    const notes: string[] = [];
+                    if (res.usedFallback) notes.push('fallback source');
+                    if (res.matchedFromSearch) notes.push('matched via search');
+
+                    let msg = `### 🏢 Company Lookup: ${company.name || query}\n\n`;
+                    msg += `**Source:** ${sourceLabel}${notes.length ? ` (${notes.join('; ')})` : ''}\n`;
+                    if (company.number) msg += `**Company #:** ${company.number}\n`;
+                    if (company.jurisdiction) msg += `**Jurisdiction:** ${String(company.jurisdiction).toUpperCase()}\n`;
+                    if (company.status || company.current_status) msg += `**Status:** ${company.status || company.current_status}\n`;
+                    if (company.incorporation_date) msg += `**Incorporated:** ${company.incorporation_date}\n`;
+                    if (company.dissolution_date) msg += `**Dissolved:** ${company.dissolution_date}\n`;
+                    if (address) msg += `**Registered Address:** ${address}\n`;
+                    if (industryCodes.length) msg += `**SIC/Industry Codes:** ${industryCodes.join(', ')}\n`;
+                    if (company.last_accounts) msg += `**Last Accounts:** ${company.last_accounts}\n`;
+                    if (company.last_confirmation_statement) msg += `**Last Confirmation Statement:** ${company.last_confirmation_statement}\n`;
+                    if (company.has_insolvency_history !== undefined) msg += `**Insolvency History:** ${company.has_insolvency_history ? 'Yes' : 'No'}\n`;
+                    if (company.opencorporates_url) msg += `**Registry URL:** ${company.opencorporates_url}\n`;
+
+                    if (officers.length) {
+                        msg += `\n#### 👤 Active Officers (top ${officers.length})\n`;
+                        officers.forEach((o: any) => {
+                            msg += `- ${o.name || 'Unknown'} — ${o.role || 'Officer'}${o.appointed_on ? ` (appointed ${o.appointed_on})` : ''}${o.resigned_on ? `, resigned ${o.resigned_on}` : ''}\n`;
+                        });
+                    }
+
+                    if (pscs.length) {
+                        msg += `\n#### 🧭 PSC / Significant Control (top ${pscs.length})\n`;
+                        pscs.forEach((p: any) => {
+                            const controls = (p.natures_of_control || []).join(', ');
+                            msg += `- ${p.name || 'Unknown'}${controls ? ` — ${controls}` : ''}${p.notified_on ? ` (notified ${p.notified_on})` : ''}${p.ceased_on ? `, ceased ${p.ceased_on}` : ''}\n`;
+                        });
+                    }
+
+                    if (filings.length) {
+                        msg += `\n#### 🗂️ Recent Filings (${filings.length})\n`;
+                        filings.forEach((f: any) => {
+                            msg += `- ${f.date || 'Unknown date'} — ${f.description || f.type || 'Filing'}${f.category ? ` [${f.category}]` : ''}\n`;
+                        });
+                    }
+
+                    if (!officers.length && !pscs.length && !filings.length) {
+                        msg += `\n*No officers, PSCs, or filings returned for this entity.*`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Company lookup failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // 22. Domain Reputation Checker (/reputation)
             if (text.startsWith('/reputation')) {
                 setProcessingStatus("Checking Reputation...");
@@ -2133,7 +2294,88 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 9. Certificate Transparency (/certs)
+            // 9. Nmap Port Scanner (/nmap)
+            if (text.startsWith('/nmap')) {
+                setProcessingStatus("Running nmap scan...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const args = text.replace('/nmap', '').trim().split(/\s+/);
+                const target = args[0];
+                const flags = args.slice(1).join(' ');
+
+                if (!target) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/nmap <target> [flags]`\n\nExamples:\n- `/nmap 10.10.10.50` (basic scan)\n- `/nmap 10.10.10.50 -A` (aggressive)\n- `/nmap 10.10.10.50 -p-` (all ports)\n- `/nmap 10.10.10.50 -sV -sC` (version + scripts)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/nmap`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ target, flags })
+                    });
+
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.error || 'Nmap scan failed');
+                    }
+
+                    const data = await res.json();
+
+                    // Format output
+                    let msg = `## 🔍 Nmap Scan Results\n\n`;
+                    msg += `**Target:** ${data.target}\n`;
+                    msg += `**Flags:** ${data.flags}\n`;
+
+                    if (data.scan_info.target) {
+                        msg += `**Scan Report:** ${data.scan_info.target}\n`;
+                    }
+                    if (data.scan_info.latency) {
+                        msg += `**Latency:** ${data.scan_info.latency}\n`;
+                    }
+                    if (data.scan_info.os) {
+                        msg += `**OS Detection:** ${data.scan_info.os}\n`;
+                    }
+
+                    msg += `\n**Open Ports:** ${data.total_open}\n\n`;
+
+                    if (data.open_ports && data.open_ports.length > 0) {
+                        msg += `| Port | Protocol | State | Service |\n`;
+                        msg += `|------|----------|-------|----------|\n`;
+                        data.open_ports.forEach((p: any) => {
+                            const emoji = p.state === 'open' ? '🟢' : p.state === 'filtered' ? '🟡' : '🔴';
+                            msg += `| ${emoji} ${p.port} | ${p.protocol} | ${p.state} | ${p.service} |\n`;
+                        });
+                    } else {
+                        msg += `*No ports found in scan output. The host may be down or heavily filtered.*\n`;
+                    }
+
+                    msg += `\n### Raw Nmap Output:\n\`\`\`\n${data.raw_output}\n\`\`\`\n`;
+
+                    if (data.note) {
+                        msg += `\n*Note: ${data.note}*\n`;
+                    }
+
+                    msg += `\n**Tips:** Use \`/shodan <ip>\` for more intel, or \`/geoip <ip>\` for location data.`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Nmap Scan Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 10. Certificate Transparency (/certs)
             if (text.startsWith('/certs')) {
                 setProcessingStatus("Querying Certificate Transparency logs...");
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
@@ -2628,6 +2870,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 // Hugging Face
                 const res = await generateHFChat(textToSend, session.messages, modelToUse, settings.huggingFaceApiKey || '');
                 finalParams(res, {});
+            } else if ((modelToUse === ModelType.LMSTUDIO || settings.availableModels.lmstudio.includes(modelToUse)) && !isPetChat) {
+                // LM Studio - check both enum and actual model names
+                const promptWithSearch = (searchContext || studyContextText)
+                    ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
+                    : textToSend;
+                const actualModelId = modelToUse === ModelType.LMSTUDIO ? settings.lmstudioModelId : modelToUse;
+                const res = await streamLMStudioResponse(promptWithSearch, imageAttachments, session.messages, settings.lmstudioBaseUrl, actualModelId, relevantContext, commonParams, settings.modelParams);
+                finalParams(res.text, res.usage);
             } else if (modelToUse === ModelType.LOCAL || (!modelToUse.includes('gemini') && !isPetChat)) {
                 const promptWithSearch = (searchContext || studyContextText)
                     ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
@@ -2669,7 +2919,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         "Perplexity": [ModelType.PERPLEXITY_SONAR, ModelType.PERPLEXITY_SONAR_PRO],
         "Grok (xAI)": settings.availableModels.grok,
         "HuggingFace": settings.availableModels.huggingface,
-        "Local": settings.availableModels.ollama
+        "Ollama": settings.availableModels.ollama,
+        "LM Studio": settings.availableModels.lmstudio
     };
 
     const isTron = settings.theme === 'tron';

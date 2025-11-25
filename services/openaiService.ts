@@ -9,7 +9,8 @@ export const streamOpenAIResponse = async (
   context: DocumentChunk[],
   apiKey: string,
   onChunk: (text: string) => void,
-  modelParams?: ModelParams
+  modelParams?: ModelParams,
+  baseUrl: string = 'https://api.openai.com/v1'
 ) => {
   if (!apiKey) throw new Error("OpenAI API Key is missing.");
 
@@ -40,7 +41,7 @@ export const streamOpenAIResponse = async (
   const stream = !isO1; 
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({

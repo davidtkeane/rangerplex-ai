@@ -1,4 +1,4 @@
-# RangerPlex Manual (v2.5.20)
+# RangerPlex Manual (v2.5.26)
 
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
 > Doc policy: Keep this manual and the plan as the primary docs. Only add new docs when strictly necessary (e.g., per-feature deep dives).
@@ -19,9 +19,11 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - [Notes & Sticky Notes](#notes--sticky-notes)
 - [Backups, Sync, Export](#backups-sync-export)
 - [Cloud Sync & Proxy](#cloud-sync--proxy)
+- [LM Studio (Local AI with GUI)](#lm-studio-local-ai-with-gui)
 - [OSINT & Security Tools](#osint--security-tools)
 - [Model Training & Data Tools](#model-training--data-tools)
 - [Security & Lock Screen](#security--lock-screen)
+- [Auto-Update System](#auto-update-system)
 - [Settings Reference](#settings-reference)
 - [Troubleshooting](#troubleshooting)
 - [Glossary](#glossary)
@@ -68,6 +70,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
   - `/imagine_all` → Multi-provider image generation.
   - `/pet` → Open Kitty widget. `/pet-chat <msg>` → Talk as/with Kitty.
   - `/scan <url>` → VirusTotal file scan.
+  - `/company <name|reg_number> [country]` → Company registry lookup (legal name, status, officers, address). Defaults to UK Companies House; falls back to OpenCorporates for other countries.
   - `/trace <domain_or_ip>` → Traceroute hops (20-hop limit, single probe).
   - `/hash <hash>` → VirusTotal hash intelligence (VT key required).
   - `/certs <domain>` → Certificate Transparency lookup.
@@ -77,8 +80,9 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
   - **Infrastructure:** `/shodan <ip>` → Shodan port/service scan.
   - **Domain Recon:** `/whois <domain>`, `/dns <domain>`, `/subdomains <domain>`, `/certs <domain>`, `/reputation <domain>`.
   - **Network Intel:** `/geoip <ip>`, `/myip`, `/ipinfo <ip>`, `/iprecon <ip>`, `/reverse <ip>`, `/asn <asn/ip>`, `/trace <domain/ip>`.
-  - **Port Scanning:** `/ports <ip_or_host> [ports]` → TCP scan (40 default ports; authorization required).
+  - **Port Scanning:** `/ports <ip_or_host> [ports]` → TCP scan (40 default ports; authorization required). `/nmap <target> [flags]` → Nmap network scanner (whitelisted flags only; TryHackMe-ready).
   - **Security Checks:** `/ssl <domain>`, `/headers <url>`, `/breach <email>`, `/hash <hash>`.
+  - **Company Intel:** `/company <name|reg_number> [country]` → Company registry lookup (UK Companies House + OpenCorporates).
   - **Hardware:** `/mac <address>`, `/sys` → MAC vendor lookup and system info.
   - **Communications:** `/phone <number>`, `/email <address>`.
   - **Social Intel:** `/sherlock <username>` → Username search across 300+ platforms.
@@ -146,7 +150,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 
 ## OSINT & Security Tools
 
-RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal with **21 completed tools** covering domain recon, network intel, security audits, social reconnaissance, financial tracking, and digital forensics.
+RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal with **23 completed tools** covering domain recon, network intel, security audits, company registry intelligence, social reconnaissance, financial tracking, and digital forensics.
 
 ### Infrastructure & Network Intelligence
 - **`/shodan <ip>`** - Query Shodan API for open ports, vulnerabilities, and services. Requires API key (Settings → Providers).
@@ -156,6 +160,24 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
 - **`/iprecon <ip>`** - Complete IP reconnaissance (combines multiple intel sources).
 - **`/ports <ip_or_host> [ports]`** - TCP port scanner. Default: 40 common ports. Custom: comma-separated list (up to 100). Shows open/closed/filtered status, latency, and service identification (28 services). **Authorization required!**
 - **`/trace <domain_or_ip>`** - Traceroute to map network hops (20-hop limit, single probe per hop). Timeouts mid-path are common.
+- **`/nmap <target> [flags]`** - Nmap network scanner for comprehensive port scanning and service detection. Perfect for TryHackMe, CTFs, and penetration testing. **Whitelisted flags only for security:**
+  - `-A` - Aggressive scan (OS detection, version detection, script scanning, traceroute)
+  - `-sV` - Service version detection
+  - `-sC` - Default script scan (safe NSE scripts)
+  - `-p-` - Scan all 65535 ports
+  - `-p <ports>` - Scan specific ports (e.g., `-p 80,443` or `-p 1-1000`)
+  - `-Pn` - Skip host discovery (treat host as online, useful for filtered targets)
+  - `-T4` - Aggressive timing template (faster scans)
+  - `-v` - Verbose output
+  - **Examples:**
+    - `/nmap 10.10.10.50` - Basic scan (top 1000 ports)
+    - `/nmap 10.10.10.50 -A` - Aggressive scan with OS and version detection
+    - `/nmap 10.10.10.50 -p-` - Scan all 65535 ports
+    - `/nmap scanme.nmap.org -sV -sC` - Version detection + safe scripts
+  - **Requirements:** Nmap must be installed (`brew install nmap` on Mac, `apt install nmap` on Linux)
+  - **Security:** Only whitelisted flags are allowed; target sanitization prevents command injection
+  - **Timeout:** 60 seconds per scan
+  - **Output:** Structured table of open ports with service names, plus raw nmap output for advanced analysis
 
 ### Domain & DNS Reconnaissance
 - **`/whois <domain>`** - Domain registration details (registrar, expiry, name servers, contact info).
@@ -166,6 +188,9 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
 - **`/asn <asn_number or ip>`** - ASN (Autonomous System Number) lookup. Find all IP ranges (CIDR blocks) owned by organizations. Accepts ASN numbers (AS15169 for Google) or IP addresses. Returns organization name, network ranges, and routing info. No API key required (HackerTarget API).
 - **`/trace <domain or ip>`** - Traceroute network path mapping. Discover routing path from your location to target, identify ISPs and intermediate hops. Shows hop number, IP address, hostname, and round-trip time (RTT). Handles timeouts and filtered hops gracefully. 20-hop limit with single probe per hop. No API key required (native CLI).
 - **`/reputation <domain>`** - Check domain against Google Safe Browsing for malware, phishing, and threats. Protects 5+ billion devices. Requires API key (free tier: 10,000 requests/day).
+
+### Company & Registry Intelligence
+- **`/company <name|reg_number> [country]`** - Company registry lookup. Returns legal name, registration number, status (active/dissolved), incorporation date, registered address, SIC/industry codes, active officers, people with significant control (PSC), and last filing date. Defaults to UK Companies House; falls back to OpenCorporates for other countries. Specify country codes like `uk`, `us-de`, `ie`. Requires API key(s); results are flagged when sourced from fallback or partial data.
 
 ### Security Auditing
 - **`/ssl <domain>`** - SSL/TLS certificate analysis (validity, expiry, issuer, cipher strength).
@@ -214,6 +239,69 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
 ## Security & Lock Screen
 - **Lock Screen:** Enable/disable lock; set security mode (e.g., “hacker”).  
 - **Tip:** Use lock for shared machines; verify holiday/effects do not expose sensitive UI.
+
+## Auto-Update System
+RangerPlex v2.5.25 introduces one-click automatic updates directly from the Settings panel.
+
+### How to Update
+1. **Open Settings** → Navigate to "General" or "System Updates" section
+2. **Check for Updates** → Click the "Check for Updates" button
+3. **View Latest Version** → See the latest commit from GitHub (version hash, date, commit message)
+4. **Install Update** → Click the green "Install Update" button
+5. **Wait for Completion** → Progress indicator shows "Installing..." with spinner
+6. **Restart if Needed** → Follow the on-screen instructions to restart the proxy server
+
+### What Happens During Update
+- **Git Pull**: Automatically runs `git pull origin main` to fetch latest code
+- **Dependency Check**: Detects if `package.json` changed
+- **Auto Install**: Runs `npm install` if dependencies were updated
+- **Status Reports**: Shows real-time progress and detailed results
+- **Smart Restart**: Only prompts for restart when necessary
+
+### Update Scenarios
+1. **Already Up to Date**:
+   - Message: "Already up to date"
+   - No restart required
+   - Continue using the app normally
+
+2. **Code Changes Only**:
+   - Message: "Update successful!"
+   - Restart required: Stop proxy server (Ctrl+C), then restart: `node proxy_server.js`
+   - Refresh browser after proxy restart
+
+3. **Dependency Changes** (package.json modified):
+   - Message: "Update successful! Dependencies installed."
+   - Auto-runs `npm install`
+   - Restart required (as above)
+
+4. **Update Failed**:
+   - Shows detailed error message
+   - Common causes: Merge conflicts, network issues, git permissions
+   - Manual intervention may be needed (see Troubleshooting)
+
+### Safety Features
+- **2-Minute Timeout**: Operations automatically timeout after 2 minutes
+- **Error Handling**: Detailed error messages for troubleshooting
+- **No Data Loss**: Updates only affect code, not your data (stored in database)
+- **Graceful Failures**: If update fails, your current version continues working
+
+### Manual Update (Alternative)
+If automatic update fails, you can still update manually:
+```bash
+cd /path/to/rangerplex-ai
+git pull origin main
+npm install  # Only if package.json changed
+node proxy_server.js
+```
+
+### Troubleshooting Updates
+- **"Git pull failed"**: May have local changes; stash or commit them first
+- **"npm install failed"**: Try running `npm install` manually with error details
+- **"Timeout"**: Network slow or large update; try manual update
+- **Merge Conflicts**: Resolve conflicts manually, then push changes
+- **Permission Denied**: Check git credentials and file permissions
+
+**Tip:** Always ensure you're on the `main` branch before updating: `git branch` (should show `* main`)
 
 ## Settings Reference
 Key areas (see Settings modal):

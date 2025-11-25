@@ -690,14 +690,56 @@ const App: React.FC = () => {
             </div>
           )}
           {needsBackupImport && (
-            <div className="mx-4 mt-3 rounded border border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 px-3 py-2 text-sm flex items-center justify-between gap-3">
-              <span>No local or server data detected. Import a backup to restore your workspace.</span>
-              <button
-                onClick={() => setShowBackupManager(true)}
-                className="px-3 py-1.5 rounded bg-amber-500 text-white text-xs font-bold hover:bg-amber-600"
-              >
-                Import Backup
-              </button>
+            <div className="mx-4 mt-3 rounded border border-blue-400 bg-blue-50 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200 p-4 text-sm">
+              <div className="flex items-start gap-3 mb-3">
+                <i className="fa-solid fa-rocket text-2xl text-blue-500"></i>
+                <div className="flex-1">
+                  <h3 className="font-bold text-base mb-1">Welcome to RangerPlex AI! 🎖️</h3>
+                  <p className="opacity-90 text-xs mb-2">
+                    No existing data detected. This looks like a fresh installation or new machine.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="border border-blue-300 dark:border-blue-700 rounded p-3 bg-white/50 dark:bg-black/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <i className="fa-solid fa-play-circle text-green-500"></i>
+                    <h4 className="font-bold text-sm">Start Fresh</h4>
+                  </div>
+                  <p className="text-xs opacity-80 mb-3">
+                    First time here? Create your first user and start exploring RangerPlex features.
+                  </p>
+                  <button
+                    onClick={() => setNeedsBackupImport(false)}
+                    className="w-full px-3 py-2 rounded bg-green-600 text-white text-xs font-bold hover:bg-green-500 transition-colors"
+                  >
+                    <i className="fa-solid fa-rocket mr-2"></i>
+                    Start Fresh
+                  </button>
+                </div>
+                <div className="border border-blue-300 dark:border-blue-700 rounded p-3 bg-white/50 dark:bg-black/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <i className="fa-solid fa-download text-blue-500"></i>
+                    <h4 className="font-bold text-sm">Restore from Backup</h4>
+                  </div>
+                  <p className="text-xs opacity-80 mb-3">
+                    Moving from another machine? Import your backup to restore chats, settings, and data.
+                  </p>
+                  <button
+                    onClick={() => setShowBackupManager(true)}
+                    className="w-full px-3 py-2 rounded bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 transition-colors"
+                  >
+                    <i className="fa-solid fa-file-import mr-2"></i>
+                    Import Backup
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-blue-300 dark:border-blue-700">
+                <p className="text-xs opacity-75">
+                  <i className="fa-solid fa-info-circle mr-1"></i>
+                  <strong>Tip:</strong> You can always access backup/restore in Settings → Data & Tools → Backup & Restore
+                </p>
+              </div>
             </div>
           )}
           {isStudyNotesOpen ? (

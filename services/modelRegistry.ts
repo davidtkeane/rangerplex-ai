@@ -32,6 +32,14 @@ export const fetchOllamaModels = async (baseUrl: string): Promise<string[]> => {
     } catch (e) { console.error(e); return []; }
 };
 
+export const fetchLMStudioModels = async (baseUrl: string): Promise<string[]> => {
+    try {
+        const res = await fetch(`${baseUrl}/models`);
+        const data = await res.json();
+        return data.data?.map((m: any) => m.id) || [];
+    } catch (e) { console.error(e); return []; }
+};
+
 export const fetchGeminiModels = async (apiKey: string): Promise<string[]> => {
     if (!apiKey) return KNOWN_GEMINI_MODELS;
 
