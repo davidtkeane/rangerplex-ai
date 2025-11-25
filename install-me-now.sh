@@ -233,6 +233,14 @@ install_nvm() {
   # shellcheck source=/dev/null
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+  
+  # Verify nvm is now available
+  if ! command -v nvm >/dev/null 2>&1; then
+    fail "nvm installation completed but nvm command not found."
+    log "${dim}Try opening a new terminal and running this script again.${reset}"
+    exit 1
+  fi
   ok "nvm installed."
 }
 
@@ -277,6 +285,23 @@ ensure_node() {
 
   spinner "Installing Node.js v22 (via nvm)..." nvm install 22
   nvm use 22
+  nvm alias default 22
+  
+  # Verify Node is now available and correct version
+  if ! command -v node >/dev/null 2>&1; then
+    fail "Node.js installation completed but node command not found."
+    log "${dim}Try opening a new terminal and running this script again.${reset}"
+    exit 1
+  fi
+  
+  local installed_ver
+  installed_ver="$(node -v)"
+  if [[ ! "$installed_ver" == v22.* ]]; then
+    warn "Expected Node v22.x but got $installed_ver"
+    log "${dim}Attempting to switch to Node 22...${reset}"
+    nvm use 22
+  fi
+  
   ok "Node.js $(node -v) ready."
 }
 
@@ -290,10 +315,13 @@ install_pm2() {
   fi
 
   step "Installing PM2 process manager (enables zero-downtime restarts)..."
+  # Try global install first (preferred for CLI usage)
   if npm install -g pm2 >/dev/null 2>&1; then
     ok "PM2 installed globally."
   else
-    warn "PM2 global install failed. Will use local PM2 from node_modules."
+    warn "PM2 global install failed (may need sudo or different permissions)."
+    log "${dim}No worries - PM2 is also in package.json devDependencies.${reset}"
+    log "${dim}It will be available after npm install completes.${reset}"
   fi
 }
 
@@ -378,13 +406,26 @@ prepare_deps() {
     fi
   fi
 
-  spinner "Installing npm dependencies (npm install)..." npm install
-  ok "Dependencies installed."
+  step "Installing npm dependencies (this may take a minute)..."
+  if npm install; then
+    ok "Dependencies installed successfully."
+  else
+    fail "npm install failed!"
+    log "${dim}This usually means:${reset}"
+    log "${dim}  1. Network connectivity issues${reset}"
+    log "${dim}  2. Incompatible Node.js version${reset}"
+    log "${dim}  3. Corrupted package-lock.json${reset}"
+    log
+    warn "Try these fixes:"
+    log "${dim}  • rm -rf node_modules package-lock.json && npm install${reset}"
+    log "${dim}  • Ensure you're using Node.js v22.x${reset}"
+    exit 1
+  fi
 
   # Save current Node version for future checks
   node -v > node_modules/.node_version
 
-  # Rebuild all native modules for current Node version
+  # Rebuild all native modules for current Node version (critical for M1/ARM)
   step "Rebuilding native modules for Node.js $(node -v)..."
   if npm rebuild >/dev/null 2>&1; then
     ok "All native modules rebuilt successfully."
@@ -395,7 +436,9 @@ prepare_deps() {
       ok "Database module (better-sqlite3) rebuilt successfully."
     else
       fail "Failed to rebuild better-sqlite3 (database may not work)."
-      log "${dim}Try manually: npm rebuild better-sqlite3${reset}"
+      log "${dim}This is critical for M1/ARM Macs. Try manually:${reset}"
+      log "${dim}  npm rebuild better-sqlite3${reset}"
+      log "${dim}  Or: npm install --build-from-source better-sqlite3${reset}"
     fi
   fi
 }
