@@ -51,6 +51,69 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
       });
   };
 
+  // Auto-link URLs in text
+  const renderWithLinks = (text: string) => {
+      // First, handle markdown-style links [text](url)
+      const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+      const withMarkdownLinks = text.replace(markdownLinkRegex, (match, linkText, url) => {
+          return `__MDLINK__${linkText}__SEP__${url}__ENDMDLINK__`;
+      });
+
+      // Then handle plain URLs
+      const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+      const parts = withMarkdownLinks.split(urlRegex);
+
+      return parts.map((part, idx) => {
+          // Handle markdown links
+          if (part && part.includes('__MDLINK__')) {
+              const mdLinkParts = part.split('__MDLINK__');
+              return mdLinkParts.map((mdPart, mdIdx) => {
+                  if (mdPart && mdPart.includes('__SEP__') && mdPart.includes('__ENDMDLINK__')) {
+                      // Extract text and url from: text__SEP__url__ENDMDLINK__
+                      const match = mdPart.match(/^([^_]+(?:_(?!SEP)[^_]+)*)__SEP__([^_]+(?:_(?!ENDMDLINK)[^_]+)*)__ENDMDLINK__/);
+                      if (match) {
+                          const linkText = match[1];
+                          const url = match[2];
+                          if (url) {
+                              const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                              return (
+                                  <a
+                                      key={`mdlink-${idx}-${mdIdx}`}
+                                      href={fullUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`underline hover:no-underline ${isTron ? 'text-tron-cyan' : isMatrix ? 'text-green-400' : 'text-teal-500'}`}
+                                  >
+                                      {linkText}
+                                  </a>
+                              );
+                          }
+                      }
+                  }
+                  return <React.Fragment key={`mdtxt-${idx}-${mdIdx}`}>{renderSourceLinks(mdPart || '')}</React.Fragment>;
+              });
+          }
+
+          // Handle plain URLs
+          if (part && part.match(urlRegex)) {
+              const url = part.startsWith('http') ? part : `https://${part}`;
+              return (
+                  <a
+                      key={`url-${idx}`}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`underline hover:no-underline ${isTron ? 'text-tron-cyan' : isMatrix ? 'text-green-400' : 'text-teal-500'}`}
+                  >
+                      {part}
+                  </a>
+              );
+          }
+
+          return renderSourceLinks(part || '');
+      });
+  };
+
   useEffect(() => {
       const stored = localStorage.getItem('perplex_active_user');
       if (stored) {
@@ -140,7 +203,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
                                     <p key={`${index}-${i}`} className={`mb-2 leading-7 ${line.startsWith('- ') || line.startsWith('* ') ? 'pl-4' : ''}`}>
                                         {line.split(/(\*\*.*?\*\*)/).map((chunk, j) => {
                                             if (chunk.startsWith('**') && chunk.endsWith('**')) return <strong key={j} className="font-bold text-inherit opacity-100">{chunk.slice(2, -2)}</strong>;
-                                            return <React.Fragment key={j}>{renderSourceLinks(chunk)}</React.Fragment>;
+                                            return <React.Fragment key={j}>{renderWithLinks(chunk)}</React.Fragment>;
                                         })}
                                     </p>
                                 ))}
