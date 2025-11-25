@@ -40,7 +40,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'data' | 'about' | 'help'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'data' | 'about' | 'github'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
     const [loadingModels, setLoadingModels] = useState(false);
     const [promptSearch, setPromptSearch] = useState('');
@@ -53,6 +53,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [updateResult, setUpdateResult] = useState<{ success: boolean; message: string; needsRestart?: boolean } | null>(null);
     const [reloadingServer, setReloadingServer] = useState(false);
     const [reloadResult, setReloadResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [stoppingServer, setStoppingServer] = useState(false);
+    const [stopResult, setStopResult] = useState<{ success: boolean; message: string } | null>(null);
 
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true);
@@ -131,6 +133,39 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             });
         } finally {
             setReloadingServer(false);
+        }
+    };
+
+    const handleStopServer = async () => {
+        setStoppingServer(true);
+        setStopResult(null);
+        try {
+            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/system/stop`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setStopResult({
+                    success: true,
+                    message: result.message
+                });
+            } else {
+                setStopResult({
+                    success: false,
+                    message: result.error || result.message || 'Stop failed'
+                });
+            }
+        } catch (error) {
+            setStopResult({
+                success: false,
+                message: error instanceof Error ? error.message : 'Stop failed'
+            });
+        } finally {
+            setStoppingServer(false);
         }
     };
 
@@ -656,7 +691,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                 {/* Tabs */}
                 <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'data', 'about', 'help'].map((tab) => (
+                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'data', 'about', 'github'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -1957,9 +1992,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     )}
 
                     {/* HELP TAB */}
-                    {activeTab === 'help' && (
+                    {activeTab === 'github' && (
                         <div className="space-y-6 prose prose-invert max-w-none">
-                            <h3 className="font-bold border-b border-inherit pb-2">System & Help</h3>
+                            <h3 className="font-bold border-b border-inherit pb-2">System & GitHub</h3>
 
                             {/* Update Checker */}
                             <div className="p-4 border border-inherit rounded bg-opacity-5">
@@ -2079,6 +2114,47 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                 {reloadResult.success ? 'Reload Complete!' : 'Reload Failed'}
                                             </div>
                                             <div className="opacity-80">{reloadResult.message}</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Server Stop Section */}
+                                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                            <h4 className="font-bold text-sm flex items-center gap-2">
+                                                <i className="fa-solid fa-stop"></i>
+                                                Stop Server
+                                            </h4>
+                                            <div className="text-xs opacity-60 mt-1">
+                                                Stop PM2 servers (use npm run pm2:start to restart)
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleStopServer}
+                                            disabled={stoppingServer}
+                                            className="px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 disabled:opacity-50 rounded text-white font-bold flex items-center gap-2"
+                                        >
+                                            {stoppingServer ? (
+                                                <>
+                                                    <i className="fa-solid fa-circle-notch fa-spin"></i>
+                                                    Stopping...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fa-solid fa-stop"></i>
+                                                    Stop Server
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                    {stopResult && (
+                                        <div className={`mt-3 p-3 rounded text-xs border ${stopResult.success ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                                            <div className={`font-bold mb-1 ${stopResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                                                <i className={`fa-solid ${stopResult.success ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2`}></i>
+                                                {stopResult.success ? 'Server Stopped!' : 'Stop Failed'}
+                                            </div>
+                                            <div className="opacity-80">{stopResult.message}</div>
                                         </div>
                                     )}
                                 </div>

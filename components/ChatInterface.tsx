@@ -338,6 +338,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `╠════ FUN & ENTERTAINMENT ═════════════════════╣\n`;
                     helpMsg += `║ 🥋  CHUCK       :: /chuck                   ║\n`;
                     helpMsg += `║ 😂  JOKE        :: /joke                    ║\n`;
+                    helpMsg += `║ 📖  BIBLE       :: /bible                   ║\n`;
                     helpMsg += `╠════ CREATIVE SUITE ══════════════════════════╣\n`;
                     helpMsg += `║ 🎨  IMAGINE     :: /imagine <prompt>        ║\n`;
                     helpMsg += `║ ♾️   CANVAS      :: canvas                   ║\n`;
@@ -694,6 +695,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- [GitHub - Official Joke API](https://github.com/15Dkatz/official_joke_api)\n`;
                     helpMsg += `- [icanhazdadjoke API](https://icanhazdadjoke.com/api)\n\n`;
                     helpMsg += `**Pro Tip:** Perfect for lightening the mood during long coding sessions! 😄`;
+                }
+                else if (cmd === 'bible') {
+                    helpMsg = `### 📖 Command: /bible\n\n`;
+                    helpMsg += `**Usage:** \`/bible\`\n`;
+                    helpMsg += `**Purpose:** Fetches a random Bible verse from the World English Bible (Public Domain translation).\n\n`;
+                    helpMsg += `**Features:**\n`;
+                    helpMsg += `- Random verses from the entire Bible\n`;
+                    helpMsg += `- Reference included (Book, Chapter:Verse)\n`;
+                    helpMsg += `- World English Bible translation (Public Domain)\n`;
+                    helpMsg += `- Free API (no key required)\n`;
+                    helpMsg += `- Full source attribution\n\n`;
+                    helpMsg += `**Sources:**\n`;
+                    helpMsg += `- [Bible API](https://bible-api.com/)\n`;
+                    helpMsg += `- [GitHub - Bible API](https://github.com/wldeh/bible-api)\n`;
+                    helpMsg += `- [NET Bible Web Service](https://labs.bible.org/api_web_service)\n\n`;
+                    helpMsg += `**Pro Tip:** Great for daily inspiration, reflection, or spiritual guidance! 📖`;
                 }
                 else {
                     // Generic fallback for other commands or unknown inputs
@@ -2601,7 +2618,57 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 12. Certificate Transparency (/certs)
+            // 12. Random Bible Verse (/bible)
+            if (text.startsWith('/bible')) {
+                setProcessingStatus("Fetching Bible verse...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/fun/bible`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+
+                    const res = await response.json();
+
+                    if (!res.success && res.error) {
+                        throw new Error(res.error);
+                    }
+
+                    let msg = `## 📖 Random Bible Verse\n\n`;
+                    msg += `### ${res.reference}\n\n`;
+                    msg += `> ${res.text}\n\n`;
+                    msg += `**Translation:** ${res.translation}`;
+
+                    if (res.translationNote) {
+                        msg += ` (${res.translationNote})`;
+                    }
+
+                    msg += `\n\n---\n\n**Sources:**\n`;
+                    res.sources.forEach((source: any) => {
+                        msg += `- [${source.name}](${source.url})\n`;
+                    });
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    const fallbackMsg = `## 📖 Random Bible Verse\n\n### John 3:16\n\n> For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.\n\n*Note: ${e.message}*`;
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: fallbackMsg, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 13. Certificate Transparency (/certs)
             if (text.startsWith('/certs')) {
                 setProcessingStatus("Querying Certificate Transparency logs...");
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';

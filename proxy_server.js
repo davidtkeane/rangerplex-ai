@@ -2418,6 +2418,54 @@ app.post('/api/fun/joke', async (req, res) => {
     }
 });
 
+// Random Bible Verse (bible-api.com)
+app.post('/api/fun/bible', async (req, res) => {
+    try {
+        console.log('📖 Fetching random Bible verse...');
+        const apiUrl = 'https://bible-api.com/?random=verse';
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Bible API error ${response.status}:`, errorText);
+            throw new Error(`Bible API returned ${response.status}: ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const body = await response.text();
+            console.error('❌ Bible API returned non-JSON:', body.substring(0, 200));
+            throw new Error('API returned non-JSON response');
+        }
+
+        const data = await response.json();
+
+        res.json({
+            success: true,
+            reference: data.reference,
+            text: data.text,
+            verses: data.verses || [],
+            translation: data.translation_name || 'World English Bible',
+            translationNote: data.translation_note || 'Public Domain',
+            sources: [
+                { name: 'Bible API', url: 'https://bible-api.com/' },
+                { name: 'GitHub - Bible API', url: 'https://github.com/wldeh/bible-api' },
+                { name: 'NET Bible Web Service', url: 'https://labs.bible.org/api_web_service' }
+            ]
+        });
+    } catch (error) {
+        console.error('❌ Bible verse fetch error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to fetch Bible verse',
+            fallback: {
+                reference: "John 3:16",
+                text: "For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life."
+            }
+        });
+    }
+});
+
 // Certificate Transparency Lookup (crt.sh)
 app.post('/api/tools/certs', async (req, res) => {
     try {
@@ -3200,6 +3248,60 @@ app.post('/api/system/reload', async (req, res) => {
             success: false,
             error: error.message || 'Reload failed',
             message: 'Please restart manually with: npm run pm2:reload'
+        });
+    }
+});
+
+// System Stop Endpoint - Stop PM2 servers
+app.post('/api/system/stop', async (req, res) => {
+    try {
+        console.log('🛑 Stopping servers with PM2...');
+
+        const pm2Stop = spawn('pm2', ['stop', 'ecosystem.config.cjs']);
+        const pm2Output = [];
+        const pm2Errors = [];
+
+        pm2Stop.stdout.on('data', (data) => {
+            pm2Output.push(data.toString());
+            console.log('PM2:', data.toString());
+        });
+
+        pm2Stop.stderr.on('data', (data) => {
+            pm2Errors.push(data.toString());
+        });
+
+        pm2Stop.on('close', (code) => {
+            if (code === 0) {
+                return res.json({
+                    success: true,
+                    message: 'Servers stopped successfully! Use npm run pm2:start to restart.',
+                    output: pm2Output.join('')
+                });
+            } else {
+                return res.status(500).json({
+                    success: false,
+                    error: 'PM2 stop failed',
+                    details: pm2Errors.join(''),
+                    fallback: 'Please stop manually with: npm run pm2:stop'
+                });
+            }
+        });
+
+        pm2Stop.on('error', (error) => {
+            console.error('❌ PM2 stop error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'PM2 not available',
+                message: 'PM2 is not running. Please use: npm run pm2:stop',
+                details: error.message
+            });
+        });
+    } catch (error) {
+        console.error('❌ Stop error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Stop failed',
+            message: 'Please stop manually with: npm run pm2:stop'
         });
     }
 });

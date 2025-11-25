@@ -7,6 +7,22 @@
 
 **Fun & Entertainment Feature.** Added `/chuck` command to fetch random Chuck Norris facts from the legendary api.chucknorris.io database. Because even the most intense OSINT sessions need a good laugh!
 
+### 🛑 PM2 Server Control & UI Updates
+*   **Stop Server Button** (`SettingsModal.tsx:2121-2160, proxy_server.js:3207-3259`): **88 lines added**
+    - New button in Settings → GitHub tab to stop PM2 servers
+    - Backend endpoint: `POST /api/system/stop`
+    - Red stop button with loading states
+    - Success/error feedback with instructions
+    - Complements existing reload functionality
+*   **Tab Rename** (`SettingsModal.tsx:694, 1995, 1997`):
+    - Renamed "Help" tab to "GitHub"
+    - Updated title from "System & Help" to "System & GitHub"
+    - Better reflects tab content (GitHub updates, system controls, documentation)
+*   **State Management** (`SettingsModal.tsx:56-57, 139-170`):
+    - Added `stoppingServer` and `stopResult` states
+    - New `handleStopServer` function (mirrors reload pattern)
+    - Full async error handling
+
 ### 🥋 Chuck Norris Facts Integration
 *   **Command**: `/chuck` - Fetches random Chuck Norris jokes/facts
 *   **Backend Endpoint** (`proxy_server.js:2322-2359`): **38 lines added**
