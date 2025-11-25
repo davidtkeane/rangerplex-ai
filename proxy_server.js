@@ -625,6 +625,39 @@ app.post('/api/tools/whois', async (req, res) => {
     }
 });
 
+// Have I Been Pwned (HIBP) Tool
+app.post('/api/tools/breach', async (req, res) => {
+    try {
+        const { email, apiKey } = req.body;
+        if (!email || !apiKey) return res.status(400).json({ error: 'Missing email or apiKey' });
+
+        console.log('🕵️ HIBP Breach Check:', email);
+
+        const response = await fetch(`https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`, {
+            headers: {
+                'hibp-api-key': apiKey,
+                'user-agent': 'RangerPlex-AI'
+            }
+        });
+
+        if (response.status === 404) {
+            return res.json({ status: 'clean', data: [] }); // No breaches found
+        }
+
+        if (!response.ok) {
+            const errText = await response.text();
+            return res.status(response.status).json({ error: `HIBP Error: ${errText}` });
+        }
+
+        const data = await response.json();
+        res.json({ status: 'pwned', data });
+
+    } catch (error) {
+        console.error('❌ HIBP error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // WebSocket Server
 const server = createServer(app);
 const wss = new WebSocketServer({ server });

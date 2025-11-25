@@ -2,6 +2,37 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.2 - "Copy Parity & UX Polish" (Current) ✨
+*Released: Nov 25, 2025*
+
+**Copy controls now match for you and the AI.** Added quick copy buttons under every message (user + AI) and a “copy last message” control under the chat box for fast sharing.
+
+### 🧭 UX Improvements
+*   **Per-Message Copy**: A small pill under each message to copy its text (works for user and AI, theme-aware feedback).
+*   **Copy Last Message**: Single button under the chat input to grab the most recent message in the thread.
+
+### ⚙️ Files Modified
+*   `components/MessageItem.tsx` - Add per-message copy pill with feedback.
+*   `components/ChatInterface.tsx` - Add “copy last message” control near the input.
+*   `components/Sidebar.tsx` - Version label to 2.5.2.
+*   `services/dbService.ts` - Export metadata version bump to 2.5.2.
+*   `package.json` - Version bump to 2.5.2.
+*   `README.md` - Version badge updated to 2.5.2.
+
+## v2.5.1 - "OSINT & Network Recon" 🕵️
+*Released: Nov 25, 2025*
+
+**Knowledge is power.** This update introduces powerful Open Source Intelligence (OSINT) tools to gather public data on domains and infrastructure directly from the chat.
+
+### 🕵️ OSINT Tools
+*   **Whois Lookup**: Added `/whois <domain>` command.
+    *   Fetches official registration data via RDAP (Registration Data Access Protocol).
+    *   Displays Registrar, Creation/Expiry dates, and Domain Status.
+*   **DNS Resolver**: Added `/dns <domain>` command.
+    *   Performs deep DNS lookups using the local server's native networking.
+    *   Retrieves A (IPv4), AAAA (IPv6), MX (Mail), TXT (Verification), and NS (Nameserver) records.
+*   **Infrastructure**: Added `/api/tools/dns` and `/api/tools/whois` endpoints to the local proxy server.
+
 ## v2.5.0 - "VirusTotal Integration" 🛡️
 *Released: Nov 25, 2025*
 
@@ -12,17 +43,12 @@
     *   **Instant Reports**: Shows Malicious/Suspicious/Harmless counts directly in chat.
     *   **Direct Links**: One-click access to full VirusTotal reports.
     *   **Secure Proxy**: API requests are routed through the local server to protect your API key and avoid CORS issues.
-*   **OSINT & Recon Tools** 🕵️:
-    *   **Whois Lookup**: `/whois <domain>` fetches registration data via RDAP (no API key required).
-    *   **DNS Resolver**: `/dns <domain>` performs deep DNS lookups (A, AAAA, MX, TXT, NS) using the local server.
 *   **Settings Integration**: Added VirusTotal API Key field in **Settings > Providers** with a connection test button.
 
 ### ⚙️ Files Modified
-*   `components/ChatInterface.tsx` - Added `/scan` command logic.
-*   `components/SettingsModal.tsx` - Added VirusTotal API key input and test logic.
-*   `proxy_server.js` - Added secure `/api/virustotal/scan` proxy endpoint.
-*   `types.ts` - Updated `AppSettings` interface.
-*   `package.json` - Version bump to 2.5.0.
+*   `components/ChatInterface.tsx` - Added `/scan`, `/whois`, and `/dns` commands.
+*   `proxy_server.js` - Added secure proxy endpoints for VirusTotal and OSINT tools.
+*   `package.json` - Version bump to 2.5.1.
 
 ## v2.4.14 - "Final Polish & Release Candidate" 🚀
 *Released: Nov 25, 2025*

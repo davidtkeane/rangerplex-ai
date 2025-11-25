@@ -429,6 +429,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 success = response.ok;
             }
 
+            // Have I Been Pwned - Real API test
+            else if (provider === 'hibp' && localSettings.hibpApiKey) {
+                const response = await fetch('https://haveibeenpwned.com/api/v3/services', {
+                    headers: {
+                        'hibp-api-key': localSettings.hibpApiKey,
+                        'user-agent': 'RangerPlex-AI'
+                    }
+                });
+                success = response.ok;
+            }
+
             await new Promise(r => setTimeout(r, 800));
             setConnectionStatus(p => ({ ...p, [provider]: success ? 'success' : 'error' }));
         } catch (error) {
@@ -629,6 +640,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             <InputGroup label="Hugging Face Token" value={localSettings.huggingFaceApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, huggingFaceApiKey: v })} icon="fa-solid fa-face-smile" onTest={() => testConnection('huggingface')} status={connectionStatus['huggingface']} inputClass={inputClass} />
                             <InputGroup label="xAI (Grok) API Key" value={localSettings.xaiApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, xaiApiKey: v })} icon="fa-solid fa-x" onTest={() => testConnection('xai')} status={connectionStatus['xai']} inputClass={inputClass} />
                             <InputGroup label="VirusTotal API Key" value={localSettings.virusTotalApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, virusTotalApiKey: v })} icon="fa-solid fa-shield-virus" onTest={() => testConnection('virustotal')} status={connectionStatus['virustotal']} inputClass={inputClass} />
+                            <InputGroup label="Have I Been Pwned Key" value={localSettings.hibpApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, hibpApiKey: v })} icon="fa-solid fa-user-shield" onTest={() => testConnection('hibp')} status={connectionStatus['hibp']} inputClass={inputClass} />
 
                             {/* Ollama Moved to dedicated tab */}
                         </div>

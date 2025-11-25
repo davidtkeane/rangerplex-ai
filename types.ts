@@ -204,6 +204,7 @@ export interface AppSettings {
   huggingFaceApiKey?: string;
   xaiApiKey?: string; // Grok
   virusTotalApiKey?: string;
+  hibpApiKey?: string; // Have I Been Pwned
 
   // Config
   corsProxyUrl?: string;
@@ -464,6 +465,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   // VirusTotal
   virusTotalApiKey: import.meta.env.VITE_VIRUSTOTAL_API_KEY || '',
+  hibpApiKey: import.meta.env.VITE_HIBP_API_KEY || '',
 
   defaultCanvasColor: 'white'
 };

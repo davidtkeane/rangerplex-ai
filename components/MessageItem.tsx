@@ -29,6 +29,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
   const [output, setOutput] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [userCurrency, setUserCurrency] = useState<Currency>('USD');
+  const [copyPillState, setCopyPillState] = useState<'idle' | 'copied'>('idle');
 
   const renderSourceLinks = (text: string) => {
       const parts = text.split(/(\[\d+\])/);
@@ -172,6 +173,25 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
                 <span className={`px-2 py-[1px] rounded-full text-[9px] font-bold uppercase tracking-wider text-white ${message.agentColor || 'bg-zinc-600'}`}>{message.agentName}</span>
             )}
         </div>
+
+        {message.text && (
+          <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full mb-2`}>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(message.text || '');
+                setCopyPillState('copied');
+                setTimeout(() => setCopyPillState('idle'), 1800);
+              }}
+              className={`flex items-center gap-2 px-2 py-1 rounded-full border text-[10px] font-semibold transition-colors
+                ${isTron ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10' : isMatrix ? 'border-green-500/70 text-green-400 hover:bg-green-500/10' : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'}
+              `}
+              title="Copy this message"
+            >
+              <i className={`fa-regular ${copyPillState === 'copied' ? 'fa-check' : 'fa-copy'}`}></i>
+              <span>{copyPillState === 'copied' ? 'Copied!' : 'Copy message'}</span>
+            </button>
+          </div>
+        )}
         
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (

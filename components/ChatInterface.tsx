@@ -77,6 +77,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const [showSowmyaEasterEgg, setShowSowmyaEasterEgg] = useState(false);
     const [showMichaelEasterEgg, setShowMichaelEasterEgg] = useState(false);
     const [showWin95EasterEgg, setShowWin95EasterEgg] = useState(false);
+    const [copiedLast, setCopiedLast] = useState(false);
 
     const [isModelLoading, setIsModelLoading] = useState(false);
 
@@ -127,6 +128,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const handleStop = () => {
         setIsStreaming(false);
         setProcessingStatus(null);
+    };
+
+    const lastMessageText = [...session.messages].reverse().find(msg => msg.text)?.text || '';
+    const handleCopyLastMessage = () => {
+        if (!lastMessageText) return;
+        navigator.clipboard.writeText(lastMessageText);
+        setCopiedLast(true);
+        setTimeout(() => setCopiedLast(false), 1600);
     };
 
     const handleSendMessage = async (text: string, attachments: Attachment[], commandState: CommandState, isPetChat: boolean) => {
@@ -412,6 +421,58 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
+            // 6. Breach Check (/breach)
+            if (text.startsWith('/breach')) {
+                if (!settings.hibpApiKey) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: "⚠️ Please configure your Have I Been Pwned API Key in Settings > Providers to use this feature.", timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+
+                setProcessingStatus("Checking Breaches...");
+                const email = text.replace('/breach', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/tools/breach`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, apiKey: settings.hibpApiKey })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) throw new Error(result.error);
+
+                    let msg = "";
+                    if (result.status === 'clean') {
+                        msg = `### 🟢 No Breaches Found\n\nGood news! The email \`${email}\` does not appear in any known data breaches.`;
+                    } else {
+                        const count = result.data.length;
+                        msg = `### 🔴 Breach Alert: ${count} Incidents Found\n\nThe email \`${email}\` was found in the following data breaches:\n\n`;
+
+                        result.data.forEach((breach: any) => {
+                            msg += `**${breach.Name}** (${breach.BreachDate})\n`;
+                            msg += `- **Compromised:** ${breach.DataClasses.join(', ')}\n`;
+                            msg += `- **Description:** ${breach.Description.replace(/<[^>]*>?/gm, '')}\n\n`;
+                        });
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Breach Check Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // --- STANDARD CHAT FLOW ---
 
             // RAG Ingestion
@@ -648,6 +709,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
 
             <div className="p-4 z-20">
+                <div className="flex justify-end mb-2">
+                    <button
+                        onClick={handleCopyLastMessage}
+                        disabled={!lastMessageText}
+                        className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${lastMessageText
+                                ? isTron
+                                    ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
+                                    : settings.matrixMode
+                                        ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
+                                        : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
+                                : 'border-zinc-800 text-zinc-600 cursor-not-allowed'
+                            }`}
+                        title="Copy the most recent chat message"
+                    >
+                        <i className={`fa-regular ${copiedLast ? 'fa-check' : 'fa-copy'} mr-2`}></i>
+                        {copiedLast ? 'Copied last message' : 'Copy last message'}
+                    </button>
+                </div>
                 <InputArea
                     onSend={handleSendMessage}
                     onStop={handleStop}
