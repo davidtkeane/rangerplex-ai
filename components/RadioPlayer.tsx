@@ -350,6 +350,7 @@ interface RadioPlayerProps {
 
 const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, theme, externalToggleSignal }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentStation, setCurrentStation] = useState<RadioStation>(
@@ -410,19 +411,40 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
   }, [volume]);
 
   const handlePlay = async () => {
-    if (audioRef.current) {
-      setIsLoading(true);
-      setError(null);
-      try {
-        await audioRef.current.play();
+    if (!audioRef.current) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    // Initialize AudioContext if not already done
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+
+    try {
+      // Resume context if suspended (browser policy)
+      if (audioContextRef.current?.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        await playPromise;
         setIsPlaying(true);
-      } catch (err) {
+        setError(null);
+      }
+    } catch (err) {
+      // Auto-play policy error is expected if user hasn't interacted yet
+      if ((err as Error).name === 'NotAllowedError') {
+        console.log('📻 Radio auto-play prevented by browser policy (waiting for interaction)');
+        setIsPlaying(false);
+      } else {
         console.error('Radio play error:', err);
         setError('Failed to play stream');
         setIsPlaying(false);
-      } finally {
-        setIsLoading(false);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -494,8 +516,8 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
   const containerClass = isTron
     ? 'bg-black border-tron-cyan shadow-[0_0_20px_rgba(0,243,255,0.3)]'
     : isDark
-    ? 'bg-zinc-900 border-zinc-700'
-    : 'bg-white border-gray-300';
+      ? 'bg-zinc-900 border-zinc-700'
+      : 'bg-white border-gray-300';
 
   const textClass = isTron ? 'text-tron-cyan' : isDark ? 'text-white' : 'text-gray-900';
   const mutedTextClass = isTron ? 'text-tron-cyan/60' : isDark ? 'text-zinc-400' : 'text-gray-600';
@@ -503,8 +525,8 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
   const buttonClass = isTron
     ? 'bg-tron-cyan/10 border border-tron-cyan text-tron-cyan hover:bg-tron-cyan/20 hover:shadow-[0_0_10px_rgba(0,243,255,0.5)]'
     : isDark
-    ? 'bg-zinc-800 border border-zinc-600 text-white hover:bg-zinc-700'
-    : 'bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200';
+      ? 'bg-zinc-800 border border-zinc-600 text-white hover:bg-zinc-700'
+      : 'bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200';
 
   return (
     <>
@@ -519,9 +541,8 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
       {/* Floating Radio Player */}
       <div
-        className={`fixed bottom-4 right-4 rounded-lg border-2 backdrop-blur-sm z-50 transition-all duration-300 ${containerClass} ${
-          isMinimized ? 'w-64' : 'w-80'
-        }`}
+        className={`fixed bottom-4 right-4 rounded-lg border-2 backdrop-blur-sm z-50 transition-all duration-300 ${containerClass} ${isMinimized ? 'w-64' : 'w-80'
+          }`}
         style={{ maxHeight: isMinimized ? '70px' : '280px' }}
       >
         {/* Header */}
@@ -572,9 +593,8 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
               <button
                 onClick={isPlaying ? handlePause : handlePlay}
                 disabled={isLoading}
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${buttonClass} ${
-                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${buttonClass} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 title={isPlaying ? 'Pause' : 'Play'}
               >
                 {isLoading ? (
@@ -623,13 +643,12 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
               <select
                 value={currentStation.id}
                 onChange={(e) => handleStationChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded border text-sm ${
-                  isTron
-                    ? 'bg-black border-tron-cyan text-tron-cyan'
-                    : isDark
+                className={`w-full px-3 py-2 rounded border text-sm ${isTron
+                  ? 'bg-black border-tron-cyan text-tron-cyan'
+                  : isDark
                     ? 'bg-zinc-800 border-zinc-600 text-white'
                     : 'bg-white border-gray-300 text-gray-900'
-                }`}
+                  }`}
               >
                 {/* Group stations by genre */}
                 {['Ambient', 'Electronic', 'Lounge', 'Rock', 'Metal', 'Jazz', 'World', 'Reggae', 'Holiday', 'Specials'].map(genre => {
