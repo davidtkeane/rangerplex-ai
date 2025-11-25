@@ -8,26 +8,32 @@ export interface UpdateInfo {
 }
 
 export const updateService = {
-  async checkForUpdates(): Promise<UpdateInfo> {
+  async checkForUpdates(currentVersion: string = '0.0.0'): Promise<UpdateInfo> {
     try {
-      const response = await fetch('https://api.github.com/repos/davidtkeane/rangerplex-ai/commits/main');
-      
-      if (!response.ok) {
-        throw new Error(`GitHub API Error: ${response.statusText}`);
+      // 1. Fetch package.json to get the latest version number
+      const pkgResponse = await fetch('https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/package.json');
+      if (!pkgResponse.ok) {
+        throw new Error(`GitHub API Error: ${pkgResponse.statusText}`);
       }
+      const remotePkg = await pkgResponse.json();
+      const remoteVersion = remotePkg.version;
 
-      const data = await response.json();
-      const latestCommit = data.sha.substring(0, 7);
-      const message = data.commit.message;
-      const date = new Date(data.commit.author.date).toLocaleDateString();
-      const htmlUrl = data.html_url;
+      // 2. Fetch latest commit for details
+      const commitResponse = await fetch('https://api.github.com/repos/davidtkeane/rangerplex-ai/commits/main');
+      const commitData = await commitResponse.json();
 
-      // In a real app, we'd compare with a local version.
-      // For now, we just report the latest version from GitHub.
-      
+      const latestCommit = commitData.sha.substring(0, 7);
+      const message = commitData.commit.message;
+      const date = new Date(commitData.commit.author.date).toLocaleDateString();
+      const htmlUrl = commitData.html_url;
+
+      // 3. Compare versions
+      // Simple string comparison for now, assuming standard semver increases
+      const hasUpdate = remoteVersion !== currentVersion;
+
       return {
-        hasUpdate: true, // Always show as available for now, or logic to compare
-        latestVersion: latestCommit,
+        hasUpdate,
+        latestVersion: remoteVersion, // Use semver as the primary version identifier
         latestDate: date,
         latestMessage: message,
         htmlUrl: htmlUrl

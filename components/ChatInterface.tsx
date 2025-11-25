@@ -26,6 +26,8 @@ import { produceNewsSegment } from '../services/newsRoomService';
 import { generateHFChat } from '../services/huggingFaceService';
 import { streamGrokResponse } from '../services/xaiService';
 import { dbService } from '../services/dbService';
+import { updateService } from '../services/updateService';
+import pkg from '../package.json';
 
 interface ChatInterfaceProps {
     session: ChatSession;
@@ -109,6 +111,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (timer) clearTimeout(timer);
         };
     }, [settings.autoHideModelSelector, isDropdownOpen]);
+
+    // Check for updates on mount
+    useEffect(() => {
+        const checkUpdate = async () => {
+            if (sessionStorage.getItem('rangerplex_update_checked')) return;
+
+            try {
+                const info = await updateService.checkForUpdates(pkg.version);
+                sessionStorage.setItem('rangerplex_update_checked', 'true');
+
+                if (info.hasUpdate) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: `### 🚀 Update Available!\n\nA new version of RangerPlex AI is available on GitHub.\n\n**Current:** v${pkg.version}\n**Latest:** v${info.latestVersion}\n\n**What's New:**\n${info.latestMessage}\n\n[View on GitHub](${info.htmlUrl})`,
+                        timestamp: Date.now()
+                    }]);
+                }
+            } catch (e) {
+                console.error("Failed to check for updates:", e);
+            }
+        };
+        checkUpdate();
+    }, []);
 
     const handleModelChange = (model: string) => {
         setLocalModel(model);

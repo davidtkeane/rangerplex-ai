@@ -9,6 +9,7 @@ import { fetchElevenLabsVoices, Voice } from '../services/elevenLabsService';
 import { dbService } from '../services/dbService';
 import { syncService } from '../services/syncService';
 import { updateService, UpdateInfo } from '../services/updateService';
+import pkg from '../package.json';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -59,7 +60,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true);
         setUpdateResult(null);
-        const info = await updateService.checkForUpdates();
+        const info = await updateService.checkForUpdates(pkg.version);
         setUpdateStatus(info);
         setCheckingUpdate(false);
     };

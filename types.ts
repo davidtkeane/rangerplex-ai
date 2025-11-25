@@ -213,6 +213,7 @@ export interface AppSettings {
   numverifyApiKey?: string; // NumVerify
   abstractEmailApiKey?: string; // AbstractAPI Email
   abstractIpApiKey?: string; // AbstractAPI IP
+  googleSafeBrowsingApiKey?: string; // Google Safe Browsing
 
   // Config
   corsProxyUrl?: string;
