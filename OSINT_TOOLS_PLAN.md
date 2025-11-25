@@ -1,49 +1,46 @@
 # 🕵️ RangerPlex OSINT & Recon Plan
 
-## Phase 1: Domain Recon (Whois & DNS)
-**Objective:** Implement tools to gather domain ownership and infrastructure data without external paid APIs.
+## ✅ Phase 1: Domain Recon (Whois & DNS)
+**Status:** Completed
+*   **Tools:** `/whois`, `/dns`
+*   **Tech:** Native Node.js `dns` & RDAP protocol.
 
-### 1. Backend (`proxy_server.js`)
-We will add two new endpoints using built-in Node.js modules and open standards. No new npm packages required.
+## ✅ Phase 2: Infrastructure Intel (Shodan)
+**Status:** Completed
+*   **Tools:** `/shodan`
+*   **Tech:** Shodan API (Host/IP lookup).
 
-*   **Endpoint:** `/api/tools/dns`
-    *   **Method:** `POST`
-    *   **Input:** `{ domain: string }`
-    *   **Logic:** Use Node.js native `dns` module to resolve:
-        *   **A / AAAA**: IP Addresses
-        *   **MX**: Mail Servers
-        *   **TXT**: Verification records (SPF, etc.)
-        *   **NS**: Name Servers
-    *   **Output:** JSON object with records.
+## ✅ Phase 3: Identity Defense (HIBP)
+**Status:** Completed
+*   **Tools:** `/breach`
+*   **Tech:** Have I Been Pwned API.
 
-*   **Endpoint:** `/api/tools/whois`
-    *   **Method:** `POST`
-    *   **Input:** `{ domain: string }`
-    *   **Logic:** Proxy request to **RDAP** (Registration Data Access Protocol), the modern JSON replacement for WHOIS.
-    *   **Source:** `https://rdap.org/domain/<domain>` (Redirects to authoritative registrar).
-    *   **Output:** Parsed JSON with Registrar, Dates (Created/Expires), and Status.
+## ✅ Phase 4: Site Auditor (SSL & Headers)
+**Status:** Completed
+*   **Tools:** `/ssl`, `/headers`
+*   **Tech:** Native Node.js `https` & `tls`.
 
-### 2. Frontend (`ChatInterface.tsx`)
-Add slash commands to trigger these tools.
+## ✅ Phase 5: The Profiler (Automated Agent)
+**Status:** Completed
+*   **Tools:** `/profile`
+*   **Tech:** AI Agent (Gemini/Claude) + Multi-tool orchestration.
 
-*   **Command:** `/dns <domain>`
-    *   Fetches DNS records.
-    *   Displays a technical table of IPs, Mail Servers, and TXT records.
+---
 
-*   **Command:** `/whois <domain>`
-    *   Fetches Registration Data (RDAP).
-    *   Displays "Identity Card" style output:
-        *   🏢 **Registrar:** GoDaddy, Namecheap, etc.
-        *   📅 **Age:** Creation Date & Expiry.
-        *   🔒 **Status:** ClientTransferProhibited, etc.
-        *   📧 **Abuse Contact:** Email for reporting issues.
+## 🚀 Phase 6: Digital Forensics (Proposed)
+**Objective:** Analyze files and hidden metadata.
+*   **Tool:** **Metadata Extractor** (Auto-run on file upload)
+*   **Command:** `/exif` or automatic.
+*   **Logic:** Extract EXIF data (GPS, Camera Model, Software) from images and PDF metadata (Author, Creator) using client-side libraries.
 
-### 3. Future Phases (To Be Decided)
-*   **Phase 2:** Shodan Integration (`/shodan`) - Requires API Key.
-*   **Phase 3:** Breach Check (`/breach`) - Requires HIBP API Key.
-*   **Phase 4:** SSL/Headers Audit (`/audit`) - Custom Node.js logic.
+## 🚀 Phase 7: Financial Intelligence (Proposed)
+**Objective:** Cryptocurrency and market reconnaissance.
+*   **Tool:** **Crypto Tracker**
+*   **Command:** `/crypto <symbol>` (Price) or `/wallet <address>` (Balance).
+*   **Logic:** Use public APIs (CoinGecko, Blockcypher) to track assets.
 
-## Execution Steps
-1.  [ ] Update `proxy_server.js` with DNS and RDAP endpoints.
-2.  [ ] Update `ChatInterface.tsx` with `/dns` and `/whois` commands.
-3.  [ ] Test with `google.com` and `rangerplex.com`.
+## 🚀 Phase 8: Social Recon (Proposed)
+**Objective:** Find user footprints across the web.
+*   **Tool:** **Username Scout**
+*   **Command:** `/sherlock <username>`
+*   **Logic:** Check username availability across major platforms (GitHub, Reddit, Twitter, etc.) to identify potential targets.

@@ -230,25 +230,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 let helpMsg = "";
 
                 if (!cmd) {
-                    // Main Help Menu
-                    helpMsg = `### 🛠️ RangerPlex Tactical Manual\n\n`;
-                    helpMsg += `**Intelligence Tools**\n`;
-                    helpMsg += `- \`/profile <domain>\` - **The Profiler** (Automated Threat Agent)\n`;
-                    helpMsg += `- \`/shodan <ip>\` - **Shodan Intel** (Infrastructure Scan)\n`;
-                    helpMsg += `- \`/breach <email>\` - **Identity Defense** (HIBP Check)\n`;
-                    helpMsg += `- \`/scan <url>\` - **VirusTotal** (Malware Scanner)\n\n`;
-
-                    helpMsg += `**Reconnaissance**\n`;
-                    helpMsg += `- \`/whois <domain>\` - Domain Registration Info\n`;
-                    helpMsg += `- \`/dns <domain>\` - DNS Records (A, MX, TXT)\n`;
-                    helpMsg += `- \`/ssl <domain>\` - SSL Certificate Inspector\n`;
-                    helpMsg += `- \`/headers <url>\` - Security Headers Audit\n\n`;
-
-                    helpMsg += `**Creative**\n`;
-                    helpMsg += `- \`/imagine <prompt>\` - Generate AI Art\n`;
-                    helpMsg += `- \`canvas\` - Open Infinite Canvas Board\n\n`;
-
-                    helpMsg += `*Tip: Type \`/help <command>\` for detailed instructions (e.g., \`/help shodan\`)*`;
+                    // Main Help Menu - Futuristic Dashboard
+                    helpMsg = `### 💠 RANGERPLEX OS // TACTICAL MENU\n`;
+                    helpMsg += `\`\`\`text\n`;
+                    helpMsg += `╔════ INTELLIGENCE MODULES ════════════════════╗\n`;
+                    helpMsg += `║ 🕵️  PROFILER    :: /profile <domain>        ║\n`;
+                    helpMsg += `║ 👁️  SHODAN      :: /shodan <ip>             ║\n`;
+                    helpMsg += `║ 🛡️  BREACH      :: /breach <email>          ║\n`;
+                    helpMsg += `║ 🔎  SHERLOCK    :: /sherlock <user>         ║\n`;
+                    helpMsg += `║ 🦠  VIRUS_SCAN  :: /scan <url>              ║\n`;
+                    helpMsg += `╠════ RECONNAISSANCE ══════════════════════════╣\n`;
+                    helpMsg += `║ 📡  WHOIS       :: /whois <domain>          ║\n`;
+                    helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
+                    helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
+                    helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
+                    helpMsg += `╠════ CREATIVE SUITE ══════════════════════════╣\n`;
+                    helpMsg += `║ 🎨  IMAGINE     :: /imagine <prompt>        ║\n`;
+                    helpMsg += `║ ♾️   CANVAS      :: canvas                   ║\n`;
+                    helpMsg += `╚══════════════════════════════════════════════╝\n`;
+                    helpMsg += `\`\`\`\n`;
+                    helpMsg += `*SYSTEM READY. Awaiting command input...*\n`;
+                    helpMsg += `*Type \`/help <command>\` for detailed specs (e.g. \`/help shodan\`)*`;
+                }
+                else if (cmd === 'sherlock') {
+                    helpMsg = `### 🔎 Command: /sherlock\n\n`;
+                    helpMsg += `**Usage:** \`/sherlock <username>\`\n`;
+                    helpMsg += `**Purpose:** Hunts for a username across 12+ major social platforms (GitHub, Reddit, Twitch, Steam, etc.) to identify digital footprints.\n\n`;
+                    helpMsg += `**Pro Tip:** Use this to find if a target uses the same handle across different sites.\n\n`;
+                    helpMsg += `[Ask AI about OSINT?](Ask AI: How do investigators use username reuse for OSINT?)`;
                 }
                 else if (cmd === 'shodan') {
                     helpMsg = `### 👁️ Command: /shodan\n\n`;
@@ -370,6 +379,46 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: `❌ Profiler Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 11. Sherlock (Username Scout)
+            if (text.startsWith('/sherlock')) {
+                setProcessingStatus("Hunting for Username...");
+                const username = text.replace('/sherlock', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/sherlock`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🔎 Sherlock Scan: '${username}'\n\n`;
+                    msg += `**Scanned:** ${res.total_checked} platforms\n`;
+                    msg += `**Found:** ${res.found.length} matches\n\n`;
+
+                    if (res.found.length > 0) {
+                        msg += `**✅ Positive Matches:**\n`;
+                        res.found.forEach((site: any) => {
+                            msg += `- **[${site.name}](${site.url})**\n`;
+                        });
+                    } else {
+                        msg += `*No public profiles found for this username on major platforms.*\n`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Sherlock Failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);

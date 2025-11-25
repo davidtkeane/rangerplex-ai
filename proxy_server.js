@@ -769,6 +769,67 @@ app.post('/api/tools/headers', async (req, res) => {
     }
 });
 
+// 5. Sherlock (Username Scout)
+app.post('/api/tools/sherlock', async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: 'Missing username' });
+
+        console.log('🕵️ Sherlock Scan:', username);
+
+        const SITES = [
+            { name: 'GitHub', url: `https://github.com/${username}`, type: 'status' },
+            { name: 'Reddit', url: `https://www.reddit.com/user/${username}`, type: 'status' },
+            { name: 'Twitch', url: `https://m.twitch.tv/${username}`, type: 'status' },
+            { name: 'Steam', url: `https://steamcommunity.com/id/${username}`, type: 'status' },
+            { name: 'GitLab', url: `https://gitlab.com/${username}`, type: 'status' },
+            { name: 'Pinterest', url: `https://www.pinterest.com/${username}/`, type: 'status' },
+            { name: 'SoundCloud', url: `https://soundcloud.com/${username}`, type: 'status' },
+            { name: 'Dev.to', url: `https://dev.to/${username}`, type: 'status' },
+            { name: 'Medium', url: `https://medium.com/@${username}`, type: 'status' },
+            { name: 'Wikipedia', url: `https://en.wikipedia.org/wiki/User:${username}`, type: 'status' },
+            { name: 'HackerNews', url: `https://news.ycombinator.com/user?id=${username}`, type: 'body', text: 'No such user' },
+            { name: 'Patreon', url: `https://www.patreon.com/${username}`, type: 'status' },
+            { name: 'YouTube', url: `https://www.youtube.com/@${username}`, type: 'status' }
+        ];
+
+        const checkSite = async (site) => {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+                const response = await fetch(site.url, {
+                    method: 'GET',
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+
+                let exists = false;
+                if (site.type === 'status') {
+                    exists = response.status === 200;
+                } else if (site.type === 'body') {
+                    const text = await response.text();
+                    exists = !text.includes(site.text);
+                }
+
+                return { name: site.name, url: site.url, exists, status: response.status };
+            } catch (e) {
+                return { name: site.name, url: site.url, exists: false, error: true };
+            }
+        };
+
+        const results = await Promise.all(SITES.map(checkSite));
+        const found = results.filter(r => r.exists);
+
+        res.json({ username, total_checked: SITES.length, found });
+
+    } catch (error) {
+        console.error('❌ Sherlock error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // WebSocket Server
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
