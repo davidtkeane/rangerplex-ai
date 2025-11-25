@@ -334,6 +334,84 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
+            // 4. DNS Lookup (/dns)
+            if (text.startsWith('/dns')) {
+                setProcessingStatus("Resolving DNS...");
+                const domain = text.replace('/dns', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/tools/dns`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ domain })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) throw new Error(result.error);
+
+                    let msg = `### 🔍 DNS Records: ${domain}\n\n`;
+                    if (result.A?.length) msg += `**A (IPv4):**\n${result.A.map((ip: string) => `- \`${ip}\``).join('\n')}\n\n`;
+                    if (result.AAAA?.length) msg += `**AAAA (IPv6):**\n${result.AAAA.map((ip: string) => `- \`${ip}\``).join('\n')}\n\n`;
+                    if (result.MX?.length) msg += `**MX (Mail):**\n${result.MX.map((mx: any) => `- ${mx.exchange} (Pri: ${mx.priority})`).join('\n')}\n\n`;
+                    if (result.NS?.length) msg += `**NS (Nameservers):**\n${result.NS.map((ns: string) => `- ${ns}`).join('\n')}\n\n`;
+                    if (result.TXT?.length) msg += `**TXT:**\n${result.TXT.map((txt: string[]) => `- \`${txt.join('')}\``).join('\n')}`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ DNS Lookup Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 5. Whois/RDAP (/whois)
+            if (text.startsWith('/whois')) {
+                setProcessingStatus("Fetching Whois...");
+                const domain = text.replace('/whois', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/tools/whois`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ domain })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) throw new Error(result.error);
+
+                    const created = result.events.find((e: any) => e.eventAction === 'registration')?.eventDate || 'Unknown';
+                    const expires = result.events.find((e: any) => e.eventAction === 'expiration')?.eventDate || 'Unknown';
+                    const registrar = result.entities.find((e: any) => e.roles.includes('registrar'))?.name || 'Unknown';
+
+                    let msg = `### 🏢 Whois/RDAP: ${domain}\n\n`;
+                    msg += `**Registrar:** ${registrar}\n`;
+                    msg += `**Created:** ${new Date(created).toLocaleDateString()}\n`;
+                    msg += `**Expires:** ${new Date(expires).toLocaleDateString()}\n\n`;
+                    msg += `**Status:**\n${result.status.map((s: string) => `- ${s}`).join('\n')}\n\n`;
+                    msg += `**Nameservers:**\n${result.nameservers.map((n: string) => `- ${n}`).join('\n')}`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Whois Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // --- STANDARD CHAT FLOW ---
 
             // RAG Ingestion

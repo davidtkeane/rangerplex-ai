@@ -39,6 +39,9 @@ It runs locally on your machine (`localhost`), stores data privately in your bro
 
 ### 🛠️ The Tools
 *   **VirusTotal Scanner** 🛡️: Check URLs for malware and phishing directly in chat using the `/scan <url>` command.
+*   **Domain Recon** 🕵️:
+    *   `/whois <domain>`: Get registration details, expiry dates, and registrar info.
+    *   `/dns <domain>`: Fetch technical DNS records (A, MX, TXT, NS) for infrastructure analysis.
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.
 *   **Web Search Integration**: Toggle web search for LLMs with the 🌐 WEB button. Enable/disable automatic web search in Settings → Search tab.
 *   **Ranger Lens**: A split-screen "Reader Mode" that strips ads from websites for distraction-free analysis.

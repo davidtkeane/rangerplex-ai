@@ -12,6 +12,9 @@
     *   **Instant Reports**: Shows Malicious/Suspicious/Harmless counts directly in chat.
     *   **Direct Links**: One-click access to full VirusTotal reports.
     *   **Secure Proxy**: API requests are routed through the local server to protect your API key and avoid CORS issues.
+*   **OSINT & Recon Tools** 🕵️:
+    *   **Whois Lookup**: `/whois <domain>` fetches registration data via RDAP (no API key required).
+    *   **DNS Resolver**: `/dns <domain>` performs deep DNS lookups (A, AAAA, MX, TXT, NS) using the local server.
 *   **Settings Integration**: Added VirusTotal API Key field in **Settings > Providers** with a connection test button.
 
 ### ⚙️ Files Modified

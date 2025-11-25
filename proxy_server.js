@@ -6,6 +6,14 @@ import { createServer } from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dns from 'dns';
+import { promisify } from 'util';
+
+const resolve4 = promisify(dns.resolve4);
+const resolve6 = promisify(dns.resolve6);
+const resolveMx = promisify(dns.resolveMx);
+const resolveTxt = promisify(dns.resolveTxt);
+const resolveNs = promisify(dns.resolveNs);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -547,6 +555,72 @@ app.post('/api/virustotal/scan', async (req, res) => {
 
     } catch (error) {
         console.error('❌ VirusTotal error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// DNS Lookup Tool
+app.post('/api/tools/dns', async (req, res) => {
+    try {
+        const { domain } = req.body;
+        if (!domain) return res.status(400).json({ error: 'Missing domain' });
+
+        console.log('🔍 DNS Lookup:', domain);
+
+        const results = {};
+
+        // Parallel lookups
+        await Promise.allSettled([
+            resolve4(domain).then(r => results.A = r).catch(e => results.A = []),
+            resolve6(domain).then(r => results.AAAA = r).catch(e => results.AAAA = []),
+            resolveMx(domain).then(r => results.MX = r).catch(e => results.MX = []),
+            resolveTxt(domain).then(r => results.TXT = r).catch(e => results.TXT = []),
+            resolveNs(domain).then(r => results.NS = r).catch(e => results.NS = [])
+        ]);
+
+        res.json(results);
+    } catch (error) {
+        console.error('❌ DNS error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Whois (RDAP) Tool
+app.post('/api/tools/whois', async (req, res) => {
+    try {
+        const { domain } = req.body;
+        if (!domain) return res.status(400).json({ error: 'Missing domain' });
+
+        console.log('🏢 Whois/RDAP Lookup:', domain);
+
+        // Use RDAP.org which redirects to the authoritative registrar
+        const response = await fetch(`https://rdap.org/domain/${domain}`, {
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) return res.status(404).json({ error: 'Domain not found' });
+            throw new Error(`RDAP error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Extract useful info
+        const cleanData = {
+            handle: data.handle,
+            name: data.name,
+            status: data.status || [],
+            events: data.events || [], // Created, Updated, Expiration
+            entities: (data.entities || []).map(e => ({
+                roles: e.roles,
+                name: e.vcardArray?.[1]?.find(x => x[0] === 'fn')?.[3] || 'Unknown'
+            })),
+            nameservers: (data.nameservers || []).map(n => n.ldhName)
+        };
+
+        res.json(cleanData);
+    } catch (error) {
+        console.error('❌ Whois error:', error);
         res.status(500).json({ error: error.message });
     }
 });
