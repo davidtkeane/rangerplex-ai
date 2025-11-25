@@ -276,6 +276,64 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
+            // 3. VirusTotal Scan (/scan)
+            if (text.startsWith('/scan')) {
+                if (!settings.virusTotalApiKey) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: "⚠️ Please configure your VirusTotal API Key in Settings > Providers to use this feature.", timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+
+                setProcessingStatus("Scanning URL...");
+                const urlToScan = text.replace('/scan', '').trim();
+
+                try {
+                    const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                    const response = await fetch(`${proxyUrl}/api/virustotal/scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: urlToScan, apiKey: settings.virusTotalApiKey })
+                    });
+
+                    const contentType = response.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error("Server returned non-JSON response. Please restart your server to apply the latest updates.");
+                    }
+
+                    const result = await response.json();
+
+                    if (result.error) throw new Error(result.error);
+
+                    let messageText = "";
+                    if (result.status === 'found') {
+                        const stats = result.data.attributes.last_analysis_stats;
+                        const malicious = stats.malicious;
+                        const suspicious = stats.suspicious;
+                        const harmless = stats.harmless;
+
+                        const color = malicious > 0 ? "🔴" : suspicious > 0 ? "🟠" : "🟢";
+                        messageText = `### ${color} VirusTotal Scan Results\n\n**Target:** ${urlToScan}\n\n- **Malicious:** ${malicious}\n- **Suspicious:** ${suspicious}\n- **Harmless:** ${harmless}\n\n[View Full Report](https://www.virustotal.com/gui/url/${result.data.id})`;
+                    } else {
+                        messageText = `### ⏳ Scan Queued\n\nThe URL has been submitted for scanning. Please check back in a moment or click here to view progress: [View Scan](https://www.virustotal.com/gui/url/${result.data.id})`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: messageText, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Scan Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // --- STANDARD CHAT FLOW ---
 
             // RAG Ingestion
@@ -406,7 +464,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (lastUserMsg) {
             const newHistory = session.messages.slice(0, session.messages.lastIndexOf(lastUserMsg) + 1);
             onUpdateMessages(newHistory);
-            handleSendMessage(lastUserMsg.text, lastUserMsg.attachments || [], { web: false, visual: false, flash: false, deep: false });
+            handleSendMessage(lastUserMsg.text, lastUserMsg.attachments || [], { web: false, visual: false, flash: false, deep: false }, false);
         }
     };
 
@@ -565,17 +623,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             }
         `}</style>
 
-        {/* 🎖️ Easter Eggs */}
-        {showEasterEgg && <DavidEasterEgg onClose={() => setShowEasterEgg(false)} />}
-        {showFazalEasterEgg && <FazalEasterEgg onClose={() => setShowFazalEasterEgg(false)} />}
-        {showSowmyaEasterEgg && <SowmyaEasterEgg onClose={() => setShowSowmyaEasterEgg(false)} />}
-        {showMichaelEasterEgg && <MichaelEasterEgg onClose={() => setShowMichaelEasterEgg(false)} />}
-        {showWin95EasterEgg && (
-            <Win95EasterEgg
-                onClose={() => setShowWin95EasterEgg(false)}
-                currentUser={currentUser}
-            />
-        )}
+            {/* 🎖️ Easter Eggs */}
+            {showEasterEgg && <DavidEasterEgg onClose={() => setShowEasterEgg(false)} />}
+            {showFazalEasterEgg && <FazalEasterEgg onClose={() => setShowFazalEasterEgg(false)} />}
+            {showSowmyaEasterEgg && <SowmyaEasterEgg onClose={() => setShowSowmyaEasterEgg(false)} />}
+            {showMichaelEasterEgg && <MichaelEasterEgg onClose={() => setShowMichaelEasterEgg(false)} />}
+            {showWin95EasterEgg && (
+                <Win95EasterEgg
+                    onClose={() => setShowWin95EasterEgg(false)}
+                    currentUser={currentUser}
+                />
+            )}
         </div>
     );
 };

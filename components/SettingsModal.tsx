@@ -421,6 +421,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 success = response.ok;
             }
 
+            // VirusTotal - Real API test
+            else if (provider === 'virustotal' && localSettings.virusTotalApiKey) {
+                const response = await fetch('https://www.virustotal.com/api/v3/ip_addresses/8.8.8.8', {
+                    headers: { 'x-apikey': localSettings.virusTotalApiKey }
+                });
+                success = response.ok;
+            }
+
             await new Promise(r => setTimeout(r, 800));
             setConnectionStatus(p => ({ ...p, [provider]: success ? 'success' : 'error' }));
         } catch (error) {
@@ -620,6 +628,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             <InputGroup label="ElevenLabs API Key" value={localSettings.elevenLabsApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, elevenLabsApiKey: v })} icon="fa-solid fa-microphone-lines" onTest={() => testConnection('elevenlabs')} status={connectionStatus['elevenlabs']} inputClass={inputClass} />
                             <InputGroup label="Hugging Face Token" value={localSettings.huggingFaceApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, huggingFaceApiKey: v })} icon="fa-solid fa-face-smile" onTest={() => testConnection('huggingface')} status={connectionStatus['huggingface']} inputClass={inputClass} />
                             <InputGroup label="xAI (Grok) API Key" value={localSettings.xaiApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, xaiApiKey: v })} icon="fa-solid fa-x" onTest={() => testConnection('xai')} status={connectionStatus['xai']} inputClass={inputClass} />
+                            <InputGroup label="VirusTotal API Key" value={localSettings.virusTotalApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, virusTotalApiKey: v })} icon="fa-solid fa-shield-virus" onTest={() => testConnection('virustotal')} status={connectionStatus['virustotal']} inputClass={inputClass} />
 
                             {/* Ollama Moved to dedicated tab */}
                         </div>

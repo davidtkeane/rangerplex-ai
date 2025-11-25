@@ -203,6 +203,7 @@ export interface AppSettings {
   elevenLabsApiKey?: string;
   huggingFaceApiKey?: string;
   xaiApiKey?: string; // Grok
+  virusTotalApiKey?: string;
 
   // Config
   corsProxyUrl?: string;
@@ -460,6 +461,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   happinessDecayRate: 2,
   hungerIncreaseRate: 3,
   petAvatar: '',
+
+  // VirusTotal
+  virusTotalApiKey: import.meta.env.VITE_VIRUSTOTAL_API_KEY || '',
 
   defaultCanvasColor: 'white'
 };

@@ -2,6 +2,25 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.0 - "VirusTotal Integration" 🛡️
+*Released: Nov 25, 2025*
+
+**Security upgrade!** Now you can scan suspicious URLs directly from the chat using the new VirusTotal integration.
+
+### 🛡️ Security Tools
+*   **VirusTotal Scanner**: Added `/scan <url>` command to check URLs against VirusTotal's database.
+    *   **Instant Reports**: Shows Malicious/Suspicious/Harmless counts directly in chat.
+    *   **Direct Links**: One-click access to full VirusTotal reports.
+    *   **Secure Proxy**: API requests are routed through the local server to protect your API key and avoid CORS issues.
+*   **Settings Integration**: Added VirusTotal API Key field in **Settings > Providers** with a connection test button.
+
+### ⚙️ Files Modified
+*   `components/ChatInterface.tsx` - Added `/scan` command logic.
+*   `components/SettingsModal.tsx` - Added VirusTotal API key input and test logic.
+*   `proxy_server.js` - Added secure `/api/virustotal/scan` proxy endpoint.
+*   `types.ts` - Updated `AppSettings` interface.
+*   `package.json` - Version bump to 2.5.0.
+
 ## v2.4.14 - "Final Polish & Release Candidate" 🚀
 *Released: Nov 25, 2025*
 

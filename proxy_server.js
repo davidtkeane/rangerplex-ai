@@ -492,9 +492,61 @@ app.get('/api/radio/stream', async (req, res) => {
         };
 
         pump();
-
     } catch (error) {
         console.error('❌ Radio proxy error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// VirusTotal Proxy
+app.post('/api/virustotal/scan', async (req, res) => {
+    try {
+        const { url, apiKey } = req.body;
+        if (!url || !apiKey) return res.status(400).json({ error: 'Missing url or apiKey' });
+
+        console.log('🛡️ VirusTotal Check:', url);
+
+        // 1. Check if already scanned (GET /urls/{id})
+        // ID is base64 encoded URL without padding
+        const urlId = Buffer.from(url).toString('base64').replace(/=/g, '');
+        const reportUrl = `https://www.virustotal.com/api/v3/urls/${urlId}`;
+
+        let response = await fetch(reportUrl, {
+            headers: { 'x-apikey': apiKey }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return res.json({ status: 'found', data: data.data });
+        }
+
+        if (response.status === 404) {
+            // 2. Not found, submit for scanning (POST /urls)
+            console.log('🛡️ URL not found, submitting scan...');
+            const scanResponse = await fetch('https://www.virustotal.com/api/v3/urls', {
+                method: 'POST',
+                headers: {
+                    'x-apikey': apiKey,
+                    'content-type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ url })
+            });
+
+            if (!scanResponse.ok) {
+                const errText = await scanResponse.text();
+                return res.status(scanResponse.status).json({ error: 'Scan submission failed: ' + errText });
+            }
+
+            const scanData = await scanResponse.json();
+            return res.json({ status: 'queued', data: scanData.data });
+        }
+
+        // Other error
+        const errText = await response.text();
+        res.status(response.status).json({ error: errText });
+
+    } catch (error) {
+        console.error('❌ VirusTotal error:', error);
         res.status(500).json({ error: error.message });
     }
 });
