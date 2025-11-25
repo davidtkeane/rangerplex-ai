@@ -312,6 +312,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `╠════ RECONNAISSANCE ══════════════════════════╣\n`;
                     helpMsg += `║ 📡  WHOIS       :: /whois <domain>          ║\n`;
                     helpMsg += `║ 🌍  GEOIP       :: /geoip <ip>              ║\n`;
+                    helpMsg += `║ 📟  MAC_LOOKUP  :: /mac <address>           ║\n`;
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
@@ -381,6 +382,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Purpose:** Pinpoints the physical location of an IP address, including City, Country, ISP, and Organization.\n\n`;
                     helpMsg += `**Pro Tip:** Use this to trace the origin of suspicious login attempts or server attacks.\n\n`;
                     helpMsg += `[Ask AI about IP Tracking?](Ask AI: How accurate is IP geolocation?)`;
+                }
+                else if (cmd === 'mac') {
+                    helpMsg = `### 📟 Command: /mac\n\n`;
+                    helpMsg += `**Usage:** \`/mac <address>\`\n`;
+                    helpMsg += `**Purpose:** Identifies the manufacturer of a network device based on its MAC address OUI (Organizationally Unique Identifier).\n\n`;
+                    helpMsg += `**Pro Tip:** Use this during network scans to identify unknown devices (e.g., "Is this strange IP an Apple TV or a security camera?").\n\n`;
+                    helpMsg += `[Ask AI about MAC Addresses?](Ask AI: Can MAC addresses be spoofed?)`;
                 }
                 else if (cmd === 'profile') {
                     helpMsg = `### 🕵️ Command: /profile\n\n`;
@@ -659,6 +667,38 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: `❌ GeoIP Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 16. MAC Address Lookup (/mac)
+            if (text.startsWith('/mac')) {
+                setProcessingStatus("Identifying Hardware...");
+                const mac = text.replace('/mac', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/mac`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 📟 Hardware Recon: ${res.mac}\n\n`;
+                    msg += `**🏭 Manufacturer:** ${res.vendor}\n`;
+                    msg += `**🔍 OUI:** ${res.mac.substring(0, 8).toUpperCase()}\n\n`;
+                    msg += `*This identifies the company that built the network interface (e.g., Apple, Cisco, Intel).*`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ MAC Lookup Failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);

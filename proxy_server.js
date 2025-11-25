@@ -992,6 +992,33 @@ app.post('/api/tools/geoip', async (req, res) => {
     }
 });
 
+// 10. MAC Address Lookup (macvendors.co)
+app.post('/api/tools/mac', async (req, res) => {
+    try {
+        const { mac } = req.body;
+        if (!mac) return res.status(400).json({ error: 'Missing MAC address' });
+
+        console.log('📟 MAC Check:', mac);
+
+        const response = await fetch(`https://api.macvendors.com/${mac}`);
+
+        if (response.status === 404) {
+            return res.status(404).json({ error: 'Vendor not found' });
+        }
+
+        const vendor = await response.text();
+
+        res.json({
+            mac: mac,
+            vendor: vendor
+        });
+
+    } catch (error) {
+        console.error('❌ MAC error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // WebSocket Server
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
