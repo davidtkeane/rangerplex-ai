@@ -311,6 +311,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 📸  EXIF        :: /exif <url>              ║\n`;
                     helpMsg += `║ 🦠  VIRUS_SCAN  :: /scan <url>              ║\n`;
                     helpMsg += `║ 🕰️  WAYBACK     :: /wayback <url>           ║\n`;
+                    helpMsg += `║ 📸  SCREENSHOT  :: /screenshot <url>        ║\n`;
                     helpMsg += `╠════ RECONNAISSANCE ══════════════════════════╣\n`;
                     helpMsg += `║ 📡  WHOIS       :: /whois <domain>          ║\n`;
                     helpMsg += `║ 🌍  GEOIP       :: /geoip <ip>              ║\n`;
@@ -514,6 +515,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- Essential for vetting suspicious links before visiting\n\n`;
                     helpMsg += `**Pro Tip:** Always check domains before clicking links in emails, messages, or unfamiliar sources. Combine with \`/ssl <domain>\` and \`/headers <url>\` for comprehensive security assessment.\n\n`;
                     helpMsg += `[Ask AI about Web Threats?](Ask AI: How do phishing sites work and how can I spot them?)`;
+                }
+                else if (cmd === 'screenshot') {
+                    helpMsg = `### 📸 Command: /screenshot\n\n`;
+                    helpMsg += `**Usage:** \`/screenshot <url>\`\n`;
+                    helpMsg += `**Purpose:** Captures live screenshots of websites for documentation, evidence collection, and visual reconnaissance.\n\n`;
+                    helpMsg += `**No API Key Required!** Uses local Puppeteer (headless Chrome).\n\n`;
+                    helpMsg += `**Features:**\n`;
+                    helpMsg += `- 🖼️ **High Quality** - 1920x1080 resolution by default\n`;
+                    helpMsg += `- 📄 **Full Page** - Capture entire page or just viewport\n`;
+                    helpMsg += `- 🎭 **Stealth Mode** - Real browser user agent to avoid bot detection\n`;
+                    helpMsg += `- 📊 **Page Info** - Extracts title, dimensions, and final URL\n\n`;
+                    helpMsg += `**Use cases:**\n`;
+                    helpMsg += `- Evidence collection for investigations\n`;
+                    helpMsg += `- Website change detection and monitoring\n`;
+                    helpMsg += `- Phishing site documentation\n`;
+                    helpMsg += `- Web design/layout review\n`;
+                    helpMsg += `- Social media profile archiving\n\n`;
+                    helpMsg += `**Pro Tip:** Combine with \`/wayback <url>\` to compare current sites with archived versions, or use \`/reputation <domain>\` first to check if a site is safe before capturing.\n\n`;
+                    helpMsg += `[Ask AI about Digital Evidence?](Ask AI: What are best practices for digital evidence collection?)`;
                 }
                 else if (cmd === 'reverse') {
                     helpMsg = `### 🔄 Command: /reverse\n\n`;
@@ -1429,7 +1449,65 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 23. Reverse DNS / Reverse IP Lookup (/reverse)
+            // 23. Screenshot Capture (/screenshot)
+            if (text.startsWith('/screenshot')) {
+                setProcessingStatus("Capturing screenshot...");
+                const url = text.replace('/screenshot', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                if (!url) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/screenshot <url>` (e.g., `/screenshot example.com`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/screenshot`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url, fullPage: false })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 📸 Screenshot Captured: ${res.url}\n\n`;
+
+                    if (res.status === 'success') {
+                        msg += `**Page Title:** ${res.title}\n`;
+                        msg += `**Final URL:** ${res.pageInfo.finalUrl}\n`;
+                        msg += `**Viewport:** ${res.viewport.width}x${res.viewport.height}\n`;
+                        msg += `**Page Size:** ${res.pageInfo.width}x${res.pageInfo.height}\n`;
+                        msg += `**Captured:** ${new Date(res.capturedAt).toLocaleString()}\n\n`;
+
+                        msg += `![Screenshot](${res.image})\n\n`;
+
+                        msg += `#### 📊 Analysis Options\n`;
+                        msg += `- **Wayback Compare:** Use \`/wayback ${res.url}\` to see archived versions\n`;
+                        msg += `- **Security Check:** Use \`/reputation ${new URL(res.pageInfo.finalUrl).hostname}\` to check for threats\n`;
+                        msg += `- **SSL Audit:** Use \`/ssl ${new URL(res.pageInfo.finalUrl).hostname}\` to verify certificate\n`;
+                        msg += `- **Header Check:** Use \`/headers ${res.pageInfo.finalUrl}\` to audit security headers\n\n`;
+
+                        msg += `*💡 Tip: Screenshots are captured with a real browser (Puppeteer) to ensure accurate rendering.*`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Screenshot Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 24. Reverse DNS / Reverse IP Lookup (/reverse)
             if (text.startsWith('/reverse')) {
                 setProcessingStatus("Looking up domains...");
                 const ip = text.replace('/reverse', '').trim();

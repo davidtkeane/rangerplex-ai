@@ -106,12 +106,13 @@
 *   **Value:** Find deleted content, old versions, evidence
 *   **Priority:** HIGH ⭐
 
-## 🚀 Phase 17: Screenshot Capture (Planned)
-**Objective:** Capture live screenshots of websites.
+## ✅ Phase 17: Screenshot Capture
+**Status:** Completed
 *   **Tool:** **Screenshot Generator**
 *   **Command:** `/screenshot <url>`
-*   **Tech:** Puppeteer, ScreenshotAPI, PagePixels API
-*   **Value:** Documentation, evidence collection
+*   **Tech:** Puppeteer (headless Chrome)
+*   **Value:** Documentation, evidence collection, visual reconnaissance
+*   **Features:** 1920x1080 resolution, full-page or viewport capture, stealth mode with real browser user agent, page metadata extraction
 
 ## 🚀 Phase 18: Certificate Transparency (Planned)
 **Objective:** Find all SSL certificates issued for a domain.
@@ -191,6 +192,8 @@
 
 ## 📊 OSINT ARSENAL STATUS
 
-**Completed:** 15 tools
-**Planned:** 10 tools
+**Completed:** 16 tools
+**Planned:** 9 tools
 **Total Arsenal:** 25 OSINT tools 🎖️
+
+**✨ Latest Addition:** Phase 17: Screenshot Capture (`/screenshot`) - Deployed! 📸

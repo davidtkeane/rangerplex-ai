@@ -68,6 +68,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
   - `/imagine_all` → Multi-provider image generation.  
   - `/pet` → Open Kitty widget. `/pet-chat <msg>` → Talk as/with Kitty.  
   - `/scan <url>` → VirusTotal scan.  
+  - `/ports <ip_or_host> [ports]` → TCP port scan (40 common ports by default; optional comma list; authorization required).  
   - `/whois <domain>` → Domain WHOIS.  
   - `/dns <domain>` → DNS records.  
   - Typing `canvas` exactly opens Canvas Board.
@@ -134,6 +135,9 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 ## OSINT & Security Tools
 - **VirusTotal Scan:** `/scan <url>` shows malicious/suspicious/harmless counts plus link. Configure API key in Settings → Providers.  
 - **WHOIS & DNS:** `/whois` and `/dns` via local proxy endpoints; requires proxy server running for network access.  
+- **Port Scanner:** `/ports <ip_or_host> [ports]` runs TCP connect scans (defaults to ~40 common ports; optional comma-separated port list up to 100). Shows open/filtered/closed with latency and service hints. Only scan hosts you are authorized to test.  
+- **Reverse DNS/Subdomains:** `/reverse <ip>` to enumerate hosted domains; `/subdomains <domain>` via Certificate Transparency logs.  
+- **Reputation/Headers/SSL:** `/reputation <domain>` (Google Safe Browsing), `/headers <url>`, `/ssl <domain>`.  
 - **Audit Guides:** See `help-files/BROWSER_AUDIT_README.md` and related docs for storage cleanup and key safety.
 
 ## Model Training & Data Tools

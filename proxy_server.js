@@ -13,6 +13,7 @@ import { promisify } from 'util';
 import exifParser from 'exif-parser';
 import os from 'os';
 import net from 'net';
+import puppeteer from 'puppeteer';
 
 const resolve4 = promisify(dns.resolve4);
 const resolve6 = promisify(dns.resolve6);
@@ -1757,6 +1758,123 @@ app.post('/api/tools/reputation', async (req, res) => {
     } catch (error) {
         console.error('❌ Domain reputation error:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Screenshot Capture Tool
+app.post('/api/tools/screenshot', async (req, res) => {
+    let browser = null;
+    try {
+        const { url, fullPage = false, width = 1920, height = 1080 } = req.body;
+        console.log('📸 Screenshot Request:', url);
+
+        if (!url) {
+            return res.status(400).json({ error: 'URL is required' });
+        }
+
+        // Validate URL format
+        let targetUrl = url;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            targetUrl = 'https://' + url;
+        }
+
+        console.log('🌐 Capturing screenshot of:', targetUrl);
+        console.log('📐 Dimensions:', `${width}x${height}`, fullPage ? '(Full Page)' : '(Viewport)');
+
+        // Launch Puppeteer
+        browser = await puppeteer.launch({
+            headless: 'new',
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--window-size=1920,1080'
+            ]
+        });
+
+        const page = await browser.newPage();
+
+        // Set viewport
+        await page.setViewport({
+            width: parseInt(width),
+            height: parseInt(height)
+        });
+
+        // Set user agent to avoid bot detection
+        await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+        // Navigate to URL with timeout
+        try {
+            await page.goto(targetUrl, {
+                waitUntil: 'networkidle2',
+                timeout: 30000
+            });
+        } catch (navError) {
+            // If networkidle2 times out, try with just 'load'
+            console.log('⚠️ Navigation timeout, retrying with load event...');
+            await page.goto(targetUrl, {
+                waitUntil: 'load',
+                timeout: 30000
+            });
+        }
+
+        // Get page title
+        const pageTitle = await page.title();
+
+        // Take screenshot
+        const screenshotBuffer = await page.screenshot({
+            fullPage: fullPage,
+            type: 'png'
+        });
+
+        // Convert buffer to base64
+        const base64Image = screenshotBuffer.toString('base64');
+
+        // Get page info
+        const pageInfo = await page.evaluate(() => {
+            return {
+                width: document.documentElement.scrollWidth,
+                height: document.documentElement.scrollHeight,
+                url: window.location.href
+            };
+        });
+
+        await browser.close();
+        browser = null;
+
+        console.log('✅ Screenshot captured successfully');
+
+        res.json({
+            status: 'success',
+            url: targetUrl,
+            title: pageTitle,
+            image: `data:image/png;base64,${base64Image}`,
+            pageInfo: {
+                width: pageInfo.width,
+                height: pageInfo.height,
+                finalUrl: pageInfo.url
+            },
+            capturedAt: Date.now(),
+            viewport: {
+                width: parseInt(width),
+                height: parseInt(height)
+            },
+            fullPage: fullPage
+        });
+
+    } catch (error) {
+        console.error('❌ Screenshot error:', error);
+
+        if (browser) {
+            await browser.close();
+        }
+
+        res.status(500).json({
+            error: error.message,
+            details: 'Failed to capture screenshot. The URL may be unreachable or blocked.'
+        });
     }
 });
 
