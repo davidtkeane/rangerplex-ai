@@ -2,6 +2,160 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.19 - "Port Scanner" 🔌
+*Released: Nov 25, 2025*
+
+**Network Port Scanning Integration.** Added `/ports` command for TCP port scanning with service identification and security insights - requires authorization!
+
+### 🔌 Port Scanner Tool
+*   **`/ports <ip_or_host> [ports]`**: Scan TCP ports on any IP address or hostname
+*   **Default Scan**: 40 common ports (FTP, SSH, HTTP, HTTPS, RDP, MySQL, MongoDB, etc.)
+*   **Custom Ports**: Specify comma-separated port list (e.g., `/ports 1.1.1.1 22,80,443`)
+*   **Service Identification**: Automatic service name mapping for 28 common services
+*   **Security Insights**: Detects exposed databases, insecure protocols, and RDP access
+*   **Performance**: Fast TCP connect scans with latency measurement
+
+### 🛠️ Backend Implementation
+*   New endpoint: `/api/tools/ports` (proxy_server.js lines 1509-1657)
+*   Native Node.js `net` module for TCP connect scans
+*   IP/hostname resolution support
+*   Status detection: open, closed, filtered (timeout/firewalled)
+*   100-port limit to prevent abuse
+*   1200ms timeout per port
+*   Comprehensive service dictionary (28 services)
+
+### 📘 Help System Integration
+*   Added `/ports` to main `/help` menu under RECONNAISSANCE section
+*   Created detailed help page accessible with `/help ports`
+*   Included examples for both default and custom port lists
+*   Authorization requirements clearly stated
+
+### 🎯 Use Cases
+*   **Service Discovery**: Identify running services on target hosts
+*   **Security Audits**: Check for exposed databases and insecure protocols
+*   **Network Mapping**: Discover open ports across infrastructure
+*   **Firewall Validation**: Verify firewall rules are working correctly
+
+### 🛡️ Security Features
+*   **Authorization Disclaimer**: Every scan displays warning about legal requirements
+*   **Rate Limiting**: 100-port maximum per scan to prevent abuse
+*   **Timeout Protection**: Filtered ports don't block entire scan (1.2s timeout)
+*   **Error Handling**: Clear error messages for invalid inputs
+
+### 💡 Key Features
+*   **No API Key Required**: Uses native TCP connect (no external services)
+*   **Fast & Accurate**: Parallel port scanning with Promise.all
+*   **Smart Analysis**: Automatic security insights based on open ports
+*   **Tool Integration**: Suggests `/shodan`, `/geoip`, `/ssl` for deeper analysis
+
+### ⚠️ Legal Notice
+Port scanning requires explicit authorization. Only scan systems you own or have written permission to test. Unauthorized port scanning may be illegal in your jurisdiction.
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/ports` endpoint (lines 1509-1657)
+*   `components/ChatInterface.tsx` - Added command handler (lines 1839-1907) and help entry
+*   `components/Sidebar.tsx` - Version bump to 2.5.19
+*   `services/dbService.ts` - Export metadata version bump to 2.5.19
+*   `package.json` - Version bump to 2.5.19
+*   `README.md` - Version badge updated to 2.5.19
+*   `OSINT_TOOLS_PLAN.md` - Marked Phase 20 as completed
+
+## v2.5.16 - "Email & IP Recon" 🛡️
+*Released: Nov 25, 2025*
+
+**Email Validation & IP Threat Intelligence.** Added `/email` and `/iprecon` commands with AbstractAPI integration for comprehensive email validation and advanced IP threat detection (VPN/Proxy/Tor/Abuse scoring).
+
+### 📧 Email Intelligence Tool
+*   **`/email <address>`**: Validates email addresses with deliverability checks, disposable email detection, role account identification, and SMTP validation
+*   **Monthly Counter**: Tracks API usage (X/100 requests), displays in every response
+*   **Auto-Reset**: Counter automatically resets on the 1st of each month
+*   **Comprehensive Checks**: Quality Score, Valid Format, SMTP, Disposable, Role Account, Free Provider
+
+### 🛡️ IP Threat Intelligence Tool
+*   **`/iprecon <ip>`**: Advanced IP threat analysis detecting VPNs, Proxies, Tor nodes, and Datacenters
+*   **Abuse Scoring**: 0-100% malicious confidence score with color-coded warnings
+*   **Threat Indicators**: VPN, Proxy, Tor, Datacenter detection
+*   **Smart Recommendations**: Automatic threat assessment based on indicators
+*   **Cross-Reference**: `/ipinfo` now mentions `/iprecon` for threat detection
+
+### ⚙️ Settings Integration
+*   Added AbstractAPI Email Key field to Settings → Providers tab
+*   Added AbstractAPI IP Key field to Settings → Providers tab (separate from Email)
+*   Both keys have test buttons with real API validation
+*   Automatic fallback to `.env` if not set in UI
+*   Added `VITE_ABSTRACT_EMAIL_API_KEY` to `.env` template
+*   Added `VITE_ABSTRACT_IP_API_KEY` to `.env` template
+
+### 🛠️ Backend Enhancements
+*   New endpoint: `/api/tools/email` with built-in rate limiting (100/month)
+*   New endpoint: `/api/tools/iprecon` for IP threat intelligence
+*   Server-side monthly counter for email validation
+*   Automatic month detection and reset logic
+*   Fixed: Email endpoint now uses correct AbstractAPI Email Reputation API
+
+### 📘 Help System Updates
+*   Added detailed help entries for `/email` and `/iprecon`
+*   Updated main `/help` menu with new commands
+*   Updated `/ipinfo` help to cross-reference `/iprecon`
+*   Added contextual "Ask AI" links for email validation and IP threats
+
+### ⚙️ Files Modified
+*   `types.ts` - Added `abstractEmailApiKey` and `abstractIpApiKey` to Settings interface
+*   `components/SettingsModal.tsx` - Added two AbstractAPI input fields and test logic
+*   `proxy_server.js` - Added `/api/tools/email` and `/api/tools/iprecon` endpoints
+*   `components/ChatInterface.tsx` - Added command handlers, help entries, and cross-reference
+*   `components/Sidebar.tsx` - Version bump to 2.5.16
+*   `services/dbService.ts` - Export metadata version bump to 2.5.16
+*   `package.json` - Version bump to 2.5.16
+*   `README.md` - Version badge updated to 2.5.16
+*   `.env` - Added `VITE_ABSTRACT_EMAIL_API_KEY` and `VITE_ABSTRACT_IP_API_KEY` placeholders
+
+## v2.5.18 - "Reverse DNS" 🔄
+*Released: Nov 25, 2025*
+
+**Reverse IP Lookup Integration.** Added `/reverse` command to find all domains hosted on an IP address - no API key required!
+
+### 🔄 Reverse DNS Lookup Tool
+*   **`/reverse <ip>`**: Find all domains hosted on a specific IP address
+*   **No API Key Required**: Uses HackerTarget's free API
+*   **Infrastructure Insights**: Automatically categorizes hosting type (dedicated/shared/VPS/mass hosting)
+*   **Sorted Results**: Alphabetically organized domain lists
+*   **Security Intelligence**: Identify related sites and infrastructure neighbors
+
+### 🛠️ Backend Implementation
+*   New endpoint: `/api/tools/reverse` (proxy_server.js lines 1419-1492)
+*   HackerTarget Free API integration
+*   IP format validation
+*   Parses newline-separated domain lists
+*   Returns sorted, unique domain results
+
+### 📘 Help System Updates
+*   Added `/reverse` to main `/help` menu under RECONNAISSANCE section
+*   Created detailed help page accessible with `/help reverse`
+*   Included infrastructure interpretation guide (1 domain = dedicated, 100+ = mass hosting)
+*   Tool combination suggestions with `/geoip`, `/shodan`, `/reputation`
+
+### 🎯 Use Cases
+*   **Find Related Sites**: Discover other domains owned by same entity
+*   **Shared Hosting Detection**: See if target shares IP with other sites
+*   **Infrastructure Mapping**: Understand hosting setup (dedicated/VPS/shared/CDN)
+*   **Security Research**: Identify neighbors on same server for security assessments
+
+### 💡 Key Features
+*   **100% Free**: No API key or registration required
+*   **Fast Results**: Instant domain enumeration
+*   **Smart Analysis**: Automatic hosting type categorization
+*   **Tool Integration**: Seamless workflow with other OSINT commands
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/reverse` endpoint
+*   `components/ChatInterface.tsx` - Added command handler (lines 1394-1480) and help entry
+*   `components/Sidebar.tsx` - Version bump to 2.5.18
+*   `services/dbService.ts` - Export metadata version bump to 2.5.18
+*   `package.json` - Version bump to 2.5.18
+*   `README.md` - Version badge updated to 2.5.18
+*   `OSINT_TOOLS_PLAN.md` - Marked Phase 13 as completed
+
 ## v2.5.17 - "Threat Intel" 🛡️
 *Released: Nov 25, 2025*
 

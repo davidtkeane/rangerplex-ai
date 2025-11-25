@@ -461,7 +461,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
             // AbstractAPI Email - Real API test
             else if (provider === 'abstractemail' && localSettings.abstractEmailApiKey) {
-                const response = await fetch(`https://emailvalidation.abstractapi.com/v1/?api_key=${localSettings.abstractEmailApiKey}&email=test@example.com`);
+                const response = await fetch(`https://emailreputation.abstractapi.com/v1/?api_key=${localSettings.abstractEmailApiKey}&email=test@example.com`);
                 const data = await response.json();
                 success = data.email !== undefined; // API returns email field
             }

@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.17-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.19-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -57,7 +57,9 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
     *   `/whois <domain>`: Get registration details, expiry dates, and registrar info.
     *   `/dns <domain>`: Fetch technical DNS records (A, MX, TXT, NS) for infrastructure analysis.
     *   `/subdomains <domain>`: Discover all subdomains via Certificate Transparency logs. Map attack surfaces and find hidden infrastructure.
+    *   `/reverse <ip>`: Find all domains hosted on an IP address. No API key required. Identifies shared vs dedicated hosting.
     *   `/reputation <domain>`: Check domains against Google Safe Browsing for malware, phishing, and threats. Protects 5+ billion devices.
+    *   `/ports <ip_or_host> [ports]`: Scan TCP ports for service discovery and security audits. Default scan covers 40 common ports. Requires authorization.
 *   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.
 *   **Web Search Integration**: Toggle web search for LLMs with the 🌐 WEB button. Enable/disable automatic web search in Settings → Search tab.

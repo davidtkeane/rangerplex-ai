@@ -323,6 +323,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
                     helpMsg += `║ 🔄  REVERSE_DNS :: /reverse <ip>            ║\n`;
+                    helpMsg += `║ 🔌  PORT_SCAN   :: /ports <ip>              ║\n`;
                     helpMsg += `║ 🛡️  REPUTATION  :: /reputation <domain>     ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
@@ -536,6 +537,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- 100+ domains = Large hosting provider or CDN\n\n`;
                     helpMsg += `**Pro Tip:** Combine with other tools: Use \`/geoip <ip>\` to see location/ISP, \`/shodan <ip>\` to scan ports, or run \`/reputation <domain>\` on discovered domains to check for threats.\n\n`;
                     helpMsg += `[Ask AI about Reverse DNS?](Ask AI: How does reverse DNS lookup work in OSINT?)`;
+                }
+                else if (cmd === 'ports') {
+                    helpMsg = `### 🔌 Command: /ports\n\n`;
+                    helpMsg += `**Usage:** \`/ports <ip_or_host> [ports]\`\n`;
+                    helpMsg += `**Purpose:** Performs a fast TCP port scan on the target to find open services.\n\n`;
+                    helpMsg += `**Defaults:** Scans ~40 of the most common service ports (22, 80, 443, 3389, etc.).\n`;
+                    helpMsg += `**Custom Ports:** Add a comma-separated list to override (e.g., \`/ports 1.1.1.1 22,80,443\`). Limited to 100 ports per scan.\n\n`;
+                    helpMsg += `**Safety Notice:** Only scan systems you are authorized to test. Unauthorized port scanning can violate laws and ToS.\n\n`;
+                    helpMsg += `**Insights:**\n`;
+                    helpMsg += `- Detect exposed services (SSH, RDP, DBs)\n`;
+                    helpMsg += `- Validate firewall rules and hardening\n`;
+                    helpMsg += `- Prioritize follow-up checks (e.g., run \`/shodan <ip>\` or audit SSL/headers on web ports)\n\n`;
+                    helpMsg += `[Ask AI about port scanning legality?](Ask AI: When is port scanning allowed?)`;
                 }
                 else {
                     // Generic fallback for other commands or unknown inputs
@@ -1443,7 +1457,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                     msg += `**Data Source:** ${res.source}\n\n`;
 
-                    if (res.status === 'not_found' || res.total_domains === 0) {
+                    if (res.status === 'rate_limited') {
+                        msg += `**Status:** ⚠️ Rate Limit Reached\n\n`;
+                        msg += `${res.message}\n\n`;
+                        msg += `#### 💡 What Happened\n`;
+                        msg += `HackerTarget's free API has daily request limits. This is normal for free tier services.\n\n`;
+                        msg += `#### 🔄 Solutions\n`;
+                        msg += `- **Wait & Retry**: Try again in a few hours (limits reset daily)\n`;
+                        msg += `- **Alternative**: Use \`/geoip ${ip}\` to get ISP and location info\n`;
+                        msg += `- **Alternative**: Use \`/shodan ${ip}\` to scan for services and ports\n`;
+                        msg += `- **Upgrade**: Consider HackerTarget membership for unlimited requests\n\n`;
+                        msg += `*The free tier is great for occasional use, but heavy OSINT work may need upgraded access.*`;
+                    } else if (res.status === 'not_found' || res.total_domains === 0) {
                         msg += `**Status:** ❌ No Domains Found\n\n`;
                         msg += `*No domains are currently hosted on this IP address, or the IP may not be publicly routed.*\n\n`;
                         msg += `#### 💡 Troubleshooting\n`;
@@ -1811,7 +1836,77 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 8. SSL Inspector (/ssl)
+            // 8. Port Scanner (/ports)
+            if (text.startsWith('/ports')) {
+                setProcessingStatus("Scanning ports...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const args = text.replace('/ports', '').trim();
+                const [target, ...portArgs] = args.split(/\s+/).filter(Boolean);
+
+                if (!target) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/ports <ip_or_host> [comma-separated ports]` (e.g., `/ports 1.1.1.1 22,80,443`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                const portString = portArgs.join(' ').replace(/\s/g, '');
+                const customPorts = portString
+                    ? portString.split(',').map(p => parseInt(p, 10)).filter(p => Number.isInteger(p) && p > 0 && p <= 65535).slice(0, 100)
+                    : [];
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/ports`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ target, ports: customPorts.length ? customPorts : undefined })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🔌 Port Scan: ${res.target}\n\n`;
+                    if (res.resolved_ip && res.resolved_ip !== res.target) {
+                        msg += `**Resolved IP:** ${res.resolved_ip}\n`;
+                    }
+                    msg += `**Ports Scanned:** ${res.total_scanned}\n`;
+                    msg += `**Open Ports:** ${res.open_count}\n`;
+                    msg += `**Filtered/Timeout:** ${res.filtered_count}\n`;
+                    msg += `**Closed:** ${res.closed_count}\n`;
+                    msg += `**Duration:** ${res.duration_ms} ms\n\n`;
+
+                    if (res.open_count === 0) {
+                        msg += `No open ports detected in the scanned set. Host may be firewalled or using non-standard ports.\n\n`;
+                        msg += `- Try a different port list (e.g., \`/ports ${target} 21,22,25,80,443,8080\`)\n`;
+                        msg += `- Validate reachability with \`/shodan ${res.resolved_ip || target}\`\n\n`;
+                    } else {
+                        msg += `#### 🟢 Open Ports\n`;
+                        msg += '```text\n';
+                        res.open_ports.forEach((p: any) => {
+                            msg += `${p.port} (${p.service}) - ${p.latency_ms} ms\n`;
+                        });
+                        msg += '```\n\n';
+                    }
+
+                    msg += `⚠️ Only scan hosts you are authorized to test.\n`;
+                    msg += `*Method: ${res.source}*`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Port Scan Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 9. SSL Inspector (/ssl)
             if (text.startsWith('/ssl')) {
                 setProcessingStatus("Checking SSL...");
                 const domain = text.replace('/ssl', '').trim();
@@ -1852,7 +1947,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 9. Headers Audit (/headers)
+            // 10. Headers Audit (/headers)
             if (text.startsWith('/headers')) {
                 setProcessingStatus("Auditing Headers...");
                 const url = text.replace('/headers', '').trim();
@@ -1890,7 +1985,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 10. The Profiler (/profile)
+            // 11. The Profiler (/profile)
             if (text.startsWith('/profile')) {
                 setProcessingStatus("Initializing Profiler...");
                 const domain = text.replace('/profile', '').trim();

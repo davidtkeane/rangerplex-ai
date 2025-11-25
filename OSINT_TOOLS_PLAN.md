@@ -75,12 +75,12 @@
 *   **Value:** Discover hidden infrastructure (api.example.com, admin.example.com)
 *   **Priority:** HIGH ⭐
 
-## 🚀 Phase 13: Reverse DNS (Planned)
-**Objective:** Find all domains hosted on an IP address.
+## ✅ Phase 13: Reverse DNS
+**Status:** Completed
 *   **Tool:** **Reverse DNS Lookup**
 *   **Command:** `/reverse <ip>`
-*   **Tech:** DNS PTR records, ViewDNS API
-*   **Value:** Find related sites on same infrastructure
+*   **Tech:** HackerTarget Free API (no API key required)
+*   **Value:** Find related sites on same infrastructure, identify shared/dedicated hosting
 
 ## ✅ Phase 14: Domain Reputation
 **Status:** Completed
@@ -127,12 +127,13 @@
 *   **Tech:** VirusTotal API, MalwareBazaar
 *   **Value:** Identify malware by signature
 
-## 🚀 Phase 20: Port Scanner (Planned)
-**Objective:** Detect open ports on target IP.
+## ✅ Phase 20: Port Scanner
+**Status:** Completed
 *   **Tool:** **Port Scanner**
-*   **Command:** `/ports <ip>`
-*   **Tech:** Native Node.js `net` module, TCP connect
-*   **Value:** Service identification
+*   **Command:** `/ports <ip_or_host> [ports]`
+*   **Tech:** Native Node.js `net` module, TCP connect scans
+*   **Value:** Service identification, security audits, exposed service detection
+*   **Features:** 40 default common ports, custom port lists (up to 100), service identification (28 services), security insights, latency measurement
 *   **⚠️ WARNING:** Requires authorization - illegal without permission!
 
 ## 🚀 Phase 21: Pastebin Search (Planned)
@@ -190,6 +191,6 @@
 
 ## 📊 OSINT ARSENAL STATUS
 
-**Completed:** 13 tools
-**Planned:** 12 tools
+**Completed:** 15 tools
+**Planned:** 10 tools
 **Total Arsenal:** 25 OSINT tools 🎖️

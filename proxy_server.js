@@ -12,12 +12,14 @@ import https from 'https';
 import { promisify } from 'util';
 import exifParser from 'exif-parser';
 import os from 'os';
+import net from 'net';
 
 const resolve4 = promisify(dns.resolve4);
 const resolve6 = promisify(dns.resolve6);
 const resolveMx = promisify(dns.resolveMx);
 const resolveTxt = promisify(dns.resolveTxt);
 const resolveNs = promisify(dns.resolveNs);
+const lookup = promisify(dns.lookup);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1167,7 +1169,7 @@ app.post('/api/tools/email', async (req, res) => {
             });
         }
 
-        const response = await fetch(`https://emailvalidation.abstractapi.com/v1/?api_key=${apiKey}&email=${email}`);
+        const response = await fetch(`https://emailreputation.abstractapi.com/v1/?api_key=${apiKey}&email=${email}`);
         const data = await response.json();
 
         if (data.error) {
@@ -1444,7 +1446,20 @@ app.post('/api/tools/reverse', async (req, res) => {
 
         const text = await response.text();
 
-        // Check for errors
+        // Check for rate limit errors
+        if (text.includes('API count exceeded') || text.includes('Quota') || text.includes('rate limit')) {
+            return res.json({
+                status: 'rate_limited',
+                ip: ip,
+                domains: [],
+                total_domains: 0,
+                message: 'HackerTarget API rate limit reached. The free tier has limited requests per day. Try again later or consider using an alternative service.',
+                source: 'HackerTarget (Free)',
+                error_type: 'rate_limit'
+            });
+        }
+
+        // Check for other errors
         if (text.includes('error') || text.includes('invalid')) {
             return res.json({
                 status: 'not_found',
@@ -1457,7 +1472,7 @@ app.post('/api/tools/reverse', async (req, res) => {
         }
 
         // Parse domains (HackerTarget returns newline-separated domain list)
-        const domains = text.trim().split('\n').filter(d => d.length > 0 && !d.includes('error'));
+        const domains = text.trim().split('\n').filter(d => d.length > 0 && !d.includes('error') && !d.includes('API count') && !d.includes('Quota'));
 
         if (domains.length === 0) {
             return res.json({
@@ -1488,6 +1503,156 @@ app.post('/api/tools/reverse', async (req, res) => {
     } catch (error) {
         console.error('❌ Reverse DNS error:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Port Scanner (TCP connect - top/common ports)
+app.post('/api/tools/ports', async (req, res) => {
+    const start = Date.now();
+    try {
+        const { target, ports } = req.body;
+        if (!target) {
+            return res.status(400).json({ error: 'Target IP or hostname is required' });
+        }
+
+        const cleanTarget = String(target).trim();
+
+        // Resolve hostnames to IPs (allow raw IP input)
+        let resolvedIp = cleanTarget;
+        if (!net.isIP(cleanTarget)) {
+            try {
+                const lookupResult = await lookup(cleanTarget);
+                resolvedIp = lookupResult.address;
+            } catch (err) {
+                return res.status(400).json({ error: 'Invalid IP/hostname. Unable to resolve.' });
+            }
+        }
+
+        // Sanitize ports: allow comma-separated string or array of numbers
+        const defaultPorts = [21, 22, 23, 25, 53, 80, 110, 111, 123, 135, 139, 143, 161, 389, 443, 445, 465, 514, 587, 636, 993, 995, 1433, 1521, 1723, 2049, 2082, 2083, 2087, 3306, 3389, 5432, 5900, 6379, 8080, 8443, 9000, 9200, 10000, 27017];
+        const parsePorts = (value) => {
+            if (Array.isArray(value)) return value;
+            if (typeof value === 'string') {
+                return value.split(',').map(p => p.trim()).filter(Boolean);
+            }
+            return [];
+        };
+
+        const rawPorts = parsePorts(ports);
+        const sanitizedPorts = (rawPorts.length ? rawPorts : defaultPorts)
+            .map(p => Number(p))
+            .filter(p => Number.isInteger(p) && p > 0 && p <= 65535);
+
+        // Prevent abuse: limit to 100 ports max
+        const uniquePorts = Array.from(new Set(sanitizedPorts)).slice(0, 100);
+        if (uniquePorts.length === 0) {
+            return res.status(400).json({ error: 'No valid ports provided. Use comma-separated numbers or leave empty for defaults.' });
+        }
+
+        const commonServices = {
+            21: 'FTP',
+            22: 'SSH',
+            23: 'Telnet',
+            25: 'SMTP',
+            53: 'DNS',
+            80: 'HTTP',
+            110: 'POP3',
+            111: 'RPC',
+            123: 'NTP',
+            135: 'RPC',
+            139: 'SMB',
+            143: 'IMAP',
+            161: 'SNMP',
+            389: 'LDAP',
+            443: 'HTTPS',
+            445: 'SMB',
+            465: 'SMTPS',
+            514: 'Syslog',
+            587: 'SMTP Submission',
+            636: 'LDAPS',
+            993: 'IMAPS',
+            995: 'POP3S',
+            1433: 'MSSQL',
+            1521: 'Oracle DB',
+            1723: 'PPTP',
+            2049: 'NFS',
+            2082: 'cPanel',
+            2083: 'cPanel (SSL)',
+            2087: 'WHM',
+            3306: 'MySQL',
+            3389: 'RDP',
+            5432: 'PostgreSQL',
+            5900: 'VNC',
+            6379: 'Redis',
+            8080: 'HTTP-Alt/Proxy',
+            8443: 'HTTPS-Alt',
+            9000: 'App/Dev',
+            9200: 'Elasticsearch',
+            10000: 'Webmin',
+            27017: 'MongoDB'
+        };
+
+        const scanPort = (host, port, timeout = 1200) => {
+            return new Promise(resolve => {
+                const socket = new net.Socket();
+                const startTime = Date.now();
+                let status = 'closed';
+                let errorCode = '';
+
+                socket.setTimeout(timeout);
+
+                socket.once('connect', () => {
+                    status = 'open';
+                    socket.destroy();
+                });
+
+                socket.once('timeout', () => {
+                    status = 'filtered';
+                    socket.destroy();
+                });
+
+                socket.once('error', (err) => {
+                    errorCode = err.code || 'ERROR';
+                    if (err.code === 'ECONNREFUSED') status = 'closed';
+                    else if (err.code === 'EHOSTUNREACH' || err.code === 'ENETUNREACH') status = 'filtered';
+                    socket.destroy();
+                });
+
+                socket.once('close', () => {
+                    resolve({
+                        port,
+                        status,
+                        latency_ms: Date.now() - startTime,
+                        service: commonServices[port] || 'Unknown',
+                        error: errorCode
+                    });
+                });
+
+                socket.connect(port, host);
+            });
+        };
+
+        const results = await Promise.all(uniquePorts.map(p => scanPort(resolvedIp, p)));
+        const openPorts = results.filter(r => r.status === 'open');
+        const filteredPorts = results.filter(r => r.status === 'filtered');
+
+        res.json({
+            target: cleanTarget,
+            resolved_ip: resolvedIp,
+            scanned_ports: uniquePorts,
+            open_ports: openPorts,
+            open_count: openPorts.length,
+            filtered_count: filteredPorts.length,
+            closed_count: results.length - openPorts.length - filteredPorts.length,
+            total_scanned: uniquePorts.length,
+            duration_ms: Date.now() - start,
+            disclaimer: 'Port scanning requires authorization. Only scan systems you have explicit permission to test.',
+            source: 'Native TCP connect'
+        });
+
+    } catch (error) {
+        console.error('❌ Port scan error:', error);
+        res.status(500).json({ error: error.message || 'Port scan failed' });
     }
 });
 
