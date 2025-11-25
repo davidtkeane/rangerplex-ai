@@ -712,6 +712,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- [NET Bible Web Service](https://labs.bible.org/api_web_service)\n\n`;
                     helpMsg += `**Pro Tip:** Great for daily inspiration, reflection, or spiritual guidance! 📖`;
                 }
+                else if (cmd === 'weather') {
+                    helpMsg = `### 🌦️ Command: /weather\n\n`;
+                    helpMsg += `**Usage:** \`/weather [location]\`\n`;
+                    helpMsg += `**Purpose:** Get real-time weather information for your current location or a specific city.\n\n`;
+                    helpMsg += `**Features:**\n`;
+                    helpMsg += `- 🌍 **Auto-Location**: Uses your IP address if no location is specified\n`;
+                    helpMsg += `- 🌡️ **Detailed Info**: Temperature, wind, humidity, and visibility\n`;
+                    helpMsg += `- 🌅 **Forecast**: 3-day weather outlook\n`;
+                    helpMsg += `- 🆓 **Free API**: Powered by wttr.in (no key required)\n\n`;
+                    helpMsg += `**Examples:**\n`;
+                    helpMsg += `- \`/weather\` (Auto-detect location)\n`;
+                    helpMsg += `- \`/weather London\`\n`;
+                    helpMsg += `- \`/weather New York\`\n\n`;
+                    helpMsg += `**Pro Tip:** Great for checking conditions before heading out! ☂️`;
+                }
                 else {
                     // Generic fallback for other commands or unknown inputs
                     helpMsg = `### ❓ Unknown Command: ${cmd}\n\n`;
@@ -1601,30 +1616,85 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     }
 
                     if (pscs.length) {
-                        msg += `\n#### 🧭 PSC / Significant Control (top ${pscs.length})\n`;
+                        msg += `\n#### 👑 People with Significant Control (top ${pscs.length})\n`;
                         pscs.forEach((p: any) => {
-                            const controls = (p.natures_of_control || []).join(', ');
-                            msg += `- ${p.name || 'Unknown'}${controls ? ` — ${controls}` : ''}${p.notified_on ? ` (notified ${p.notified_on})` : ''}${p.ceased_on ? `, ceased ${p.ceased_on}` : ''}\n`;
+                            msg += `- ${p.name || 'Unknown'} — ${p.nature_of_control ? p.nature_of_control.join(', ') : 'Control details unavailable'}\n`;
                         });
                     }
 
                     if (filings.length) {
-                        msg += `\n#### 🗂️ Recent Filings (${filings.length})\n`;
+                        msg += `\n#### 📂 Recent Filings (top ${filings.length})\n`;
                         filings.forEach((f: any) => {
-                            msg += `- ${f.date || 'Unknown date'} — ${f.description || f.type || 'Filing'}${f.category ? ` [${f.category}]` : ''}\n`;
+                            msg += `- ${f.date}: ${f.description || f.category || 'Filing'}\n`;
                         });
                     }
 
-                    if (!officers.length && !pscs.length && !filings.length) {
-                        msg += `\n*No officers, PSCs, or filings returned for this entity.*`;
-                    }
+                    msg += `\n*Data provided by ${sourceLabel}. Information may not be real-time.*`;
 
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
                     }]);
+
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
-                        id: uuidv4(), sender: Sender.AI, text: `❌ Company lookup failed: ${e.message}`, timestamp: Date.now()
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Company Lookup Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // Weather Command (/weather)
+            if (text.startsWith('/weather')) {
+                setProcessingStatus("Checking Weather...");
+                const location = text.replace('/weather', '').trim();
+                // Use wttr.in with JSON format (format=j1)
+                const weatherUrl = location
+                    ? `https://wttr.in/${encodeURIComponent(location)}?format=j1`
+                    : `https://wttr.in/?format=j1`;
+
+                try {
+                    const res = await fetch(weatherUrl).then(r => r.json());
+
+                    const current = res.current_condition[0];
+                    const nearest = res.nearest_area[0];
+
+                    // Determine location name to display
+                    let locationName = location;
+                    if (!locationName) {
+                        const area = nearest.areaName?.[0]?.value;
+                        const country = nearest.country?.[0]?.value;
+                        locationName = area && country ? `${area}, ${country}` : 'Your Location';
+                    } else {
+                        // Capitalize first letter of location for display
+                        locationName = locationName.charAt(0).toUpperCase() + locationName.slice(1);
+                    }
+
+                    let msg = `### 🌦️ Weather Report: ${locationName}\n\n`;
+                    msg += `**🌡️ Temperature:** ${current.temp_C}°C / ${current.temp_F}°F\n`;
+                    msg += `**🤔 Feels Like:** ${current.FeelsLikeC}°C / ${current.FeelsLikeF}°F\n`;
+                    msg += `**📝 Condition:** ${current.weatherDesc[0].value}\n`;
+                    msg += `**💨 Wind:** ${current.windspeedKmph} km/h (${current.winddir16Point})\n`;
+                    msg += `**💧 Humidity:** ${current.humidity}%\n`;
+                    msg += `**👁️ Visibility:** ${current.visibility} km\n\n`;
+
+                    msg += `#### 📅 3-Day Forecast\n`;
+                    res.weather.slice(0, 3).forEach((day: any) => {
+                        // Get noon weather description (index 4 is usually around 12:00 PM)
+                        const noonWeather = day.hourly[4]?.weatherDesc?.[0]?.value || day.hourly[0]?.weatherDesc?.[0]?.value || "N/A";
+                        msg += `**${day.date}:** Max ${day.maxtempC}°C / Min ${day.mintempC}°C — *${noonWeather}*\n`;
+                    });
+
+                    msg += `\n*Powered by wttr.in*`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Weather Check Failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);
