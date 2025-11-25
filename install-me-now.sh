@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
 
-# RangerPlex AI Installer (v2.5.28)
+# RangerPlex AI Installer (v2.5.31)
 # One-command setup for macOS/Linux/WSL. Installs Node.js 22, PM2, npm deps, and guides API key setup.
 # Safe defaults: prompts before package installs; writes .env only when you confirm.
 #
-# IMPROVEMENTS (v2.5.28):
+# IMPROVEMENTS (v2.5.31):
+# ✅ FIXED: Unbound variable error in shell detection (ZSH_VERSION, BASH_VERSION)
+# ✅ IMPROVED: Safe variable checking using ${VAR:-} syntax
+#
+# PREVIOUS (v2.5.30):
+# ✅ ADDED: API key confirmation with masked preview (prevents paste mistakes!)
+# ✅ ADDED: Option to re-enter API key if pasted incorrectly (Y/n/r prompt)
+# ✅ IMPROVED: Shows preview of key (first 8 chars...last 4 chars) before saving
+# ✅ IMPROVED: User can discard incorrect key without saving
+#
+# PREVIOUS (v2.5.29):
+# ✅ FIXED: Changed npm ci → npm install (fixes lock file mismatch errors)
+# ✅ FIXED: Added nvm environment verification after installation
+# ✅ FIXED: Added Node.js version verification after nvm install
+# ✅ FIXED: Added 'nvm alias default 22' to persist Node version across sessions
+# ✅ IMPROVED: Better error handling for npm install with helpful diagnostics
 # ✅ ADDED: Beautiful colorful ASCII banner with RANGERPLEX branding
 # ✅ ADDED: Welcome message thanking users for downloading
 # ✅ ADDED: Documentation references (/manual command, rangerplex_manual.md)
@@ -509,32 +524,69 @@ collect_env() {
 
   for entry in "${providers[@]}"; do
     IFS='|' read -r name var url priority <<<"$entry"
-    log
-    if [ "$priority" = "ESSENTIAL" ]; then
-      log "${bold}${green}${name}${reset} ${dim}[$priority]${reset} — ${dim}${url}${reset}"
-    else
-      log "${bold}${name}${reset} ${dim}[$priority]${reset} — ${dim}${url}${reset}"
-    fi
-    printf "Paste API key for %s (or leave blank to skip): " "$name"
-    read -r key
-    if [ -n "$key" ]; then
-      # Remove any surrounding quotes and whitespace
-      sanitized="${key//\'/}"
-      sanitized="${sanitized//\"/}"
-      sanitized="$(echo "$sanitized" | xargs)"
-      # Remove existing line if present
-      grep -v "^$var=" "$env_file" > "$env_file.tmp" 2>/dev/null || touch "$env_file.tmp"
-      mv "$env_file.tmp" "$env_file"
-      # Write new line
-      echo "${var}=${sanitized}" >> "$env_file"
-      ok "Saved $var to .env"
-    else
+    
+    local key_accepted=false
+    while [ "$key_accepted" = false ]; do
+      log
       if [ "$priority" = "ESSENTIAL" ]; then
-        warn "Skipped $name. You'll need at least one AI provider to use RangerPlex!"
+        log "${bold}${green}${name}${reset} ${dim}[$priority]${reset} — ${dim}${url}${reset}"
       else
-        log "${dim}Skipped $name. Add it later in .env if needed.${reset}"
+        log "${bold}${name}${reset} ${dim}[$priority]${reset} — ${dim}${url}${reset}"
       fi
-    fi
+      printf "Paste API key for %s (or leave blank to skip): " "$name"
+      read -r key
+      
+      if [ -n "$key" ]; then
+        # Remove any surrounding quotes and whitespace
+        sanitized="${key//\'/}"
+        sanitized="${sanitized//\"/}"
+        sanitized="$(echo "$sanitized" | xargs)"
+        
+        # Show masked preview (first 8 chars + ... + last 4 chars)
+        local key_length=${#sanitized}
+        local preview=""
+        if [ $key_length -le 12 ]; then
+          # Short key - show first 4 and last 4 with asterisks in middle
+          preview="${sanitized:0:4}****${sanitized: -4}"
+        else
+          # Long key - show first 8 and last 4
+          preview="${sanitized:0:8}...${sanitized: -4}"
+        fi
+        
+        log "${dim}Preview: ${preview}${reset}"
+        printf "${yellow}Is this key correct?${reset} (Y/n/r to re-enter): "
+        read -r confirm
+        
+        case "$confirm" in
+          [Nn]*)
+            warn "Key discarded. Skipping $name."
+            key_accepted=true  # Exit loop without saving
+            ;;
+          [Rr]*)
+            warn "Re-entering key for $name..."
+            # Loop continues, will prompt again
+            ;;
+          *)
+            # Default to Yes - save the key
+            # Remove existing line if present
+            grep -v "^$var=" "$env_file" > "$env_file.tmp" 2>/dev/null || touch "$env_file.tmp"
+            mv "$env_file.tmp" "$env_file"
+            # Write new line
+            echo "${var}=${sanitized}" >> "$env_file"
+            ok "Saved $var to .env"
+            key_accepted=true
+            ;;
+        esac
+      else
+        # User pressed ENTER to skip
+        if [ "$priority" = "ESSENTIAL" ]; then
+          warn "Skipped $name. You'll need at least one AI provider to use RangerPlex!"
+        else
+          log "${dim}Skipped $name. Add it later in .env if needed.${reset}"
+        fi
+        key_accepted=true
+      fi
+    done
   done
 
   log
@@ -572,10 +624,10 @@ setup_alias() {
   local shell_config=""
   local shell_name=""
 
-  if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "$(command -v zsh)" ]; then
+  if [ -n "${ZSH_VERSION:-}" ] || [ "${SHELL:-}" = "$(command -v zsh)" ]; then
     shell_config="$HOME/.zshrc"
     shell_name="zsh"
-  elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "$(command -v bash)" ]; then
+  elif [ -n "${BASH_VERSION:-}" ] || [ "${SHELL:-}" = "$(command -v bash)" ]; then
     shell_config="$HOME/.bashrc"
     shell_name="bash"
   else
