@@ -7,6 +7,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dns from 'dns';
+import tls from 'tls';
+import https from 'https';
 import { promisify } from 'util';
 
 const resolve4 = promisify(dns.resolve4);
@@ -682,6 +684,87 @@ app.post('/api/tools/shodan', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Shodan error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// SSL Certificate Inspector
+app.post('/api/tools/ssl', async (req, res) => {
+    try {
+        const { domain } = req.body;
+        if (!domain) return res.status(400).json({ error: 'Missing domain' });
+
+        console.log('🔒 SSL Check:', domain);
+
+        const options = {
+            host: domain,
+            port: 443,
+            method: 'GET',
+            rejectUnauthorized: false, // We want to see the cert even if invalid
+            agent: new https.Agent({ maxCachedSessions: 0 })
+        };
+
+        const reqSSL = https.request(options, (resSSL) => {
+            const cert = resSSL.connection.getPeerCertificate(true);
+            if (!cert || Object.keys(cert).length === 0) {
+                return res.status(404).json({ error: 'No certificate found' });
+            }
+
+            const cleanCert = {
+                subject: cert.subject,
+                issuer: cert.issuer,
+                valid_from: cert.valid_from,
+                valid_to: cert.valid_to,
+                days_remaining: Math.floor((new Date(cert.valid_to) - new Date()) / (1000 * 60 * 60 * 24)),
+                fingerprint: cert.fingerprint,
+                serialNumber: cert.serialNumber,
+                valid: (new Date() >= new Date(cert.valid_from) && new Date() <= new Date(cert.valid_to))
+            };
+
+            res.json(cleanCert);
+        });
+
+        reqSSL.on('error', (e) => {
+            res.status(500).json({ error: e.message });
+        });
+
+        reqSSL.end();
+
+    } catch (error) {
+        console.error('❌ SSL error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Security Headers Auditor
+app.post('/api/tools/headers', async (req, res) => {
+    try {
+        let { url } = req.body;
+        if (!url) return res.status(400).json({ error: 'Missing url' });
+
+        if (!url.startsWith('http')) url = 'https://' + url;
+
+        console.log('🛡️ Headers Audit:', url);
+
+        const response = await fetch(url, { method: 'HEAD' });
+        const headers = {};
+        response.headers.forEach((value, key) => {
+            headers[key] = value;
+        });
+
+        const analysis = {
+            hsts: headers['strict-transport-security'] ? '✅ Present' : '❌ Missing',
+            csp: headers['content-security-policy'] ? '✅ Present' : '❌ Missing',
+            xFrame: headers['x-frame-options'] ? '✅ Present' : '❌ Missing',
+            xContentType: headers['x-content-type-options'] ? '✅ Present' : '❌ Missing',
+            referrerPolicy: headers['referrer-policy'] ? '✅ Present' : '❌ Missing',
+            server: headers['server'] || 'Hidden/Unknown'
+        };
+
+        res.json({ headers, analysis, status: response.status });
+
+    } catch (error) {
+        console.error('❌ Headers error:', error);
         res.status(500).json({ error: error.message });
     }
 });

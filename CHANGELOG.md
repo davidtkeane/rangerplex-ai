@@ -2,6 +2,25 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.4 - "The Site Auditor" 🔐
+*Released: Nov 25, 2025*
+
+**Deep Web Analysis.** This update introduces advanced tools to inspect the security posture of any website, from SSL certificates to HTTP headers.
+
+### 🔐 Site Auditor Tools
+*   **SSL Inspector**: Added `/ssl <domain>` command.
+    *   **Certificate Analysis**: Checks validity, issuer (e.g., Let's Encrypt, DigiCert), and expiration date.
+    *   **Fingerprinting**: Displays the SHA-1 fingerprint and serial number.
+    *   **Expiry Warning**: Color-coded alerts if a certificate is expiring within 30 days.
+*   **Headers Auditor**: Added `/headers <url>` command.
+    *   **Security Posture**: Scans for critical security headers like HSTS, CSP, and X-Frame-Options.
+    *   **Vulnerability Check**: Instantly spots missing protections that leave sites open to clickjacking or XSS.
+
+### ⚙️ Files Modified
+*   `components/ChatInterface.tsx` - Added `/ssl` and `/headers` command logic.
+*   `proxy_server.js` - Added `/api/tools/ssl` and `/api/tools/headers` endpoints using native Node.js modules.
+*   `package.json` - Version bump to 2.5.4.
+
 ## v2.5.3 - "The Eye of God" 👁️
 *Released: Nov 25, 2025*
 

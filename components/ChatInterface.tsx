@@ -531,6 +531,85 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
+            // 8. SSL Inspector (/ssl)
+            if (text.startsWith('/ssl')) {
+                setProcessingStatus("Checking SSL...");
+                const domain = text.replace('/ssl', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/tools/ssl`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ domain })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) throw new Error(result.error);
+
+                    const isValid = result.valid ? "✅ Valid" : "❌ Expired/Invalid";
+                    const color = result.days_remaining < 30 ? "🟠" : "🟢";
+
+                    let msg = `### 🔒 SSL Certificate: ${domain}\n\n`;
+                    msg += `**Status:** ${isValid}\n`;
+                    msg += `**Issuer:** ${result.issuer.O} (${result.issuer.CN})\n`;
+                    msg += `**Expires:** ${new Date(result.valid_to).toLocaleDateString()} (${color} ${result.days_remaining} days left)\n`;
+                    msg += `**Fingerprint:** \`${result.fingerprint}\`\n\n`;
+                    msg += `**Subject:** ${result.subject.CN}\n`;
+                    msg += `**Serial:** ${result.serialNumber}`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ SSL Check Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 9. Headers Audit (/headers)
+            if (text.startsWith('/headers')) {
+                setProcessingStatus("Auditing Headers...");
+                const url = text.replace('/headers', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/tools/headers`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) throw new Error(result.error);
+
+                    let msg = `### 🛡️ Security Headers: ${url}\n\n`;
+                    msg += `**Server:** ${result.analysis.server}\n\n`;
+                    msg += `**Strict-Transport-Security (HSTS):** ${result.analysis.hsts}\n`;
+                    msg += `**Content-Security-Policy (CSP):** ${result.analysis.csp}\n`;
+                    msg += `**X-Frame-Options:** ${result.analysis.xFrame}\n`;
+                    msg += `**X-Content-Type-Options:** ${result.analysis.xContentType}\n`;
+                    msg += `**Referrer-Policy:** ${result.analysis.referrerPolicy}\n`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Headers Audit Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // --- STANDARD CHAT FLOW ---
 
             // RAG Ingestion
