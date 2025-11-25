@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
-# RangerPlex AI Installer (v2.4.2)
+# RangerPlex AI Installer (v2.5.26)
 # One-command setup for macOS/Linux/WSL. Installs Node.js 22, npm deps, and guides API key setup.
 # Safe defaults: prompts before package installs; writes .env only when you confirm.
 #
-# IMPROVEMENTS (v2.4.2):
+# IMPROVEMENTS (v2.5.26):
+# ✅ ADDED: Node.js v25+ detection with mandatory downgrade requirement
+# ✅ ADDED: Automatic native module rebuild when Node version changes
+# ✅ ADDED: Node version tracking (.node_version file in node_modules)
+# ✅ IMPROVED: Full npm rebuild (all native modules, not just better-sqlite3)
+# ✅ IMPROVED: Clear error messages for incompatible Node versions
+#
+# PREVIOUS (v2.4.2):
 # ✅ FIXED: Added VITE_ prefix to ALL environment variables (CRITICAL - was broken!)
 # ✅ FIXED: Corrected variable names to match app expectations
 # ✅ ADDED: Gemini API key collection (was missing!)
@@ -192,14 +199,27 @@ ensure_node() {
   if command -v node >/dev/null 2>&1; then
     local ver
     ver="$(node -v | sed 's/^v//')"
+    local major_ver="${ver%%.*}"
+
     if [[ "$ver" == 22.* ]]; then
       ok "Node.js $ver detected (meets requirement)."
       return
+    elif [[ "$major_ver" -ge 25 ]]; then
+      fail "Node.js v$ver detected - TOO NEW!"
+      log "${red}${bold}Node v25+ breaks native modules (better-sqlite3).${reset}"
+      log "${dim}This is a known incompatibility. You MUST downgrade to v22.${reset}"
+      warn "Install Node v22 with nvm? (REQUIRED) (y/N)"
+      read -r reply
+      if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+        fail "Cannot continue with Node v$ver. Please install Node v22."
+        exit 1
+      fi
     else
       warn "Node.js v$ver detected; v22.x is recommended. Install v22 with nvm? (y/N)"
       read -r reply
       if [[ ! "$reply" =~ ^[Yy]$ ]]; then
         warn "Continuing with Node $ver (may break native modules like better-sqlite3)."
+        log "${dim}We'll rebuild native modules to be safe...${reset}"
         return
       fi
     fi
@@ -264,22 +284,54 @@ check_ollama() {
 ########################
 prepare_deps() {
   cd "$PROJECT_ROOT"
+  local needs_full_rebuild=0
+
+  # Check if node_modules exists and if Node version has changed
   if [ -d node_modules ]; then
-    warn "Existing node_modules detected. Reinstall to match lockfile? (y/N)"
-    read -r reply
-    if [[ "$reply" =~ ^[Yy]$ ]]; then
-      rm -rf node_modules
+    # Check if .node_version file exists (we'll create it to track Node version)
+    if [ -f node_modules/.node_version ]; then
+      local saved_version
+      saved_version="$(cat node_modules/.node_version)"
+      local current_version
+      current_version="$(node -v)"
+
+      if [ "$saved_version" != "$current_version" ]; then
+        warn "Node.js version changed: $saved_version → $current_version"
+        log "${dim}Native modules must be rebuilt for the new Node.js version.${reset}"
+        needs_full_rebuild=1
+      fi
+    fi
+
+    if [ $needs_full_rebuild -eq 0 ]; then
+      warn "Existing node_modules detected. Reinstall to match lockfile? (y/N)"
+      read -r reply
+      if [[ "$reply" =~ ^[Yy]$ ]]; then
+        rm -rf node_modules
+      fi
+    else
+      log "${bold}Automatically rebuilding all native modules...${reset}"
     fi
   fi
+
   spinner "Installing npm dependencies (npm ci)..." npm ci
   ok "Dependencies installed."
 
-  # Rebuild better-sqlite3 for current Node version
-  step "Rebuilding better-sqlite3 for Node.js $(node -v)..."
-  if npm rebuild better-sqlite3 >/dev/null 2>&1; then
-    ok "Database module rebuilt successfully."
+  # Save current Node version for future checks
+  node -v > node_modules/.node_version
+
+  # Rebuild all native modules for current Node version
+  step "Rebuilding native modules for Node.js $(node -v)..."
+  if npm rebuild >/dev/null 2>&1; then
+    ok "All native modules rebuilt successfully."
   else
-    warn "Failed to rebuild better-sqlite3 (may cause database issues)."
+    warn "Some native modules failed to rebuild."
+    log "${dim}Trying to rebuild better-sqlite3 specifically...${reset}"
+    if npm rebuild better-sqlite3 >/dev/null 2>&1; then
+      ok "Database module (better-sqlite3) rebuilt successfully."
+    else
+      fail "Failed to rebuild better-sqlite3 (database may not work)."
+      log "${dim}Try manually: npm rebuild better-sqlite3${reset}"
+    fi
   fi
 }
 

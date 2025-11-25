@@ -196,17 +196,18 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **Update Flow**:
     1. Click "Check for Updates" to see latest version from GitHub
     2. View commit message and date
-    3. Click green "Install Update" button
+    3. Click green "Install Update" button (**keep server running**)
     4. Watch progress: "Installing..." with spinner
     5. Get success confirmation or error details
-    6. Restart proxy server if prompted
+    6. **Manually restart server** in terminal (`Ctrl+C` then `npm start`)
 *   **Safety Features**:
     - Already up to date? No restart needed
     - Only code changes? Restart required notification
     - Dependencies changed? Auto-runs `npm install` + restart prompt
     - Git pull fails? Shows detailed error messages
     - Timeout protection: 2-minute maximum for operations
-*   **No More Manual Updates**: Never run `git pull` manually again - just click the button!
+*   **Current Limitation**: Server restart still requires manual terminal action (stop with `Ctrl+C`, restart with `npm start`)
+*   **Future Improvement**: Fully automated server restart without manual intervention (like professional software)
 
 ### 🕶️ The Aesthetic
 *   **Tron Theme ("The Grid")**: A glowing, animated 3D interface.

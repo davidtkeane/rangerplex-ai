@@ -250,6 +250,28 @@ Users can now run:
 *   **Categories**: Network Intelligence, Port Scanning, Company Intelligence
 *   **No API Key Required**: Nmap uses native CLI (must be installed)
 
+### 🛠️ Install Script Improvements
+*   **Node.js v25+ Detection**: Install script now detects Node v25+ and **mandates** downgrade to v22
+    - Node v25 breaks native modules (better-sqlite3) with MODULE_VERSION mismatch
+    - Script will refuse to continue without Node v22 installation
+    - Clear error messages explain why v25+ is incompatible
+*   **Automatic Native Module Rebuild**: Added smart rebuild logic for Node version changes
+    - Creates `.node_version` tracking file in node_modules
+    - Detects when Node.js version changes between runs
+    - Automatically rebuilds ALL native modules (not just better-sqlite3)
+    - No more "MODULE_VERSION mismatch" errors on update!
+*   **Enhanced Version Checking** (`install-me-now.sh:190-232`):
+    - Detects major version (extracts first number from version string)
+    - Node v25+: Hard fail with mandatory downgrade prompt
+    - Node v20-24: Warning with optional upgrade to v22
+    - Node v22: Approved and continues smoothly
+*   **Smart Dependency Preparation** (`install-me-now.sh:278-329`):
+    - Checks saved Node version vs current version
+    - Triggers automatic rebuild on version mismatch
+    - Runs full `npm rebuild` for all native modules
+    - Falls back to `npm rebuild better-sqlite3` if full rebuild fails
+*   **Why This Matters**: Prevents database errors when upgrading Node.js (especially v22 → v25 upgrades via Homebrew)
+
 ---
 
 ## v2.5.24 - "Git Security Emergency Response" 🚨
