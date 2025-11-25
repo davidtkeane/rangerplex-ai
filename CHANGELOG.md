@@ -29,9 +29,11 @@
 
 ### ✨ New Features
 *   **PM2 Auto-Restart System** (`ecosystem.config.cjs`, `proxy_server.js:2849-2959`):
+    - **🎉 NO TERMINAL WINDOW NEEDED!**: Servers run as background daemons (huge UX win!)
     - **Zero-Downtime Updates**: Auto-update now automatically restarts servers with PM2
     - **No Manual Restart**: Click "Install Update" and system handles everything
     - **Graceful Reload**: Old process keeps serving while new one starts
+    - **Close Terminal Anytime**: Servers keep running even after closing terminal window
     - **Production Ready**: PM2 manages process lifecycle, auto-restart on crash
     - **PM2 Commands**: `npm run pm2:start/stop/restart/reload/status/logs`
     - **Backward Compatible**: Falls back to manual restart if PM2 not available

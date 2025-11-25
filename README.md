@@ -193,9 +193,12 @@ RangerPlex has **TWO different image features** that work in completely differen
     - Click "Check for Updates" → see latest commit
     - Click "Install Update" → auto git pull + npm install + **PM2 auto-restart**
     - **No manual intervention needed** → servers reload automatically
+    - **NO TERMINAL WINDOW NEEDED** → servers run as background daemons
+    - Close terminal anytime → servers keep running
     - Ollama and LM Studio keep working → **Pure magic!** 🚀
 *   **Zero-Downtime Restart**: PM2 gracefully reloads both servers without dropping connections
 *   **Production Ready**: PM2 process manager handles server lifecycle, auto-restart on crash
+*   **Daemon Mode**: Unlike `npm start`, PM2 runs servers in background - no terminal window hogging your screen!
 *   **One-Click Updates**: New "Install Update" button in Settings → System Updates
 *   **Automatic Git Pull**: Click "Install Update" to automatically run `git pull origin main`
 *   **Smart Dependency Management**: Auto-detects if `package.json` changed and runs `npm install`
@@ -221,6 +224,16 @@ RangerPlex has **TWO different image features** that work in completely differen
     - `npm run pm2:reload` - Zero-downtime reload
     - `npm run pm2:status` - Check server status
     - `npm run pm2:logs` - View live logs
+
+*   **PM2 vs npm start Comparison**:
+    | Feature | `npm start` | `npm run pm2:start` |
+    |---------|-------------|---------------------|
+    | Terminal Window | ❌ Required (can't close) | ✅ Optional (daemon mode) |
+    | Auto-Restart on Crash | ❌ Manual restart | ✅ Automatic |
+    | Zero-Downtime Updates | ❌ Manual Ctrl+C + restart | ✅ Automatic `pm2 reload` |
+    | Background Operation | ❌ Foreground only | ✅ Background daemon |
+    | Log Management | ❌ Lost when terminal closes | ✅ Persisted to log files |
+    | Production Ready | ❌ Development only | ✅ Production grade |
 
 ### 🕶️ The Aesthetic
 *   **Tron Theme ("The Grid")**: A glowing, animated 3D interface.

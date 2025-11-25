@@ -323,6 +323,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 📱  PHONE       :: /phone <number>          ║\n`;
                     helpMsg += `║ 📧  EMAIL       :: /email <address>         ║\n`;
                     helpMsg += `║ 🏢  COMPANY     :: /company <name|reg>      ║\n`;
+                    helpMsg += `║ 🔍  PRIVACY     :: /privacy                 ║\n`;
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
                     helpMsg += `║ 🔄  REVERSE_DNS :: /reverse <ip>            ║\n`;
@@ -517,6 +518,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- \`/company 01234567\`\n`;
                     helpMsg += `- \`/company Stripe us-de\`\n\n`;
                     helpMsg += `**Pro Tip:** Pair with \`/reputation <domain>\` for web safety and \`/wayback <url>\` to see historical site changes for the company.`;
+                }
+                else if (cmd === 'privacy') {
+                    helpMsg = `### 🔍 Command: /privacy\n\n`;
+                    helpMsg += `**Usage:** \`/privacy\`\n`;
+                    helpMsg += `**Purpose:** Shows what a site can see about you on first load: public IP, ISP/ASN, coarse geolocation, timezone, and browser headers (UA, language, DNT, referer, client hints).\n\n`;
+                    helpMsg += `**How it works:** Queries ipify + ip-api for IP/ISP/geo and echoes the request headers your browser sent to the proxy.\n\n`;
+                    helpMsg += `**Outputs:** Public IP, ISP/Org/ASN, country/region/city/timezone, and the request headers (User-Agent, Accept-Language, DNT, Referer, sec-ch-ua, etc.). Flags header gaps (no DNT) or mismatches (X-Forwarded-For vs public IP).\n\n`;
+                    helpMsg += `**Tip:** Compare this with a VPN on/off to see how much changes.`;
                 }
                 else if (cmd === 'reputation') {
                     helpMsg = `### 🛡️ Command: /reputation\n\n`;
@@ -1566,6 +1575,84 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: `❌ Company lookup failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // Privacy Snapshot (/privacy)
+            if (text.startsWith('/privacy')) {
+                setProcessingStatus("Collecting privacy snapshot...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/privacy`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    const hdr = res.headers || {};
+                    const net = res.network || {};
+                    const warnings: string[] = [];
+
+                    if (!hdr['dnt']) warnings.push('DNT header missing (tracking opt-out not signaled).');
+                    if (hdr['referer']) warnings.push(`Referrer exposed: ${hdr['referer']}`);
+                    if (hdr['x-forwarded-for'] && res.ip?.public && !hdr['x-forwarded-for'].includes(res.ip.public)) {
+                        warnings.push('X-Forwarded-For differs from detected public IP (proxy/VPN/CDN?).');
+                    }
+
+                    let msg = `### 🔍 Privacy Snapshot\n\n`;
+                    msg += `**Public IP:** ${res.ip?.public || 'Unknown'}\n`;
+                    if (net.country || net.city || net.isp) {
+                        const locParts = [net.city, net.region, net.country].filter(Boolean).join(', ');
+                        msg += `**Network:** ${net.isp || net.org || 'Unknown ISP'}${net.asn ? ` (${net.asn}${net.asName ? ' / ' + net.asName : ''})` : ''}\n`;
+                        if (locParts) msg += `**Location (coarse):** ${locParts}${net.zip ? ` ${net.zip}` : ''}\n`;
+                        if (net.timezone) msg += `**Timezone:** ${net.timezone}\n`;
+                    } else if (net.error) {
+                        msg += `**Network:** Lookup failed (${net.error})\n`;
+                    }
+
+                    msg += `\n**Headers Received:**\n`;
+                    const headerList: [string, string | null][] = [
+                        ['User-Agent', hdr['user-agent']],
+                        ['Accept-Language', hdr['accept-language']],
+                        ['DNT', hdr['dnt']],
+                        ['Referer', hdr['referer']],
+                        ['Accept', hdr['accept']],
+                        ['Accept-Encoding', hdr['accept-encoding']],
+                        ['sec-ch-ua', hdr['sec-ch-ua']],
+                        ['sec-ch-ua-platform', hdr['sec-ch-ua-platform']],
+                        ['sec-ch-ua-mobile', hdr['sec-ch-ua-mobile']],
+                        ['sec-fetch-site', hdr['sec-fetch-site']],
+                        ['sec-fetch-mode', hdr['sec-fetch-mode']],
+                        ['sec-fetch-dest', hdr['sec-fetch-dest']],
+                        ['x-forwarded-for', hdr['x-forwarded-for']],
+                        ['x-real-ip', hdr['x-real-ip']]
+                    ];
+                    headerList
+                        .filter(([, v]) => v)
+                        .forEach(([k, v]) => {
+                            msg += `- **${k}:** ${v}\n`;
+                        });
+
+                    if (warnings.length) {
+                        msg += `\n**Warnings:**\n`;
+                        warnings.forEach(w => msg += `- ${w}\n`);
+                    }
+
+                    msg += `\n_This reflects what a typical site learns on first request. Use a VPN/proxy to change the IP/ISP/geo; adjust browser settings/extensions to change headers._`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Privacy snapshot failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);
