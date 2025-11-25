@@ -512,13 +512,32 @@ app.post('/api/ollama/*', async (req, res) => {
     }
 });
 
-// Ollama tags endpoint (list models)
+// Ollama tags endpoint (list models) - handle both /api/ollama/tags AND /api/ollama/api/tags
 app.get('/api/ollama/tags', async (req, res) => {
     try {
         const ollamaHost = req.headers['x-ollama-host'] || 'http://localhost:11434';
         const url = `${ollamaHost}/api/tags`;
 
         console.log(`🦙 Fetching Ollama models from: ${url}`);
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        res.set('Access-Control-Allow-Origin', '*');
+        res.json(data);
+    } catch (error) {
+        console.error('❌ Ollama tags error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Ollama tags endpoint - alternate path with double "api"
+app.get('/api/ollama/api/tags', async (req, res) => {
+    try {
+        const ollamaHost = req.headers['x-ollama-host'] || 'http://localhost:11434';
+        const url = `${ollamaHost}/api/tags`;
+
+        console.log(`🦙 Fetching Ollama models from: ${url} (via double-api path)`);
 
         const response = await fetch(url);
         const data = await response.json();
