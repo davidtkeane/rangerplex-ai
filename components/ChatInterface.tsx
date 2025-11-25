@@ -316,10 +316,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🌍  GEOIP       :: /geoip <ip>              ║\n`;
                     helpMsg += `║ 🔍  MYIP        :: /myip                    ║\n`;
                     helpMsg += `║ 🌐  IPINFO      :: /ipinfo <ip>             ║\n`;
+                    helpMsg += `║ 🛡️  IPRECON     :: /iprecon <ip>            ║\n`;
                     helpMsg += `║ 📟  MAC_LOOKUP  :: /mac <address>           ║\n`;
                     helpMsg += `║ 📱  PHONE       :: /phone <number>          ║\n`;
+                    helpMsg += `║ 📧  EMAIL       :: /email <address>         ║\n`;
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
+                    helpMsg += `║ 🔄  REVERSE_DNS :: /reverse <ip>            ║\n`;
                     helpMsg += `║ 🛡️  REPUTATION  :: /reputation <domain>     ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
@@ -409,7 +412,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Usage:** \`/ipinfo <ip_address>\`\n`;
                     helpMsg += `**Purpose:** Enhanced IP intelligence using dual-source data (IPInfo API + ip-api fallback). Shows Location, ISP, Hostname, and more.\n\n`;
                     helpMsg += `**Requires:** IPInfo Token (optional, in Settings) for premium data. Falls back to free ip-api if not configured.\n\n`;
-                    helpMsg += `**Pro Tip:** Add your IPInfo token in Settings → Providers for richer data including privacy detection (VPN/Proxy).\n\n`;
+                    helpMsg += `**Pro Tip:** Add your IPInfo token in Settings → Providers for richer data. For threat detection, use \`/iprecon\`.\n\n`;
                     helpMsg += `[Ask AI about IP Intelligence?](Ask AI: What can you learn from an IP address?)`;
                 }
                 else if (cmd === 'phone') {
@@ -419,6 +422,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Requires:** NumVerify API Key (free tier: 100 requests/month) in Settings → Providers.\n\n`;
                     helpMsg += `**Pro Tip:** The command shows your monthly usage counter (X/100). Resets automatically on the 1st of each month.\n\n`;
                     helpMsg += `[Ask AI about Phone Intelligence?](Ask AI: What can you learn from a phone number?)`;
+                }
+                else if (cmd === 'iprecon') {
+                    helpMsg = `### 🛡️ Command: /iprecon\n\n`;
+                    helpMsg += `**Usage:** \`/iprecon <ip_address>\`\n`;
+                    helpMsg += `**Purpose:** Advanced IP threat intelligence - detects VPNs, Proxies, Tor nodes, Datacenters, and calculates Abuse Score.\n\n`;
+                    helpMsg += `**Requires:** AbstractAPI IP Key (separate from Email key) in Settings → Providers.\n\n`;
+                    helpMsg += `**Pro Tip:** Use this to identify suspicious IPs during login attempts or to verify if traffic is coming from anonymizing services.\n\n`;
+                    helpMsg += `[Ask AI about IP Threats?](Ask AI: How do VPNs and proxies affect security?)`;
+                }
+                else if (cmd === 'email') {
+                    helpMsg = `### 📧 Command: /email\n\n`;
+                    helpMsg += `**Usage:** \`/email <address>\`\n`;
+                    helpMsg += `**Purpose:** Validates email addresses and detects Deliverability, Disposable Emails, Role Accounts (info@, admin@), and SMTP validity.\n\n`;
+                    helpMsg += `**Requires:** AbstractAPI Email Key (free tier: 100 requests/month) in Settings → Providers.\n\n`;
+                    helpMsg += `**Pro Tip:** Use this to verify email addresses before sending campaigns or to detect fake/temporary emails during registration.\n\n`;
+                    helpMsg += `[Ask AI about Email Validation?](Ask AI: How does email validation work?)`;
                 }
                 else if (cmd === 'sys') {
                     helpMsg = `### 💻 Command: /sys\n\n`;
@@ -494,6 +513,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- Essential for vetting suspicious links before visiting\n\n`;
                     helpMsg += `**Pro Tip:** Always check domains before clicking links in emails, messages, or unfamiliar sources. Combine with \`/ssl <domain>\` and \`/headers <url>\` for comprehensive security assessment.\n\n`;
                     helpMsg += `[Ask AI about Web Threats?](Ask AI: How do phishing sites work and how can I spot them?)`;
+                }
+                else if (cmd === 'reverse') {
+                    helpMsg = `### 🔄 Command: /reverse\n\n`;
+                    helpMsg += `**Usage:** \`/reverse <ip>\`\n`;
+                    helpMsg += `**Purpose:** Performs reverse DNS lookup to find all domains hosted on a specific IP address.\n\n`;
+                    helpMsg += `**No API Key Required!** Uses HackerTarget's free API.\n\n`;
+                    helpMsg += `**What you discover:**\n`;
+                    helpMsg += `- All domains pointing to the target IP\n`;
+                    helpMsg += `- Shared vs dedicated hosting insights\n`;
+                    helpMsg += `- Related websites on same infrastructure\n`;
+                    helpMsg += `- Alphabetically sorted domain lists\n\n`;
+                    helpMsg += `**Why it's valuable:**\n`;
+                    helpMsg += `- **Find Related Sites**: Discover other domains owned by same entity\n`;
+                    helpMsg += `- **Shared Hosting Detection**: See if target shares IP with other sites\n`;
+                    helpMsg += `- **Infrastructure Mapping**: Understand hosting setup (dedicated/VPS/shared)\n`;
+                    helpMsg += `- **Security Research**: Identify neighbors on same server\n\n`;
+                    helpMsg += `**Example Results:**\n`;
+                    helpMsg += `- 1 domain = Dedicated IP (likely dedicated server)\n`;
+                    helpMsg += `- 2-10 domains = VPS or small shared hosting\n`;
+                    helpMsg += `- 10-100 domains = Medium shared hosting\n`;
+                    helpMsg += `- 100+ domains = Large hosting provider or CDN\n\n`;
+                    helpMsg += `**Pro Tip:** Combine with other tools: Use \`/geoip <ip>\` to see location/ISP, \`/shodan <ip>\` to scan ports, or run \`/reputation <domain>\` on discovered domains to check for threats.\n\n`;
+                    helpMsg += `[Ask AI about Reverse DNS?](Ask AI: How does reverse DNS lookup work in OSINT?)`;
                 }
                 else {
                     // Generic fallback for other commands or unknown inputs
@@ -870,7 +912,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         msg += `\n[View on Google Maps](https://www.google.com/maps?q=${lat},${lon})\n\n`;
                     }
 
-                    msg += `*Data Source: ${res.source === 'ipinfo' ? 'IPInfo (Premium)' : 'ip-api (Free)'}*`;
+                    msg += `*Data Source: ${res.source === 'ipinfo' ? 'IPInfo (Premium)' : 'ip-api (Free)'}*\n\n`;
+                    msg += `💡 *For threat detection (VPN/Proxy/Tor), use \`/iprecon ${ip}\`*`;
 
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
@@ -938,7 +981,130 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 20. System Recon (/sys)
+            // 20. Email Validation (/email)
+            if (text.startsWith('/email')) {
+                setProcessingStatus("Validating Email...");
+                const email = text.replace('/email', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    if (!settings.abstractEmailApiKey) {
+                        throw new Error('AbstractAPI key not configured. Add it in Settings → Providers.');
+                    }
+
+                    const res = await fetch(`${proxyUrl}/api/tools/email`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, apiKey: settings.abstractEmailApiKey })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 📧 Email Intelligence: ${res.email || email}\n\n`;
+
+                    // Deliverability
+                    if (res.deliverability === 'DELIVERABLE') {
+                        msg += `**✅ Deliverable**\n\n`;
+                    } else if (res.deliverability === 'UNDELIVERABLE') {
+                        msg += `**❌ Undeliverable**\n\n`;
+                    } else {
+                        msg += `**⚠️ Unknown Deliverability**\n\n`;
+                    }
+
+                    // Quality Score
+                    msg += `**📊 Quality Score:** ${res.quality_score || 'N/A'}\n`;
+
+                    // Checks
+                    msg += `**✉️ Valid Format:** ${res.is_valid_format?.value ? '✅' : '❌'}\n`;
+                    msg += `**🔍 SMTP Check:** ${res.is_smtp_valid?.value ? '✅' : '❌'}\n`;
+                    msg += `**🗑️ Disposable:** ${res.is_disposable_email?.value ? '⚠️ Yes' : '✅ No'}\n`;
+                    msg += `**🎭 Role Account:** ${res.is_role_email?.value ? '⚠️ Yes (info@, admin@)' : '✅ No'}\n`;
+                    msg += `**🌐 Free Provider:** ${res.is_free_email?.value ? '✅ Yes' : '❌ No'}\n\n`;
+
+                    msg += `**📊 API Usage:** ${res.requestCount}/${res.requestLimit} requests this month\n`;
+
+                    if (res.requestCount >= 90) {
+                        msg += `\n⚠️ *Warning: Approaching monthly limit!*`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Email Validation Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 21. IP Reconnaissance (/iprecon)
+            if (text.startsWith('/iprecon')) {
+                setProcessingStatus("Analyzing IP Threats...");
+                const ip = text.replace('/iprecon', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    if (!settings.abstractIpApiKey) {
+                        throw new Error('AbstractAPI key not configured. Add it in Settings → Providers.');
+                    }
+
+                    const res = await fetch(`${proxyUrl}/api/tools/iprecon`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ip, apiKey: settings.abstractIpApiKey })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🛡️ IP Threat Intelligence: ${res.ip_address || ip}\n\n`;
+
+                    // Threat Indicators
+                    msg += `**🎭 VPN Detected:** ${res.is_vpn ? '⚠️ Yes' : '✅ No'}\n`;
+                    msg += `**🔀 Proxy Detected:** ${res.is_proxy ? '⚠️ Yes' : '✅ No'}\n`;
+                    msg += `**🧅 Tor Exit Node:** ${res.is_tor ? '⚠️ Yes' : '✅ No'}\n`;
+                    msg += `**🏢 Datacenter IP:** ${res.is_datacenter ? '⚠️ Yes' : '✅ No'}\n\n`;
+
+                    // Abuse Score
+                    if (res.abuse_confidence_score !== undefined) {
+                        const score = res.abuse_confidence_score;
+                        let scoreEmoji = '✅';
+                        if (score > 75) scoreEmoji = '🚨';
+                        else if (score > 50) scoreEmoji = '⚠️';
+                        else if (score > 25) scoreEmoji = '⚡';
+
+                        msg += `**📊 Abuse Score:** ${scoreEmoji} ${score}% (0 = Clean, 100 = Malicious)\n\n`;
+                    }
+
+                    // Location
+                    if (res.country) {
+                        msg += `**📍 Location:** ${res.city || 'Unknown'}, ${res.region || 'Unknown'}, ${res.country}\n`;
+                        msg += `**🌍 Country Code:** ${res.country_code}\n`;
+                    }
+
+                    // Recommendation
+                    if (res.is_vpn || res.is_proxy || res.is_tor || (res.abuse_confidence_score && res.abuse_confidence_score > 50)) {
+                        msg += `\n⚠️ **Recommendation:** This IP shows suspicious indicators. Exercise caution.`;
+                    } else {
+                        msg += `\n✅ **Recommendation:** No major threat indicators detected.`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ IP Recon Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 22. System Recon (/sys)
             if (text.startsWith('/sys')) {
                 setProcessingStatus("Analyzing System...");
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
@@ -1242,6 +1408,94 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: `❌ Reputation Check Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 23. Reverse DNS / Reverse IP Lookup (/reverse)
+            if (text.startsWith('/reverse')) {
+                setProcessingStatus("Looking up domains...");
+                const ip = text.replace('/reverse', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                if (!ip) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/reverse <ip>` (e.g., `/reverse 8.8.8.8`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/reverse`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ip })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🔄 Reverse DNS Lookup: ${res.ip}\n\n`;
+
+                    msg += `**Data Source:** ${res.source}\n\n`;
+
+                    if (res.status === 'not_found' || res.total_domains === 0) {
+                        msg += `**Status:** ❌ No Domains Found\n\n`;
+                        msg += `*No domains are currently hosted on this IP address, or the IP may not be publicly routed.*\n\n`;
+                        msg += `#### 💡 Troubleshooting\n`;
+                        msg += `- Verify the IP address is correct\n`;
+                        msg += `- Some IPs (like CDNs) may not return domain lists\n`;
+                        msg += `- Private IPs (192.168.x.x, 10.x.x.x) won't have public domains\n`;
+                        msg += `- Try \`/geoip ${ip}\` to verify the IP is valid`;
+                    } else {
+                        msg += `**Status:** ✅ Found ${res.total_domains} Domain${res.total_domains > 1 ? 's' : ''}\n\n`;
+
+                        // Display domains (limit to 50 for readability)
+                        msg += `#### 🌐 Domains Hosted on This IP\n\n`;
+                        msg += '```text\n';
+                        const displayDomains = res.domains.slice(0, 50);
+                        displayDomains.forEach((domain: string) => {
+                            msg += `${domain}\n`;
+                        });
+                        if (res.total_domains > 50) {
+                            msg += `\n... and ${res.total_domains - 50} more domains\n`;
+                        }
+                        msg += '```\n\n';
+
+                        // Add security insights
+                        msg += `#### 🛡️ Infrastructure Insights\n`;
+                        if (res.total_domains === 1) {
+                            msg += `- **Dedicated IP**: This IP hosts only one domain (likely dedicated hosting)\n`;
+                        } else if (res.total_domains < 10) {
+                            msg += `- **Shared Hosting**: Small number of domains (VPS or shared hosting)\n`;
+                        } else if (res.total_domains < 100) {
+                            msg += `- **Shared Hosting**: Medium-sized shared hosting environment\n`;
+                        } else {
+                            msg += `- **Mass Hosting**: Large number of domains (shared hosting provider or CDN)\n`;
+                        }
+                        msg += `- Use \`/geoip ${ip}\` to see location and ISP\n`;
+                        msg += `- Use \`/shodan ${ip}\` to scan for open ports and services\n\n`;
+
+                        // Note about rate limits
+                        if (res.note) {
+                            msg += `#### ℹ️ Note\n`;
+                            msg += `${res.note}\n\n`;
+                        }
+
+                        msg += `*Last checked: ${new Date(res.checked_at).toLocaleString()}*`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Reverse DNS Failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);

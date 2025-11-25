@@ -82,12 +82,12 @@
 *   **Tech:** DNS PTR records, ViewDNS API
 *   **Value:** Find related sites on same infrastructure
 
-## 🚀 Phase 14: Domain Reputation (Planned)
-**Objective:** Check domain against security blacklists.
+## ✅ Phase 14: Domain Reputation
+**Status:** Completed
 *   **Tool:** **Domain Reputation Checker**
 *   **Command:** `/reputation <domain>`
-*   **Tech:** Google Safe Browsing API, Spamhaus, SURBL
-*   **Value:** Identify malicious/compromised domains
+*   **Tech:** Google Safe Browsing API v4
+*   **Value:** Identify malicious/compromised domains (malware, phishing, unwanted software)
 *   **Priority:** HIGH ⭐
 
 ## 🚀 Phase 15: Email Intelligence (Planned)
@@ -190,6 +190,6 @@
 
 ## 📊 OSINT ARSENAL STATUS
 
-**Completed:** 12 tools
-**Planned:** 13 tools
+**Completed:** 13 tools
+**Planned:** 12 tools
 **Total Arsenal:** 25 OSINT tools 🎖️

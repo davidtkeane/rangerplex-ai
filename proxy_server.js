@@ -1139,7 +1139,81 @@ app.post('/api/tools/phone', async (req, res) => {
     }
 });
 
-// 14. System Info (Local Server)
+// 14. Email Validation (AbstractAPI) with Monthly Counter
+let emailRequestCount = 0;
+let emailCounterMonth = new Date().getMonth();
+
+app.post('/api/tools/email', async (req, res) => {
+    try {
+        const { email, apiKey } = req.body;
+        if (!email) return res.status(400).json({ error: 'Missing email address' });
+        if (!apiKey) return res.status(400).json({ error: 'Missing AbstractAPI key' });
+
+        console.log('📧 Email Check:', email);
+
+        // Reset counter if new month
+        const currentMonth = new Date().getMonth();
+        if (currentMonth !== emailCounterMonth) {
+            emailRequestCount = 0;
+            emailCounterMonth = currentMonth;
+        }
+
+        // Check limit
+        if (emailRequestCount >= 100) {
+            return res.status(429).json({
+                error: 'Monthly limit reached (100/100)',
+                count: emailRequestCount,
+                limit: 100
+            });
+        }
+
+        const response = await fetch(`https://emailvalidation.abstractapi.com/v1/?api_key=${apiKey}&email=${email}`);
+        const data = await response.json();
+
+        if (data.error) {
+            return res.status(400).json({ error: data.error.message || 'Invalid email' });
+        }
+
+        // Increment counter
+        emailRequestCount++;
+
+        res.json({
+            ...data,
+            requestCount: emailRequestCount,
+            requestLimit: 100
+        });
+
+    } catch (error) {
+        console.error('❌ Email error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 15. IP Reconnaissance (AbstractAPI IP Intelligence)
+app.post('/api/tools/iprecon', async (req, res) => {
+    try {
+        const { ip, apiKey } = req.body;
+        if (!ip) return res.status(400).json({ error: 'Missing IP address' });
+        if (!apiKey) return res.status(400).json({ error: 'Missing AbstractAPI key' });
+
+        console.log('🛡️ IP Recon:', ip);
+
+        const response = await fetch(`https://ip-intelligence.abstractapi.com/v1/?api_key=${apiKey}&ip_address=${ip}`);
+        const data = await response.json();
+
+        if (data.error) {
+            return res.status(400).json({ error: data.error.message || 'Invalid IP' });
+        }
+
+        res.json(data);
+
+    } catch (error) {
+        console.error('❌ IP Recon error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 16. System Info (Local Server)
 app.post('/api/tools/system', async (req, res) => {
     try {
         console.log('💻 System Info Request');
@@ -1338,6 +1412,81 @@ app.post('/api/tools/subdomains', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Subdomain enumeration error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Reverse DNS / Reverse IP Lookup (HackerTarget API - Free)
+app.post('/api/tools/reverse', async (req, res) => {
+    try {
+        const { ip } = req.body;
+        console.log('🔄 Reverse DNS/IP Lookup:', ip);
+
+        if (!ip) {
+            return res.status(400).json({ error: 'IP address is required' });
+        }
+
+        // Validate IP format (basic check)
+        const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+        if (!ipRegex.test(ip)) {
+            return res.status(400).json({ error: 'Invalid IP address format' });
+        }
+
+        // Use HackerTarget's free Reverse IP Lookup API (no key required)
+        const hackerTargetUrl = `https://api.hackertarget.com/reverseiplookup/?q=${encodeURIComponent(ip)}`;
+        console.log('🔗 Querying HackerTarget:', hackerTargetUrl);
+
+        const response = await fetch(hackerTargetUrl, {
+            headers: {
+                'User-Agent': 'RangerPlex-OSINT/2.5.18'
+            }
+        });
+
+        const text = await response.text();
+
+        // Check for errors
+        if (text.includes('error') || text.includes('invalid')) {
+            return res.json({
+                status: 'not_found',
+                ip: ip,
+                domains: [],
+                total_domains: 0,
+                message: 'No domains found for this IP address, or IP is invalid',
+                source: 'HackerTarget (Free)'
+            });
+        }
+
+        // Parse domains (HackerTarget returns newline-separated domain list)
+        const domains = text.trim().split('\n').filter(d => d.length > 0 && !d.includes('error'));
+
+        if (domains.length === 0) {
+            return res.json({
+                status: 'not_found',
+                ip: ip,
+                domains: [],
+                total_domains: 0,
+                message: 'No domains found for this IP address',
+                source: 'HackerTarget (Free)'
+            });
+        }
+
+        // Sort domains alphabetically
+        domains.sort();
+
+        console.log('✅ Found domains:', domains.length);
+
+        res.json({
+            status: 'found',
+            ip: ip,
+            domains: domains,
+            total_domains: domains.length,
+            source: 'HackerTarget (Free)',
+            note: 'Free tier may have rate limits. Consider upgrading for heavy usage.',
+            checked_at: Date.now()
+        });
+
+    } catch (error) {
+        console.error('❌ Reverse DNS error:', error);
         res.status(500).json({ error: error.message });
     }
 });

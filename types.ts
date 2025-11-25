@@ -208,6 +208,8 @@ export interface AppSettings {
   shodanApiKey?: string; // Shodan
   ipinfoToken?: string; // IPInfo
   numverifyApiKey?: string; // NumVerify
+  abstractEmailApiKey?: string; // AbstractAPI Email
+  abstractIpApiKey?: string; // AbstractAPI IP
 
   // Config
   corsProxyUrl?: string;
@@ -472,6 +474,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   shodanApiKey: import.meta.env.VITE_SHODAN_API_KEY || '',
   ipinfoToken: import.meta.env.VITE_IPINFO_TOKEN || '',
   numverifyApiKey: import.meta.env.VITE_NUMVERIFY_API_KEY || '',
+  abstractEmailApiKey: import.meta.env.VITE_ABSTRACT_EMAIL_API_KEY || '',
+  abstractIpApiKey: import.meta.env.VITE_ABSTRACT_IP_API_KEY || '',
 
   defaultCanvasColor: 'white'
 };

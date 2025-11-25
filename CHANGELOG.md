@@ -2,8 +2,73 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.5.15 - "Comms Intel" 📱
+## v2.5.17 - "Threat Intel" 🛡️
 *Released: Nov 25, 2025*
+
+**Google Safe Browsing Integration.** Added `/reputation` command to check domains against Google's threat database - protecting users from malware, phishing, and malicious websites.
+
+### 🛡️ Domain Reputation Checker
+*   **`/reputation <domain>`**: Check domains against Google Safe Browsing's threat database
+*   **Threat Detection**: Identifies malware, phishing, unwanted software, and harmful apps
+*   **Real-Time Database**: Leverages Google's threat intelligence protecting 5+ billion devices
+*   **Free Tier**: 10,000 lookups per day with free API key
+*   **Comprehensive Results**: Detailed threat breakdowns with security warnings
+
+### 🛠️ Backend Implementation
+*   New endpoint: `/api/tools/reputation` (proxy_server.js lines 1345-1447)
+*   Google Safe Browsing API v4 integration
+*   Checks 4 threat types: MALWARE, SOCIAL_ENGINEERING, UNWANTED_SOFTWARE, POTENTIALLY_HARMFUL_APPLICATION
+*   Tests both HTTP and HTTPS versions of domains
+*   Smart response handling: threat_detected, clean, no_api_key
+
+### 📘 Help System Updates
+*   Added `/reputation` to main `/help` menu under RECONNAISSANCE section
+*   Created detailed help page accessible with `/help reputation`
+*   Included threat type explanations and why it's critical
+*   Added API key setup instructions and free tier details
+*   Tool combination suggestions with `/ssl` and `/headers`
+
+### 🎯 Use Cases
+*   **Link Vetting**: Check suspicious URLs before clicking
+*   **Email Security**: Verify domains in phishing attempts
+*   **Threat Investigation**: Identify compromised websites
+*   **Security Audits**: Validate customer/partner domains
+
+### 🔑 Setup Required
+*   **API Key**: Free Google Safe Browsing API key required
+*   **Free Tier**: 10,000 requests per day (more than enough for personal use)
+*   **Get Key**: https://developers.google.com/safe-browsing/v4/get-started
+*   **Add to Settings**: Settings → Providers → Google Safe Browsing API Key
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/reputation` endpoint
+*   `components/ChatInterface.tsx` - Added command handler (lines 1131-1231) and help entry
+*   `components/Sidebar.tsx` - Version bump to 2.5.17
+*   `services/dbService.ts` - Export metadata version bump to 2.5.17
+*   `package.json` - Version bump to 2.5.17
+*   `README.md` - Version badge updated to 2.5.17
+*   `OSINT_TOOLS_PLAN.md` - Marked Phase 14 as completed
+
+## v2.5.16 - "Subdomain Scout" 🔍
+*Released: Nov 25, 2025*
+
+**Certificate Transparency Integration.** Added `/subdomains` command to discover hidden infrastructure through SSL certificate logs.
+
+### 🔍 Subdomain Enumeration Tool
+*   **`/subdomains <domain>`**: Discover all subdomains via Certificate Transparency logs
+*   **Data Source**: Queries crt.sh for SSL certificate records
+*   **Comprehensive Results**: Finds both regular subdomains and wildcard certificates
+*   **Sorted Output**: Returns unique, alphabetically sorted subdomain lists
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/subdomains` endpoint
+*   `components/ChatInterface.tsx` - Added command handler and help entry
+*   `OSINT_TOOLS_PLAN.md` - Marked Phase 12 as completed
+
+## v2.5.15 - "Time Machine + Comms Intel" 🕰️📱
+*Released: Nov 25, 2025*
+
+**Wayback Machine + Phone Intelligence.** Added `/wayback` for Internet Archive queries and `/phone` for number validation.
 
 **Phone Number Intelligence.** Added `/phone` command with NumVerify API integration, monthly request counter (100/month), and automatic reset system.
 
