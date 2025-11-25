@@ -223,6 +223,86 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
             // --- COMMAND HANDLING ---
 
+            // 10. The Profiler (/profile)
+            if (text.startsWith('/profile')) {
+                setProcessingStatus("Initializing Profiler...");
+                const domain = text.replace('/profile', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    // 1. Whois
+                    setProcessingStatus("Step 1/4: Fetching Whois...");
+                    const whoisRes = await fetch(`${proxyUrl}/api/tools/whois`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain })
+                    }).then(r => r.json()).catch(e => ({ error: e.message }));
+
+                    // 2. DNS
+                    setProcessingStatus("Step 2/4: Resolving DNS...");
+                    const dnsRes = await fetch(`${proxyUrl}/api/tools/dns`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain })
+                    }).then(r => r.json()).catch(e => ({ error: e.message }));
+
+                    // 3. SSL
+                    setProcessingStatus("Step 3/4: Inspecting SSL...");
+                    const sslRes = await fetch(`${proxyUrl}/api/tools/ssl`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain })
+                    }).then(r => r.json()).catch(e => ({ error: e.message }));
+
+                    // 4. Shodan (if IP available)
+                    let shodanRes = null;
+                    if (dnsRes.A && dnsRes.A.length > 0 && settings.shodanApiKey) {
+                        setProcessingStatus("Step 4/4: Scanning Shodan...");
+                        shodanRes = await fetch(`${proxyUrl}/api/tools/shodan`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: dnsRes.A[0], apiKey: settings.shodanApiKey })
+                        }).then(r => r.json()).catch(e => ({ error: e.message }));
+                    }
+
+                    // 5. AI Analysis
+                    setProcessingStatus("Generating Threat Report...");
+                    const contextData = JSON.stringify({
+                        target: domain,
+                        whois: whoisRes,
+                        dns: dnsRes,
+                        ssl: sslRes,
+                        shodan: shodanRes
+                    }, null, 2);
+
+                    const prompt = `
+                    ACT AS: A Senior Cyber Threat Intelligence Analyst.
+                    MISSION: Analyze the following reconnaissance data for the target domain '${domain}' and generate a professional Threat Intelligence Report.
+                    
+                    DATA:
+                    ${contextData}
+
+                    REPORT FORMAT:
+                    1. **Executive Summary**: High-level assessment of the target's security posture.
+                    2. **Infrastructure Analysis**: Key findings from DNS and Shodan (hosting provider, server location, open ports).
+                    3. **Security Posture**: Analysis of SSL and Whois data (expiry dates, registrar reputation).
+                    4. **Vulnerabilities & Risks**: Potential attack vectors based on open ports or outdated software.
+                    5. **Recommendations**: Actionable steps to improve security.
+
+                    TONE: Professional, objective, and concise. Use bullet points.
+                    `;
+
+                    // Send invisible system prompt to AI
+                    const res = await streamGeminiResponse(
+                        prompt, [], session.messages, modelToUse as any, false, relevantContext,
+                        (txt, sources) => onUpdateMessages([...currentMessages, { ...aiPlaceholder, text: txt, isThinking: false, groundingSources: sources }]),
+                        settings.geminiApiKey, settings.matrixMode, settings.theme === 'tron', settings.modelParams, commandState
+                    );
+
+                    // We don't need to do anything with res.text here as the stream callback handles it
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Profiler Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // 1. Image Generation (/imagine or Visual Flag)
             // Auto-detect plain English requests for images
             const lowerTextForImages = text.toLowerCase();
@@ -610,7 +690,85 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // --- STANDARD CHAT FLOW ---
+            // 10. The Profiler (/profile)
+            if (text.startsWith('/profile')) {
+                setProcessingStatus("Initializing Profiler...");
+                const domain = text.replace('/profile', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    // 1. Whois
+                    setProcessingStatus("Step 1/4: Fetching Whois...");
+                    const whoisRes = await fetch(`${proxyUrl}/api/tools/whois`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain })
+                    }).then(r => r.json()).catch(e => ({ error: e.message }));
+
+                    // 2. DNS
+                    setProcessingStatus("Step 2/4: Resolving DNS...");
+                    const dnsRes = await fetch(`${proxyUrl}/api/tools/dns`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain })
+                    }).then(r => r.json()).catch(e => ({ error: e.message }));
+
+                    // 3. SSL
+                    setProcessingStatus("Step 3/4: Inspecting SSL...");
+                    const sslRes = await fetch(`${proxyUrl}/api/tools/ssl`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain })
+                    }).then(r => r.json()).catch(e => ({ error: e.message }));
+
+                    // 4. Shodan (if IP available)
+                    let shodanRes = null;
+                    if (dnsRes.A && dnsRes.A.length > 0 && settings.shodanApiKey) {
+                        setProcessingStatus("Step 4/4: Scanning Shodan...");
+                        shodanRes = await fetch(`${proxyUrl}/api/tools/shodan`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: dnsRes.A[0], apiKey: settings.shodanApiKey })
+                        }).then(r => r.json()).catch(e => ({ error: e.message }));
+                    }
+
+                    // 5. AI Analysis
+                    setProcessingStatus("Generating Threat Report...");
+                    const contextData = JSON.stringify({
+                        target: domain,
+                        whois: whoisRes,
+                        dns: dnsRes,
+                        ssl: sslRes,
+                        shodan: shodanRes
+                    }, null, 2);
+
+                    const prompt = `
+                    ACT AS: A Senior Cyber Threat Intelligence Analyst.
+                    MISSION: Analyze the following reconnaissance data for the target domain '${domain}' and generate a professional Threat Intelligence Report.
+                    
+                    DATA:
+                    ${contextData}
+
+                    REPORT FORMAT:
+                    1. **Executive Summary**: High-level assessment of the target's security posture.
+                    2. **Infrastructure Analysis**: Key findings from DNS and Shodan (hosting provider, server location, open ports).
+                    3. **Security Posture**: Analysis of SSL and Whois data (expiry dates, registrar reputation).
+                    4. **Vulnerabilities & Risks**: Potential attack vectors based on open ports or outdated software.
+                    5. **Recommendations**: Actionable steps to improve security.
+
+                    TONE: Professional, objective, and concise. Use bullet points.
+                    `;
+
+                    // Send invisible system prompt to AI
+                    const res = await streamGeminiResponse(
+                        prompt, [], session.messages, modelToUse as any, false, relevantContext,
+                        (txt, sources) => onUpdateMessages([...currentMessages, { ...aiPlaceholder, text: txt, isThinking: false, groundingSources: sources }]),
+                        settings.geminiApiKey, settings.matrixMode, settings.theme === 'tron', settings.modelParams, commandState
+                    );
+
+                    // We don't need to do anything with res.text here as the stream callback handles it
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Profiler Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
 
             // RAG Ingestion
             if (docAttachments.length > 0) {

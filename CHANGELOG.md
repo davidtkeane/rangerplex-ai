@@ -2,6 +2,21 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.5 - "The Profiler" 🕵️
+*Released: Nov 25, 2025*
+
+**Automated Threat Intelligence.** The new Profiler agent combines all our reconnaissance tools into a single, powerful workflow.
+
+### 🕵️ The Profiler
+*   **Automated Agent**: Added `/profile <domain>` command.
+    *   **Multi-Stage Scan**: Automatically runs Whois, DNS, SSL, and Shodan scans in sequence.
+    *   **AI Analysis**: Feeds all gathered data into the active AI model (Gemini/Claude/GPT) with a specialized "Cyber Threat Analyst" system prompt.
+    *   **Comprehensive Report**: Generates a professional Threat Intelligence Report covering Executive Summary, Infrastructure, Security Posture, and Recommendations.
+
+### ⚙️ Files Modified
+*   `components/ChatInterface.tsx` - Added `/profile` command with multi-stage fetch and AI prompt injection.
+*   `package.json` - Version bump to 2.5.5.
+
 ## v2.5.4 - "The Site Auditor" 🔐
 *Released: Nov 25, 2025*
 
