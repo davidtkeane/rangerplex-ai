@@ -188,7 +188,12 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **No Data Loss**: Even if you clear your browser cache, your data is safe in the server database.
 *   **Rock-Solid Persistence**: Settings now save and load correctly with improved race condition handling.
 
-### 🔄 Auto-Update System (NEW in v2.5.25)
+### 🔄 Auto-Update System (NEW in v2.5.25) ✨
+*   **🎉 First Successful Deployment!** M4 Max deployed v2.5.27 with zero issues:
+    - Clicked "Check for Updates" → saw latest commit
+    - Clicked "Install Update" → auto git pull + npm install
+    - Restarted server manually → Ollama + LM Studio both working perfectly
+    - **Pure magic - it just works!** 🚀
 *   **One-Click Updates**: New "Install Update" button in Settings → System Updates
 *   **Automatic Git Pull**: Click "Install Update" to automatically run `git pull origin main`
 *   **Smart Dependency Management**: Auto-detects if `package.json` changed and runs `npm install`

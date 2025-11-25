@@ -5,14 +5,27 @@
 ## v2.5.27 - "Local AI Polish" 🔧
 *Released: Nov 25, 2025*
 
-**Critical routing fix & UX improvements for local AI providers.** Fixed a bug where LM Studio models containing "gpt" in their names were incorrectly routed to OpenAI. Added Ollama model refresh button and extended the beautiful loading effect to all model changes.
+**Critical routing fix & UX improvements for local AI providers.** Fixed a bug where LM Studio models containing "gpt" in their names were incorrectly routed to OpenAI. Added Ollama model refresh button and extended the beautiful loading effect to all model changes. Added Ollama proxy double-path support for cross-machine compatibility.
 
-### 🐛 Critical Bug Fix
+### 🎉 Auto-Update Success!
+*   **First successful one-click update deployed!**
+    - M4 Max used Settings → Check for Updates → Install
+    - Successfully pulled changes, installed dependencies, and restarted
+    - Both Ollama and LM Studio confirmed working after update
+    - Zero manual intervention required - **pure magic!** ✨
+
+### 🐛 Critical Bug Fixes
 *   **LM Studio "Invalid Model ID" Error** (`components/ChatInterface.tsx:2857-2864`):
     - **Issue**: Models like `openai/gpt-oss-20b` showed "invalid model ID" error
     - **Root Cause**: Routing checked for "gpt" in model name BEFORE checking LM Studio
     - **Fix**: Moved LM Studio check before OpenAI check in routing logic
     - This was a **blocking bug** preventing use of many popular LM Studio models
+
+*   **Ollama Model Fetch 404 Error** (`proxy_server.js:534-550`):
+    - **Issue**: Fetching Ollama models returned 404 on some machines
+    - **Root Cause**: Frontend called `/api/ollama/api/tags` but proxy only handled `/api/ollama/tags`
+    - **Fix**: Added alternate GET endpoint for double-api path pattern
+    - **Backward Compatible**: Both paths now supported (won't break existing setups)
 
 ### ✨ New Features
 *   **Ollama Model Refresh Button** (`components/SettingsModal.tsx:866-886`):
