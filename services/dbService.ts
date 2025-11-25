@@ -148,7 +148,20 @@ class DBService {
     async saveSetting(key: string, value: any) {
         const db = await this.init();
         console.log('💾 dbService.saveSetting:', key);
-        console.log('💾 Value to save:', value);
+
+        // Sanitize value for logging
+        let logValue = value;
+        if (typeof value === 'object' && value !== null) {
+            logValue = { ...value };
+            const sensitiveKeys = ['apiKey', 'token', 'password', 'secret', 'key'];
+            for (const k in logValue) {
+                if (sensitiveKeys.some(s => k.toLowerCase().includes(s))) {
+                    logValue[k] = '***REDACTED***';
+                }
+            }
+        }
+        console.log('💾 Value to save:', logValue);
+
         await db.put('settings', value, key);
         console.log('✅ Saved to IndexedDB successfully');
     }

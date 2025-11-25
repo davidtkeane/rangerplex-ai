@@ -242,7 +242,7 @@ const App: React.FC = () => {
 
       console.log('🟢 LOADING SETTINGS for user:', currentUser);
       const storedSettings = await dbService.getSetting(`settings_${currentUser}`);
-      console.log('🟢 Stored settings from IndexedDB:', storedSettings);
+      console.log('🟢 Stored settings found in IndexedDB');
 
       let finalSettings = DEFAULT_SETTINGS;
 
