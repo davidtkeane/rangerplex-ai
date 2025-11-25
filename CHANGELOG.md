@@ -2,6 +2,60 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.20 - "Screenshot Capture" 📸
+*Released: Nov 25, 2025*
+
+**Website Screenshot Capture Integration.** Added `/screenshot` command for capturing live screenshots of websites using Puppeteer (headless Chrome) for documentation, evidence collection, and visual reconnaissance.
+
+### 📸 Screenshot Capture Tool
+*   **`/screenshot <url>`**: Capture high-quality screenshots of any website
+*   **Resolution**: 1920x1080 viewport by default (customizable)
+*   **Full Page**: Option to capture entire page or just viewport
+*   **Stealth Mode**: Real browser user agent to avoid bot detection
+*   **Page Metadata**: Extracts title, dimensions, and final URL
+*   **Base64 Output**: Returns image as data URI for instant display
+
+### 🛠️ Backend Implementation
+*   New endpoint: `/api/tools/screenshot` (proxy_server.js lines 1764-1879)
+*   Puppeteer integration for headless Chrome rendering
+*   URL validation and automatic protocol addition (http/https)
+*   Viewport customization support (width/height parameters)
+*   Network idle detection for complete page load
+*   Fallback to 'load' event if networkidle2 times out (30s timeout)
+*   Proper browser cleanup on error or completion
+
+### 📘 Help System Integration
+*   Added `/screenshot` to main `/help` menu under Digital Forensics section
+*   Created detailed help page accessible with `/help screenshot`
+*   Listed use cases: evidence collection, change detection, phishing documentation
+*   Integration suggestions with `/wayback`, `/reputation`, `/ssl`, `/headers`
+
+### 🎯 Use Cases
+*   **Evidence Collection**: Document websites for investigations
+*   **Change Detection**: Monitor website modifications over time
+*   **Phishing Documentation**: Archive malicious sites for analysis
+*   **Web Design Review**: Capture layouts and design elements
+*   **Social Media Archiving**: Save profiles and posts
+
+### 🛡️ Features
+*   **No API Key Required**: Uses local Puppeteer (no external services)
+*   **Real Browser Rendering**: JavaScript execution, CSS rendering, fonts
+*   **Auto Protocol**: Automatically adds https:// if missing
+*   **Error Handling**: Clear error messages for unreachable or blocked URLs
+*   **Tool Integration**: Suggests complementary OSINT tools for deeper analysis
+
+### 💡 Key Improvements
+*   **High Quality**: Full Chrome rendering engine for pixel-perfect captures
+*   **Privacy Focused**: All processing happens locally, no external API calls
+*   **Fast Performance**: Optimized with headless mode and disabled GPU
+*   **Security**: Sandbox isolation for safe browsing of untrusted sites
+
+### 📊 Arsenal Update
+*   **Total OSINT Tools**: 16 completed / 25 total (64% complete)
+*   **Phase 17**: Screenshot Capture - ✅ COMPLETED
+
+---
+
 ## v2.5.19 - "Port Scanner" 🔌
 *Released: Nov 25, 2025*
 
