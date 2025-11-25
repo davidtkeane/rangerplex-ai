@@ -1342,6 +1342,110 @@ app.post('/api/tools/subdomains', async (req, res) => {
     }
 });
 
+// Domain Reputation Checker (Google Safe Browsing API)
+app.post('/api/tools/reputation', async (req, res) => {
+    try {
+        const { domain, apiKey } = req.body;
+        console.log('🛡️ Domain Reputation Check:', domain);
+
+        if (!domain) {
+            return res.status(400).json({ error: 'Domain is required' });
+        }
+
+        // Clean domain (remove protocol, www, trailing slash)
+        const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '');
+        const urlToCheck = `http://${cleanDomain}`;
+        const urlToCheckHttps = `https://${cleanDomain}`;
+
+        // If API key provided, use Google Safe Browsing API
+        if (apiKey) {
+            console.log('🔑 Using Google Safe Browsing API');
+
+            const safeBrowsingUrl = `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`;
+
+            const requestBody = {
+                client: {
+                    clientId: "rangerplex-osint",
+                    clientVersion: "2.5.17"
+                },
+                threatInfo: {
+                    threatTypes: ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
+                    platformTypes: ["ANY_PLATFORM"],
+                    threatEntryTypes: ["URL"],
+                    threatEntries: [
+                        { url: urlToCheck },
+                        { url: urlToCheckHttps }
+                    ]
+                }
+            };
+
+            const response = await fetch(safeBrowsingUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                return res.status(400).json({
+                    error: data.error.message || 'Google Safe Browsing API error',
+                    code: data.error.code
+                });
+            }
+
+            // Check if threats were found
+            if (data.matches && data.matches.length > 0) {
+                // Domain is flagged
+                const threats = data.matches.map(match => ({
+                    threatType: match.threatType,
+                    platformType: match.platformType,
+                    url: match.threat.url
+                }));
+
+                res.json({
+                    status: 'threat_detected',
+                    domain: cleanDomain,
+                    safe: false,
+                    threats: threats,
+                    total_threats: threats.length,
+                    source: 'Google Safe Browsing API',
+                    checked_at: Date.now()
+                });
+            } else {
+                // No threats found
+                res.json({
+                    status: 'clean',
+                    domain: cleanDomain,
+                    safe: true,
+                    threats: [],
+                    total_threats: 0,
+                    source: 'Google Safe Browsing API',
+                    checked_at: Date.now(),
+                    message: 'No threats detected in Google Safe Browsing database'
+                });
+            }
+
+        } else {
+            // No API key - return basic info
+            console.log('⚠️ No API key provided - returning basic check');
+            res.json({
+                status: 'no_api_key',
+                domain: cleanDomain,
+                safe: null,
+                message: 'API key required for reputation checks. Add your Google Safe Browsing API key in Settings.',
+                get_api_key: 'https://developers.google.com/safe-browsing/v4/get-started'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Domain reputation error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // WebSocket Server
 const server = createServer(app);

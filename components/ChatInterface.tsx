@@ -320,6 +320,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 📱  PHONE       :: /phone <number>          ║\n`;
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
+                    helpMsg += `║ 🛡️  REPUTATION  :: /reputation <domain>     ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
                     helpMsg += `╠════ CREATIVE SUITE ══════════════════════════╣\n`;
@@ -475,6 +476,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- Identify cloud services and third-party integrations\n\n`;
                     helpMsg += `**Pro Tip:** Combine with other tools: Run \`/shodan <ip>\` on discovered IPs, check \`/ssl <subdomain>\` for certificate validity, or use \`/headers <subdomain>\` to audit security headers.\n\n`;
                     helpMsg += `[Ask AI about Attack Surface?](Ask AI: What is attack surface mapping in cybersecurity?)`;
+                }
+                else if (cmd === 'reputation') {
+                    helpMsg = `### 🛡️ Command: /reputation\n\n`;
+                    helpMsg += `**Usage:** \`/reputation <domain>\`\n`;
+                    helpMsg += `**Purpose:** Checks a domain against Google Safe Browsing's threat database to identify malicious or compromised websites.\n\n`;
+                    helpMsg += `**Requires:** Google Safe Browsing API Key (Free) in Settings.\n\n`;
+                    helpMsg += `**What it checks:**\n`;
+                    helpMsg += `- 🦠 **Malware** - Sites that host malicious software\n`;
+                    helpMsg += `- 🎣 **Phishing** - Social engineering/credential theft attempts\n`;
+                    helpMsg += `- ⚠️ **Unwanted Software** - Deceptive software distribution\n`;
+                    helpMsg += `- 📱 **Harmful Apps** - Potentially dangerous applications\n\n`;
+                    helpMsg += `**Why it's critical:**\n`;
+                    helpMsg += `- Google Safe Browsing protects 5+ billion devices worldwide\n`;
+                    helpMsg += `- Database updated constantly with new threat intelligence\n`;
+                    helpMsg += `- Free tier provides 10,000 lookups per day\n`;
+                    helpMsg += `- Essential for vetting suspicious links before visiting\n\n`;
+                    helpMsg += `**Pro Tip:** Always check domains before clicking links in emails, messages, or unfamiliar sources. Combine with \`/ssl <domain>\` and \`/headers <url>\` for comprehensive security assessment.\n\n`;
+                    helpMsg += `[Ask AI about Web Threats?](Ask AI: How do phishing sites work and how can I spot them?)`;
                 }
                 else {
                     // Generic fallback for other commands or unknown inputs
@@ -1121,6 +1140,108 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: `❌ Subdomain Enumeration Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 22. Domain Reputation Checker (/reputation)
+            if (text.startsWith('/reputation')) {
+                setProcessingStatus("Checking Reputation...");
+                const domain = text.replace('/reputation', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                if (!domain) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/reputation <domain>` (e.g., `/reputation example.com`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const apiKey = settings.googleSafeBrowsingApiKey || process.env.VITE_GOOGLE_SAFEBROWSING_API_KEY;
+
+                    const res = await fetch(`${proxyUrl}/api/tools/reputation`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ domain, apiKey })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🛡️ Domain Reputation: ${res.domain}\n\n`;
+
+                    if (res.status === 'no_api_key') {
+                        msg += `**Status:** ⚠️ API Key Required\n\n`;
+                        msg += `Domain reputation checking requires a Google Safe Browsing API key.\n\n`;
+                        msg += `#### 🔑 Get Your Free API Key\n`;
+                        msg += `1. Visit [Google Safe Browsing API](${res.get_api_key})\n`;
+                        msg += `2. Create a project and enable the API (Free tier: 10,000 requests/day)\n`;
+                        msg += `3. Add your API key in **Settings → Providers**\n\n`;
+                        msg += `*Google Safe Browsing protects over 5 billion devices by identifying unsafe websites.*`;
+                    } else if (res.status === 'threat_detected') {
+                        msg += `**Status:** ⛔ THREAT DETECTED\n`;
+                        msg += `**Safety:** ❌ NOT SAFE\n`;
+                        msg += `**Source:** ${res.source}\n\n`;
+
+                        msg += `#### 🚨 Detected Threats (${res.total_threats})\n\n`;
+
+                        const threatLabels: Record<string, string> = {
+                            'MALWARE': '🦠 Malware',
+                            'SOCIAL_ENGINEERING': '🎣 Phishing/Social Engineering',
+                            'UNWANTED_SOFTWARE': '⚠️ Unwanted Software',
+                            'POTENTIALLY_HARMFUL_APPLICATION': '📱 Potentially Harmful App'
+                        };
+
+                        const threatCounts: Record<string, number> = {};
+                        res.threats.forEach((threat: any) => {
+                            threatCounts[threat.threatType] = (threatCounts[threat.threatType] || 0) + 1;
+                        });
+
+                        for (const [threatType, count] of Object.entries(threatCounts)) {
+                            msg += `- ${threatLabels[threatType] || threatType}: ${count}\n`;
+                        }
+
+                        msg += `\n#### ⚠️ Security Warning\n`;
+                        msg += `**DO NOT VISIT THIS DOMAIN.** It has been flagged by Google Safe Browsing for containing:\n`;
+                        msg += `- Malicious software that can harm your device\n`;
+                        msg += `- Deceptive content designed to steal information\n`;
+                        msg += `- Unwanted programs that may affect your system\n\n`;
+
+                        msg += `*Google Safe Browsing data last checked: ${new Date(res.checked_at).toLocaleString()}*`;
+                    } else if (res.status === 'clean') {
+                        msg += `**Status:** ✅ CLEAN\n`;
+                        msg += `**Safety:** ✅ SAFE\n`;
+                        msg += `**Source:** ${res.source}\n\n`;
+
+                        msg += `#### 🛡️ No Threats Detected\n`;
+                        msg += `This domain is **not listed** in Google Safe Browsing's database of:\n`;
+                        msg += `- 🦠 Malware sites\n`;
+                        msg += `- 🎣 Phishing/social engineering sites\n`;
+                        msg += `- ⚠️ Unwanted software distributors\n`;
+                        msg += `- 📱 Potentially harmful applications\n\n`;
+
+                        msg += `#### ℹ️ Important Notes\n`;
+                        msg += `- This check uses Google Safe Browsing, which protects 5+ billion devices\n`;
+                        msg += `- A "clean" status means no **known** threats at this time\n`;
+                        msg += `- Always exercise caution with unfamiliar websites\n`;
+                        msg += `- Use \`/ssl ${domain}\` to check certificate validity\n`;
+                        msg += `- Use \`/headers https://${domain}\` to audit security headers\n\n`;
+
+                        msg += `*Last checked: ${new Date(res.checked_at).toLocaleString()}*`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Reputation Check Failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);
