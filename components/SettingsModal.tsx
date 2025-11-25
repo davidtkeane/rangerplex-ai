@@ -446,6 +446,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 success = response.ok;
             }
 
+            // IPInfo - Real API test
+            else if (provider === 'ipinfo' && localSettings.ipinfoToken) {
+                const response = await fetch(`https://ipinfo.io/8.8.8.8?token=${localSettings.ipinfoToken}`);
+                success = response.ok;
+            }
+
             await new Promise(r => setTimeout(r, 800));
             setConnectionStatus(p => ({ ...p, [provider]: success ? 'success' : 'error' }));
         } catch (error) {
@@ -648,6 +654,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             <InputGroup label="VirusTotal API Key" value={localSettings.virusTotalApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, virusTotalApiKey: v })} icon="fa-solid fa-shield-virus" onTest={() => testConnection('virustotal')} status={connectionStatus['virustotal']} inputClass={inputClass} />
                             <InputGroup label="Have I Been Pwned Key" value={localSettings.hibpApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, hibpApiKey: v })} icon="fa-solid fa-user-shield" onTest={() => testConnection('hibp')} status={connectionStatus['hibp']} inputClass={inputClass} />
                             <InputGroup label="Shodan API Key" value={localSettings.shodanApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, shodanApiKey: v })} icon="fa-solid fa-eye" onTest={() => testConnection('shodan')} status={connectionStatus['shodan']} inputClass={inputClass} />
+                            <InputGroup label="IPInfo Token" value={localSettings.ipinfoToken || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, ipinfoToken: v })} icon="fa-solid fa-location-dot" onTest={() => testConnection('ipinfo')} status={connectionStatus['ipinfo']} inputClass={inputClass} />
 
                             {/* Ollama Moved to dedicated tab */}
                         </div>

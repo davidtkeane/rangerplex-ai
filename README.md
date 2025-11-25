@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.11-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.15-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -56,6 +56,7 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 *   **Domain Recon** 📡:
     *   `/whois <domain>`: Get registration details, expiry dates, and registrar info.
     *   `/dns <domain>`: Fetch technical DNS records (A, MX, TXT, NS) for infrastructure analysis.
+*   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.
 *   **Web Search Integration**: Toggle web search for LLMs with the 🌐 WEB button. Enable/disable automatic web search in Settings → Search tab.
 *   **Ranger Lens**: A split-screen "Reader Mode" that strips ads from websites for distraction-free analysis.
@@ -63,6 +64,7 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 *   **Live Artifacts**: Renders HTML/React code (games, dashboards) directly in the chat stream.
 *   **Study Notes**: Inline note board with colors, priorities, due dates, pinning, and JSON import/export.
 *   **Study Clock** 🕐: Pomodoro timer with 3-Tier Persistence for building healthy study habits. Features circular progress ring, session tracking, daily stats, desktop notifications, and full accessibility support for ADHD/dyslexia.
+*   **Smart Links** 🔗: All URLs in chat messages are automatically converted to clickable hyperlinks. Supports plain URLs (`https://`, `www.`) and markdown-style links (`[text](url)`). Opens in new tabs with theme-aware styling.
 
 ### 🎨 The Studio
 *   **Image Generation**: Parallel generation using DALL-E 3, Imagen 3, and Flux.1.

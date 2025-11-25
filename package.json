@@ -1,6 +1,6 @@
 {
   "name": "rangerplex-ai",
-  "version": "2.5.11",
+  "version": "2.5.15",
   "type": "module",
   "scripts": {
     "start": "concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",

@@ -300,6 +300,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `╔════ SYSTEM ══════════════════════════════════╗\n`;
                     helpMsg += `║ 💠  ABOUT       :: /about                   ║\n`;
                     helpMsg += `║ 🕐  STUDY       :: /study                   ║\n`;
+                    helpMsg += `║ 💻  SYSTEM      :: /sys                     ║\n`;
                     helpMsg += `╠════ INTELLIGENCE MODULES ════════════════════╣\n`;
                     helpMsg += `║ 🕵️  PROFILER    :: /profile <domain>        ║\n`;
                     helpMsg += `║ 👁️  SHODAN      :: /shodan <ip>             ║\n`;
@@ -309,11 +310,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🏦  WALLET      :: /wallet <btc_addr>       ║\n`;
                     helpMsg += `║ 📸  EXIF        :: /exif <url>              ║\n`;
                     helpMsg += `║ 🦠  VIRUS_SCAN  :: /scan <url>              ║\n`;
+                    helpMsg += `║ 🕰️  WAYBACK     :: /wayback <url>           ║\n`;
                     helpMsg += `╠════ RECONNAISSANCE ══════════════════════════╣\n`;
                     helpMsg += `║ 📡  WHOIS       :: /whois <domain>          ║\n`;
                     helpMsg += `║ 🌍  GEOIP       :: /geoip <ip>              ║\n`;
+                    helpMsg += `║ 🔍  MYIP        :: /myip                    ║\n`;
+                    helpMsg += `║ 🌐  IPINFO      :: /ipinfo <ip>             ║\n`;
                     helpMsg += `║ 📟  MAC_LOOKUP  :: /mac <address>           ║\n`;
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
+                    helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
                     helpMsg += `╠════ CREATIVE SUITE ══════════════════════════╣\n`;
@@ -390,6 +395,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Pro Tip:** Use this during network scans to identify unknown devices (e.g., "Is this strange IP an Apple TV or a security camera?").\n\n`;
                     helpMsg += `[Ask AI about MAC Addresses?](Ask AI: Can MAC addresses be spoofed?)`;
                 }
+                else if (cmd === 'myip') {
+                    helpMsg = `### 🔍 Command: /myip\n\n`;
+                    helpMsg += `**Usage:** \`/myip\`\n`;
+                    helpMsg += `**Purpose:** Reveals your public IP address and automatically geolocates it to show your ISP, City, and Coordinates.\n\n`;
+                    helpMsg += `**Pro Tip:** Use this to verify if your VPN is working or to see what information websites can see about you.\n\n`;
+                    helpMsg += `[Ask AI about IP Privacy?](Ask AI: How can I hide my IP address?)`;
+                }
+                else if (cmd === 'ipinfo') {
+                    helpMsg = `### 🌐 Command: /ipinfo\n\n`;
+                    helpMsg += `**Usage:** \`/ipinfo <ip_address>\`\n`;
+                    helpMsg += `**Purpose:** Enhanced IP intelligence using dual-source data (IPInfo API + ip-api fallback). Shows Location, ISP, Hostname, and more.\n\n`;
+                    helpMsg += `**Requires:** IPInfo Token (optional, in Settings) for premium data. Falls back to free ip-api if not configured.\n\n`;
+                    helpMsg += `**Pro Tip:** Add your IPInfo token in Settings → Providers for richer data including privacy detection (VPN/Proxy).\n\n`;
+                    helpMsg += `[Ask AI about IP Intelligence?](Ask AI: What can you learn from an IP address?)`;
+                }
+                else if (cmd === 'sys') {
+                    helpMsg = `### 💻 Command: /sys\n\n`;
+                    helpMsg += `**Usage:** \`/sys\`\n`;
+                    helpMsg += `**Purpose:** Performs deep reconnaissance on the current system, revealing Browser Fingerprints, OS Details, Hardware Specs (CPU/RAM), and Network Identity (IPs & MAC Address).\n\n`;
+                    helpMsg += `**Pro Tip:** Use this to see exactly what information your browser and machine are leaking to the web.\n\n`;
+                    helpMsg += `[Ask AI about Browser Fingerprinting?](Ask AI: What is browser fingerprinting?)`;
+                }
                 else if (cmd === 'profile') {
                     helpMsg = `### 🕵️ Command: /profile\n\n`;
                     helpMsg += `**Usage:** \`/profile <domain>\`\n`;
@@ -410,6 +437,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Purpose:** Submits a URL to VirusTotal to check for malware, phishing, and suspicious activity across 70+ security vendors.\n\n`;
                     helpMsg += `**Requires:** VirusTotal API Key (Free) in Settings.\n\n`;
                     helpMsg += `[Ask AI about Phishing?](Ask AI: How does VirusTotal work?)`;
+                }
+                else if (cmd === 'wayback') {
+                    helpMsg = `### 🕰️ Command: /wayback\n\n`;
+                    helpMsg += `**Usage:** \`/wayback <url>\`\n`;
+                    helpMsg += `**Purpose:** Queries the Internet Archive's Wayback Machine to find historical snapshots of any website.\n\n`;
+                    helpMsg += `**Features:**\n`;
+                    helpMsg += `- 📸 **Latest Snapshot**: View the most recent archived version\n`;
+                    helpMsg += `- 📊 **Archive Statistics**: Total snapshots and years archived\n`;
+                    helpMsg += `- 📅 **Calendar View**: Browse all snapshots by date\n`;
+                    helpMsg += `- 💾 **Save Page**: Submit current URL for archiving\n\n`;
+                    helpMsg += `**Pro Tip:** Use this to recover deleted content, track website changes over time, or find evidence of past claims.\n\n`;
+                    helpMsg += `[Ask AI about Digital Forensics?](Ask AI: How do investigators use the Wayback Machine?)`;
+                }
+                else if (cmd === 'subdomains') {
+                    helpMsg = `### 🔍 Command: /subdomains\n\n`;
+                    helpMsg += `**Usage:** \`/subdomains <domain>\`\n`;
+                    helpMsg += `**Purpose:** Discovers subdomains of a target domain using Certificate Transparency logs.\n\n`;
+                    helpMsg += `**How it works:**\n`;
+                    helpMsg += `- Queries Certificate Transparency logs (crt.sh) for SSL certificates\n`;
+                    helpMsg += `- Extracts all domain names from certificates\n`;
+                    helpMsg += `- Identifies both regular subdomains and wildcard certificates\n`;
+                    helpMsg += `- Returns sorted, unique results\n\n`;
+                    helpMsg += `**Why it's valuable:**\n`;
+                    helpMsg += `- Discover hidden infrastructure (api.example.com, admin.example.com)\n`;
+                    helpMsg += `- Map attack surface for security assessments\n`;
+                    helpMsg += `- Find forgotten or legacy subdomains\n`;
+                    helpMsg += `- Identify cloud services and third-party integrations\n\n`;
+                    helpMsg += `**Pro Tip:** Combine with other tools: Run \`/shodan <ip>\` on discovered IPs, check \`/ssl <subdomain>\` for certificate validity, or use \`/headers <subdomain>\` to audit security headers.\n\n`;
+                    helpMsg += `[Ask AI about Attack Surface?](Ask AI: What is attack surface mapping in cybersecurity?)`;
                 }
                 else {
                     // Generic fallback for other commands or unknown inputs
@@ -699,6 +755,311 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 } catch (e: any) {
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(), sender: Sender.AI, text: `❌ MAC Lookup Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 17. My IP (/myip)
+            if (text.startsWith('/myip')) {
+                setProcessingStatus("Detecting Your IP...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    // Get public IP
+                    const ipRes = await fetch(`${proxyUrl}/api/tools/myip`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }
+                    }).then(r => r.json());
+
+                    if (ipRes.error) throw new Error(ipRes.error);
+
+                    // Get location info
+                    const token = settings.ipinfoToken || '';
+                    const res = await fetch(`${proxyUrl}/api/tools/ipinfo`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: ipRes.ip, token })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🔍 Your Public IP: ${ipRes.ip}\n\n`;
+                    msg += `**📍 Location:** ${res.city}, ${res.region || res.regionName}, ${res.country}\n`;
+                    msg += `**🏢 ISP:** ${res.org || res.isp}\n`;
+
+                    if (res.loc) {
+                        const [lat, lon] = res.loc.split(',');
+                        msg += `**🗺️ Coordinates:** ${lat}, ${lon}\n`;
+                        msg += `**🕒 Timezone:** ${res.timezone}\n\n`;
+                        msg += `[View on Google Maps](https://www.google.com/maps?q=${lat},${lon})\n\n`;
+                    }
+
+                    msg += `*Data Source: ${res.source === 'ipinfo' ? 'IPInfo (Premium)' : 'ip-api (Free)'}*`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ IP Detection Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 18. IP Info (/ipinfo)
+            if (text.startsWith('/ipinfo')) {
+                setProcessingStatus("Analyzing IP...");
+                const ip = text.replace('/ipinfo', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const token = settings.ipinfoToken || '';
+                    const res = await fetch(`${proxyUrl}/api/tools/ipinfo`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip, token })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🌐 IP Intelligence: ${res.ip || ip}\n\n`;
+                    msg += `**📍 Location:** ${res.city}, ${res.region || res.regionName}, ${res.country}\n`;
+                    msg += `**🏢 Organization:** ${res.org || res.isp}\n`;
+
+                    if (res.loc) {
+                        const [lat, lon] = res.loc.split(',');
+                        msg += `**🗺️ Coordinates:** ${lat}, ${lon}\n`;
+                        msg += `**🕒 Timezone:** ${res.timezone}\n`;
+
+                        // IPInfo-specific fields
+                        if (res.source === 'ipinfo') {
+                            if (res.hostname) msg += `**🖥️ Hostname:** ${res.hostname}\n`;
+                            if (res.postal) msg += `**📮 Postal:** ${res.postal}\n`;
+                        }
+
+                        msg += `\n[View on Google Maps](https://www.google.com/maps?q=${lat},${lon})\n\n`;
+                    }
+
+                    msg += `*Data Source: ${res.source === 'ipinfo' ? 'IPInfo (Premium)' : 'ip-api (Free)'}*`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ IP Analysis Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 19. System Recon (/sys)
+            if (text.startsWith('/sys')) {
+                setProcessingStatus("Analyzing System...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    // 1. Get Client-Side Info
+                    const browserInfo = {
+                        userAgent: navigator.userAgent,
+                        platform: navigator.platform,
+                        language: navigator.language,
+                        screen: `${window.screen.width}x${window.screen.height}`,
+                        colorDepth: window.screen.colorDepth,
+                        cores: navigator.hardwareConcurrency,
+                        memory: (navigator as any).deviceMemory || 'Unknown'
+                    };
+
+                    // 2. Get Server-Side Info (Local Machine)
+                    const res = await fetch(`${proxyUrl}/api/tools/system`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 💻 System Reconnaissance Report\n\n`;
+
+                    msg += `#### 🖥️ Device Fingerprint (Browser)\n`;
+                    msg += `**OS:** ${browserInfo.platform}\n`;
+                    msg += `**Screen:** ${browserInfo.screen} (${browserInfo.colorDepth}-bit)\n`;
+                    msg += `**Cores:** ${browserInfo.cores}\n`;
+                    msg += `**RAM:** ~${browserInfo.memory} GB (Browser Limit)\n`;
+                    msg += `**Locale:** ${browserInfo.language}\n\n`;
+
+                    msg += `#### ⚙️ Host Machine (Server)\n`;
+                    msg += `**Hostname:** ${res.hostname}\n`;
+                    msg += `**OS Release:** ${res.platform} ${res.release}\n`;
+                    msg += `**CPU:** ${res.cpu} (${res.cores} Cores)\n`;
+                    msg += `**Total Memory:** ${(res.memory.total / 1024 / 1024 / 1024).toFixed(2)} GB\n`;
+                    msg += `**Free Memory:** ${(res.memory.free / 1024 / 1024 / 1024).toFixed(2)} GB\n\n`;
+
+                    msg += `#### 🌐 Network Identity\n`;
+                    msg += `**MAC Address:** \`${res.mac}\` (Local Interface)\n`;
+
+                    // Show IPs
+                    Object.keys(res.network).forEach(iface => {
+                        msg += `**${iface}:** ${res.network[iface].join(', ')}\n`;
+                    });
+
+                    msg += `\n*Note: This data represents the machine running the RangerPlex server (Localhost).*`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ System Recon Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 20. Wayback Machine (/wayback)
+            if (text.startsWith('/wayback')) {
+                setProcessingStatus("Searching Archives...");
+                const url = text.replace('/wayback', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/wayback`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🕰️ Wayback Machine: ${url}\n\n`;
+
+                    if (res.status === 'not_found') {
+                        msg += `**Status:** ❌ No archived snapshots found\n\n`;
+                        msg += `*This URL has not been archived by the Internet Archive, or the URL may be incorrect.*\n\n`;
+                        msg += `[Request Archive](https://web.archive.org/save/${url})`;
+                    } else {
+                        // Parse timestamp (format: YYYYMMDDhhmmss)
+                        const ts = res.latest_snapshot.timestamp;
+                        const year = ts.substring(0, 4);
+                        const month = ts.substring(4, 6);
+                        const day = ts.substring(6, 8);
+                        const hour = ts.substring(8, 10);
+                        const minute = ts.substring(10, 12);
+                        const formattedDate = `${year}-${month}-${day} ${hour}:${minute} UTC`;
+
+                        msg += `**Status:** ✅ Found in Archive\n\n`;
+
+                        msg += `#### 📸 Latest Snapshot\n`;
+                        msg += `**Date:** ${formattedDate}\n`;
+                        msg += `**View:** [Open Snapshot](${res.latest_snapshot.url})\n\n`;
+
+                        if (res.total_snapshots > 0) {
+                            msg += `#### 📊 Archive Stats\n`;
+                            msg += `**Total Snapshots:** ${res.total_snapshots.toLocaleString()}\n`;
+                            msg += `**First Archived:** ${res.first_snapshot}\n`;
+                            msg += `**Last Archived:** ${res.last_snapshot}\n`;
+                            msg += `**Years Available:** ${res.years_archived.join(', ')}\n\n`;
+                        }
+
+                        msg += `#### 🔗 Useful Links\n`;
+                        msg += `- [View All Snapshots](https://web.archive.org/web/*/${url})\n`;
+                        msg += `- [Calendar View](https://web.archive.org/web/*/${url})\n`;
+                        msg += `- [Save Page Now](https://web.archive.org/save/${url})`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Wayback Machine Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 21. Subdomain Enumeration (/subdomains)
+            if (text.startsWith('/subdomains')) {
+                setProcessingStatus("Enumerating Subdomains...");
+                const domain = text.replace('/subdomains', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                if (!domain) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/subdomains <domain>` (e.g., `/subdomains example.com`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/subdomains`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 🔍 Subdomain Enumeration: ${res.domain}\n\n`;
+
+                    msg += `**Data Source:** Certificate Transparency Logs (crt.sh)\n\n`;
+
+                    msg += `#### 📊 Discovery Summary\n`;
+                    msg += `**Total Certificates:** ${res.total_certificates.toLocaleString()}\n`;
+                    msg += `**Unique Subdomains:** ${res.total_subdomains}\n`;
+                    msg += `**Wildcard Domains:** ${res.total_wildcards}\n\n`;
+
+                    if (res.total_subdomains === 0) {
+                        msg += `*No subdomains found in Certificate Transparency logs. The domain may not have SSL certificates, or subdomains are not publicly disclosed.*`;
+                    } else {
+                        // Display subdomains (limit to 50 for readability)
+                        msg += `#### 🌐 Discovered Subdomains\n\n`;
+                        msg += '```text\n';
+                        const displaySubdomains = res.subdomains.slice(0, 50);
+                        displaySubdomains.forEach((sub: string) => {
+                            msg += `${sub}\n`;
+                        });
+                        if (res.total_subdomains > 50) {
+                            msg += `\n... and ${res.total_subdomains - 50} more\n`;
+                        }
+                        msg += '```\n\n';
+
+                        // Display wildcards if any
+                        if (res.total_wildcards > 0) {
+                            msg += `#### 🌟 Wildcard Certificates\n\n`;
+                            msg += '```text\n';
+                            res.wildcards.forEach((wild: string) => {
+                                msg += `${wild}\n`;
+                            });
+                            msg += '```\n\n';
+                        }
+
+                        // Add security notes
+                        msg += `#### 🛡️ Security Note\n`;
+                        msg += `*Subdomains reveal infrastructure architecture and can be entry points for attacks. `;
+                        msg += `Each subdomain should be assessed for proper security configuration.*\n\n`;
+
+                        // Useful links
+                        msg += `#### 🔗 Further Analysis\n`;
+                        msg += `- Run \`/shodan <ip>\` on discovered IPs\n`;
+                        msg += `- Check \`/ssl <subdomain>\` for certificate validity\n`;
+                        msg += `- Use \`/headers <subdomain>\` to audit security headers`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Subdomain Enumeration Failed: ${e.message}`, timestamp: Date.now()
                     }]);
                 }
                 setIsStreaming(false);

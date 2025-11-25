@@ -11,6 +11,7 @@ import tls from 'tls';
 import https from 'https';
 import { promisify } from 'util';
 import exifParser from 'exif-parser';
+import os from 'os';
 
 const resolve4 = promisify(dns.resolve4);
 const resolve6 = promisify(dns.resolve6);
@@ -1018,6 +1019,279 @@ app.post('/api/tools/mac', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// 11. IPInfo (Dual-Source: IPInfo API + ip-api fallback)
+app.post('/api/tools/ipinfo', async (req, res) => {
+    try {
+        const { ip, token } = req.body;
+        if (!ip) return res.status(400).json({ error: 'Missing IP address' });
+
+        console.log('🌐 IPInfo Check:', ip);
+
+        let data;
+
+        // Try IPInfo first if token is provided
+        if (token) {
+            try {
+                const response = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
+                if (response.ok) {
+                    data = await response.json();
+                    data.source = 'ipinfo';
+                }
+            } catch (e) {
+                console.log('IPInfo failed, falling back to ip-api');
+            }
+        }
+
+        // Fallback to ip-api if IPInfo failed or no token
+        if (!data) {
+            const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
+            const apiData = await response.json();
+
+            if (apiData.status === 'fail') {
+                return res.status(404).json({ error: apiData.message });
+            }
+
+            // Convert ip-api format to IPInfo-like format
+            data = {
+                ip: apiData.query,
+                city: apiData.city,
+                region: apiData.regionName,
+                country: apiData.country,
+                loc: `${apiData.lat},${apiData.lon}`,
+                org: apiData.org,
+                timezone: apiData.timezone,
+                source: 'ip-api'
+            };
+        }
+
+        res.json(data);
+
+    } catch (error) {
+        console.error('❌ IPInfo error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 12. My IP (Get user's public IP)
+app.post('/api/tools/myip', async (req, res) => {
+    try {
+        console.log('🔍 MyIP Request');
+
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+
+        res.json({ ip: data.ip });
+
+    } catch (error) {
+        console.error('❌ MyIP error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 13. System Info (Local Server)
+app.post('/api/tools/system', async (req, res) => {
+    try {
+        console.log('💻 System Info Request');
+
+        const cpus = os.cpus();
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
+        const platform = os.platform();
+        const release = os.release();
+        const hostname = os.hostname();
+
+        // Get Network Interfaces (MAC Address)
+        const nets = os.networkInterfaces();
+        const networks = {};
+        let macAddress = 'Unknown';
+
+        for (const name of Object.keys(nets)) {
+            for (const net of nets[name]) {
+                // Skip internal (i.e. 127.0.0.1) and non-ipv4 addresses
+                if (net.family === 'IPv4' && !net.internal) {
+                    if (!networks[name]) {
+                        networks[name] = [];
+                    }
+                    networks[name].push(net.address);
+                    macAddress = net.mac; // Grab the first valid MAC
+                }
+            }
+        }
+
+        res.json({
+            hostname,
+            platform,
+            release,
+            cpu: cpus[0].model,
+            cores: cpus.length,
+            memory: {
+                total: totalMem,
+                free: freeMem
+            },
+            mac: macAddress,
+            network: networks
+        });
+
+    } catch (error) {
+        console.error('❌ System Info error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Wayback Machine (Internet Archive)
+app.post('/api/tools/wayback', async (req, res) => {
+    try {
+        const { url } = req.body;
+        console.log('🕰️ Wayback Machine Request:', url);
+
+        if (!url) {
+            return res.status(400).json({ error: 'URL is required' });
+        }
+
+        // Clean URL (remove protocol for consistent results)
+        const cleanUrl = url.replace(/^https?:\/\//, '');
+
+        // Query Wayback Machine Availability API
+        const apiUrl = `https://archive.org/wayback/available?url=${encodeURIComponent(cleanUrl)}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (!data.archived_snapshots || !data.archived_snapshots.closest) {
+            return res.json({
+                status: 'not_found',
+                url: url,
+                message: 'No archived snapshots found for this URL'
+            });
+        }
+
+        const snapshot = data.archived_snapshots.closest;
+
+        // Get all snapshots count (optional - requires CDX API)
+        const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(cleanUrl)}&output=json&limit=1000`;
+        let totalSnapshots = 0;
+        let years = [];
+
+        try {
+            const cdxResponse = await fetch(cdxUrl);
+            const cdxData = await cdxResponse.json();
+
+            if (cdxData && cdxData.length > 1) { // First row is header
+                totalSnapshots = cdxData.length - 1;
+
+                // Extract unique years
+                const yearSet = new Set();
+                cdxData.slice(1).forEach(row => {
+                    if (row[1]) { // timestamp
+                        const year = row[1].substring(0, 4);
+                        yearSet.add(year);
+                    }
+                });
+                years = Array.from(yearSet).sort();
+            }
+        } catch (cdxError) {
+            console.log('⚠️ CDX API call failed (non-critical):', cdxError.message);
+        }
+
+        res.json({
+            status: 'found',
+            url: url,
+            latest_snapshot: {
+                url: snapshot.url,
+                timestamp: snapshot.timestamp,
+                status: snapshot.status,
+                available: snapshot.available
+            },
+            total_snapshots: totalSnapshots,
+            years_archived: years,
+            first_snapshot: years.length > 0 ? years[0] : null,
+            last_snapshot: years.length > 0 ? years[years.length - 1] : null
+        });
+
+    } catch (error) {
+        console.error('❌ Wayback Machine error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Subdomain Enumeration (Certificate Transparency)
+app.post('/api/tools/subdomains', async (req, res) => {
+    try {
+        const { domain } = req.body;
+        console.log('🔍 Subdomain Enumeration Request:', domain);
+
+        if (!domain) {
+            return res.status(400).json({ error: 'Domain is required' });
+        }
+
+        // Clean domain (remove protocol, www, trailing slash)
+        const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '');
+        console.log('🧹 Cleaned domain:', cleanDomain);
+
+        // Query crt.sh for certificate transparency logs
+        const crtshUrl = `https://crt.sh/?q=%25.${encodeURIComponent(cleanDomain)}&output=json`;
+        console.log('🔗 Querying:', crtshUrl);
+
+        const response = await fetch(crtshUrl, {
+            headers: {
+                'User-Agent': 'RangerPlex-OSINT/2.5.15'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`crt.sh returned status ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('📊 Total certificates found:', data.length);
+
+        // Extract unique subdomains
+        const subdomains = new Set();
+        const wildcardDomains = new Set();
+
+        for (const cert of data) {
+            // Parse name_value which contains the domain names
+            const names = cert.name_value.split('\n');
+
+            for (const name of names) {
+                const cleanName = name.trim().toLowerCase();
+
+                // Skip if it doesn't end with our target domain
+                if (!cleanName.endsWith(cleanDomain)) {
+                    continue;
+                }
+
+                // Separate wildcards
+                if (cleanName.startsWith('*.')) {
+                    wildcardDomains.add(cleanName);
+                } else {
+                    subdomains.add(cleanName);
+                }
+            }
+        }
+
+        // Convert to sorted arrays
+        const subdomainList = Array.from(subdomains).sort();
+        const wildcardList = Array.from(wildcardDomains).sort();
+
+        console.log('✅ Unique subdomains found:', subdomainList.length);
+        console.log('🌟 Wildcard domains found:', wildcardList.length);
+
+        res.json({
+            domain: cleanDomain,
+            total_certificates: data.length,
+            subdomains: subdomainList,
+            wildcards: wildcardList,
+            total_subdomains: subdomainList.length,
+            total_wildcards: wildcardList.length
+        });
+
+    } catch (error) {
+        console.error('❌ Subdomain enumeration error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // WebSocket Server
 const server = createServer(app);

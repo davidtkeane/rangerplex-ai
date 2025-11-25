@@ -206,6 +206,7 @@ export interface AppSettings {
   virusTotalApiKey?: string;
   hibpApiKey?: string; // Have I Been Pwned
   shodanApiKey?: string; // Shodan
+  ipinfoToken?: string; // IPInfo
 
   // Config
   corsProxyUrl?: string;
@@ -468,6 +469,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   virusTotalApiKey: import.meta.env.VITE_VIRUSTOTAL_API_KEY || '',
   hibpApiKey: import.meta.env.VITE_HIBP_API_KEY || '',
   shodanApiKey: import.meta.env.VITE_SHODAN_API_KEY || '',
+  ipinfoToken: import.meta.env.VITE_IPINFO_TOKEN || '',
 
   defaultCanvasColor: 'white'
 };

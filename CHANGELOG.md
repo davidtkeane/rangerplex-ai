@@ -2,6 +2,149 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.15 - "Time Machine" 🕰️
+*Released: Nov 25, 2025*
+
+**Internet Archive Integration.** Added `/wayback` command to query the Wayback Machine for historical website snapshots - a critical tool for digital forensics and evidence collection.
+
+### 🕰️ Wayback Machine Tool
+*   **`/wayback <url>`**: Query Internet Archive for historical snapshots of any website
+*   **Latest Snapshot**: View the most recent archived version with timestamp
+*   **Archive Statistics**: Total snapshots count and years archived
+*   **Calendar View**: Direct links to browse all snapshots by date
+*   **Save Page**: Submit URLs for archiving in the Wayback Machine
+
+### 🛠️ Backend Implementation
+*   New endpoint: `/api/tools/wayback`
+*   Queries Internet Archive Availability API for latest snapshot
+*   Queries CDX API for comprehensive snapshot statistics
+*   Returns formatted data with clickable archive links
+
+### 📘 Help System Updates
+*   Added `/wayback` to main `/help` menu under INTELLIGENCE MODULES
+*   Created detailed help page accessible with `/help wayback`
+*   Included usage examples, features, and pro tips for digital forensics
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/wayback` endpoint (lines 1142-1215)
+*   `components/ChatInterface.tsx` - Added command handler and help entry
+*   `OSINT_TOOLS_PLAN.md` - Marked Phase 16 as completed
+
+## v2.5.14 - "IP Intelligence" 🌐
+*Released: Nov 25, 2025*
+
+**Dual-Source IP Tracking.** Added `/myip` and `/ipinfo` commands with IPInfo API integration (premium) and ip-api fallback (free), plus Settings UI for token management.
+
+### 🌐 New IP Intelligence Tools
+*   **`/myip`**: Reveals your public IP address and auto-geolocates it (City, ISP, Coordinates)
+*   **`/ipinfo <ip>`**: Enhanced IP analysis with dual-source data (IPInfo premium → ip-api free fallback)
+*   **Dual-Source Strategy**: Automatically uses IPInfo API if token is configured, falls back to ip-api if not
+*   **Premium Features**: With IPInfo token: Hostname, Postal Code, Privacy Detection (VPN/Proxy/Tor)
+
+### ⚙️ Settings Integration
+*   Added IPInfo Token field to Settings → Providers tab
+*   Token test button with real API validation
+*   Automatic fallback to `.env` if not set in UI
+*   Added `VITE_IPINFO_TOKEN` to `.env` template
+
+### 🛠️ Backend Enhancements
+*   New endpoint: `/api/tools/ipinfo` (dual-source logic)
+*   New endpoint: `/api/tools/myip` (uses ipify.org)
+*   Smart data normalization between IPInfo and ip-api formats
+*   Source attribution in responses ("IPInfo (Premium)" vs "ip-api (Free)")
+
+### 📘 Help System Updates
+*   Added detailed help entries for `/myip` and `/ipinfo`
+*   Updated main `/help` menu with new commands
+*   Added contextual "Ask AI" links for IP privacy and intelligence
+
+### ⚙️ Files Modified
+*   `types.ts` - Added `ipinfoToken` to Settings interface
+*   `components/SettingsModal.tsx` - Added IPInfo input field and test logic
+*   `proxy_server.js` - Added `/api/tools/ipinfo` and `/api/tools/myip` endpoints
+*   `components/ChatInterface.tsx` - Added command handlers and help entries
+*   `components/Sidebar.tsx` - Version bump to 2.5.14
+*   `services/dbService.ts` - Export metadata version bump to 2.5.14
+*   `package.json` - Version bump to 2.5.14
+*   `README.md` - Version badge updated to 2.5.14
+*   `.env` - Added `VITE_IPINFO_TOKEN` placeholder
+
+## v2.5.13 - "Digital Forensics" 📸
+*Released: Nov 25, 2025*
+
+**OSINT Arsenal Expanded.** Added four powerful reconnaissance tools: EXIF metadata extraction, IP geolocation, MAC address lookup, and complete system fingerprinting.
+
+### 🕵️ New OSINT Tools
+*   **`/exif <url>`**: Extract hidden metadata from images (GPS, camera model, software, timestamps)
+*   **`/geoip <ip>`**: Pinpoint IP addresses to City, Country, ISP, and coordinates with Google Maps link
+*   **`/mac <address>`**: Identify hardware manufacturers from MAC address OUI
+*   **`/sys`**: Complete system reconnaissance (Browser fingerprint, OS, CPU, RAM, Network IPs, MAC address)
+
+### 🛠️ Backend Enhancements
+*   Added `exif-parser` library for metadata extraction
+*   Integrated `ip-api.com` for free IP geolocation (no API key required)
+*   Integrated `macvendors.com` API for MAC lookup
+*   Added `os` module integration for local system info (hostname, CPU, memory, network interfaces)
+*   New endpoints: `/api/tools/exif`, `/api/tools/geoip`, `/api/tools/mac`, `/api/tools/system`
+
+### 📘 Help System Updates
+*   Added detailed help entries for all new commands
+*   Updated main `/help` menu with new tools
+*   Added contextual "Ask AI" links for each tool
+
+### 🎨 UI Improvements
+*   Updated toast notification styling to match Tron/Dark themes
+*   Added theme-aware colors for Bitcoin donation toast
+*   Improved visual consistency across all notifications
+
+### 📋 OSINT Plan Updates
+*   Phase 8: Digital Forensics (EXIF) - ✅ Completed
+*   Phase 9: Geolocation Intel (GeoIP) - ✅ Completed
+*   Phase 10: Hardware Recon (MAC) - ✅ Completed
+*   Phase 11: Comms Intel (Phone) - 🚀 Planned
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added 4 new endpoints and `os` module import
+*   `components/ChatInterface.tsx` - Added command handlers and help entries
+*   `components/Sidebar.tsx` - Version bump to 2.5.13
+*   `services/dbService.ts` - Export metadata version bump to 2.5.13
+*   `package.json` - Version bump to 2.5.13
+*   `README.md` - Version badge updated to 2.5.13
+*   `OSINT_TOOLS_PLAN.md` - Updated with new phases
+*   `src/styles/canvas.css` - Added toast animation keyframes
+
+## v2.5.12 - "Smart Links" 🔗
+*Released: Nov 25, 2025*
+
+**Click and Go.** All URLs in chat messages are now automatically converted to clickable hyperlinks that open in new tabs.
+
+### 🔗 URL Hyperlinking
+*   **Auto-Detection**: Automatically detects and converts URLs to clickable links
+*   **Plain URLs**: `https://`, `http://`, and `www.` URLs are detected
+*   **Markdown Links**: Supports `[text](url)` format for custom link text
+*   **New Tab**: All links open in new tab with `target="_blank"`
+*   **Theme-Aware**: Link colors adapt to Tron, Matrix, and default themes
+*   **Hover Effect**: Underline disappears on hover for cleaner look
+*   **Safe Parsing**: Null checks prevent crashes with undefined values
+
+### 🛡️ Bug Fixes
+*   Fixed critical startup error: "Cannot read properties of undefined"
+*   Added safety checks for undefined values in link parsing
+*   Improved regex matching for markdown-style links
+
+### 🎨 Styling
+*   **Tron Theme**: Cyan (`#00f3ff`) underlined links
+*   **Matrix Mode**: Green (`#00ff41`) underlined links
+*   **Default**: Teal (`#14b8a6`) underlined links
+*   Consistent with existing source citation styling
+
+### ⚙️ Files Modified
+*   `components/MessageItem.tsx` - Added `renderWithLinks()` function with URL detection
+*   `components/Sidebar.tsx` - Version bump to 2.5.12
+*   `services/dbService.ts` - Export metadata version bump to 2.5.12
+*   `package.json` - Version bump to 2.5.12
+*   `README.md` - Version badge updated to 2.5.12
+
 ## v2.5.11 - "Study Clock Command" 🕐
 *Released: Nov 25, 2025*
 
