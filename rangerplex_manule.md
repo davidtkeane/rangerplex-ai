@@ -144,9 +144,217 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - **Defaults:** Auto-backup interval 5 minutes; path `./backups/`.
 
 ## Cloud Sync & Proxy
-- **Sync toggle:** Settings → Data & Tools; uses local sync server (`proxy_server.js`) if running.  
-- **CORS Proxy Health:** Settings test pings `${corsProxyUrl}/health`; ensure it’s reachable.  
+- **Sync toggle:** Settings → Data & Tools; uses local sync server (`proxy_server.js`) if running.
+- **CORS Proxy Health:** Settings test pings `${corsProxyUrl}/health`; ensure it's reachable.
 - **Behavior:** Saves locally first, then syncs (non-blocking). If offline, data stays queued until connection resumes.
+
+## LM Studio (Local AI with GUI)
+
+RangerPlex v2.5.26 adds full support for **LM Studio**, a desktop application for running local LLMs with a user-friendly GUI. Run multiple local AI providers side-by-side (Ollama + LM Studio) or compare models across different machines.
+
+### What is LM Studio?
+
+LM Studio is a desktop app that lets you download, run, and chat with open-source AI models locally on your computer. Unlike Ollama (CLI-focused), LM Studio provides:
+- **Graphical Interface:** Easy model browsing, download, and management
+- **OpenAI-Compatible API:** Works with port 1234 (vs Ollama's 11434)
+- **One-Click Server:** Start/stop server with GUI controls
+- **Model Library:** Browse thousands of models from Hugging Face
+
+### Quick Setup (7 Steps)
+
+1. **Download LM Studio**
+   - Visit https://lmstudio.ai/
+   - Download for your OS (Mac, Windows, Linux)
+   - Install and launch the app
+
+2. **Download a Model**
+   - Click "Discover" tab in LM Studio
+   - Search for models (e.g., "mistral 7b", "deepseek", "gemma")
+   - Click download button (models are several GB)
+   - Wait for download to complete
+
+3. **Load the Model**
+   - After download, click the model in the "My Models" tab
+   - Click "Load" button (this puts it in memory)
+   - **IMPORTANT:** Loading is separate from downloading!
+
+4. **Start the Server**
+   - Click "Local Server" tab in LM Studio
+   - Click "Start Server" button (green)
+   - Verify it shows "Server running on port 1234"
+
+5. **Configure RangerPlex**
+   - Open Settings → LM Studio tab
+   - Base URL should be: `http://localhost:3010/api/lmstudio`
+   - Click "Test Connection" (should show green checkmark)
+   - Click "Refresh Models" to sync available models
+
+6. **Select Model**
+   - Click "Save" in settings
+   - Use model selector at top of chat
+   - Choose your LM Studio model from dropdown
+   - **Note:** Models auto-sync when you open LM Studio settings tab
+
+7. **Start Chatting**
+   - Type your message and hit Enter
+   - LM Studio model will respond via local server
+   - Check console for streaming responses
+
+### Features & Benefits
+
+**Why Use LM Studio?**
+- ✅ **No Internet Required:** Run AI models 100% offline
+- ✅ **Privacy First:** Your data never leaves your computer
+- ✅ **Free Forever:** No API costs, no rate limits
+- ✅ **GUI Management:** Easy model browsing and switching
+- ✅ **OpenAI Compatible:** Drop-in replacement for OpenAI API
+- ✅ **Dual AI Setup:** Run both Ollama and LM Studio simultaneously
+
+**Dual Local AI Setup:**
+Run both providers for maximum flexibility:
+- **Ollama** (port 11434): CLI-focused, lightweight, scripting-friendly
+- **LM Studio** (port 1234): GUI-focused, beginner-friendly, visual model browser
+
+Both can run side-by-side on the same machine or different machines on your network!
+
+### Settings Configuration
+
+**Settings → LM Studio Tab:**
+- **Base URL:** Proxy endpoint (default: `http://localhost:3010/api/lmstudio`)
+  - Uses proxy to bypass CORS restrictions
+  - Direct connection: `http://localhost:1234/v1` (may be blocked by browser)
+- **Model ID:** Default model (e.g., `mistral-7b-instruct`)
+- **Available Models:** Auto-synced from LM Studio server
+  - Opens tab → automatically fetches models
+  - Manual refresh: Click "Refresh Models" button
+- **Test Connection:** Verifies server is running and models are loaded
+
+**Model Selection:**
+- Top bar model selector shows all available models
+- LM Studio models appear with their full names
+- Switch between OpenAI, Gemini, Ollama, and LM Studio models instantly
+- Model routing: Automatic detection based on selected model
+
+### Common Issues & Fixes
+
+**Issue 1: Test Connection Fails**
+- ❌ **Symptom:** Red X when clicking "Test Connection"
+- ✅ **Fix:**
+  1. Open LM Studio app
+  2. Load a model (not just download—must click "Load")
+  3. Click "Start Server" in Local Server tab
+  4. Verify port 1234 shows "running"
+  5. Click "Test Connection" again in RangerPlex
+
+**Issue 2: "Ollama API Error" When Using LM Studio Model**
+- ❌ **Symptom:** Select LM Studio model → get Ollama error
+- ✅ **Fix:** This was a routing bug fixed in v2.5.26
+  - Update to latest version
+  - Model routing now checks both enum and model names
+  - Should work automatically after update
+
+**Issue 3: No Models in Dropdown**
+- ❌ **Symptom:** Model selector is empty or shows placeholder models
+- ✅ **Fix:**
+  1. Open Settings → LM Studio tab (auto-syncs on open)
+  2. Click "Refresh Models" button manually
+  3. Verify LM Studio server is running
+  4. Check that at least one model is loaded in LM Studio
+
+**Issue 4: CORS Policy Error**
+- ❌ **Symptom:** Browser console shows CORS policy blocked
+- ✅ **Fix:** Use proxy URL instead of direct connection
+  - Change base URL to: `http://localhost:3010/api/lmstudio`
+  - Proxy adds CORS headers and enables browser access
+  - Direct URL `http://localhost:1234/v1` will be blocked by browser security
+
+**Issue 5: Connection Refused**
+- ❌ **Symptom:** `ERR_CONNECTION_REFUSED` on port 1234
+- ✅ **Fix:**
+  1. Verify LM Studio server is actually running
+  2. Check "Local Server" tab in LM Studio shows green status
+  3. Test directly: Open `http://localhost:1234/v1/models` in browser
+  4. Should return JSON with model list
+
+**Issue 6: Server Running But No Response**
+- ❌ **Symptom:** Green test but chat doesn't work
+- ✅ **Fix:**
+  1. Verify a model is LOADED (not just downloaded)
+  2. Check LM Studio console for errors
+  3. Try restarting LM Studio server
+  4. Verify proxy server is running: `node proxy_server.js`
+
+### Advanced Configuration
+
+**Network Access (Optional):**
+Access LM Studio from other devices on your network:
+1. Find your local IP: `ifconfig | grep inet` (Mac/Linux) or `ipconfig` (Windows)
+2. Update base URL: `http://YOUR_IP:3010/api/lmstudio`
+3. Ensure firewall allows port 3010 and 1234
+4. Test connection from remote device
+
+**Model Parameters:**
+Customize inference settings in Settings → Model Parameters:
+- **Temperature:** Creativity (0.0 = focused, 1.0 = creative)
+- **Max Tokens:** Response length limit
+- **Top P:** Nucleus sampling (0.9 recommended)
+- **Frequency Penalty:** Reduce repetition
+- **Presence Penalty:** Encourage topic diversity
+
+**Performance Tips:**
+- Use quantized models (Q4, Q5) for better performance
+- Larger models need more RAM (8B = 8GB, 13B = 16GB, 70B = 64GB+)
+- GPU acceleration: LM Studio auto-detects and uses GPU when available
+- Close other apps to free up memory for larger models
+
+### Documentation & Support
+
+**Detailed Guides:**
+- **Setup Guide:** `docs/LM_STUDIO_SETUP_GUIDE.md`
+  - Step-by-step setup with screenshots
+  - Troubleshooting flowchart
+  - Common error messages explained
+  - Testing and verification steps
+
+- **Technical Deep-Dive:** `docs/LM_STUDIO_INTEGRATION_SUMMARY.md`
+  - Architecture overview
+  - Files modified with line numbers
+  - Bugs encountered and fixes applied
+  - Testing results and lessons learned
+
+**Comparison: Ollama vs LM Studio**
+
+| Feature | Ollama | LM Studio |
+|---------|--------|-----------|
+| **Interface** | CLI (Terminal) | GUI (Desktop App) |
+| **Port** | 11434 | 1234 |
+| **API Format** | Custom JSON | OpenAI-Compatible |
+| **Model Management** | `ollama pull <model>` | GUI download + load |
+| **Best For** | Developers, scripting | Beginners, visual users |
+| **Server Control** | `ollama serve` | GUI start/stop button |
+| **Model Discovery** | Command line search | Visual model browser |
+
+**Use Cases:**
+- **Ollama:** Automation, scripts, CI/CD, headless servers, Docker containers
+- **LM Studio:** Interactive use, model comparison, GUI preference, easier setup
+- **Both:** Maximum flexibility—switch between providers based on task
+
+### Tips & Best Practices
+
+1. **Start Small:** Begin with 7B models (Mistral, Gemma) before trying larger models
+2. **Monitor Resources:** Watch RAM/CPU usage in Activity Monitor/Task Manager
+3. **Auto-Sync Models:** Open LM Studio settings tab to refresh model list automatically
+4. **Test Connection:** Always test after loading new models or restarting server
+5. **Dual AI:** Keep both Ollama and LM Studio running for different use cases
+6. **Model Naming:** Use full model names from LM Studio (includes variant/quantization)
+7. **Server Status:** Check LM Studio's "Local Server" tab shows green before chatting
+8. **Proxy Required:** Browser security requires proxy—don't use direct localhost URL
+
+**Tested Models:**
+✅ DeepSeek R1 8B MLX (reasoning model)
+✅ Mistral 7B Instruct (general purpose)
+✅ Google Gemma 3 12B (chat)
+✅ Nomic Embed v1.5 (embeddings)
 
 ## OSINT & Security Tools
 
@@ -309,20 +517,24 @@ Key areas (see Settings modal):
 - **Data & Tools:** Exports, purge, backups, save status notifications, cloud sync.
 - **Providers:** API keys (Gemini, OpenAI, Claude, Grok, Perplexity, VirusTotal), test buttons.
 - **Ollama:** Base URL, model pulls, loading effects.
+- **LM Studio:** Base URL (proxy endpoint), model ID, available models (auto-sync), test connection, refresh models button.
 - **Search:** Web toggle, depth/flash/deep flags defaults.
 - **Prompts:** Saved prompt library with triggers.
 - **Security:** Lock screen, modes.
 - **Holiday/Visuals:** Holiday mode/effects, scanner beam.
 
 ## Troubleshooting
-- **Radio won’t auto-play:** Browser blocks; click to start.  
-- **Save toast sticks:** Fixed in v2.5.2; ensure save notifications enabled and duration reasonable.  
-- **Sync errors:** Check local proxy (`proxy_server.js`) is running; verify keys and CORS proxy health.  
-- **Better-sqlite3 issues:** Rebuild node modules per README if server fails to start.  
+- **Radio won't auto-play:** Browser blocks; click to start.
+- **Save toast sticks:** Fixed in v2.5.2; ensure save notifications enabled and duration reasonable.
+- **Sync errors:** Check local proxy (`proxy_server.js`) is running; verify keys and CORS proxy health.
+- **Better-sqlite3 issues:** Rebuild node modules per README if server fails to start.
 - **Voice input errors:** Check mic permissions; retry toggle.
-- **Vision/Holiday not showing:** Ensure effects toggles are on in Settings; heavy browsers may block animations.  
-- **Training not visible:** Go to Settings → Data & Tools; feature moved off sidebar.  
-- **Sticky Notes not saving:** Use “Save all” to export JSON; reload and “Load” to restore.
+- **Vision/Holiday not showing:** Ensure effects toggles are on in Settings; heavy browsers may block animations.
+- **Training not visible:** Go to Settings → Data & Tools; feature moved off sidebar.
+- **Sticky Notes not saving:** Use "Save all" to export JSON; reload and "Load" to restore.
+- **LM Studio not connecting:** Ensure model is LOADED (not just downloaded) and server is started; use proxy URL `http://localhost:3010/api/lmstudio`; test with `http://localhost:1234/v1/models` in browser. See [LM Studio section](#lm-studio-local-ai-with-gui) for detailed fixes.
+- **LM Studio "Ollama API Error":** Fixed in v2.5.26; update to latest version for proper model routing.
+- **LM Studio models not syncing:** Open Settings → LM Studio tab (auto-syncs) or click "Refresh Models" button; verify server is running with loaded model.
 
 ## Support & Contribute
 - **Buy Me a Coffee:** https://buymeacoffee.com/davidtkeane  
@@ -339,6 +551,16 @@ Key areas (see Settings modal):
 - **Grounding Sources:** Cited sources for AI answers.
 - **Autosave Service:** Debounced save queue that writes to IndexedDB and syncs.
 - **Cloud Sync:** Optional local server sync for multi-session persistence.
+
+### Local AI Terms
+- **LM Studio:** Desktop application for running local LLMs with GUI. OpenAI-compatible API on port 1234.
+- **Ollama:** Command-line tool for running local LLMs. Custom API on port 11434.
+- **Local LLM:** Large Language Model running on your computer (no internet required).
+- **Model Loading:** Process of loading a downloaded model into memory (separate from downloading).
+- **OpenAI-Compatible API:** API that follows OpenAI's format (allows drop-in replacement).
+- **Quantization:** Model compression technique (Q4, Q5, Q8) that reduces size and memory usage.
+- **CORS Proxy:** Proxy server that adds CORS headers to enable browser access to local servers.
+- **Streaming Response:** Real-time token-by-token output (Server-Sent Events).
 
 ### OSINT & Security Terms
 - **OSINT:** Open Source Intelligence—gathering information from publicly available sources (WHOIS, DNS, social media, public databases, etc.).
