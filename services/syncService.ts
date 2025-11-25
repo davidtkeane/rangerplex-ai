@@ -124,9 +124,18 @@ class SyncService {
 
         console.log(`📤 Flushing ${this.syncQueue.length} queued messages...`);
         while (this.syncQueue.length > 0) {
+            if (this.ws?.readyState !== WebSocket.OPEN) {
+                console.warn('⚠️ Connection lost while flushing queue');
+                break;
+            }
             const data = this.syncQueue.shift();
-            if (this.ws?.readyState === WebSocket.OPEN) {
+            try {
                 this.ws.send(JSON.stringify(data));
+            } catch (error) {
+                console.error('Failed to send queued message:', error);
+                // Put it back at the front
+                this.syncQueue.unshift(data);
+                break;
             }
         }
         this.persistQueue();

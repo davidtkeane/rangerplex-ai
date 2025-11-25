@@ -2,7 +2,26 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
-## v2.4.10 - "Canvas Customization & Polish" (Current) ✨
+## v2.4.11 - "Stability & Sync Polish" (Current) ✨
+*Released: Nov 25, 2025*
+
+**Critical stability fixes and sync improvements!** This update resolves a major infinite loop issue in the Pet Widget, fixes server startup errors caused by dependency mismatches, and significantly improves the reliability of the data synchronization queue to prevent data loss during connection drops.
+
+### 🐛 Bug Fixes & Stability
+*   **Pet Widget Infinite Loop**: Fixed a critical bug where `recordVisit` was called on every render, causing a "Maximum update depth exceeded" error. Implemented a `useRef` guard to ensure visits are recorded only once per session.
+*   **Server Startup Fix**: Resolved a `better-sqlite3` version mismatch error that prevented the backend server from starting. Rebuilt dependencies to match the current Node.js environment.
+*   **Sync Queue Reliability**: Improved `syncService.ts` to prevent data loss. The system now checks connection status before removing items from the queue, ensuring that data is only dequeued when it can be successfully sent.
+*   **Connection Refused Errors**: Fixed persistent `net::ERR_CONNECTION_REFUSED` errors by ensuring the backend server is correctly built and running on port 3010.
+
+### ⚙️ Files Modified
+*   `components/PetWidget.tsx` - Added `useRef` guard for `recordVisit`.
+*   `services/syncService.ts` - Enhanced queue flushing logic with connection checks.
+*   `package.json` - Version bump to 2.4.11.
+*   `node_modules` - Rebuilt `better-sqlite3`.
+
+---
+
+## v2.4.10 - "Canvas Customization & Polish" ✨
 *Released: Nov 25, 2025*
 
 **Canvas boards get a major upgrade!** You can now customize the background color of your infinite canvas boards, choosing between sleek Black, professional Gray, or classic White. Plus, critical bug fixes and polish for a smoother experience.

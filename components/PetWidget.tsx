@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AppSettings } from '../types';
 import { usePetState, PetState } from '../src/hooks/usePetState';
 
@@ -36,6 +36,7 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
   const [message, setMessage] = useState<string>('');
   const [showAdoption, setShowAdoption] = useState(false);
   const [adoptionName, setAdoptionName] = useState(settings.petName || 'Kitty');
+  const visitRecorded = useRef(false);
 
   const xpProgress = useMemo(() => {
     if (!pet) return 0;
@@ -56,7 +57,11 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
       setShowAdoption(true);
       return;
     }
-    recordVisit();
+
+    if (!visitRecorded.current) {
+      recordVisit();
+      visitRecorded.current = true;
+    }
   }, [isHydrated, pet, recordVisit]);
 
   useEffect(() => {
@@ -88,9 +93,8 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
   if (!isHydrated) {
     return (
       <div
-        className={`pet-widget-sidebar border-t border-b p-3 ${
-          isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800'
-        }`}
+        className={`pet-widget-sidebar border-t border-b p-3 ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800'
+          }`}
       >
         <div className={`text-center text-xs ${isTron ? 'text-tron-cyan' : 'text-gray-600 dark:text-zinc-400'}`}>Loading pet...</div>
       </div>
@@ -100,14 +104,12 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
   if (!pet || showAdoption) {
     return (
       <div
-        className={`pet-widget-sidebar border-t border-b p-3 space-y-3 ${
-          isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800'
-        }`}
+        className={`pet-widget-sidebar border-t border-b p-3 space-y-3 ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800'
+          }`}
       >
         <div
-          className={`text-center text-xs font-bold uppercase tracking-wider mb-1 pb-2 border-b ${
-            isTron ? 'text-tron-cyan border-tron-cyan/20' : 'text-gray-700 dark:text-zinc-300 border-gray-300 dark:border-zinc-600'
-          }`}
+          className={`text-center text-xs font-bold uppercase tracking-wider mb-1 pb-2 border-b ${isTron ? 'text-tron-cyan border-tron-cyan/20' : 'text-gray-700 dark:text-zinc-300 border-gray-300 dark:border-zinc-600'
+            }`}
         >
           🐾 Adopt your Ranger Pet
         </div>
@@ -118,9 +120,8 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
             <input
               value={adoptionName}
               onChange={e => setAdoptionName(e.target.value)}
-              className={`w-full rounded px-2 py-1 text-sm ${
-                isTron ? 'bg-black border border-tron-cyan/40 text-tron-cyan' : 'bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-zinc-100'
-              }`}
+              className={`w-full rounded px-2 py-1 text-sm ${isTron ? 'bg-black border border-tron-cyan/40 text-tron-cyan' : 'bg-gray-50 dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-zinc-100'
+                }`}
             />
           </div>
         </div>
@@ -129,9 +130,8 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
             adoptPet(adoptionName || 'Kitty');
             setShowAdoption(false);
           }}
-          className={`w-full py-2 rounded text-xs font-semibold ${
-            isTron ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black' : 'bg-emerald-500 text-white hover:bg-emerald-600'
-          }`}
+          className={`w-full py-2 rounded text-xs font-semibold ${isTron ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black' : 'bg-emerald-500 text-white hover:bg-emerald-600'
+            }`}
         >
           Adopt {adoptionName || 'Kitty'}
         </button>
@@ -186,9 +186,8 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
 
       {message && (
         <div
-          className={`text-center text-[11px] px-3 py-2 rounded mb-3 ${
-            isTron ? 'bg-tron-cyan/10 text-tron-cyan' : 'bg-gray-100 dark:bg-zinc-700 text-gray-800 dark:text-zinc-100 border border-gray-300 dark:border-zinc-600'
-          }`}
+          className={`text-center text-[11px] px-3 py-2 rounded mb-3 ${isTron ? 'bg-tron-cyan/10 text-tron-cyan' : 'bg-gray-100 dark:bg-zinc-700 text-gray-800 dark:text-zinc-100 border border-gray-300 dark:border-zinc-600'
+            }`}
         >
           {message}
         </div>
