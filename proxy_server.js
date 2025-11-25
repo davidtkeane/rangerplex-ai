@@ -1089,7 +1089,57 @@ app.post('/api/tools/myip', async (req, res) => {
     }
 });
 
-// 13. System Info (Local Server)
+// 13. Phone Intel (NumVerify) with Monthly Counter
+let phoneRequestCount = 0;
+let phoneCounterMonth = new Date().getMonth();
+
+app.post('/api/tools/phone', async (req, res) => {
+    try {
+        const { number, apiKey } = req.body;
+        if (!number) return res.status(400).json({ error: 'Missing phone number' });
+        if (!apiKey) return res.status(400).json({ error: 'Missing NumVerify API key' });
+
+        console.log('📱 Phone Check:', number);
+
+        // Reset counter if new month
+        const currentMonth = new Date().getMonth();
+        if (currentMonth !== phoneCounterMonth) {
+            phoneRequestCount = 0;
+            phoneCounterMonth = currentMonth;
+        }
+
+        // Check limit
+        if (phoneRequestCount >= 100) {
+            return res.status(429).json({
+                error: 'Monthly limit reached (100/100)',
+                count: phoneRequestCount,
+                limit: 100
+            });
+        }
+
+        const response = await fetch(`http://apilayer.net/api/validate?access_key=${apiKey}&number=${number}`);
+        const data = await response.json();
+
+        if (!data.valid && data.error) {
+            return res.status(400).json({ error: data.error.info || 'Invalid phone number' });
+        }
+
+        // Increment counter
+        phoneRequestCount++;
+
+        res.json({
+            ...data,
+            requestCount: phoneRequestCount,
+            requestLimit: 100
+        });
+
+    } catch (error) {
+        console.error('❌ Phone error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 14. System Info (Local Server)
 app.post('/api/tools/system', async (req, res) => {
     try {
         console.log('💻 System Info Request');
@@ -1234,7 +1284,7 @@ app.post('/api/tools/subdomains', async (req, res) => {
 
         const response = await fetch(crtshUrl, {
             headers: {
-                'User-Agent': 'RangerPlex-OSINT/2.5.15'
+                'User-Agent': 'RangerPlex-OSINT/2.5.16'
             }
         });
 

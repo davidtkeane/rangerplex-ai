@@ -207,6 +207,7 @@ export interface AppSettings {
   hibpApiKey?: string; // Have I Been Pwned
   shodanApiKey?: string; // Shodan
   ipinfoToken?: string; // IPInfo
+  numverifyApiKey?: string; // NumVerify
 
   // Config
   corsProxyUrl?: string;
@@ -470,6 +471,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hibpApiKey: import.meta.env.VITE_HIBP_API_KEY || '',
   shodanApiKey: import.meta.env.VITE_SHODAN_API_KEY || '',
   ipinfoToken: import.meta.env.VITE_IPINFO_TOKEN || '',
+  numverifyApiKey: import.meta.env.VITE_NUMVERIFY_API_KEY || '',
 
   defaultCanvasColor: 'white'
 };

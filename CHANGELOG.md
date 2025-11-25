@@ -2,6 +2,90 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.15 - "Comms Intel" 📱
+*Released: Nov 25, 2025*
+
+**Phone Number Intelligence.** Added `/phone` command with NumVerify API integration, monthly request counter (100/month), and automatic reset system.
+
+### 📱 New Phone Intelligence Tool
+*   **`/phone <number>`**: Validates phone numbers and reveals Carrier, Line Type (Mobile/Landline/VoIP), Location, and Country
+*   **Monthly Counter**: Tracks API usage (X/100 requests), displays in every response
+*   **Auto-Reset**: Counter automatically resets on the 1st of each month
+*   **Limit Warning**: Alerts when approaching 100 requests (at 90+)
+*   **Rich Data**: International/Local formats, Country name, Carrier, Line Type
+
+### ⚙️ Settings Integration
+*   Added NumVerify API Key field to Settings → Providers tab
+*   Token test button with real API validation
+*   Automatic fallback to `.env` if not set in UI
+*   Added `VITE_NUMVERIFY_API_KEY` to `.env` template
+
+### 🛠️ Backend Enhancements
+*   New endpoint: `/api/tools/phone` with built-in rate limiting
+*   Server-side monthly counter (persists across requests)
+*   Automatic month detection and reset logic
+*   Returns usage stats with every response
+
+### 📘 Help System Updates
+*   Added detailed help entry for `/phone`
+*   Updated main `/help` menu with new command
+*   Added contextual "Ask AI" link for phone intelligence
+
+### 📋 OSINT Plan Complete
+*   Phase 11: Comms Intel (Phone) - ✅ Completed
+*   **All 11 Phases Deployed!** 🎉
+
+### ⚙️ Files Modified
+*   `types.ts` - Added `numverifyApiKey` to Settings interface
+*   `components/SettingsModal.tsx` - Added NumVerify input field and test logic
+*   `proxy_server.js` - Added `/api/tools/phone` endpoint with counter
+*   `components/ChatInterface.tsx` - Added command handler and help entry
+*   `components/Sidebar.tsx` - Version bump to 2.5.15
+*   `services/dbService.ts` - Export metadata version bump to 2.5.15
+*   `package.json` - Version bump to 2.5.15
+*   `README.md` - Version badge updated to 2.5.15
+*   `.env` - Added `VITE_NUMVERIFY_API_KEY` placeholder
+
+## v2.5.16 - "Subdomain Scout" 🔍
+*Released: Nov 25, 2025*
+
+**Certificate Transparency Integration.** Added `/subdomains` command to discover hidden infrastructure through SSL certificate logs - a critical reconnaissance tool for mapping attack surfaces.
+
+### 🔍 Subdomain Enumeration Tool
+*   **`/subdomains <domain>`**: Discover all subdomains of a target domain using Certificate Transparency logs
+*   **Data Source**: Queries crt.sh for SSL certificate records
+*   **Comprehensive Results**: Finds both regular subdomains and wildcard certificates
+*   **Sorted Output**: Returns unique, alphabetically sorted subdomain lists
+*   **Security Insights**: Reveals hidden infrastructure, forgotten endpoints, and cloud integrations
+
+### 🛠️ Backend Implementation
+*   New endpoint: `/api/tools/subdomains` (proxy_server.js lines 1217-1293)
+*   Queries Certificate Transparency logs via crt.sh API
+*   Parses certificate name_value fields to extract domain names
+*   Separates regular subdomains from wildcard certificates
+*   Returns comprehensive statistics and sorted results
+
+### 📘 Help System Updates
+*   Added `/subdomains` to main `/help` menu under RECONNAISSANCE section
+*   Created detailed help page accessible with `/help subdomains`
+*   Included usage examples, security implications, and tool combination suggestions
+*   Added contextual "Ask AI" link about attack surface mapping
+
+### 🎯 Use Cases
+*   **Security Assessments**: Map complete attack surface of target domains
+*   **Infrastructure Discovery**: Find api.*, admin.*, dev.* subdomains
+*   **Legacy Detection**: Identify forgotten or abandoned endpoints
+*   **Cloud Mapping**: Discover AWS, Azure, and other cloud integrations
+
+### ⚙️ Files Modified
+*   `proxy_server.js` - Added `/api/tools/subdomains` endpoint
+*   `components/ChatInterface.tsx` - Added command handler (lines 970-1050) and help entry
+*   `components/Sidebar.tsx` - Version bump to 2.5.16
+*   `services/dbService.ts` - Export metadata version bump to 2.5.16
+*   `package.json` - Version bump to 2.5.16
+*   `README.md` - Version badge updated to 2.5.16
+*   `OSINT_TOOLS_PLAN.md` - Marked Phase 12 as completed
+
 ## v2.5.15 - "Time Machine" 🕰️
 *Released: Nov 25, 2025*
 

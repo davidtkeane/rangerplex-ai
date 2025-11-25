@@ -452,6 +452,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 success = response.ok;
             }
 
+            // NumVerify - Real API test
+            else if (provider === 'numverify' && localSettings.numverifyApiKey) {
+                const response = await fetch(`http://apilayer.net/api/validate?access_key=${localSettings.numverifyApiKey}&number=14158586273`);
+                const data = await response.json();
+                success = data.valid !== undefined; // API returns valid field
+            }
+
             await new Promise(r => setTimeout(r, 800));
             setConnectionStatus(p => ({ ...p, [provider]: success ? 'success' : 'error' }));
         } catch (error) {
@@ -655,6 +662,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             <InputGroup label="Have I Been Pwned Key" value={localSettings.hibpApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, hibpApiKey: v })} icon="fa-solid fa-user-shield" onTest={() => testConnection('hibp')} status={connectionStatus['hibp']} inputClass={inputClass} />
                             <InputGroup label="Shodan API Key" value={localSettings.shodanApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, shodanApiKey: v })} icon="fa-solid fa-eye" onTest={() => testConnection('shodan')} status={connectionStatus['shodan']} inputClass={inputClass} />
                             <InputGroup label="IPInfo Token" value={localSettings.ipinfoToken || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, ipinfoToken: v })} icon="fa-solid fa-location-dot" onTest={() => testConnection('ipinfo')} status={connectionStatus['ipinfo']} inputClass={inputClass} />
+                            <InputGroup label="NumVerify API Key" value={localSettings.numverifyApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, numverifyApiKey: v })} icon="fa-solid fa-phone" onTest={() => testConnection('numverify')} status={connectionStatus['numverify']} inputClass={inputClass} />
 
                             {/* Ollama Moved to dedicated tab */}
                         </div>

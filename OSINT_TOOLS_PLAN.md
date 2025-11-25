@@ -60,19 +60,18 @@
 *   **Tools:** `/mac`, `/sys`
 *   **Tech:** macvendors.com API + Node.js `os` module.
 
-## 🚀 Phase 11: Comms Intel (Planned)
-**Objective:** Analyze phone numbers.
-*   **Tool:** **Phone Validator**
-*   **Command:** `/phone <number>`
-*   **Logic:** Identify Carrier, Line Type (VoIP/Mobile), and Region.
+## ✅ Phase 11: Comms Intel
+**Status:** Completed
+*   **Tools:** `/phone`
+*   **Tech:** NumVerify API with monthly counter (100 requests/month).
 
 ---
 
-## 🚀 Phase 12: Subdomain Enumeration (Planned)
-**Objective:** Find all subdomains of a target domain.
+## ✅ Phase 12: Subdomain Enumeration
+**Status:** Completed
 *   **Tool:** **Subdomain Scanner**
 *   **Command:** `/subdomains <domain>`
-*   **Tech:** Certificate Transparency (crt.sh), SecurityTrails API
+*   **Tech:** Certificate Transparency (crt.sh API)
 *   **Value:** Discover hidden infrastructure (api.example.com, admin.example.com)
 *   **Priority:** HIGH ⭐
 
@@ -191,6 +190,6 @@
 
 ## 📊 OSINT ARSENAL STATUS
 
-**Completed:** 11 tools
-**Planned:** 14 tools
+**Completed:** 12 tools
+**Planned:** 13 tools
 **Total Arsenal:** 25 OSINT tools 🎖️

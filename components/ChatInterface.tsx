@@ -317,6 +317,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🔍  MYIP        :: /myip                    ║\n`;
                     helpMsg += `║ 🌐  IPINFO      :: /ipinfo <ip>             ║\n`;
                     helpMsg += `║ 📟  MAC_LOOKUP  :: /mac <address>           ║\n`;
+                    helpMsg += `║ 📱  PHONE       :: /phone <number>          ║\n`;
                     helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
                     helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
@@ -409,6 +410,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Requires:** IPInfo Token (optional, in Settings) for premium data. Falls back to free ip-api if not configured.\n\n`;
                     helpMsg += `**Pro Tip:** Add your IPInfo token in Settings → Providers for richer data including privacy detection (VPN/Proxy).\n\n`;
                     helpMsg += `[Ask AI about IP Intelligence?](Ask AI: What can you learn from an IP address?)`;
+                }
+                else if (cmd === 'phone') {
+                    helpMsg = `### 📱 Command: /phone\n\n`;
+                    helpMsg += `**Usage:** \`/phone <number>\`\n`;
+                    helpMsg += `**Purpose:** Validates phone numbers and reveals Carrier, Line Type (Mobile/Landline/VoIP), Location, and Country.\n\n`;
+                    helpMsg += `**Requires:** NumVerify API Key (free tier: 100 requests/month) in Settings → Providers.\n\n`;
+                    helpMsg += `**Pro Tip:** The command shows your monthly usage counter (X/100). Resets automatically on the 1st of each month.\n\n`;
+                    helpMsg += `[Ask AI about Phone Intelligence?](Ask AI: What can you learn from a phone number?)`;
                 }
                 else if (cmd === 'sys') {
                     helpMsg = `### 💻 Command: /sys\n\n`;
@@ -858,7 +867,59 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 19. System Recon (/sys)
+            // 19. Phone Intel (/phone)
+            if (text.startsWith('/phone')) {
+                setProcessingStatus("Analyzing Phone Number...");
+                const number = text.replace('/phone', '').trim();
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    if (!settings.numverifyApiKey) {
+                        throw new Error('NumVerify API key not configured. Add it in Settings → Providers.');
+                    }
+
+                    const res = await fetch(`${proxyUrl}/api/tools/phone`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ number, apiKey: settings.numverifyApiKey })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    let msg = `### 📱 Phone Intelligence: ${res.number || number}\n\n`;
+
+                    if (res.valid) {
+                        msg += `**✅ Valid Number**\n\n`;
+                        msg += `**📍 Location:** ${res.location || 'Unknown'}\n`;
+                        msg += `**🌍 Country:** ${res.country_name} (${res.country_code})\n`;
+                        msg += `**📞 Carrier:** ${res.carrier || 'Unknown'}\n`;
+                        msg += `**📡 Line Type:** ${res.line_type || 'Unknown'}\n`;
+                        msg += `**🔢 International Format:** ${res.international_format || 'N/A'}\n`;
+                        msg += `**🔢 Local Format:** ${res.local_format || 'N/A'}\n\n`;
+                    } else {
+                        msg += `**❌ Invalid Number**\n\n`;
+                    }
+
+                    msg += `**📊 API Usage:** ${res.requestCount}/${res.requestLimit} requests this month\n`;
+
+                    if (res.requestCount >= 90) {
+                        msg += `\n⚠️ *Warning: Approaching monthly limit!*`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Phone Analysis Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 20. System Recon (/sys)
             if (text.startsWith('/sys')) {
                 setProcessingStatus("Analyzing System...");
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';

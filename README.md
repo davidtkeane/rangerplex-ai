@@ -56,6 +56,7 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 *   **Domain Recon** 📡:
     *   `/whois <domain>`: Get registration details, expiry dates, and registrar info.
     *   `/dns <domain>`: Fetch technical DNS records (A, MX, TXT, NS) for infrastructure analysis.
+    *   `/subdomains <domain>`: Discover all subdomains via Certificate Transparency logs. Map attack surfaces and find hidden infrastructure.
 *   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.
 *   **Web Search Integration**: Toggle web search for LLMs with the 🌐 WEB button. Enable/disable automatic web search in Settings → Search tab.
