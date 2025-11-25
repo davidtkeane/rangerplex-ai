@@ -965,17 +965,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     Enable Radio Player
                                 </label>
 
-                                {/* Auto-Play Toggle */}
-                                <label className="flex items-center gap-3 text-sm cursor-pointer mb-4 ml-8">
-                                    <input
-                                        type="checkbox"
-                                        checked={localSettings.radioAutoPlay}
-                                        onChange={e => setLocalSettings({ ...localSettings, radioAutoPlay: e.target.checked })}
-                                        className="accent-teal-500 w-4 h-4"
-                                        disabled={!localSettings.radioEnabled}
-                                    />
-                                    <span className={!localSettings.radioEnabled ? 'opacity-40' : ''}>Auto-play on startup</span>
-                                </label>
+
 
                                 <p className="text-xs opacity-60 ml-8">
                                     Note: Auto-play may be blocked by browser. Click "Play" manually if needed.

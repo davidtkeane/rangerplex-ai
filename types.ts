@@ -262,7 +262,7 @@ export interface AppSettings {
 
   // Ranger Radio
   radioEnabled: boolean;
-  radioAutoPlay: boolean;
+
   radioVolume: number; // 0.0 to 1.0
   radioLastStation: string | null; // station ID
   radioMinimized: boolean;
@@ -443,7 +443,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showScannerBeam: true,
 
   radioEnabled: false,
-  radioAutoPlay: false,
+
   radioVolume: 0.3,
   radioLastStation: 'soma-defcon', // 💻 DEF CON Radio - Music for hacking and coding
   radioMinimized: true,

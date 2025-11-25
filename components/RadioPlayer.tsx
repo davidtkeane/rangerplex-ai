@@ -368,12 +368,7 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
     return `${proxyBaseUrl}/api/radio/stream?url=${encodeURIComponent(originalUrl)}`;
   };
 
-  // Auto-play on mount if enabled
-  useEffect(() => {
-    if (settings.radioAutoPlay && audioRef.current) {
-      handlePlay();
-    }
-  }, []);
+
 
   // Fetch now-playing metadata if station exposes it (placeholder; SomaFM needs specific endpoints per station)
   useEffect(() => {
@@ -591,17 +586,7 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-3 relative">
-              {/* Overlay for blocked auto-play */}
-              {!isPlaying && !isLoading && settings.radioAutoPlay && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center">
-                  <button
-                    onClick={handlePlay}
-                    className="bg-teal-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse hover:bg-teal-500"
-                  >
-                    Click to Start
-                  </button>
-                </div>
-              )}
+
 
               <button
                 onClick={isPlaying ? handlePause : handlePlay}
