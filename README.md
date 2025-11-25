@@ -188,12 +188,14 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **No Data Loss**: Even if you clear your browser cache, your data is safe in the server database.
 *   **Rock-Solid Persistence**: Settings now save and load correctly with improved race condition handling.
 
-### 🔄 Auto-Update System (NEW in v2.5.25) ✨
-*   **🎉 First Successful Deployment!** M4 Max deployed v2.5.27 with zero issues:
-    - Clicked "Check for Updates" → saw latest commit
-    - Clicked "Install Update" → auto git pull + npm install
-    - Restarted server manually → Ollama + LM Studio both working perfectly
-    - **Pure magic - it just works!** 🚀
+### 🔄 Auto-Update System with PM2 Auto-Restart (v2.5.27) ✨
+*   **🎉 FULLY AUTOMATED UPDATES!** True one-click updates with zero-downtime restart:
+    - Click "Check for Updates" → see latest commit
+    - Click "Install Update" → auto git pull + npm install + **PM2 auto-restart**
+    - **No manual intervention needed** → servers reload automatically
+    - Ollama and LM Studio keep working → **Pure magic!** 🚀
+*   **Zero-Downtime Restart**: PM2 gracefully reloads both servers without dropping connections
+*   **Production Ready**: PM2 process manager handles server lifecycle, auto-restart on crash
 *   **One-Click Updates**: New "Install Update" button in Settings → System Updates
 *   **Automatic Git Pull**: Click "Install Update" to automatically run `git pull origin main`
 *   **Smart Dependency Management**: Auto-detects if `package.json` changed and runs `npm install`
@@ -203,16 +205,22 @@ RangerPlex has **TWO different image features** that work in completely differen
     2. View commit message and date
     3. Click green "Install Update" button (**keep server running**)
     4. Watch progress: "Installing..." with spinner
-    5. Get success confirmation or error details
-    6. **Manually restart server** in terminal (`Ctrl+C` then `npm start`)
+    5. PM2 automatically reloads servers with zero downtime
+    6. Get success confirmation → **No manual restart needed!**
 *   **Safety Features**:
     - Already up to date? No restart needed
-    - Only code changes? Restart required notification
-    - Dependencies changed? Auto-runs `npm install` + restart prompt
+    - PM2 graceful reload: Old process keeps serving while new one starts
+    - Dependencies changed? Auto-runs `npm install` + PM2 reload
+    - PM2 not available? Falls back to manual restart with clear instructions
     - Git pull fails? Shows detailed error messages
     - Timeout protection: 2-minute maximum for operations
-*   **Current Limitation**: Server restart still requires manual terminal action (stop with `Ctrl+C`, restart with `npm start`)
-*   **Future Improvement**: Fully automated server restart without manual intervention (like professional software)
+*   **PM2 Commands** (if using PM2 mode):
+    - `npm run pm2:start` - Start both servers with PM2
+    - `npm run pm2:stop` - Stop all servers
+    - `npm run pm2:restart` - Restart servers
+    - `npm run pm2:reload` - Zero-downtime reload
+    - `npm run pm2:status` - Check server status
+    - `npm run pm2:logs` - View live logs
 
 ### 🕶️ The Aesthetic
 *   **Tron Theme ("The Grid")**: A glowing, animated 3D interface.

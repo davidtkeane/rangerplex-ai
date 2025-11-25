@@ -1457,6 +1457,78 @@ app.post('/api/tools/myip', async (req, res) => {
     }
 });
 
+// Privacy Snapshot (IP + ISP + request headers)
+app.post('/api/tools/privacy', async (req, res) => {
+    try {
+        console.log('🛡️ Privacy Snapshot Request');
+
+        const clientHeaders = req.headers || {};
+        const clientReportedIp = (() => {
+            const xfwd = clientHeaders['x-forwarded-for'];
+            if (xfwd) return xfwd.split(',')[0].trim();
+            if (clientHeaders['x-real-ip']) return clientHeaders['x-real-ip'];
+            return null;
+        })();
+
+        // Fetch public IP
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipJson = await ipRes.json();
+        const publicIp = ipJson.ip;
+
+        // Geo / ISP intel
+        const geoRes = await fetch(`http://ip-api.com/json/${publicIp}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,query`);
+        const geo = await geoRes.json();
+
+        const headerPick = (key) => clientHeaders[key] || null;
+
+        res.json({
+            status: geo.status === 'success' ? 'ok' : 'partial',
+            ip: {
+                public: publicIp,
+                clientReported: clientReportedIp,
+                source: 'ipify.org',
+                note: clientReportedIp && clientReportedIp !== publicIp ? 'client vs public mismatch (proxy/VPN?)' : undefined
+            },
+            network: geo.status === 'success' ? {
+                country: geo.country,
+                countryCode: geo.countryCode,
+                region: geo.regionName || geo.region,
+                city: geo.city,
+                zip: geo.zip,
+                lat: geo.lat,
+                lon: geo.lon,
+                timezone: geo.timezone,
+                isp: geo.isp,
+                org: geo.org,
+                asn: geo.as,
+                asName: geo.asname
+            } : { error: geo.message || 'Geo lookup failed' },
+            headers: {
+                'user-agent': headerPick('user-agent'),
+                'accept-language': headerPick('accept-language'),
+                'accept': headerPick('accept'),
+                'accept-encoding': headerPick('accept-encoding'),
+                'dnt': headerPick('dnt'),
+                'referer': headerPick('referer'),
+                'sec-ch-ua': headerPick('sec-ch-ua'),
+                'sec-ch-ua-platform': headerPick('sec-ch-ua-platform'),
+                'sec-ch-ua-mobile': headerPick('sec-ch-ua-mobile'),
+                'sec-fetch-site': headerPick('sec-fetch-site'),
+                'sec-fetch-mode': headerPick('sec-fetch-mode'),
+                'sec-fetch-dest': headerPick('sec-fetch-dest'),
+                'sec-fetch-user': headerPick('sec-fetch-user'),
+                'upgrade-insecure-requests': headerPick('upgrade-insecure-requests'),
+                'x-forwarded-for': headerPick('x-forwarded-for'),
+                'x-real-ip': headerPick('x-real-ip')
+            },
+            timestamp: Date.now()
+        });
+    } catch (error) {
+        console.error('❌ Privacy snapshot error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // 13. Phone Intel (NumVerify) with Monthly Counter
 let phoneRequestCount = 0;
 let phoneCounterMonth = new Date().getMonth();
@@ -2836,7 +2908,7 @@ app.post('/api/system/update', async (req, res) => {
                     console.log('NPM:', error);
                 });
 
-                npmInstall.on('close', (npmCode) => {
+                npmInstall.on('close', async (npmCode) => {
                     if (npmCode !== 0) {
                         console.error('❌ npm install failed');
                         return res.status(500).json({
@@ -2846,23 +2918,117 @@ app.post('/api/system/update', async (req, res) => {
                         });
                     }
 
-                    console.log('✅ Update complete! Please restart the server.');
-                    res.json({
-                        success: true,
-                        message: 'Update successful! Dependencies installed.',
-                        needsRestart: true,
-                        output: fullOutput,
-                        npmOutput: npmOutput.join('')
-                    });
+                    console.log('✅ Update complete! Restarting server with PM2...');
+
+                    // Attempt PM2 reload for zero-downtime restart
+                    try {
+                        const pm2Reload = spawn('pm2', ['reload', 'ecosystem.config.cjs']);
+                        const pm2Output = [];
+                        const pm2Errors = [];
+
+                        pm2Reload.stdout.on('data', (data) => {
+                            pm2Output.push(data.toString());
+                            console.log('PM2:', data.toString());
+                        });
+
+                        pm2Reload.stderr.on('data', (data) => {
+                            pm2Errors.push(data.toString());
+                            console.error('PM2:', data.toString());
+                        });
+
+                        pm2Reload.on('close', (pm2Code) => {
+                            if (pm2Code === 0) {
+                                console.log('✅ Server restarted automatically!');
+                                return res.json({
+                                    success: true,
+                                    message: 'Update successful! Server restarted automatically.',
+                                    autoRestarted: true,
+                                    needsRestart: false,
+                                    output: fullOutput,
+                                    npmOutput: npmOutput.join(''),
+                                    pm2Output: pm2Output.join('')
+                                });
+                            } else {
+                                // PM2 failed, fall back to manual restart
+                                console.log('⚠️ PM2 reload failed, manual restart needed');
+                                return res.json({
+                                    success: true,
+                                    message: 'Update successful! Dependencies installed. Please restart manually.',
+                                    needsRestart: true,
+                                    autoRestarted: false,
+                                    output: fullOutput,
+                                    npmOutput: npmOutput.join(''),
+                                    pm2Error: pm2Errors.join('')
+                                });
+                            }
+                        });
+                    } catch (pm2Error) {
+                        // PM2 not available, fall back to manual restart
+                        console.log('⚠️ PM2 not available, manual restart needed');
+                        return res.json({
+                            success: true,
+                            message: 'Update successful! Dependencies installed. Please restart manually.',
+                            needsRestart: true,
+                            autoRestarted: false,
+                            output: fullOutput,
+                            npmOutput: npmOutput.join('')
+                        });
+                    }
                 });
             } else {
-                console.log('✅ Update complete!');
-                res.json({
-                    success: true,
-                    message: 'Update successful!',
-                    needsRestart: true,
-                    output: fullOutput
-                });
+                console.log('✅ Update complete! Restarting server with PM2...');
+
+                // Attempt PM2 reload for zero-downtime restart
+                try {
+                    const pm2Reload = spawn('pm2', ['reload', 'ecosystem.config.js']);
+                    const pm2Output = [];
+                    const pm2Errors = [];
+
+                    pm2Reload.stdout.on('data', (data) => {
+                        pm2Output.push(data.toString());
+                        console.log('PM2:', data.toString());
+                    });
+
+                    pm2Reload.stderr.on('data', (data) => {
+                        pm2Errors.push(data.toString());
+                        console.error('PM2:', data.toString());
+                    });
+
+                    pm2Reload.on('close', (pm2Code) => {
+                        if (pm2Code === 0) {
+                            console.log('✅ Server restarted automatically!');
+                            return res.json({
+                                success: true,
+                                message: 'Update successful! Server restarted automatically.',
+                                autoRestarted: true,
+                                needsRestart: false,
+                                output: fullOutput,
+                                pm2Output: pm2Output.join('')
+                            });
+                        } else {
+                            // PM2 failed, fall back to manual restart
+                            console.log('⚠️ PM2 reload failed, manual restart needed');
+                            return res.json({
+                                success: true,
+                                message: 'Update successful! Please restart manually.',
+                                needsRestart: true,
+                                autoRestarted: false,
+                                output: fullOutput,
+                                pm2Error: pm2Errors.join('')
+                            });
+                        }
+                    });
+                } catch (pm2Error) {
+                    // PM2 not available, fall back to manual restart
+                    console.log('⚠️ PM2 not available, manual restart needed');
+                    return res.json({
+                        success: true,
+                        message: 'Update successful! Please restart manually.',
+                        needsRestart: true,
+                        autoRestarted: false,
+                        output: fullOutput
+                    });
+                }
             }
         });
 

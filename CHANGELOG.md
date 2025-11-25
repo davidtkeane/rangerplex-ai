@@ -28,6 +28,14 @@
     - **Backward Compatible**: Both paths now supported (won't break existing setups)
 
 ### ✨ New Features
+*   **PM2 Auto-Restart System** (`ecosystem.config.cjs`, `proxy_server.js:2849-2959`):
+    - **Zero-Downtime Updates**: Auto-update now automatically restarts servers with PM2
+    - **No Manual Restart**: Click "Install Update" and system handles everything
+    - **Graceful Reload**: Old process keeps serving while new one starts
+    - **Production Ready**: PM2 manages process lifecycle, auto-restart on crash
+    - **PM2 Commands**: `npm run pm2:start/stop/restart/reload/status/logs`
+    - **Backward Compatible**: Falls back to manual restart if PM2 not available
+    - **Install Script Updated**: `install-me-now.sh` now installs PM2 automatically
 *   **Ollama Model Refresh Button** (`components/SettingsModal.tsx:866-886`):
     - New dropdown selector for Ollama models (was text input)
     - "Refresh" button fetches available models from Ollama server
@@ -39,6 +47,9 @@
     - Reduced duration to 2s (was 3s) for snappier feel
 
 ### 🔧 Developer Notes
+*   **PM2 Configuration**: `ecosystem.config.cjs` manages 2 processes (rangerplex-proxy, rangerplex-vite)
+*   **PM2 Mode**: Using `.cjs` extension (CommonJS) for PM2 config due to `"type": "module"` in package.json
+*   **Auto-Update Integration**: `/api/system/update` endpoint now calls `pm2 reload` after successful git pull/npm install
 *   Added `fetchOllamaModelsOnly()` function to SettingsModal
 *   Model routing order is now: Perplexity → **LM Studio** → OpenAI → Claude → Grok → HuggingFace → Ollama → Gemini
 

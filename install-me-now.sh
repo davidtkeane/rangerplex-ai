@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 
-# RangerPlex AI Installer (v2.5.26)
-# One-command setup for macOS/Linux/WSL. Installs Node.js 22, npm deps, and guides API key setup.
+# RangerPlex AI Installer (v2.5.27+)
+# One-command setup for macOS/Linux/WSL. Installs Node.js 22, PM2, npm deps, and guides API key setup.
 # Safe defaults: prompts before package installs; writes .env only when you confirm.
 #
-# IMPROVEMENTS (v2.5.26):
+# IMPROVEMENTS (v2.5.27+):
+# ✅ ADDED: PM2 process manager installation (enables zero-downtime auto-restart)
+# ✅ ADDED: PM2 command instructions (pm2:start, pm2:status, pm2:logs, etc.)
+# ✅ IMPROVED: Recommended start command now uses PM2 for production-ready deployment
+#
+# PREVIOUS (v2.5.26):
 # ✅ ADDED: Node.js v25+ detection with mandatory downgrade requirement
 # ✅ ADDED: Automatic native module rebuild when Node version changes
 # ✅ ADDED: Node version tracking (.node_version file in node_modules)
@@ -239,6 +244,23 @@ ensure_node() {
 }
 
 ########################
+# PM2 Process Manager  #
+########################
+install_pm2() {
+  if command -v pm2 >/dev/null 2>&1; then
+    ok "PM2 already installed ($(pm2 -v))."
+    return 0
+  fi
+
+  step "Installing PM2 process manager (enables zero-downtime restarts)..."
+  if npm install -g pm2 >/dev/null 2>&1; then
+    ok "PM2 installed globally."
+  else
+    warn "PM2 global install failed. Will use local PM2 from node_modules."
+  fi
+}
+
+########################
 # Ollama (Optional)    #
 ########################
 check_ollama() {
@@ -429,6 +451,9 @@ ensure_pkg git
 step "Ensuring Node.js 22.x..."
 ensure_node
 
+step "Installing PM2 process manager..."
+install_pm2
+
 step "Checking for Ollama (optional local AI)..."
 check_ollama
 
@@ -448,22 +473,28 @@ log "${green}${bold}╚═══════════════════
 log
 ok "RangerPlex AI is ready to deploy!"
 log
-log "${bold}▶ QUICK START (RECOMMENDED):${reset}"
-log "  ${cyan}${bold}npm start${reset}"
-log "  ${dim}↳ Runs BOTH servers (proxy + Vite) in one command${reset}"
+log "${bold}▶ QUICK START WITH PM2 (RECOMMENDED):${reset}"
+log "  ${cyan}${bold}npm run pm2:start${reset}"
+log "  ${dim}↳ Starts BOTH servers with PM2 (auto-restart + zero-downtime updates!)${reset}"
 log
-log "${bold}▶ MANUAL START (if you prefer two terminals):${reset}"
-log "  ${dim}Terminal 1:${reset} ${cyan}npm run server${reset}  ${dim}(proxy + database)${reset}"
-log "  ${dim}Terminal 2:${reset} ${cyan}npm run dev${reset}     ${dim}(Vite frontend)${reset}"
+log "${bold}▶ PM2 COMMANDS:${reset}"
+log "  ${cyan}npm run pm2:status${reset}   ${dim}→ Check server status${reset}"
+log "  ${cyan}npm run pm2:logs${reset}     ${dim}→ View real-time logs${reset}"
+log "  ${cyan}npm run pm2:restart${reset}  ${dim}→ Restart servers${reset}"
+log "  ${cyan}npm run pm2:stop${reset}     ${dim}→ Stop all servers${reset}"
+log
+log "${bold}▶ LEGACY START (if PM2 issues):${reset}"
+log "  ${cyan}npm start${reset}  ${dim}(fallback: runs both servers without PM2)${reset}"
 log
 log "${bold}▶ OPEN IN BROWSER:${reset}"
 log "  ${cyan}${bold}http://localhost:5173${reset}"
 log
 log "${bold}📝 NEXT STEPS:${reset}"
-log "  1. Run ${bold}npm start${reset} to launch RangerPlex"
+log "  1. Run ${bold}npm run pm2:start${reset} to launch RangerPlex with PM2"
 log "  2. Open ${bold}http://localhost:5173${reset} in your browser"
 log "  3. Test your API keys in Settings (⚙️ gear icon)"
-log "  4. Start chatting with your AI squad! 🚀"
+log "  4. Use auto-update in Settings (one-click updates with zero downtime!)"
+log "  5. Start chatting with your AI squad! 🚀"
 log
 if [ -f "$PROJECT_ROOT/.env" ]; then
   log "${dim}💡 Tip: Your API keys are in .env (gitignored, safe)${reset}"
