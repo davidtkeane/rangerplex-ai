@@ -51,6 +51,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [checkingUpdate, setCheckingUpdate] = useState(false);
     const [installingUpdate, setInstallingUpdate] = useState(false);
     const [updateResult, setUpdateResult] = useState<{ success: boolean; message: string; needsRestart?: boolean } | null>(null);
+    const [reloadingServer, setReloadingServer] = useState(false);
+    const [reloadResult, setReloadResult] = useState<{ success: boolean; message: string } | null>(null);
 
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true);
@@ -98,6 +100,40 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             setInstallingUpdate(false);
         }
     };
+
+    const handleReloadServer = async () => {
+        setReloadingServer(true);
+        setReloadResult(null);
+        try {
+            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/system/reload`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setReloadResult({
+                    success: true,
+                    message: result.message
+                });
+            } else {
+                setReloadResult({
+                    success: false,
+                    message: result.error || result.message || 'Reload failed'
+                });
+            }
+        } catch (error) {
+            setReloadResult({
+                success: false,
+                message: error instanceof Error ? error.message : 'Reload failed'
+            });
+        } finally {
+            setReloadingServer(false);
+        }
+    };
+
     const [promptMessage, setPromptMessage] = useState<string | null>(null);
 
     // Ollama Management
@@ -2005,6 +2041,47 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         )}
                                     </div>
                                 )}
+
+                                {/* Server Reload Section */}
+                                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                            <h4 className="font-bold text-sm flex items-center gap-2">
+                                                <i className="fa-solid fa-rotate-right"></i>
+                                                Quick Reload
+                                            </h4>
+                                            <div className="text-xs opacity-60 mt-1">
+                                                Reload server without updating code (useful after code changes)
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleReloadServer}
+                                            disabled={reloadingServer}
+                                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:opacity-50 rounded text-white font-bold flex items-center gap-2"
+                                        >
+                                            {reloadingServer ? (
+                                                <>
+                                                    <i className="fa-solid fa-circle-notch fa-spin"></i>
+                                                    Reloading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fa-solid fa-rotate-right"></i>
+                                                    Reload Server
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                    {reloadResult && (
+                                        <div className={`mt-3 p-3 rounded text-xs border ${reloadResult.success ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                                            <div className={`font-bold mb-1 ${reloadResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                                                <i className={`fa-solid ${reloadResult.success ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2`}></i>
+                                                {reloadResult.success ? 'Reload Complete!' : 'Reload Failed'}
+                                            </div>
+                                            <div className="opacity-80">{reloadResult.message}</div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="p-4 border border-inherit rounded bg-opacity-5">

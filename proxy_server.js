@@ -3150,6 +3150,60 @@ app.post('/api/system/update', async (req, res) => {
     }
 });
 
+// PM2 Server Reload (without git pull)
+app.post('/api/system/reload', async (req, res) => {
+    try {
+        console.log('🔄 Reloading server with PM2...');
+
+        const pm2Reload = spawn('pm2', ['reload', 'ecosystem.config.cjs']);
+        const pm2Output = [];
+        const pm2Errors = [];
+
+        pm2Reload.stdout.on('data', (data) => {
+            pm2Output.push(data.toString());
+            console.log('PM2:', data.toString());
+        });
+
+        pm2Reload.stderr.on('data', (data) => {
+            pm2Errors.push(data.toString());
+        });
+
+        pm2Reload.on('close', (code) => {
+            if (code === 0) {
+                return res.json({
+                    success: true,
+                    message: 'Server reloaded successfully! New routes and changes are now active.',
+                    output: pm2Output.join('')
+                });
+            } else {
+                return res.status(500).json({
+                    success: false,
+                    error: 'PM2 reload failed',
+                    details: pm2Errors.join(''),
+                    fallback: 'Please restart manually with: npm run pm2:reload'
+                });
+            }
+        });
+
+        pm2Reload.on('error', (error) => {
+            console.error('❌ PM2 reload error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'PM2 not available',
+                message: 'PM2 is not running. Please use: npm run pm2:reload',
+                details: error.message
+            });
+        });
+    } catch (error) {
+        console.error('❌ Reload error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Reload failed',
+            message: 'Please restart manually with: npm run pm2:reload'
+        });
+    }
+});
+
 // Start server
 server.listen(PORT, () => {
     console.log(`
