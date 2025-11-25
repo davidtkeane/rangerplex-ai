@@ -1,4 +1,4 @@
-# RangerPlex Manual (v2.5.26)
+# RangerPlex Manual (v2.5.28)
 
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
 > Doc policy: Keep this manual and the plan as the primary docs. Only add new docs when strictly necessary (e.g., per-feature deep dives).
@@ -89,6 +89,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
   - **Social Intel:** `/sherlock <username>` → Username search across 300+ platforms.
   - **Financial:** `/crypto <coin>`, `/wallet <btc_address>`.
   - **Digital Forensics:** `/exif <url>`, `/wayback <url>`, `/screenshot <url>`.
+  - **Fun & Entertainment:** `/chuck` → Random Chuck Norris facts (no API key required).
 - **Manual:** `/manual` opens the in-app manual overlay (Back button returns to chat).
 - **Voice:** Mic toggle in input area; speech-to-text fills the box.
 - **Copy Last Message:** Button under the chat input copies the most recent turn.
@@ -431,6 +432,12 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
 - **`/exif <url>`** - Extract EXIF metadata from images (GPS coordinates, camera model, software, timestamps).
 - **`/wayback <url>`** - Internet Archive lookup. Find historical website snapshots, view past versions, track changes, recover deleted content. Returns total snapshots, years archived, and latest snapshot URL.
 - **`/screenshot <url>`** - Capture live website screenshots using Puppeteer (headless Chrome). High-quality 1920x1080 resolution. Includes page metadata (title, dimensions, final URL). Perfect for evidence collection, change detection, and phishing documentation. No API key required.
+
+### Fun & Entertainment 🥋
+- **`/chuck`** - Get a random Chuck Norris fact from the legendary api.chucknorris.io database. Hand-curated Chuck Norris jokes with full source attribution. No API key required. Perfect for lightening the mood during intense OSINT sessions! Includes categories when available.
+  - **Example:** `/chuck`
+  - **Sources:** [api.chucknorris.io](https://api.chucknorris.io/), [GitHub](https://github.com/chucknorris-io/chuck-api), [Free Public APIs](https://www.freepublicapis.com/chuck-norris-jokes-api)
+  - **Output:** Displays Chuck Norris fact with 🥋 icon, category (if available), and clickable source links
 
 ### Tool Integration
 - **Type `/help <command>`** for detailed docs on any tool (e.g., `/help shodan`, `/help screenshot`).
