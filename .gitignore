@@ -58,7 +58,14 @@ Thumbs.db
 *.temp
 *.swp
 *~
-docs
+
+# Internal development files (keep private)
+docs/
+
+# RangerChain blockchain files (keep local)
+rangerblock/
+blockchain/
+
 M4_OLLAMA_SETUP.sh
 ollama/M3_RANGERPLEX_SETUP.sh
 ollama/M4_OLLAMA_SETUP.sh
