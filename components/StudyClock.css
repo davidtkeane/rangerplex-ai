@@ -1,0 +1,612 @@
+/* StudyClock.css
+ * Floating timer widget styles
+ * Phase 1: Core timer UI with theme support
+ */
+
+.study-clock {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: all 0.3s ease;
+  min-width: 280px;
+  max-width: 350px;
+}
+
+.study-clock.minimized {
+  max-width: 280px;
+}
+
+.study-clock.maximized {
+  max-width: 350px;
+}
+
+/* ============================================
+   Theme: Dark
+   ============================================ */
+.study-clock-dark {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  color: #f9fafb;
+  border: 1px solid #374151;
+}
+
+.study-clock-dark .study-clock-header {
+  background: rgba(31, 41, 55, 0.8);
+  border-bottom: 1px solid #374151;
+}
+
+.study-clock-dark .time-input {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.study-clock-dark .time-input:focus {
+  border-color: #60a5fa;
+  background: #4b5563;
+}
+
+.study-clock-dark .control-btn,
+.study-clock-dark .control-btn-large,
+.study-clock-dark .quick-btn {
+  background: #374151;
+  color: #f9fafb;
+  border: 1px solid #4b5563;
+}
+
+.study-clock-dark .control-btn:hover,
+.study-clock-dark .control-btn-large:hover,
+.study-clock-dark .quick-btn:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.study-clock-dark .today-stats {
+  background: rgba(31, 41, 55, 0.6);
+  border-top: 1px solid #374151;
+}
+
+/* ============================================
+   Theme: Light
+   ============================================ */
+.study-clock-light {
+  background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.study-clock-light .study-clock-header {
+  background: rgba(249, 250, 251, 0.9);
+  border-bottom: 1px solid #d1d5db;
+}
+
+.study-clock-light .time-input {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.study-clock-light .time-input:focus {
+  border-color: #3b82f6;
+  background: #f9fafb;
+}
+
+.study-clock-light .control-btn,
+.study-clock-light .control-btn-large,
+.study-clock-light .quick-btn {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.study-clock-light .control-btn:hover,
+.study-clock-light .control-btn-large:hover,
+.study-clock-light .quick-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.study-clock-light .today-stats {
+  background: rgba(249, 250, 251, 0.8);
+  border-top: 1px solid #d1d5db;
+}
+
+/* ============================================
+   Theme: Tron
+   ============================================ */
+.study-clock-tron {
+  background: linear-gradient(135deg, #0a0e1a 0%, #050810 100%);
+  color: #00f3ff;
+  border: 1px solid #00f3ff;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+}
+
+.study-clock-tron .study-clock-header {
+  background: rgba(0, 243, 255, 0.1);
+  border-bottom: 1px solid #00f3ff;
+}
+
+.study-clock-tron .time-input {
+  background: rgba(0, 243, 255, 0.05);
+  border-color: #00f3ff;
+  color: #00f3ff;
+}
+
+.study-clock-tron .time-input:focus {
+  border-color: #00f3ff;
+  background: rgba(0, 243, 255, 0.15);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
+
+.study-clock-tron .control-btn,
+.study-clock-tron .control-btn-large,
+.study-clock-tron .quick-btn {
+  background: rgba(0, 243, 255, 0.1);
+  color: #00f3ff;
+  border: 1px solid #00f3ff;
+}
+
+.study-clock-tron .control-btn:hover,
+.study-clock-tron .control-btn-large:hover,
+.study-clock-tron .quick-btn:hover {
+  background: rgba(0, 243, 255, 0.2);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.study-clock-tron .today-stats {
+  background: rgba(0, 243, 255, 0.05);
+  border-top: 1px solid rgba(0, 243, 255, 0.3);
+}
+
+/* ============================================
+   Theme: Matrix
+   ============================================ */
+.study-clock-matrix {
+  background: linear-gradient(135deg, #0d0208 0%, #000000 100%);
+  color: #00ff41;
+  border: 1px solid #00ff41;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+}
+
+.study-clock-matrix .study-clock-header {
+  background: rgba(0, 255, 65, 0.1);
+  border-bottom: 1px solid #00ff41;
+}
+
+.study-clock-matrix .time-input {
+  background: rgba(0, 255, 65, 0.05);
+  border-color: #00ff41;
+  color: #00ff41;
+}
+
+.study-clock-matrix .time-input:focus {
+  border-color: #00ff41;
+  background: rgba(0, 255, 65, 0.15);
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+.study-clock-matrix .control-btn,
+.study-clock-matrix .control-btn-large,
+.study-clock-matrix .quick-btn {
+  background: rgba(0, 255, 65, 0.1);
+  color: #00ff41;
+  border: 1px solid #00ff41;
+}
+
+.study-clock-matrix .control-btn:hover,
+.study-clock-matrix .control-btn-large:hover,
+.study-clock-matrix .quick-btn:hover {
+  background: rgba(0, 255, 65, 0.2);
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+.study-clock-matrix .today-stats {
+  background: rgba(0, 255, 65, 0.05);
+  border-top: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+/* ============================================
+   Header
+   ============================================ */
+.study-clock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 12px 12px 0 0;
+  cursor: move;
+}
+
+.study-clock-header .title {
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.study-clock-header .header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.icon-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* ============================================
+   Minimized View
+   ============================================ */
+.minimized-content {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.timer-display-mini {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+
+.controls-mini {
+  display: flex;
+  gap: 8px;
+}
+
+/* ============================================
+   Maximized View
+   ============================================ */
+.maximized-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Progress Ring */
+.progress-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.timer-display-large {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+/* Session Info */
+.session-info {
+  text-align: center;
+  min-height: 50px;
+}
+
+.pomodoro-count {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.session-phase {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Phase Mode Styling */
+.work-mode .session-phase {
+  color: #4ade80;
+  opacity: 0.7;
+}
+
+.break-mode .session-phase {
+  color: #60a5fa;
+  opacity: 0.7;
+}
+
+.study-clock-tron .work-mode .session-phase,
+.study-clock-matrix .work-mode .session-phase {
+  filter: brightness(1.2);
+}
+
+/* Controls */
+.controls-large {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.control-btn,
+.control-btn-large {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.control-btn-large {
+  flex: 1;
+  padding: 14px 20px;
+  font-size: 16px;
+}
+
+.control-btn-large.play {
+  background: #374151;
+  color: #f9fafb;
+  border: 1px solid #4b5563;
+}
+
+.control-btn-large.play:hover {
+  background: #4b5563;
+  border-color: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
+}
+
+.control-btn-large.pause {
+  background: #374151;
+  color: #f9fafb;
+  border: 1px solid #4b5563;
+}
+
+.control-btn-large.pause:hover {
+  background: #4b5563;
+  border-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+}
+
+.control-btn-large.reset {
+  background: #374151;
+  color: #f9fafb;
+  border: 1px solid #4b5563;
+}
+
+.control-btn-large.reset:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.control-btn:active,
+.control-btn-large:active {
+  transform: scale(0.95);
+}
+
+/* Custom Time Input */
+.custom-time-input {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  align-items: stretch;
+  margin-bottom: 12px;
+}
+
+.time-input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid;
+  outline: none;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.time-input:focus {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.set-time-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #4b5563;
+  background: #374151;
+  color: #f9fafb;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.set-time-btn:hover {
+  background: #4b5563;
+  border-color: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+}
+
+.set-time-btn:active {
+  transform: scale(0.95);
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.quick-actions-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.quick-btn {
+  flex: 1;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 70px;
+}
+
+.quick-btn.add {
+  background: #374151;
+  color: #f9fafb;
+  border: 1px solid #4b5563;
+}
+
+.quick-btn.add:hover:not(:disabled) {
+  background: #4b5563;
+  border-color: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
+}
+
+.quick-btn.subtract {
+  background: #374151;
+  color: #f9fafb;
+  border: 1px solid #4b5563;
+}
+
+.quick-btn.subtract:hover:not(:disabled) {
+  background: #4b5563;
+  border-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+}
+
+.quick-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.quick-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quick-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Today's Stats */
+.today-stats {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 11px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* Shortcuts Hint */
+.shortcuts-hint {
+  font-size: 10px;
+  opacity: 0.5;
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+/* Loading State */
+.loading {
+  padding: 20px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.study-clock.work-mode .progress-container {
+  animation: none;
+}
+
+.study-clock.break-mode .progress-container {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .study-clock {
+    bottom: 10px;
+    left: 10px;
+    min-width: 240px;
+    max-width: 280px;
+  }
+
+  .timer-display-large {
+    font-size: 28px;
+  }
+
+  .control-btn-large {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
+/* Touch Device Improvements */
+@media (hover: none) and (pointer: coarse) {
+  .control-btn,
+  .control-btn-large,
+  .quick-btn,
+  .icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

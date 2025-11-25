@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
 import { ChatSession, AppSettings } from '../types';
-import { downloadFile, exportConversationMarkdown } from '../services/trainingService';
-import { dbService } from '../services/dbService';
 import PetWidget from './PetWidget';
+import { PetState } from '../src/hooks/usePetState';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -23,10 +22,20 @@ interface SidebarProps {
     onToggleMatrix: () => void;
     onOpenTraining: () => void;
     onOpenStudyNotes: () => void;
+    onOpenStudyClock?: () => void;
     onOpenCanvas?: () => void;
     onLock: () => void;
     onOpenVisionMode: () => void;
     toggleSidebar: () => void;
+    petBridge?: {
+        pet: PetState | null;
+        isHydrated: boolean;
+        welcomeMessage: string | null;
+        adoptPet: (name: string, species?: PetState['species']) => void;
+        recordVisit: () => void;
+        feedPet: () => void;
+        playWithPet: () => void;
+    };
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -46,73 +55,29 @@ const Sidebar: React.FC<SidebarProps> = ({
     onToggleMatrix,
     onOpenTraining,
     onOpenStudyNotes,
+    onOpenStudyClock,
     onOpenCanvas,
     onLock,
     onOpenVisionMode,
     toggleSidebar,
+    petBridge,
 }) => {
-    const [showOptions, setShowOptions] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState<string>('');
     const [burst, setBurst] = useState<{ id: string, visible: boolean }>({ id: '', visible: false });
-    const [showPurgeWarning, setShowPurgeWarning] = useState(false);
     const isTron = settings.theme === 'tron';
     const isMatrix = settings.matrixMode;
-
-    const handleExportChat = (session: ChatSession) => {
-        const md = exportConversationMarkdown(session);
-        downloadFile(md, `${session.title.replace(/[^a-z0-9]/gi, '_')}.md`, 'text/markdown');
-    };
-
-    const handleExportAll = async () => {
-        try {
-            const data = await dbService.exportAll();
-            const json = JSON.stringify(data, null, 2);
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-            downloadFile(json, `rangerplex-backup-${timestamp}.json`, 'application/json');
-        } catch (error) {
-            console.error('Export all failed:', error);
-            alert('Failed to export data. Please try again.');
-        }
-    };
-
-    const handleDownloadBeforePurge = async () => {
-        await handleExportAll();
-        // Don't close the warning - let user confirm after downloading
-    };
-
-    const handleConfirmPurge = async () => {
-        try {
-            // Clear IndexedDB
-            await dbService.clearChats();
-            await dbService.clearSettings();
-            await dbService.clearAllWin95States();
-
-            // Clear canvas boards from localStorage
-            localStorage.removeItem('rangerplex_canvas_boards');
-
-            // Clear Win95 state from localStorage
-            const keys = Object.keys(localStorage);
-            keys.forEach(key => {
-                if (key.startsWith('win95_state_')) {
-                    localStorage.removeItem(key);
-                }
-            });
-
-            // Clear state
-            onDeleteAll();
-            setShowPurgeWarning(false);
-        } catch (error) {
-            console.error('Purge failed:', error);
-            alert('Failed to purge data. Please try again.');
-        }
-    };
 
     const starredSessions = sessions.filter(s => s.isStarred);
     const recentSessions = sessions.filter(s => !s.isStarred);
 
-    const SessionItem: React.FC<{ session: ChatSession }> = ({ session }) => (
-        <li className="group relative px-2 py-1">
+    const stopEvent = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const renderSessionItem = (session: ChatSession) => (
+        <li key={session.id} className="group relative px-2 py-1">
             {editingId === session.id ? (
                 <div className={`flex items-center gap-2 px-3 py-2 rounded ${isTron ? 'bg-tron-cyan/10 border border-tron-cyan/50' : 'bg-zinc-800/50 border border-zinc-700'}`}>
                     <input
@@ -136,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             if (editValue.trim()) {
                                 onRename(session.id, editValue.trim());
                                 setBurst({ id: session.id, visible: true });
-                setTimeout(() => setBurst({ id: '', visible: false }), 800);
+                                setTimeout(() => setBurst({ id: '', visible: false }), 800);
                             }
                             setEditingId(null);
                         }}
@@ -161,22 +126,48 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
             )}
             {editingId !== session.id && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
+                <div
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity z-[120] rounded px-1 pointer-events-auto ${isTron ? 'bg-black/80' : 'bg-gray-50/90 dark:bg-zinc-900/90'}`}
+                    role="group"
+                    aria-label="Chat actions"
+                >
                     <button
+                        type="button"
                         onClick={(e) => {
-                            e.stopPropagation();
+                            stopEvent(e);
                             setEditingId(session.id);
                             setEditValue(session.title);
                         }}
-                        className="p-1.5 text-zinc-400 hover:text-blue-400"
+                        className="p-1.5 text-zinc-400 hover:text-blue-400 cursor-pointer relative z-50"
                         title="Rename"
+                        aria-label="Rename chat"
                     >
-                        <i className="fa-solid fa-pen text-xs"></i>
+                        <i className="fa-solid fa-pen text-xs pointer-events-none"></i>
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onToggleStar(session.id); }} className={`p-1.5 ${session.isStarred ? 'text-amber-400' : 'text-zinc-400 hover:text-amber-400'}`}>
-                        <i className={`${session.isStarred ? 'fa-solid' : 'fa-regular'} fa-star text-xs`}></i>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            stopEvent(e);
+                            onToggleStar(session.id);
+                        }}
+                        className={`p-1.5 cursor-pointer relative z-50 ${session.isStarred ? 'text-amber-400' : 'text-zinc-400 hover:text-amber-400'}`}
+                        title={session.isStarred ? 'Unstar' : 'Star'}
+                        aria-label={session.isStarred ? 'Unstar chat' : 'Star chat'}
+                    >
+                        <i className={`${session.isStarred ? 'fa-solid' : 'fa-regular'} fa-star text-xs pointer-events-none`}></i>
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(session.id); }} className="p-1.5 text-zinc-400 hover:text-red-400"><i className="fa-solid fa-trash text-xs"></i></button>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            stopEvent(e);
+                            onDelete(session.id);
+                        }}
+                        className="p-1.5 text-zinc-400 hover:text-red-400 cursor-pointer relative z-50"
+                        title="Delete"
+                        aria-label="Delete chat"
+                    >
+                        <i className="fa-solid fa-trash text-xs pointer-events-none"></i>
+                    </button>
                 </div>
             )}
             {settings.celebrationEffects && burst.visible && burst.id === session.id && (
@@ -213,8 +204,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             {isOpen && <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={toggleSidebar} />}
 
             <aside className={`
-          fixed md:relative z-50 h-full w-72 flex flex-col transition-transform duration-300 border-r
-          ${isOpen ? 'translate-x-0' : '-translate-x-full md:hidden'}
+          fixed top-0 left-0 md:left-auto z-[100] h-screen w-72 flex flex-col transition-transform duration-300 border-r
+          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           ${isTron ? 'bg-black border-tron-cyan/30 font-tron' : 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800'}
       `}>
                 <div className={`flex-shrink-0 p-4 border-b flex items-center justify-between ${isTron ? 'border-tron-cyan/30 text-tron-cyan' : 'border-gray-200 dark:border-zinc-800'}`}>
@@ -231,49 +222,41 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </button>
                 </div>
 
-                <div className={`flex-shrink-0 px-4 py-2 border-b ${isTron ? 'border-tron-cyan/30 text-tron-cyan/70' : 'border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-zinc-400'}`}>
-                    <button onClick={onOpenTraining} className="flex items-center gap-3 px-3 py-2 text-sm w-full hover:opacity-100 transition-opacity opacity-70">
-                        <i className="fa-solid fa-dumbbell w-4"></i> Model Training
-                    </button>
-                    <button onClick={onOpenStudyNotes} className="flex items-center gap-3 px-3 py-2 text-sm w-full hover:opacity-100 transition-opacity opacity-70">
-                        <i className="fa-solid fa-book-open w-4"></i> Study Notes
-                    </button>
-                    {onOpenCanvas && (
-                        <button onClick={onOpenCanvas} className="flex items-center gap-3 px-3 py-2 text-sm w-full hover:opacity-100 transition-opacity opacity-70">
-                            <i className="fa-solid fa-paintbrush w-4"></i> Canvas Board
+                {/* Compact Icon Grid for Quick Actions */}
+                <div className={`flex-shrink-0 px-3 py-2 border-b ${isTron ? 'border-tron-cyan/30' : 'border-gray-200 dark:border-zinc-800'}`}>
+                    <div className="grid grid-cols-3 gap-2">
+                        {/* Study Notes */}
+                        <button
+                            onClick={onOpenStudyNotes}
+                            title="Study Notes"
+                            className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'}`}
+                        >
+                            <i className="fa-solid fa-book-open text-lg mb-1"></i>
+                            <span className="text-[9px] uppercase tracking-wide">Notes</span>
                         </button>
-                    )}
-                    <div className="relative">
-                        <button onClick={() => setShowOptions(!showOptions)} className="w-full flex items-center justify-between px-3 py-2 text-sm hover:opacity-100 transition-opacity opacity-70">
-                            <div className="flex items-center gap-3"><i className="fa-solid fa-database w-4"></i> Data & Export</div>
-                            <i className="fa-solid fa-chevron-down text-[10px]"></i>
-                        </button>
-                        {showOptions && (
-                            <div className="pl-10 pr-2 pb-2 text-xs space-y-2">
-                                {currentId && sessions.find(s => s.id === currentId) && (
-                                    <button
-                                        onClick={() => {
-                                            const session = sessions.find(s => s.id === currentId);
-                                            if (session) handleExportChat(session);
-                                        }}
-                                        className={`block w-full text-left ${isTron ? 'text-tron-cyan hover:text-tron-orange' : 'text-blue-500 hover:text-blue-400'}`}
-                                    >
-                                        <i className="fa-solid fa-file-export mr-2"></i>Export Current Chat
-                                    </button>
-                                )}
-                                <button
-                                    onClick={handleExportAll}
-                                    className={`block w-full text-left ${isTron ? 'text-tron-cyan hover:text-tron-orange' : 'text-blue-500 hover:text-blue-400'}`}
-                                >
-                                    <i className="fa-solid fa-download mr-2"></i>Export All Data
-                                </button>
-                                <button
-                                    onClick={() => setShowPurgeWarning(true)}
-                                    className="text-red-500 hover:text-red-400 block w-full text-left"
-                                >
-                                    <i className="fa-solid fa-trash-can mr-2"></i>Purge All Data
-                                </button>
-                            </div>
+
+                        {/* Study Clock */}
+                        {onOpenStudyClock && (
+                            <button
+                                onClick={onOpenStudyClock}
+                                title="Study Clock"
+                                className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'}`}
+                            >
+                                <i className="fa-solid fa-clock text-lg mb-1"></i>
+                                <span className="text-[9px] uppercase tracking-wide">Study</span>
+                            </button>
+                        )}
+
+                        {/* Canvas Board */}
+                        {onOpenCanvas && (
+                            <button
+                                onClick={onOpenCanvas}
+                                title="Canvas Board"
+                                className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'}`}
+                            >
+                                <i className="fa-solid fa-paintbrush text-lg mb-1"></i>
+                                <span className="text-[9px] uppercase tracking-wide">Canvas</span>
+                            </button>
                         )}
                     </div>
                 </div>
@@ -284,7 +267,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <div className={`px-5 pb-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 ${isTron ? 'text-tron-orange' : 'text-gray-400'}`}>
                                 <i className="fa-solid fa-star"></i> Priority
                             </div>
-                            <ul>{starredSessions.map(s => <SessionItem key={s.id} session={s} />)}</ul>
+                            <ul>{starredSessions.map(renderSessionItem)}</ul>
                         </div>
                     )}
                     <div className="flex items-center justify-between px-5 pb-2">
@@ -297,12 +280,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <i className="fa-solid fa-plus mr-1"></i> New
                         </button>
                     </div>
-                    <ul>{recentSessions.map(s => <SessionItem key={s.id} session={s} />)}</ul>
+                    <ul>{recentSessions.map(renderSessionItem)}</ul>
                 </div>
 
                 {/* Pet Widget */}
                 <div className="flex-shrink-0">
-                    <PetWidget isTron={isTron} settings={settings} />
+                    <PetWidget
+                        isTron={isTron}
+                        settings={settings}
+                        currentUser={currentUser || undefined}
+                        petBridge={petBridge}
+                    />
                 </div>
 
                 <div className={`flex-shrink-0 p-4 border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900'}`}>
@@ -323,82 +311,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                         </div>
                     )}
-                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.4.7 // IMAGE PERSISTENCE & PET AVATARS 🐾</div>
+                    <div className={`text-[10px] text-center ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>v2.4.9 // UI POLISH & TIMER CONTROLS ✨</div>
                 </div>
             </aside>
-
-            {/* Custom Purge Warning Dialog with Download Option */}
-            {showPurgeWarning && (
-                <div
-                    className={`modal-backdrop modal-backdrop-${settings.theme}`}
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) setShowPurgeWarning(false);
-                    }}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="purge-warning-title"
-                >
-                    <div className={`warning-dialog warning-dialog-${settings.theme}`} style={{ maxWidth: '500px' }}>
-                        {/* Warning Icon */}
-                        <div className="warning-icon">
-                            <span className="icon-emoji">⚠️</span>
-                        </div>
-
-                        {/* Title */}
-                        <h2 id="purge-warning-title" className="warning-title">
-                            Purge All Data?
-                        </h2>
-
-                        {/* Message */}
-                        <p className="warning-message" style={{ marginBottom: '1rem' }}>
-                            This will permanently delete <strong>ALL</strong> of your data:
-                        </p>
-                        <ul className="warning-message" style={{ textAlign: 'left', marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
-                            <li>All chat conversations</li>
-                            <li>All canvas boards</li>
-                            <li>All settings and preferences</li>
-                            <li>All training data</li>
-                        </ul>
-                        <p className={`warning-message ${isTron ? 'text-tron-orange' : 'text-amber-500'}`} style={{ fontWeight: 'bold' }}>
-                            This action cannot be undone!
-                        </p>
-
-                        {/* Buttons */}
-                        <div className="warning-buttons" style={{ flexDirection: 'column', gap: '0.75rem' }}>
-                            <button
-                                className={`warning-btn ${isTron ? 'bg-tron-cyan/20 border border-tron-cyan text-tron-cyan hover:bg-tron-cyan/30' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
-                                onClick={async () => {
-                                    await handleDownloadBeforePurge();
-                                    // Show success message
-                                    alert('✅ Backup downloaded! You can now safely delete your data or cancel.');
-                                }}
-                                style={{ width: '100%', padding: '0.75rem' }}
-                            >
-                                <i className="fa-solid fa-download mr-2"></i>
-                                Download Backup First
-                            </button>
-
-                            <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                                <button
-                                    className={`warning-btn warning-cancel-btn warning-cancel-btn-${settings.theme}`}
-                                    onClick={() => setShowPurgeWarning(false)}
-                                    style={{ flex: 1 }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className={`warning-btn warning-confirm-btn warning-confirm-btn-${settings.theme} dangerous`}
-                                    onClick={handleConfirmPurge}
-                                    style={{ flex: 1 }}
-                                >
-                                    <i className="fa-solid fa-trash-can mr-2"></i>
-                                    Delete All
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 };

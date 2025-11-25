@@ -17,11 +17,13 @@ import RangerPet from './components/RangerPet'; // Import RangerPet
 import { CanvasBoard } from './src/components/CanvasBoard'; // Import Canvas Board
 import { SaveStatusIndicator } from './components/SaveStatusIndicator';
 import { BackupManager } from './src/components/BackupManager';
+import { StudyClock } from './components/StudyClock'; // Import Study Clock
 import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS } from './types';
 import { generateTitle } from './services/geminiService';
 import { dbService } from './services/dbService';
 import { syncService } from './services/syncService';
 import { autoSaveService, queueChatSave, queueSettingSave } from './services/autoSaveService';
+import { usePetState } from './src/hooks/usePetState';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -48,6 +50,8 @@ const App: React.FC = () => {
   const [showBackupManager, setShowBackupManager] = useState(false);
   const [needsBackupImport, setNeedsBackupImport] = useState(false);
   const [hydrationSource, setHydrationSource] = useState<'none' | 'local' | 'server'>('none');
+  const [isStudyClockOpen, setIsStudyClockOpen] = useState(false); // State for Study Clock visibility
+  const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
     if (!prompts || prompts.length === 0) return DEFAULT_SAVED_PROMPTS;
@@ -546,6 +550,20 @@ const App: React.FC = () => {
     }
   }, [currentSessionId, updateMessages]);
 
+  const handlePetSessionCelebrate = useCallback(
+    (info: { isBreak: boolean; modeType: string; duration: number; pomodoroNumber?: number }) => {
+      if (info.isBreak) {
+        petBridge.addXP?.(10);
+        petBridge.setMood?.('playful');
+      } else {
+        petBridge.addXP?.(50);
+        petBridge.setMood?.('celebrating');
+        setTimeout(() => petBridge.setMood?.('happy'), 4000);
+      }
+    },
+    [petBridge]
+  );
+
   if (!currentUser) return <AuthPage onLogin={handleLogin} securityMode={settings.securityMode} />;
   if (isLocked) return <AuthPage onLogin={() => setIsLocked(false)} securityMode={settings.securityMode} isLocked={true} lockedUser={currentUser} />;
 
@@ -606,6 +624,7 @@ const App: React.FC = () => {
           currentUser={currentUser}
           isDarkMode={settings.theme !== 'light'}
           settings={settings}
+          petBridge={petBridge}
           onSelect={(id) => { setCurrentSessionId(id); setIsTrainingOpen(false); setIsStudyNotesOpen(false); if (window.innerWidth < 768) setSidebarOpen(false); }}
           onNew={createNewSession}
           onDelete={deleteSession}
@@ -617,6 +636,7 @@ const App: React.FC = () => {
           onToggleMatrix={toggleMatrixMode}
           onOpenTraining={openTraining}
           onOpenStudyNotes={openStudyNotes}
+          onOpenStudyClock={() => setIsStudyClockOpen(true)}
           onOpenCanvas={openCanvas}
           onLock={() => setIsLocked(true)}
           onOpenVisionMode={() => {
@@ -626,7 +646,7 @@ const App: React.FC = () => {
           toggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
         />
 
-        <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 ${isSidebarOpen ? 'md:ml-0' : ''} pt-14 md:pt-0 z-10`}>
+        <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 md:ml-72 pt-14 md:pt-0 z-10`}>
           <div className={`h-14 px-4 hidden md:flex items-center gap-3 border-b ${isTron ? 'border-tron-cyan/40 bg-black/70 backdrop-blur shadow-[0_0_10px_rgba(0,243,255,0.15)]' : 'bg-white/80 dark:bg-zinc-900/80 border-gray-200 dark:border-zinc-800 backdrop-blur-sm'}`}>
             <img
               src="/image/rangersmyth-pic.png"
@@ -699,6 +719,7 @@ const App: React.FC = () => {
               onPetCommand={handlePetCommand} // Pass the new pet command handler
               onOpenCanvas={openCanvas} // Pass the canvas opener
               saveImageToLocal={saveImageToLocal} // Pass the image saving function
+              petBridge={petBridge}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -727,6 +748,56 @@ const App: React.FC = () => {
             settings={settings}
             onSave={setSettings}
             onOpenBackupManager={() => setShowBackupManager(true)}
+            onOpenTraining={openTraining}
+            sessions={sessions}
+            currentId={currentId}
+            onExportChat={(session) => {
+              const md = `# ${session.title}\n\n${session.messages.map((m: any) => `**${m.role}:** ${m.content}`).join('\n\n')}`;
+              const blob = new Blob([md], { type: 'text/markdown' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${session.title.replace(/[^a-z0-9]/gi, '_')}.md`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            onExportAll={async () => {
+              try {
+                const data = await dbService.exportAll();
+                const json = JSON.stringify(data, null, 2);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `rangerplex-backup-${timestamp}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch (error) {
+                console.error('Export all failed:', error);
+                alert('Failed to export data. Please try again.');
+              }
+            }}
+            onPurgeAll={async () => {
+              try {
+                await dbService.clearChats();
+                await dbService.clearSettings();
+                await dbService.clearAllWin95States();
+                localStorage.removeItem('rangerplex_canvas_boards');
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                  if (key.startsWith('win95_state_')) {
+                    localStorage.removeItem(key);
+                  }
+                });
+                setSessions([]);
+                setCurrentId(null);
+                window.location.reload();
+              } catch (error) {
+                console.error('Purge failed:', error);
+                alert('Failed to purge data. Please try again.');
+              }
+            }}
           />
         )}
 
@@ -748,6 +819,17 @@ const App: React.FC = () => {
             onSettingsChange={(updates) => setSettings({ ...settings, ...updates })}
             theme={settings.theme}
             externalToggleSignal={radioToggleSignal}
+          />
+        )}
+
+        {/* Study Clock */}
+        {currentUser && isStudyClockOpen && (
+          <StudyClock
+            userId={currentUser}
+            theme={settings.theme}
+            enableCloudSync={settings.enableCloudSync}
+            onSessionComplete={handlePetSessionCelebrate}
+            onClose={() => setIsStudyClockOpen(false)}
           />
         )}
 

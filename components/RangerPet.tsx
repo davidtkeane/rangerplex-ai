@@ -31,9 +31,10 @@ const RangerPet: React.FC<RangerPetProps> = ({ isVisible, onClose, message }) =>
         <div className={`fixed bottom-20 right-4 z-50 transition-all duration-300 ${animationClass}`}>
             <div className="bg-gradient-to-br from-purple-700 to-indigo-900 border border-purple-500 rounded-lg shadow-lg p-4 flex items-center space-x-4 text-white">
                 <img
-                    src="/image/ai-avatar.png" // Placeholder image for now
+                    src="/assets/pets/cyber_cat_idle_animated.gif"
                     alt="Ranger Pet"
                     className="w-16 h-16 rounded-full border-2 border-purple-300 object-cover"
+                    style={{ imageRendering: 'pixelated' }}
                 />
                 <div>
                     <p className="font-bold text-lg">Ranger Pet</p>

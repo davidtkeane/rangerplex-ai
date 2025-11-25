@@ -548,3 +548,89 @@ export const getModelBadges = (modelId: string): string => {
 
   return badges.join(' ');
 };
+
+// ============================================
+// Study Clock Types
+// ============================================
+
+export interface StudyClockSettings {
+  // Pomodoro durations
+  workDuration: number; // Default: 25 minutes (1500 seconds)
+  shortBreakDuration: number; // Default: 5 minutes (300 seconds)
+  longBreakDuration: number; // Default: 15 minutes (900 seconds)
+  pomodorosUntilLongBreak: number; // Default: 4
+
+  // Auto behaviors
+  autoStartBreaks: boolean; // Default: true
+  autoStartWork: boolean; // Default: false
+
+  // Alerts
+  soundEnabled: boolean; // Default: true
+  soundType: 'chime' | 'voice' | 'silent'; // Default: 'chime'
+  voiceAlertsEnabled: boolean; // Default: false (requires ElevenLabs)
+  desktopNotifications: boolean; // Default: true
+
+  // Visual
+  showProgressRing: boolean; // Default: true
+  showSessionCount: boolean; // Default: true
+  minimizeOnStart: boolean; // Default: false
+
+  // Integration
+  autoControlRadio: boolean; // Default: false
+  radioStationDuringWork?: string; // Default: undefined
+  radioStationDuringBreak?: string; // Default: undefined
+  pauseRadioDuringBreak: boolean; // Default: false
+  promptForNotes: boolean; // Default: true
+}
+
+export interface TimerMode {
+  type: 'pomodoro' | 'countdown' | 'stopwatch';
+  duration: number; // in seconds
+  isBreak: boolean;
+}
+
+export interface TimerState {
+  mode: TimerMode;
+  timeRemaining: number; // in seconds
+  isRunning: boolean;
+  isPaused: boolean;
+  currentSession: number; // Current pomodoro number (1-4)
+  pomodorosCompleted: number; // Total today
+  sessionStartTime?: number; // Unix timestamp when session started
+}
+
+export interface StudyClockState {
+  // Timer state
+  timer: TimerState;
+
+  // UI state
+  isMinimized: boolean;
+  isOpen: boolean;
+
+  // Settings
+  settings: StudyClockSettings;
+
+  // Today's quick stats
+  todayStudyTime: number; // seconds
+  todayPomodorosCompleted: number;
+}
+
+// Default settings
+export const DEFAULT_STUDY_CLOCK_SETTINGS: StudyClockSettings = {
+  workDuration: 1500, // 25 minutes
+  shortBreakDuration: 300, // 5 minutes
+  longBreakDuration: 900, // 15 minutes
+  pomodorosUntilLongBreak: 4,
+  autoStartBreaks: true,
+  autoStartWork: false,
+  soundEnabled: true,
+  soundType: 'chime',
+  voiceAlertsEnabled: false,
+  desktopNotifications: true,
+  showProgressRing: true,
+  showSessionCount: true,
+  minimizeOnStart: false,
+  autoControlRadio: false,
+  pauseRadioDuringBreak: false,
+  promptForNotes: true,
+};

@@ -2,6 +2,7 @@ import { dbService } from './dbService';
 import { syncService } from './syncService';
 import { canvasDbService, CanvasBoardRecord } from './canvasDbService';
 import { win95DbService, Win95State } from './win95DbService';
+import { studySessionDbService, StudySession } from './studySessionDbService';
 
 type Listener = (...args: any[]) => void;
 
@@ -128,6 +129,43 @@ export const queueWin95StateSave = (userId: string, state: Win95State, enableClo
         type: 'win95_state_update',
         userId,
         data: state,
+        timestamp: Date.now()
+      });
+    }
+
+    if (onSynced) onSynced();
+  });
+};
+
+export const queueStudySessionSave = (session: StudySession, enableCloudSync: boolean, onSynced?: () => void) => {
+  autoSaveService.queueSave(`study:${session.id}`, async () => {
+    // Tier 2: Save to IndexedDB
+    await studySessionDbService.saveSession(session);
+
+    // Tier 3: Sync to Cloud (if enabled)
+    if (enableCloudSync) {
+      syncService.send({
+        type: 'study_session_update',
+        userId: session.userId,
+        data: session,
+        timestamp: Date.now()
+      });
+    }
+
+    if (onSynced) onSynced();
+  });
+};
+
+export const queueStudySessionsSave = (sessions: StudySession[], enableCloudSync: boolean, onSynced?: () => void) => {
+  autoSaveService.queueSave('study:sessions', async () => {
+    // Tier 2: Save to IndexedDB
+    await studySessionDbService.saveSessions(sessions);
+
+    // Tier 3: Sync to Cloud (if enabled)
+    if (enableCloudSync) {
+      syncService.send({
+        type: 'study_sessions_update',
+        data: sessions,
         timestamp: Date.now()
       });
     }

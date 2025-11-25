@@ -10,6 +10,7 @@ import FazalEasterEgg from './FazalEasterEgg';
 import SowmyaEasterEgg from './SowmyaEasterEgg';
 import MichaelEasterEgg from './MichaelEasterEgg';
 import Win95EasterEgg from './Win95EasterEgg';
+import { PetState } from '../src/hooks/usePetState';
 import { streamGeminiResponse } from '../services/geminiService';
 import { streamOllamaResponse } from '../services/ollamaService';
 import { streamOpenAIResponse } from '../services/openaiService';
@@ -40,6 +41,11 @@ interface ChatInterfaceProps {
     onPetCommand: () => void; // New prop
     onOpenCanvas?: () => void; // Canvas Easter egg
     saveImageToLocal: (url?: string) => Promise<string | undefined>;
+    petBridge?: {
+        pet: PetState | null;
+        addXP?: (amount: number) => void;
+        setMood?: (mood: PetState['mood']) => void;
+    };
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -56,7 +62,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     showHolidayButtons,
     onPetCommand, // Destructure new prop
     onOpenCanvas, // Destructure Canvas opener
-    saveImageToLocal
+    saveImageToLocal,
+    petBridge
 }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
     const [isStreaming, setIsStreaming] = useState(false);
@@ -192,11 +199,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
             // --- PET CHAT HANDLING ---
             if (isPetChat) {
-                const petName = settings.petName || 'Pixel';
-                const petPersonality = `You are ${petName}, a friendly and loyal cyber-cat. You are talking to your owner, the Commander. Respond in a cute, slightly curious, cat-like manner. Keep your responses short and sweet (1-2 sentences). Use purrs, meows, and other cat sounds occasionally.`;
+                const petName = petBridge?.pet?.name || settings.petName || 'Pixel';
+                const petMood = petBridge?.pet?.mood || 'happy';
+                const petLevel = petBridge?.pet?.level || 1;
+                const petBonds = petBridge?.pet?.bonds || 0;
+                const petPersonality = `You are ${petName}, a friendly and loyal cyber-cat (Level ${petLevel}, Mood: ${petMood}, Bonds: ${petBonds}). You talk to your Commander with short (<=2 sentences), warm, encouraging replies. Sprinkle gentle cat sounds (purr, meow) occasionally. Celebrate focus, study wins, and calm anxious feelings. Stay playful and positive.`;
                 textToSend = `${petPersonality}\n\nCommander says: "${text}"`;
                 modelToUse = ModelType.FAST; // Force Gemini Flash for pet chat
                 isPetResponse = true;
+                petBridge?.addXP?.(5);
+                petBridge?.setMood?.('happy' as any);
                 console.log(`🐾 Pet Chat initiated with ${petName}!`);
             }
 

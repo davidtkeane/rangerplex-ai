@@ -15,6 +15,12 @@ interface SettingsModalProps {
     settings: AppSettings;
     onSave: (newSettings: AppSettings) => void;
     onOpenBackupManager?: () => void;
+    onOpenTraining?: () => void;
+    sessions?: any[];
+    currentId?: string | null;
+    onExportChat?: (session: any) => void;
+    onExportAll?: () => void;
+    onPurgeAll?: () => void;
 }
 
 const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }: any) => (
@@ -31,7 +37,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }
     </div>
 );
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
     const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'search' | 'council' | 'prompts' | 'security' | 'data' | 'help'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
@@ -1108,18 +1114,87 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     {/* DATA & BACKUP TAB */}
                     {activeTab === 'data' && (
                         <div className="space-y-6">
-                            <h3 className="font-bold mb-4 border-b border-inherit pb-2">Data & Backup</h3>
-                            <div className="flex flex-wrap gap-3 items-center">
-                                <button
-                                    onClick={() => {
-                                        onClose();
-                                        onOpenBackupManager?.();
-                                    }}
-                                    className="px-4 py-2 rounded-full font-bold text-sm bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow hover:shadow-lg transition-all"
-                                >
-                                    Open Backup & Restore
-                                </button>
-                                <span className="text-xs opacity-70">Launch the dedicated backup/import UI (includes preview, merge/replace, and progress).</span>
+                            <h3 className="font-bold mb-4 border-b border-inherit pb-2">Data & Tools</h3>
+
+                            {/* Quick Tools Section */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                    <i className="fa-solid fa-tools"></i>
+                                    Quick Tools
+                                </h4>
+                                <div className="flex flex-wrap gap-3">
+                                    {onOpenTraining && (
+                                        <button
+                                            onClick={() => {
+                                                onClose();
+                                                onOpenTraining();
+                                            }}
+                                            className="px-4 py-2 rounded-full font-bold text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow hover:shadow-lg transition-all"
+                                        >
+                                            <i className="fa-solid fa-dumbbell mr-2"></i>
+                                            Model Training
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => {
+                                            onClose();
+                                            onOpenBackupManager?.();
+                                        }}
+                                        className="px-4 py-2 rounded-full font-bold text-sm bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow hover:shadow-lg transition-all"
+                                    >
+                                        <i className="fa-solid fa-clock-rotate-left mr-2"></i>
+                                        Backup & Restore
+                                    </button>
+                                </div>
+                                <p className="text-xs opacity-70 mt-2">Access Model Training or launch the dedicated Backup/Restore UI (includes preview, merge/replace, and progress).</p>
+                            </div>
+
+                            {/* Export & Purge Section */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                    <i className="fa-solid fa-file-export"></i>
+                                    Export & Purge
+                                </h4>
+                                <div className="flex flex-wrap gap-3">
+                                    {currentId && sessions?.find((s: any) => s.id === currentId) && onExportChat && (
+                                        <button
+                                            onClick={() => {
+                                                const session = sessions.find((s: any) => s.id === currentId);
+                                                if (session) {
+                                                    onExportChat(session);
+                                                }
+                                            }}
+                                            className="px-4 py-2 rounded-full font-bold text-sm bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow hover:shadow-lg transition-all"
+                                        >
+                                            <i className="fa-solid fa-file-export mr-2"></i>
+                                            Export Current Chat
+                                        </button>
+                                    )}
+                                    {onExportAll && (
+                                        <button
+                                            onClick={onExportAll}
+                                            className="px-4 py-2 rounded-full font-bold text-sm bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow hover:shadow-lg transition-all"
+                                        >
+                                            <i className="fa-solid fa-download mr-2"></i>
+                                            Export All Data
+                                        </button>
+                                    )}
+                                    {onPurgeAll && (
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('⚠️ This will delete ALL data (chats, settings, canvas boards, Win95 states, study sessions). Continue?')) {
+                                                    onPurgeAll();
+                                                    onClose();
+                                                }
+                                            }}
+                                            className="px-4 py-2 rounded-full font-bold text-sm bg-gradient-to-r from-red-500 to-orange-500 text-white shadow hover:shadow-lg transition-all"
+                                        >
+                                            <i className="fa-solid fa-trash-can mr-2"></i>
+                                            Purge All Data
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-xs opacity-70 mt-2">Export conversations as markdown or backup all data. Purge permanently deletes all stored data.</p>
                             </div>
 
                             {/* Save status notifications */}

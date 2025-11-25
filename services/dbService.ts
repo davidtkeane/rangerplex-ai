@@ -48,12 +48,30 @@ interface RangerPlexDB extends DBSchema {
         };
         indexes: { 'by-modified': number };
     };
+    study_sessions: {
+        key: string; // Format: sessionId
+        value: {
+            id: string;
+            userId: string;
+            startTime: number;
+            endTime: number;
+            duration: number;
+            timerType: 'pomodoro' | 'countdown' | 'stopwatch';
+            isBreak: boolean;
+            pomodoroNumber?: number;
+            subject?: string;
+            notes?: string;
+            completed: boolean;
+            created: number;
+        };
+        indexes: { 'by-userId': string; 'by-startTime': number; 'by-created': number };
+    };
 }
 
 class DBService {
     private db: IDBPDatabase<RangerPlexDB> | null = null;
     private dbName = 'rangerplex-db';
-    private version = 4; // Bumped to create win95_state store
+    private version = 5; // Bumped to create study_sessions store
 
     async init() {
         if (this.db) return this.db;
@@ -83,6 +101,15 @@ class DBService {
                     const win95Store = db.createObjectStore('win95_state', { keyPath: 'userId' });
                     win95Store.createIndex('by-modified', 'modified');
                     console.log('✅ Created win95_state store');
+                }
+
+                // Create study sessions store
+                if (!db.objectStoreNames.contains('study_sessions')) {
+                    const studyStore = db.createObjectStore('study_sessions', { keyPath: 'id' });
+                    studyStore.createIndex('by-userId', 'userId');
+                    studyStore.createIndex('by-startTime', 'startTime');
+                    studyStore.createIndex('by-created', 'created');
+                    console.log('✅ Created study_sessions store');
                 }
             },
         });
@@ -229,16 +256,20 @@ class DBService {
         // Export Win95 states from IndexedDB
         const win95States = await db.getAll('win95_state');
 
+        // Export study sessions from IndexedDB
+        const studySessions = await db.getAll('study_sessions');
+
         // Export canvas boards from localStorage (backup location)
         const localCanvasBoards = localStorage.getItem('rangerplex_canvas_boards');
 
         return {
-            version: '2.4.7',
+            version: '2.4.9',
             exportedAt: Date.now(),
             chats,
             settings,
             canvasBoards,
             win95States,
+            studySessions,
             localCanvasBoards: localCanvasBoards ? JSON.parse(localCanvasBoards) : null
         };
     }
@@ -273,6 +304,15 @@ class DBService {
                 await db.put('win95_state', state);
             }
             console.log('✅ Imported Win95 states');
+        }
+
+        // Import study sessions to IndexedDB
+        if (data.studySessions && data.studySessions.length > 0) {
+            await db.clear('study_sessions');
+            for (const session of data.studySessions) {
+                await db.put('study_sessions', session);
+            }
+            console.log('✅ Imported study sessions');
         }
 
         // Import canvas boards to localStorage (backup location)

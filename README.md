@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.4.7-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.4.8-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -44,6 +44,7 @@ It runs locally on your machine (`localhost`), stores data privately in your bro
 *   **Code Interpreter**: Runs **Python** code directly in your browser using Pyodide to analyze data and generate charts.
 *   **Live Artifacts**: Renders HTML/React code (games, dashboards) directly in the chat stream.
 *   **Study Notes**: Inline note board with colors, priorities, due dates, pinning, and JSON import/export.
+*   **Study Clock** 🕐: Pomodoro timer with 3-Tier Persistence for building healthy study habits. Features circular progress ring, session tracking, daily stats, desktop notifications, and full accessibility support for ADHD/dyslexia.
 
 ### 🎨 The Studio
 *   **Image Generation**: Parallel generation using DALL-E 3, Imagen 3, and Flux.1.
