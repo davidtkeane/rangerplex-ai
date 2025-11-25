@@ -378,7 +378,7 @@ prepare_deps() {
     fi
   fi
 
-  spinner "Installing npm dependencies (npm ci)..." npm ci
+  spinner "Installing npm dependencies (npm install)..." npm install
   ok "Dependencies installed."
 
   # Save current Node version for future checks
