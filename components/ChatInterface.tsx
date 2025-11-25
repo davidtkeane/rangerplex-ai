@@ -335,6 +335,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🛡️  REPUTATION  :: /reputation <domain>     ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
+                    helpMsg += `╠════ FUN & ENTERTAINMENT ═════════════════════╣\n`;
+                    helpMsg += `║ 🥋  CHUCK       :: /chuck                   ║\n`;
                     helpMsg += `╠════ CREATIVE SUITE ══════════════════════════╣\n`;
                     helpMsg += `║ 🎨  IMAGINE     :: /imagine <prompt>        ║\n`;
                     helpMsg += `║ ♾️   CANVAS      :: canvas                   ║\n`;
@@ -661,6 +663,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `**Requires:** VirusTotal API key (same as /scan) in Settings → Providers.\n\n`;
                     helpMsg += `**Outputs:** Detection stats (malicious/suspicious/harmless), file type, size, first/last submission times, and known filenames.\n\n`;
                     helpMsg += `**Pro Tip:** Submit the sample separately if not found, or try another hash variant (MD5 vs SHA256).`;
+                }
+                else if (cmd === 'chuck') {
+                    helpMsg = `### 🥋 Command: /chuck\n\n`;
+                    helpMsg += `**Usage:** \`/chuck\`\n`;
+                    helpMsg += `**Purpose:** Fetches a random Chuck Norris fact from the legendary database of Chuck Norris jokes.\n\n`;
+                    helpMsg += `**Features:**\n`;
+                    helpMsg += `- Hand-curated Chuck Norris facts\n`;
+                    helpMsg += `- Free API (no key required)\n`;
+                    helpMsg += `- Categories included when available\n`;
+                    helpMsg += `- Full source attribution\n\n`;
+                    helpMsg += `**Sources:**\n`;
+                    helpMsg += `- [Chuck Norris Jokes API](https://api.chucknorris.io/)\n`;
+                    helpMsg += `- [GitHub - chucknorris-io](https://github.com/chucknorris-io/chuck-api)\n`;
+                    helpMsg += `- [Free Public APIs](https://www.freepublicapis.com/chuck-norris-jokes-api)\n\n`;
+                    helpMsg += `**Pro Tip:** Need a laugh during intense OSINT sessions? Chuck's got your back! 💪`;
                 }
                 else {
                     // Generic fallback for other commands or unknown inputs
@@ -2462,7 +2479,50 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 10. Certificate Transparency (/certs)
+            // 10. Chuck Norris Facts (/chuck)
+            if (text.startsWith('/chuck')) {
+                setProcessingStatus("Consulting Chuck Norris...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/fun/chuck`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    }).then(r => r.json());
+
+                    if (!res.success && res.error) {
+                        throw new Error(res.error);
+                    }
+
+                    const joke = res.joke || res.fallback;
+                    let msg = `## 🥋 Chuck Norris Fact\n\n`;
+                    msg += `${joke}\n\n`;
+
+                    if (res.categories && res.categories.length > 0) {
+                        msg += `**Category:** ${res.categories.join(', ')}\n\n`;
+                    }
+
+                    msg += `---\n\n**Sources:**\n`;
+                    res.sources.forEach((source: any) => {
+                        msg += `- [${source.name}](${source.url})\n`;
+                    });
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    const fallbackMsg = `## 🥋 Chuck Norris Fact\n\nChuck Norris doesn't need APIs. APIs call Chuck Norris.\n\n*Note: ${e.message}*`;
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: fallbackMsg, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 11. Certificate Transparency (/certs)
             if (text.startsWith('/certs')) {
                 setProcessingStatus("Querying Certificate Transparency logs...");
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';

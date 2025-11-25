@@ -2319,6 +2319,45 @@ app.post('/api/tools/nmap', async (req, res) => {
     }
 });
 
+// Chuck Norris Jokes (api.chucknorris.io)
+app.post('/api/fun/chuck', async (req, res) => {
+    try {
+        console.log('🥋 Fetching Chuck Norris fact...');
+
+        const apiUrl = 'https://api.chucknorris.io/jokes/random';
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            throw new Error(`Chuck Norris API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        res.json({
+            success: true,
+            joke: data.value,
+            id: data.id,
+            icon_url: data.icon_url,
+            url: data.url,
+            categories: data.categories || [],
+            sources: [
+                { name: 'Chuck Norris Jokes API', url: 'https://api.chucknorris.io/' },
+                { name: 'GitHub - chucknorris-io/chuck-api', url: 'https://github.com/chucknorris-io/chuck-api' },
+                { name: 'Free Public APIs - Chuck Norris', url: 'https://www.freepublicapis.com/chuck-norris-jokes-api' }
+            ]
+        });
+
+        console.log(`✅ Chuck Norris fact retrieved: ${data.id}`);
+    } catch (error) {
+        console.error('❌ Chuck Norris API error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to fetch Chuck Norris fact',
+            fallback: "Chuck Norris doesn't need APIs. APIs call Chuck Norris."
+        });
+    }
+});
+
 // Certificate Transparency Lookup (crt.sh)
 app.post('/api/tools/certs', async (req, res) => {
     try {

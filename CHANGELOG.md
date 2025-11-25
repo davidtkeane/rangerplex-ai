@@ -2,6 +2,54 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.28 - "Chuck Norris Edition" 🥋
+*Released: Nov 25, 2025*
+
+**Fun & Entertainment Feature.** Added `/chuck` command to fetch random Chuck Norris facts from the legendary api.chucknorris.io database. Because even the most intense OSINT sessions need a good laugh!
+
+### 🥋 Chuck Norris Facts Integration
+*   **Command**: `/chuck` - Fetches random Chuck Norris jokes/facts
+*   **Backend Endpoint** (`proxy_server.js:2322-2359`): **38 lines added**
+    - New endpoint: `POST /api/fun/chuck`
+    - Fetches from `https://api.chucknorris.io/jokes/random`
+    - No API key required (free public API)
+    - Returns joke, ID, icon URL, and categories
+    - Includes fallback joke if API fails
+    - Three source attributions included in response
+*   **Frontend Handler** (`ChatInterface.tsx:2465-2506`): **42 lines added**
+    - Command handler for `/chuck` command
+    - Displays joke with 🥋 icon
+    - Shows categories when available
+    - Includes clickable source links in markdown format
+    - Fallback message with humor if API fails
+*   **Help Menu Updates** (`ChatInterface.tsx:338-339, 667-681`):
+    - Added new "FUN & ENTERTAINMENT" section to `/help` menu
+    - Detailed help entry for `/help chuck` with full documentation
+    - Lists all three sources with hyperlinks
+    - Pro tip included
+
+### 📚 Sources & Attribution
+All responses include full attribution to:
+1. [Chuck Norris Jokes API](https://api.chucknorris.io/)
+2. [GitHub - chucknorris-io/chuck-api](https://github.com/chucknorris-io/chuck-api)
+3. [Free Public APIs - Chuck Norris](https://www.freepublicapis.com/chuck-norris-jokes-api)
+
+### 🎯 Features
+*   ✅ Hand-curated Chuck Norris facts
+*   ✅ No API key required
+*   ✅ Categories included when available
+*   ✅ Full source attribution (3 sources)
+*   ✅ Fallback joke if API unavailable
+*   ✅ Beautiful markdown formatting with emojis
+*   ✅ Integrated help documentation
+
+### 🏆 Arsenal Update
+*   **Total Tools**: 24/25 completed (96% complete!)
+*   **New Category**: Fun & Entertainment
+*   **Latest Addition**: Chuck Norris Facts (/chuck)
+
+---
+
 ## v2.5.27 - "Local AI Polish" 🔧
 *Released: Nov 25, 2025*
 

@@ -260,9 +260,9 @@ install_pm2() {
   fi
 }
 
-########################
-# Ollama (Optional)    #
-########################
+####################################
+# Local AI Providers (Optional)   #
+####################################
 check_ollama() {
   if command -v ollama >/dev/null 2>&1; then
     ok "Ollama already installed ($(ollama --version))."
@@ -273,10 +273,16 @@ check_ollama() {
   warn "Ollama not detected. Ollama enables local AI models (Llama, Mistral, DeepSeek, etc.)."
   log "${dim}Ollama is OPTIONAL - RangerPlex works with cloud models (Gemini, Claude, GPT).${reset}"
   log "${dim}But if you want privacy-first local AI, Ollama is the way!${reset}"
+  log
+  log "${dim}💡 Alternative: LM Studio provides a GUI for local models${reset}"
+  log "${dim}   Download from: ${cyan}https://lmstudio.ai/${reset}"
+  log
   printf "Install Ollama now? (y/N): "
   read -r reply
   if [[ ! "$reply" =~ ^[Yy]$ ]]; then
-    log "${dim}Skipped Ollama. Install later from https://ollama.com${reset}"
+    log "${dim}Skipped Ollama. Install later from:${reset}"
+    log "${dim}   • Ollama: ${cyan}https://ollama.com${reset}"
+    log "${dim}   • LM Studio: ${cyan}https://lmstudio.ai/${reset}"
     return 0
   fi
 
@@ -370,21 +376,55 @@ collect_env() {
     warn "Backed up existing .env to $(basename "$backup_name")"
   fi
 
+  # Show helpful dashboard links organized by category
+  log
+  log "${bold}${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}"
+  log "${bold}          📋 API Dashboard Links (Clickable in Terminal)${reset}"
+  log "${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}"
+  log
+  log "${bold}🤖 AI Providers (ESSENTIAL - Need at least ONE):${reset}"
+  log "   ${green}•${reset} Google AI Studio:  ${cyan}https://aistudio.google.com/${reset}"
+  log "   ${green}•${reset} Google Cloud:      ${cyan}https://console.cloud.google.com/${reset}"
+  log "   ${green}•${reset} Google Developers: ${cyan}https://developers.google.com/${reset}"
+  log "   ${green}•${reset} OpenAI Platform:   ${cyan}https://platform.openai.com/${reset}"
+  log "   ${green}•${reset} Anthropic Console: ${cyan}https://console.anthropic.com/${reset}"
+  log
+  log "${bold}🔍 Search & Intelligence (OPTIONAL):${reset}"
+  log "   ${yellow}•${reset} Perplexity:        ${cyan}https://www.perplexity.ai/${reset}"
+  log "   ${yellow}•${reset} Brave Search:      ${cyan}https://api-dashboard.search.brave.com/${reset}"
+  log "   ${yellow}•${reset} xAI Grok:          ${cyan}https://console.x.ai/${reset}"
+  log
+  log "${bold}🔐 Security & Network APIs (OPTIONAL):${reset}"
+  log "   ${yellow}•${reset} HaveIBeenPwned:    ${cyan}https://haveibeenpwned.com/${reset}"
+  log "   ${yellow}•${reset} Shodan:            ${cyan}https://account.shodan.io/${reset}"
+  log "   ${yellow}•${reset} IPInfo:            ${cyan}https://ipinfo.io/${reset}"
+  log "   ${yellow}•${reset} Numverify:         ${cyan}https://numverify.com/${reset}"
+  log "   ${yellow}•${reset} Abstract API:      ${cyan}https://app.abstractapi.com/${reset}"
+  log
+  log "${bold}🖥️  Local AI (NO API KEY NEEDED):${reset}"
+  log "   ${green}•${reset} Ollama (Mac):      ${cyan}https://ollama.com/download/mac${reset}"
+  log "   ${green}•${reset} Ollama (Windows):  ${cyan}https://ollama.com/download/windows${reset}"
+  log "   ${green}•${reset} LM Studio:         ${cyan}https://lmstudio.ai/${reset}"
+  log
+  log "${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}"
+  log
+
   # IMPORTANT: All variables MUST have VITE_ prefix to work with Vite!
   declare -a providers=(
     "Gemini (Google AI)|VITE_GEMINI_API_KEY|https://aistudio.google.com/app/apikey|ESSENTIAL"
     "OpenAI (GPT-4)|VITE_OPENAI_API_KEY|https://platform.openai.com/api-keys|ESSENTIAL"
     "Anthropic (Claude)|VITE_ANTHROPIC_API_KEY|https://console.anthropic.com/settings/keys|ESSENTIAL"
     "Perplexity|VITE_PERPLEXITY_API_KEY|https://www.perplexity.ai/settings/api|OPTIONAL"
-    "Brave Search (Web Search)|VITE_BRAVE_SEARCH_API_KEY|https://brave.com/search/api|OPTIONAL"
+    "Brave Search (Web Search)|VITE_BRAVE_SEARCH_API_KEY|https://api-dashboard.search.brave.com/|OPTIONAL"
     "Hugging Face|VITE_HUGGINGFACE_ACCESS_TOKEN|https://huggingface.co/settings/tokens|OPTIONAL"
-    "xAI Grok|VITE_GROK_API_KEY|https://console.x.ai|OPTIONAL"
+    "xAI Grok|VITE_GROK_API_KEY|https://console.x.ai/|OPTIONAL"
     "ElevenLabs (Voice)|VITE_ELEVENLABS_API_KEY|https://elevenlabs.io/app/speech-synthesis|OPTIONAL"
   )
 
   log
   step "API key setup (press ENTER to skip any provider)."
   log "${dim}Tip: At minimum, add ONE of: Gemini, OpenAI, or Claude to use the app.${reset}"
+  log "${dim}     Security APIs (HIBP, Shodan, IPInfo, etc.) can be added later in Settings.${reset}"
   log
 
   for entry in "${providers[@]}"; do

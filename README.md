@@ -70,6 +70,11 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 *   **Company Intelligence** 🏢: Lookup company registry data using `/company <name|reg_number> [country]`. Returns legal name, status, officers, registered address, and filing history. Defaults to UK Companies House; supports OpenCorporates for international lookups. Requires API key(s).
 *   **Screenshot Capture** 📸: Capture live screenshots of websites using `/screenshot <url>`. High-quality 1920x1080 captures with Puppeteer (headless Chrome) for evidence collection, change detection, and phishing documentation. No API key required.
 *   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
+
+### 🥋 Fun & Entertainment
+*   **Chuck Norris Facts** 🥋: Get random Chuck Norris jokes using `/chuck`. Hand-curated facts from the legendary Chuck Norris database. No API key required. Includes full source attribution from [api.chucknorris.io](https://api.chucknorris.io/), [GitHub](https://github.com/chucknorris-io/chuck-api), and [Free Public APIs](https://www.freepublicapis.com/chuck-norris-jokes-api). Perfect for lightening the mood during intense OSINT sessions!
+
+### 🛠️ Productivity Tools
 *   **RAG (Document Chat)**: Drag & Drop PDFs, DOCX, and Text files. The AI reads them instantly.
 *   **Web Search Integration**: Toggle web search for LLMs with the 🌐 WEB button. Enable/disable automatic web search in Settings → Search tab.
 *   **Ranger Lens**: A split-screen "Reader Mode" that strips ads from websites for distraction-free analysis.
