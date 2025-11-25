@@ -1657,6 +1657,150 @@ app.post('/api/tools/ports', async (req, res) => {
     }
 });
 
+// Certificate Transparency Lookup (crt.sh)
+app.post('/api/tools/certs', async (req, res) => {
+    try {
+        const { domain } = req.body;
+        if (!domain) return res.status(400).json({ error: 'Domain is required' });
+
+        const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').toLowerCase();
+        console.log('📜 Certificate Transparency Lookup:', cleanDomain);
+
+        const crtUrl = `https://crt.sh/?q=${encodeURIComponent(cleanDomain)}&output=json`;
+        const response = await fetch(crtUrl, {
+            headers: { 'User-Agent': 'RangerPlex-OSINT/2.5.19' }
+        });
+
+        if (!response.ok) {
+            return res.status(500).json({ error: `crt.sh returned status ${response.status}` });
+        }
+
+        const raw = await response.text();
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (err) {
+            console.error('crt.sh non-JSON response preview:', raw.slice(0, 200));
+            return res.status(500).json({ error: 'crt.sh returned non-JSON response. Try again later.' });
+        }
+
+        const names = new Set();
+        const wildcards = new Set();
+        const issuers = {};
+        const certificates = [];
+        let firstSeen = null;
+        let lastSeen = null;
+
+        data.forEach((cert) => {
+            const entryTime = cert.entry_timestamp ? new Date(cert.entry_timestamp).getTime() : null;
+            if (entryTime) {
+                if (!firstSeen || entryTime < firstSeen) firstSeen = entryTime;
+                if (!lastSeen || entryTime > lastSeen) lastSeen = entryTime;
+            }
+
+            const nameValues = cert.name_value ? cert.name_value.split('\n') : [];
+            nameValues.forEach((raw) => {
+                const n = raw.trim().toLowerCase();
+                if (!n || !n.endsWith(cleanDomain)) return;
+                if (n.startsWith('*.')) wildcards.add(n);
+                else names.add(n);
+            });
+
+            if (cert.issuer_name) {
+                issuers[cert.issuer_name] = (issuers[cert.issuer_name] || 0) + 1;
+            }
+
+            certificates.push({
+                id: cert.id,
+                logged_at: cert.entry_timestamp,
+                not_before: cert.not_before,
+                not_after: cert.not_after,
+                issuer: cert.issuer_name,
+                serial_number: cert.serial_number
+            });
+        });
+
+        // Limit certificates to avoid overly large payloads
+        const trimmedCerts = certificates.slice(0, 150);
+
+        res.json({
+            domain: cleanDomain,
+            total_certificates: data.length,
+            unique_names: Array.from(names).sort(),
+            wildcards: Array.from(wildcards).sort(),
+            total_names: names.size,
+            total_wildcards: wildcards.size,
+            issuers,
+            certificates: trimmedCerts,
+            first_seen: firstSeen,
+            last_seen: lastSeen,
+            note: data.length > trimmedCerts.length ? 'Certificate list truncated for size' : null,
+            source: 'crt.sh'
+        });
+    } catch (error) {
+        console.error('❌ Certificate Transparency error:', error);
+        res.status(500).json({ error: error.message || 'Certificate lookup failed' });
+    }
+});
+
+// Hash Lookup (VirusTotal)
+app.post('/api/tools/hash', async (req, res) => {
+    try {
+        const { hash, apiKey } = req.body;
+        if (!hash) return res.status(400).json({ error: 'Hash is required' });
+        if (!apiKey) return res.status(400).json({ error: 'VirusTotal API key required' });
+
+        const normalizedHash = hash.trim().toLowerCase();
+        const hashRegex = /^[a-f0-9]{32,128}$/;
+        if (!hashRegex.test(normalizedHash)) {
+            return res.status(400).json({ error: 'Invalid hash format. Use MD5, SHA1, SHA256, or SHA512 hex.' });
+        }
+
+        console.log('🧬 Hash Lookup:', normalizedHash);
+
+        const vtUrl = `https://www.virustotal.com/api/v3/files/${encodeURIComponent(normalizedHash)}`;
+        const response = await fetch(vtUrl, {
+            headers: {
+                'x-apikey': apiKey,
+                'accept': 'application/json'
+            }
+        });
+
+        if (response.status === 404) {
+            return res.json({ status: 'not_found', hash: normalizedHash, source: 'VirusTotal' });
+        }
+
+        if (!response.ok) {
+            const text = await response.text();
+            return res.status(response.status).json({ error: `VirusTotal error ${response.status}: ${text}` });
+        }
+
+        const data = await response.json();
+        const attr = data?.data?.attributes || {};
+        const stats = attr.last_analysis_stats || {};
+        const names = Array.isArray(attr.names) ? attr.names.slice(0, 10) : [];
+
+        res.json({
+            status: 'found',
+            hash: normalizedHash,
+            stats,
+            reputation: attr.reputation,
+            first_submission: attr.first_submission_date ? attr.first_submission_date * 1000 : null,
+            last_modification: attr.last_modification_date ? attr.last_modification_date * 1000 : null,
+            type_description: attr.type_description,
+            size: attr.size,
+            names,
+            md5: attr.md5,
+            sha1: attr.sha1,
+            sha256: attr.sha256,
+            source: 'VirusTotal'
+        });
+    } catch (error) {
+        console.error('❌ Hash lookup error:', error);
+        res.status(500).json({ error: error.message || 'Hash lookup failed' });
+    }
+});
+
 // Domain Reputation Checker (Google Safe Browsing API)
 app.post('/api/tools/reputation', async (req, res) => {
     try {

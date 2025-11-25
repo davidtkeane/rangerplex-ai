@@ -1,4 +1,4 @@
-# RangerPlex Manual (v2.5.10)
+# RangerPlex Manual (v2.5.20)
 
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
 > Doc policy: Keep this manual and the plan as the primary docs. Only add new docs when strictly necessary (e.g., per-feature deep dives).
@@ -63,15 +63,26 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 ## Shortcuts & Commands
 - **Enter:** Send; **Shift+Enter:** New line.  
 - **Slash Prompts:** Start typing `/` to auto-complete saved prompts.  
-- **Special commands:**  
-  - `/imagine <prompt>` or natural “draw/generate” → Image generation.  
-  - `/imagine_all` → Multi-provider image generation.  
-  - `/pet` → Open Kitty widget. `/pet-chat <msg>` → Talk as/with Kitty.  
-  - `/scan <url>` → VirusTotal scan.  
-  - `/ports <ip_or_host> [ports]` → TCP port scan (40 common ports by default; optional comma list; authorization required).  
-  - `/whois <domain>` → Domain WHOIS.  
-  - `/dns <domain>` → DNS records.  
+- **Special commands:**
+  - `/imagine <prompt>` or natural "draw/generate" → Image generation.
+  - `/imagine_all` → Multi-provider image generation.
+  - `/pet` → Open Kitty widget. `/pet-chat <msg>` → Talk as/with Kitty.
+  - `/scan <url>` → VirusTotal file scan.
+  - `/hash <hash>` → VirusTotal hash intelligence (VT key required).
+  - `/certs <domain>` → Certificate Transparency lookup.
+  - `/profile <target>` → AI-powered OSINT profiler (automated recon).
   - Typing `canvas` exactly opens Canvas Board.
+- **OSINT Commands (Intelligence Gathering):**
+  - **Infrastructure:** `/shodan <ip>` → Shodan port/service scan.
+  - **Domain Recon:** `/whois <domain>`, `/dns <domain>`, `/subdomains <domain>`, `/certs <domain>`, `/reputation <domain>`.
+  - **Network Intel:** `/geoip <ip>`, `/myip`, `/ipinfo <ip>`, `/iprecon <ip>`, `/reverse <ip>`.
+  - **Port Scanning:** `/ports <ip_or_host> [ports]` → TCP scan (40 default ports; authorization required).
+  - **Security Checks:** `/ssl <domain>`, `/headers <url>`, `/breach <email>`, `/hash <hash>`.
+  - **Hardware:** `/mac <address>`, `/sys` → MAC vendor lookup and system info.
+  - **Communications:** `/phone <number>`, `/email <address>`.
+  - **Social Intel:** `/sherlock <username>` → Username search across 300+ platforms.
+  - **Financial:** `/crypto <coin>`, `/wallet <btc_address>`.
+  - **Digital Forensics:** `/exif <url>`, `/wayback <url>`, `/screenshot <url>`.
 - **Manual:** `/manual` opens the in-app manual overlay (Back button returns to chat).
 - **Voice:** Mic toggle in input area; speech-to-text fills the box.
 - **Copy Last Message:** Button under the chat input copies the most recent turn.
@@ -133,12 +144,63 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - **Behavior:** Saves locally first, then syncs (non-blocking). If offline, data stays queued until connection resumes.
 
 ## OSINT & Security Tools
-- **VirusTotal Scan:** `/scan <url>` shows malicious/suspicious/harmless counts plus link. Configure API key in Settings → Providers.  
-- **WHOIS & DNS:** `/whois` and `/dns` via local proxy endpoints; requires proxy server running for network access.  
-- **Port Scanner:** `/ports <ip_or_host> [ports]` runs TCP connect scans (defaults to ~40 common ports; optional comma-separated port list up to 100). Shows open/filtered/closed with latency and service hints. Only scan hosts you are authorized to test.  
-- **Reverse DNS/Subdomains:** `/reverse <ip>` to enumerate hosted domains; `/subdomains <domain>` via Certificate Transparency logs.  
-- **Reputation/Headers/SSL:** `/reputation <domain>` (Google Safe Browsing), `/headers <url>`, `/ssl <domain>`.  
-- **Audit Guides:** See `help-files/BROWSER_AUDIT_README.md` and related docs for storage cleanup and key safety.
+
+RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal with **19 completed tools** covering domain recon, network intel, security audits, social reconnaissance, financial tracking, and digital forensics.
+
+### Infrastructure & Network Intelligence
+- **`/shodan <ip>`** - Query Shodan API for open ports, vulnerabilities, and services. Requires API key (Settings → Providers).
+- **`/geoip <ip>`** - IP geolocation (city, region, country, ISP, timezone). No API key required.
+- **`/myip`** - Display your public IP address and basic info.
+- **`/ipinfo <ip>`** - Detailed IP information lookup.
+- **`/iprecon <ip>`** - Complete IP reconnaissance (combines multiple intel sources).
+- **`/ports <ip_or_host> [ports]`** - TCP port scanner. Default: 40 common ports. Custom: comma-separated list (up to 100). Shows open/closed/filtered status, latency, and service identification (28 services). **Authorization required!**
+
+### Domain & DNS Reconnaissance
+- **`/whois <domain>`** - Domain registration details (registrar, expiry, name servers, contact info).
+- **`/dns <domain>`** - DNS record lookup (A, AAAA, MX, TXT, NS records).
+- **`/subdomains <domain>`** - Discover subdomains via Certificate Transparency logs (crt.sh). Maps attack surfaces and finds hidden infrastructure.
+- **`/certs <domain>`** - Enumerate issued SSL certificates from Certificate Transparency logs; highlights wildcards, issuers, and history.
+- **`/reverse <ip>`** - Reverse DNS lookup. Find all domains hosted on an IP address. No API key required (HackerTarget API).
+- **`/reputation <domain>`** - Check domain against Google Safe Browsing for malware, phishing, and threats. Protects 5+ billion devices. Requires API key (free tier: 10,000 requests/day).
+
+### Security Auditing
+- **`/ssl <domain>`** - SSL/TLS certificate analysis (validity, expiry, issuer, cipher strength).
+- **`/headers <url>`** - HTTP security header audit (HSTS, CSP, X-Frame-Options, XSS protection).
+- **`/breach <email>`** - Check if email appears in data breaches (Have I Been Pwned API).
+- **`/scan <url>`** - VirusTotal file/URL scan. Shows malicious/suspicious/harmless counts. Requires API key.
+- **`/hash <hash>`** - VirusTotal hash intelligence (MD5/SHA1/SHA256/SHA512) with detection stats, filenames, and first/last seen. Requires API key.
+
+### Social & Identity Intelligence
+- **`/sherlock <username>`** - Search username across 300+ platforms (GitHub, Twitter, Instagram, etc.). Includes "Entrapment Filter" for false positive detection.
+- **`/profile <target>`** - AI-powered OSINT profiler. Automated reconnaissance agent that orchestrates multiple tools.
+
+### Hardware & System Info
+- **`/mac <address>`** - MAC address vendor lookup (identifies device manufacturer).
+- **`/sys`** - System information (OS, architecture, CPU, memory, uptime).
+
+### Communications Intelligence
+- **`/phone <number>`** - Phone number validation and lookup (country, carrier, line type). Uses NumVerify API (100 requests/month free).
+- **`/email <address>`** - Email address validation and analysis.
+
+### Financial Intelligence
+- **`/crypto <coin>`** - Cryptocurrency price lookup (BTC, ETH, etc.) via CoinGecko API. No API key required.
+- **`/wallet <btc_address>`** - Bitcoin wallet balance and transaction count via BlockCypher API.
+
+### Digital Forensics
+- **`/exif <url>`** - Extract EXIF metadata from images (GPS coordinates, camera model, software, timestamps).
+- **`/wayback <url>`** - Internet Archive lookup. Find historical website snapshots, view past versions, track changes, recover deleted content. Returns total snapshots, years archived, and latest snapshot URL.
+- **`/screenshot <url>`** - Capture live website screenshots using Puppeteer (headless Chrome). High-quality 1920x1080 resolution. Includes page metadata (title, dimensions, final URL). Perfect for evidence collection, change detection, and phishing documentation. No API key required.
+
+### Tool Integration
+- **Type `/help <command>`** for detailed docs on any tool (e.g., `/help shodan`, `/help screenshot`).
+- **The Profiler (`/profile`)** automatically runs multiple tools and generates comprehensive reports.
+- **Tool Chaining:** Many tools suggest complementary commands for deeper analysis (e.g., `/shodan` suggests `/geoip`, `/ssl`, `/reputation`).
+
+### Security & Legal Notes
+- **Authorization Required:** `/ports`, `/shodan`, and other network scanning tools should only be used on systems you own or have explicit permission to test.
+- **API Keys:** Some tools require free API keys (configurable in Settings → Providers): Shodan, Google Safe Browsing, VirusTotal, NumVerify.
+- **Rate Limits:** Free tier limits apply to most APIs. Paid plans available for higher volume.
+- **Audit Guides:** See `help-files/BROWSER_AUDIT_README.md` for storage cleanup and key safety best practices.
 
 ## Model Training & Data Tools
 - **Location:** Settings → Data & Tools tab.  
@@ -176,14 +238,38 @@ Key areas (see Settings modal):
 - **Contribute:** Star the repo, open issues, and submit PRs to improve RangerPlex.
 
 ## Glossary
-- **Canvas Board:** Visual board for notes/ideas.  
-- **Study Clock:** Pomodoro-style timer with history.  
-- **Kitty (Ranger Pet):** Gamified companion with XP/mood.  
-- **RAG:** Retrieval-Augmented Generation; uses document chunks.  
-- **Grounding Sources:** Cited sources for AI answers.  
-- **Autosave Service:** Debounced save queue that writes to IndexedDB and syncs.  
-- **Cloud Sync:** Optional local server sync for multi-session persistence.  
-- **OSINT:** Open Source Intelligence—WHOIS, DNS, VirusTotal tools.
+
+### General Terms
+- **Canvas Board:** Visual board for notes/ideas.
+- **Study Clock:** Pomodoro-style timer with history.
+- **Kitty (Ranger Pet):** Gamified companion with XP/mood.
+- **RAG:** Retrieval-Augmented Generation; uses document chunks.
+- **Grounding Sources:** Cited sources for AI answers.
+- **Autosave Service:** Debounced save queue that writes to IndexedDB and syncs.
+- **Cloud Sync:** Optional local server sync for multi-session persistence.
+
+### OSINT & Security Terms
+- **OSINT:** Open Source Intelligence—gathering information from publicly available sources (WHOIS, DNS, social media, public databases, etc.).
+- **Shodan:** Search engine for internet-connected devices. Finds open ports, vulnerabilities, and exposed services.
+- **WHOIS:** Protocol for querying domain registration data (registrar, owner, expiry dates).
+- **DNS (Domain Name System):** Translates domain names to IP addresses. Includes A, MX, TXT, NS records.
+- **Certificate Transparency:** Public log of SSL certificates. Used to discover subdomains and track certificate issuance.
+- **Reverse DNS (PTR):** Lookup that finds domain names associated with an IP address.
+- **Port Scanner:** Tool that probes TCP/UDP ports to identify open services and potential vulnerabilities.
+- **SSL/TLS:** Secure Sockets Layer / Transport Layer Security. Encrypts web traffic (HTTPS).
+- **EXIF Metadata:** Embedded data in images (GPS coordinates, camera model, timestamps, software).
+- **MAC Address:** Hardware identifier for network devices. First 6 digits identify the manufacturer.
+- **IP Geolocation:** Mapping IP addresses to physical locations (city, country, ISP).
+- **Safe Browsing API:** Google's database of malicious websites (malware, phishing, unwanted software).
+- **Wayback Machine:** Internet Archive's historical snapshot database of websites.
+- **Puppeteer:** Headless Chrome automation library. Used for screenshot capture and web scraping.
+- **VirusTotal:** Malware scanning service that aggregates 70+ antivirus engines.
+- **Have I Been Pwned (HIBP):** Database of compromised accounts from data breaches.
+- **Sherlock:** Username enumeration tool that searches across 300+ social media platforms.
+- **Entrapment Filter:** False positive detection system that identifies fake username matches.
+- **BlockCypher:** Blockchain API for cryptocurrency wallet lookups and transaction data.
+- **NumVerify:** Phone number validation API (carrier, line type, country).
+- **crt.sh:** Certificate Transparency log search engine for finding SSL certificates and subdomains.
 
 ---
 

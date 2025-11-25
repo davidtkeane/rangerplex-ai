@@ -325,6 +325,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
                     helpMsg += `║ 🔄  REVERSE_DNS :: /reverse <ip>            ║\n`;
                     helpMsg += `║ 🔌  PORT_SCAN   :: /ports <ip>              ║\n`;
+                    helpMsg += `║ 📜  CERTS       :: /certs <domain>          ║\n`;
+                    helpMsg += `║ 🧬  HASH LOOKUP :: /hash <hash>             ║\n`;
                     helpMsg += `║ 🛡️  REPUTATION  :: /reputation <domain>     ║\n`;
                     helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
                     helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
@@ -570,6 +572,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- Validate firewall rules and hardening\n`;
                     helpMsg += `- Prioritize follow-up checks (e.g., run \`/shodan <ip>\` or audit SSL/headers on web ports)\n\n`;
                     helpMsg += `[Ask AI about port scanning legality?](Ask AI: When is port scanning allowed?)`;
+                }
+                else if (cmd === 'certs') {
+                    helpMsg = `### 📜 Command: /certs\n\n`;
+                    helpMsg += `**Usage:** \`/certs <domain>\`\n`;
+                    helpMsg += `**Purpose:** Pulls Certificate Transparency logs to find all certificates issued for a domain.\n\n`;
+                    helpMsg += `**What you get:**\n`;
+                    helpMsg += `- Total certificates, first/last seen timestamps\n`;
+                    helpMsg += `- Unique hostnames (including wildcards)\n`;
+                    helpMsg += `- Top issuers and recent certificate details\n\n`;
+                    helpMsg += `**Value:** Discover hidden subdomains, track issuance history, spot suspicious certs.\n\n`;
+                    helpMsg += `**Pro Tip:** Pair with \`/subdomains\` and then run \`/ssl <hostname>\` to audit specific hosts.`;
+                }
+                else if (cmd === 'hash') {
+                    helpMsg = `### 🧬 Command: /hash\n\n`;
+                    helpMsg += `**Usage:** \`/hash <md5|sha1|sha256|sha512>\`\n`;
+                    helpMsg += `**Purpose:** Checks a file hash against VirusTotal to see if it’s malicious.\n\n`;
+                    helpMsg += `**Requires:** VirusTotal API key (same as /scan) in Settings → Providers.\n\n`;
+                    helpMsg += `**Outputs:** Detection stats (malicious/suspicious/harmless), file type, size, first/last submission times, and known filenames.\n\n`;
+                    helpMsg += `**Pro Tip:** Submit the sample separately if not found, or try another hash variant (MD5 vs SHA256).`;
                 }
                 else {
                     // Generic fallback for other commands or unknown inputs
@@ -1914,7 +1935,94 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 8. Port Scanner (/ports)
+            // 8. Certificate Transparency (/certs)
+            if (text.startsWith('/certs')) {
+                setProcessingStatus("Querying Certificate Transparency logs...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const domain = text.replace('/certs', '').trim();
+
+                if (!domain) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/certs <domain>` (e.g., `/certs example.com`)', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${proxyUrl}/api/tools/certs`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ domain })
+                    });
+
+                    const contentType = response.headers.get('content-type') || '';
+                    const rawText = await response.text();
+                    let res;
+                    if (contentType.includes('application/json')) {
+                        res = JSON.parse(rawText);
+                    } else {
+                        throw new Error(`Server returned non-JSON response (status ${response.status}). Try restarting the proxy server.`);
+                    }
+
+                    if (res.error) throw new Error(res.error);
+
+                    const issuerEntries = Object.entries(res.issuers || {}).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
+                    const displayNames = (res.unique_names || []).slice(0, 50);
+                    const displayWildcards = (res.wildcards || []).slice(0, 25);
+
+                    let msg = `### 📜 Certificate Transparency: ${res.domain}\n\n`;
+                    msg += `**Total Certificates:** ${res.total_certificates}\n`;
+                    msg += `**Unique Hostnames:** ${res.total_names}\n`;
+                    msg += `**Wildcards:** ${res.total_wildcards}\n`;
+                    if (res.first_seen) msg += `**First Seen:** ${new Date(res.first_seen).toLocaleString()}\n`;
+                    if (res.last_seen) msg += `**Last Seen:** ${new Date(res.last_seen).toLocaleString()}\n\n`;
+
+                    if (issuerEntries.length) {
+                        msg += `**Top Issuers:**\n`;
+                        issuerEntries.forEach(([issuer, count]: any) => { msg += `- ${issuer} (${count})\n`; });
+                        msg += `\n`;
+                    }
+
+                    if (displayNames.length) {
+                        msg += `#### Hostnames\n`;
+                        msg += '```text\n';
+                        displayNames.forEach((n: string) => { msg += `${n}\n`; });
+                        if ((res.unique_names?.length || 0) > displayNames.length) {
+                            msg += `... and ${(res.unique_names.length - displayNames.length)} more\n`;
+                        }
+                        msg += '```\n\n';
+                    }
+
+                    if (displayWildcards.length) {
+                        msg += `#### Wildcards\n`;
+                        msg += '```text\n';
+                        displayWildcards.forEach((n: string) => { msg += `${n}\n`; });
+                        if ((res.wildcards?.length || 0) > displayWildcards.length) {
+                            msg += `... and ${(res.wildcards.length - displayWildcards.length)} more\n`;
+                        }
+                        msg += '```\n\n';
+                    }
+
+                    msg += `**Tip:** Combine with \`/subdomains ${res.domain}\` to compare CT results, then run \`/ssl <host>\` on interesting entries.\n`;
+                    msg += `*Source: ${res.source}${res.note ? ` (${res.note})` : ''}*`;
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Certificate Lookup Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 9. Port Scanner (/ports)
             if (text.startsWith('/ports')) {
                 setProcessingStatus("Scanning ports...");
                 const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
@@ -1984,7 +2092,87 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 9. SSL Inspector (/ssl)
+            // 10. Hash Lookup (/hash)
+            if (text.startsWith('/hash')) {
+                if (!settings.virusTotalApiKey) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: "⚠️ Please configure your VirusTotal API Key in Settings > Providers to use this feature.", timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+
+                setProcessingStatus("Checking hash...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const hash = text.replace('/hash', '').trim();
+
+                if (!hash) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/hash <md5|sha1|sha256|sha512>`', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/tools/hash`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ hash, apiKey: settings.virusTotalApiKey })
+                    }).then(r => r.json());
+
+                    if (res.error) throw new Error(res.error);
+
+                    if (res.status === 'not_found') {
+                        onUpdateMessages(prev => [...prev, {
+                            id: uuidv4(), sender: Sender.AI, text: `### 🧬 Hash Lookup: Not Found\n\nHash: \`${hash}\`\n\nVirusTotal has no record for this hash. Try submitting the sample directly on VirusTotal or double-check the hash type (MD5/SHA1/SHA256).`, timestamp: Date.now()
+                        }]);
+                    } else {
+                        const stats = res.stats || {};
+                        const names = res.names || [];
+                        const vtUrl = `https://www.virustotal.com/gui/file/${res.sha256 || res.hash}`;
+
+                        let msg = `### 🧬 VirusTotal Hash Intel\n\n`;
+                        msg += `**Hash:** \`${hash}\`\n`;
+                        if (res.sha256 && res.sha256 !== hash) msg += `**SHA256:** \`${res.sha256}\`\n`;
+                        if (res.md5) msg += `**MD5:** \`${res.md5}\`\n`;
+                        if (res.sha1) msg += `**SHA1:** \`${res.sha1}\`\n`;
+                        if (res.type_description) msg += `**Type:** ${res.type_description}\n`;
+                        if (res.size) msg += `**Size:** ${res.size} bytes\n`;
+                        if (res.first_submission) msg += `**First Seen:** ${new Date(res.first_submission).toLocaleString()}\n`;
+                        if (res.last_modification) msg += `**Last Analysis:** ${new Date(res.last_modification).toLocaleString()}\n\n`;
+
+                        msg += `**Detections:**\n`;
+                        msg += `- Malicious: ${stats.malicious || 0}\n`;
+                        msg += `- Suspicious: ${stats.suspicious || 0}\n`;
+                        msg += `- Harmless: ${stats.harmless || 0}\n`;
+                        msg += `- Undetected: ${stats.undetected || 0}\n\n`;
+
+                        if (names.length) {
+                            msg += `**Known Filenames (sample):**\n`;
+                            names.forEach((n: string) => { msg += `- ${n}\n`; });
+                            msg += `\n`;
+                        }
+
+                        msg += `[View on VirusTotal](${vtUrl})\n`;
+
+                        onUpdateMessages(prev => [...prev, {
+                            id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                        }]);
+                    }
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ Hash Lookup Failed: ${e.message}`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // 11. SSL Inspector (/ssl)
             if (text.startsWith('/ssl')) {
                 setProcessingStatus("Checking SSL...");
                 const domain = text.replace('/ssl', '').trim();
@@ -2025,7 +2213,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 10. Headers Audit (/headers)
+            // 12. Headers Audit (/headers)
             if (text.startsWith('/headers')) {
                 setProcessingStatus("Auditing Headers...");
                 const url = text.replace('/headers', '').trim();
@@ -2063,7 +2251,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
 
-            // 11. The Profiler (/profile)
+            // 13. The Profiler (/profile)
             if (text.startsWith('/profile')) {
                 setProcessingStatus("Initializing Profiler...");
                 const domain = text.replace('/profile', '').trim();
