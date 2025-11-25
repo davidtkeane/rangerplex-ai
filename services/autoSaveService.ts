@@ -10,7 +10,9 @@ class AutoSaveService {
   private saveQueue = new Map<string, () => Promise<void>>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private listeners: Record<string, Set<Listener>> = {};
-  private debounceMs = 500;
+  private debounceMs = 200;
+  private maxWaitMs = 2000;
+  private lastFlushTime = 0;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -35,6 +37,15 @@ class AutoSaveService {
 
   queueSave(key: string, task: () => Promise<void>) {
     this.saveQueue.set(key, task);
+    const now = Date.now();
+
+    // If we haven't saved in a while (maxWait), force a save immediately
+    // This prevents long streams from delaying saves indefinitely
+    if (now - this.lastFlushTime > this.maxWaitMs) {
+      if (this.timer) clearTimeout(this.timer);
+      void this.flushQueue();
+      return;
+    }
 
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => {
@@ -57,7 +68,8 @@ class AutoSaveService {
       for (const [, task] of entries) {
         await task();
       }
-      this.emit('saved', Date.now());
+      this.lastFlushTime = Date.now();
+      this.emit('saved', this.lastFlushTime);
     } catch (error) {
       console.error('❌ Auto-save failed:', error);
       this.emit('error', error);
@@ -74,7 +86,10 @@ export const autoSaveService = new AutoSaveService();
 // Convenience helpers for common saves
 export const queueSettingSave = (key: string, value: any, enableCloudSync: boolean, onSynced?: () => void) => {
   autoSaveService.queueSave(`setting:${key}`, async () => {
+    // 1. Save locally first
     await dbService.saveSetting(key, value);
+
+    // 2. Then sync
     if (enableCloudSync) {
       await syncService.syncSettings(key, value).catch((err) => {
         console.warn('Sync failed (queued):', err);
@@ -86,13 +101,19 @@ export const queueSettingSave = (key: string, value: any, enableCloudSync: boole
 
 export const queueChatSave = (sessionKey: string, chats: any[], enableCloudSync: boolean, onSynced?: () => void) => {
   autoSaveService.queueSave(`chat:${sessionKey}`, async () => {
+    // 1. Save all to local DB first (FAST & CRITICAL)
     for (const chat of chats) {
       await dbService.saveChat(chat);
-      if (enableCloudSync) {
-        await syncService.syncChat(chat).catch((err) => {
+    }
+
+    // 2. Then sync to cloud (can be slow)
+    if (enableCloudSync) {
+      // Use Promise.all to sync in parallel and not block if one is slow
+      await Promise.all(chats.map(chat =>
+        syncService.syncChat(chat).catch((err) => {
           console.warn('Chat sync failed (queued):', err);
-        });
-      }
+        })
+      ));
     }
     if (onSynced) onSynced();
   });

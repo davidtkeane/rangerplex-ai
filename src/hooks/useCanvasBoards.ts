@@ -70,11 +70,17 @@ export const useCanvasBoards = () => {
   useEffect(() => {
     if (!isHydrated || boards.length === 0) return;
 
+    // Tier 1: Save to localStorage immediately (fast cache)
     try {
-      // Tier 1: Save to localStorage immediately (fast cache)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
+    } catch (error) {
+      // If localStorage is full, just log it and continue to Tier 2 (IndexedDB)
+      // We don't want to block the robust save just because the cache is full
+      console.warn('⚠️ LocalStorage quota exceeded, skipping cache update:', error);
+    }
 
-      // Tier 2 & 3: Queue IndexedDB save + server sync (debounced)
+    // Tier 2 & 3: Queue IndexedDB save + server sync (debounced)
+    try {
       queueCanvasBoardsSave(
         boards as CanvasBoardRecord[],
         ENABLE_CLOUD_SYNC,
@@ -83,10 +89,7 @@ export const useCanvasBoards = () => {
         }
       );
     } catch (error) {
-      console.error('❌ Failed to save canvas boards:', error);
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        alert('Storage quota exceeded! Please delete some boards to free up space.');
-      }
+      console.error('❌ Failed to queue DB save:', error);
     }
   }, [boards, isHydrated]);
 
@@ -146,7 +149,8 @@ export const useCanvasBoards = () => {
     if (!currentBoardId) return;
 
     try {
-      const imageData = canvas.toDataURL('image/png');
+      // Use JPEG with 0.7 quality to save significant space (vs PNG)
+      const imageData = canvas.toDataURL('image/jpeg', 0.7);
       setBoards(prev => prev.map(board =>
         board.id === currentBoardId
           ? { ...board, imageData, modified: Date.now() }
