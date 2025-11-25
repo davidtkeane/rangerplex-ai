@@ -43,6 +43,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
   // Modal state
   const [showBoardModal, setShowBoardModal] = useState(false);
   const [showDeleteWarning, setShowDeleteWarning] = useState(false);
+  const [showClearWarning, setShowClearWarning] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
 
   // Hooks
@@ -246,14 +247,17 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
   };
 
   const handleClear = () => {
-    if (confirm('Clear canvas? This cannot be undone.')) {
-      if (drawingCanvasRef.current) {
-        const ctx = drawingCanvasRef.current.getContext('2d');
-        ctx?.clearRect(0, 0, width, height);
-        clearHistory();
-        clearSaved();
-      }
+    setShowClearWarning(true);
+  };
+
+  const confirmClear = () => {
+    if (drawingCanvasRef.current) {
+      const ctx = drawingCanvasRef.current.getContext('2d');
+      ctx?.clearRect(0, 0, width, height);
+      clearHistory();
+      clearSaved();
     }
+    setShowClearWarning(false);
   };
 
   // Board Ops
@@ -389,6 +393,18 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
         message={`This will permanently delete "${boards.find(b => b.id === boardToDelete)?.name}" and cannot be undone.`}
         confirmText="Delete"
         cancelText="Keep It"
+        theme={theme}
+        isDangerous={true}
+      />
+
+      <WarningDialog
+        isOpen={showClearWarning}
+        onClose={() => setShowClearWarning(false)}
+        onConfirm={confirmClear}
+        title="Clear Canvas?"
+        message="Are you sure you want to clear the entire canvas? This action cannot be undone."
+        confirmText="Clear Canvas"
+        cancelText="Cancel"
         theme={theme}
         isDangerous={true}
       />
