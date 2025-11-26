@@ -160,6 +160,18 @@ case "$OS" in
     elif command -v pacman >/dev/null 2>&1; then PM="pacman"
     fi
     ;;
+  MINGW*|MSYS*|CYGWIN*)
+    log "${yellow}Windows detected (Git Bash/MSYS).${reset}"
+    log "${dim}This script is designed for macOS, Linux, or WSL (Windows Subsystem for Linux).${reset}"
+    log "${dim}For Windows, we HIGHLY recommend using WSL 2.${reset}"
+    log "${dim}1. Open PowerShell as Admin${reset}"
+    log "${dim}2. Run: wsl --install${reset}"
+    log "${dim}3. Reboot and open 'Ubuntu' from Start Menu${reset}"
+    log "${dim}4. Run this script again inside Ubuntu${reset}"
+    log
+    warn "Proceeding with limited Windows support (manual installs may be needed)..."
+    OS="Windows"
+    ;;
   *)
     fail "Unsupported OS: $OS. Please use macOS or Linux/WSL."
     exit 1
@@ -377,6 +389,14 @@ check_ollama() {
       open "https://ollama.com/download/mac" 2>/dev/null || log "Visit: https://ollama.com/download/mac"
       ;;
     Linux)
+      # Check for WSL
+      if grep -q Microsoft /proc/version 2>/dev/null || grep -q microsoft /proc/version 2>/dev/null; then
+         log "${cyan}WSL (Windows Subsystem for Linux) detected.${reset}"
+         log "${dim}Installing the Linux version of Ollama inside WSL is recommended for performance.${reset}"
+         log "${dim}Note: If you already have Ollama installed on Windows (outside WSL), you can use that too,${reset}"
+         log "${dim}but you'll need to configure the host IP. Installing inside WSL is easier.${reset}"
+      fi
+      
       log "Installing Ollama via official script..."
       if curl -fsSL https://ollama.com/install.sh | sh; then
         ok "Ollama installed successfully!"
@@ -384,6 +404,13 @@ check_ollama() {
       else
         warn "Ollama installation failed. Visit https://ollama.com for manual install."
       fi
+      ;;
+    Windows)
+      log "${cyan}Windows detected.${reset}"
+      log "Please download the official Windows installer:"
+      log "${bold}${cyan}https://ollama.com/download/windows${reset}"
+      log "${dim}Run the .exe file to install Ollama.${reset}"
+      if command -v start >/dev/null 2>&1; then start "https://ollama.com/download/windows"; fi
       ;;
     *)
       log "Visit https://ollama.com to download Ollama for your system."
@@ -418,6 +445,17 @@ check_docker() {
       open "https://www.docker.com/products/docker-desktop/" 2>/dev/null || log "Visit: https://www.docker.com/products/docker-desktop/"
       ;;
     Linux)
+      # Check for WSL
+      if grep -q Microsoft /proc/version 2>/dev/null || grep -q microsoft /proc/version 2>/dev/null; then
+         log "${cyan}WSL (Windows Subsystem for Linux) detected.${reset}"
+         log "${yellow}STOP! Do NOT install Docker Engine here.${reset}"
+         log "${dim}For WSL, you should install **Docker Desktop for Windows** on your main Windows system.${reset}"
+         log "${dim}Then enable 'WSL 2 Integration' in Docker Desktop settings.${reset}"
+         log
+         log "${dim}Download Docker Desktop for Windows: ${cyan}https://www.docker.com/products/docker-desktop/${reset}"
+         return 0
+      fi
+
       log "Installing Docker via official convenience script..."
       if curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh; then
         ok "Docker installed successfully!"
@@ -427,6 +465,13 @@ check_docker() {
       else
         warn "Docker installation failed. Visit https://docs.docker.com/engine/install/ for manual install."
       fi
+      ;;
+    Windows)
+      log "${cyan}Windows detected.${reset}"
+      log "Please download Docker Desktop for Windows:"
+      log "${bold}${cyan}https://www.docker.com/products/docker-desktop/${reset}"
+      log "${dim}Run the installer and ensure 'Use WSL 2 instead of Hyper-V' is checked.${reset}"
+      if command -v start >/dev/null 2>&1; then start "https://www.docker.com/products/docker-desktop/"; fi
       ;;
     *)
       log "Visit https://www.docker.com/products/docker-desktop/ to download Docker."
