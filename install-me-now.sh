@@ -369,7 +369,11 @@ check_ollama() {
   case "$OS" in
     Darwin)
       log "Opening Ollama download page in your browser..."
-      log "${dim}Download the .dmg, drag to Applications, then run Ollama from there.${reset}"
+      log "${dim}On macOS, the Ollama Desktop App INCLUDES the command-line tools.${reset}"
+      log "${dim}You do NOT need to install the CLI separately.${reset}"
+      log "${dim}1. Download the .zip/.dmg${reset}"
+      log "${dim}2. Drag to Applications${reset}"
+      log "${dim}3. Run 'Ollama' from Applications to start the server${reset}"
       open "https://ollama.com/download/mac" 2>/dev/null || log "Visit: https://ollama.com/download/mac"
       ;;
     Linux)
@@ -383,6 +387,49 @@ check_ollama() {
       ;;
     *)
       log "Visit https://ollama.com to download Ollama for your system."
+      ;;
+  esac
+}
+
+check_docker() {
+  if command -v docker >/dev/null 2>&1; then
+    ok "Docker already installed ($(docker --version))."
+    return 0
+  fi
+
+  log
+  warn "Docker not detected. Docker enables running RangerPlex in a container."
+  log "${dim}Docker is OPTIONAL but recommended for isolation and easy updates.${reset}"
+  log
+  printf "Install Docker now? (y/N): "
+  read -r reply
+  if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+    log "${dim}Skipped Docker. Install later from: ${cyan}https://www.docker.com/${reset}"
+    return 0
+  fi
+
+  case "$OS" in
+    Darwin)
+      log "Opening Docker Desktop download page..."
+      log "${dim}Docker Desktop for Mac includes the Engine, CLI, and Compose.${reset}"
+      log "${dim}1. Download the .dmg (Apple Chip for M1/M2/M3, Intel for others).${reset}"
+      log "${dim}2. Drag to Applications.${reset}"
+      log "${dim}3. Open Docker to start the engine.${reset}"
+      open "https://www.docker.com/products/docker-desktop/" 2>/dev/null || log "Visit: https://www.docker.com/products/docker-desktop/"
+      ;;
+    Linux)
+      log "Installing Docker via official convenience script..."
+      if curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh; then
+        ok "Docker installed successfully!"
+        log "${dim}Adding $USER to docker group...${reset}"
+        sudo usermod -aG docker "$USER"
+        log "${dim}You may need to log out and back in for this to take effect.${reset}"
+      else
+        warn "Docker installation failed. Visit https://docs.docker.com/engine/install/ for manual install."
+      fi
+      ;;
+    *)
+      log "Visit https://www.docker.com/products/docker-desktop/ to download Docker."
       ;;
   esac
 }
@@ -670,6 +717,9 @@ install_pm2
 
 step "Checking for Ollama (optional local AI)..."
 check_ollama
+
+step "Checking for Docker (optional container support)..."
+check_docker
 
 step "Installing project dependencies..."
 prepare_deps

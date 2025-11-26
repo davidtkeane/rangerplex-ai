@@ -454,6 +454,7 @@ app.post('/v1/messages', async (req, res) => {
 });
 
 // Ollama API proxy (to bypass CORS and enable M3 -> M4 access)
+// Ollama API proxy (to bypass CORS and enable M3 -> M4 access)
 app.post('/api/ollama/*', async (req, res) => {
     try {
         const ollamaPath = req.params[0];
@@ -461,54 +462,85 @@ app.post('/api/ollama/*', async (req, res) => {
 
         // Handle both /api/ollama/chat AND /api/ollama/api/chat patterns
         const cleanPath = ollamaPath.startsWith('api/') ? ollamaPath.substring(4) : ollamaPath;
-        const url = `${ollamaHost}/api/${cleanPath}`;
 
-        console.log(`🦙 Proxying Ollama API request to: ${url}`);
+        // Try localhost first, then fallback to host.docker.internal for Docker support
+        let targetUrl = `${ollamaHost}/api/${cleanPath}`;
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(req.body)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Ollama API error:', response.status, errorText);
-            return res.status(response.status).send(errorText);
+        // If the host is localhost, we might need to try host.docker.internal if inside Docker
+        if (ollamaHost.includes('localhost')) {
+            try {
+                // Attempt connection to localhost
+                await fetch(targetUrl, { method: 'HEAD' }).catch(() => { });
+            } catch (e) {
+                // If it fails, we'll try the fetch and catch the error below
+            }
         }
 
-        // Set CORS headers
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': response.headers.get('content-type') || 'application/json',
-            'Cache-Control': 'no-cache'
-        });
-
-        // Stream the response back
-        const reader = response.body.getReader();
-        const pump = async () => {
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    if (!res.write(value)) {
-                        await new Promise(resolve => res.once('drain', resolve));
-                    }
-                }
-                res.end();
-                console.log('✅ Ollama stream completed');
-            } catch (error) {
-                console.error('❌ Stream pump error:', error);
-                res.end();
-            }
+        const fetchOptions = {
+            method: req.method,
+            headers: { 'Content-Type': 'application/json' }
         };
-        pump();
 
+        if (req.method === 'POST' && req.body) {
+            fetchOptions.body = JSON.stringify(req.body);
+        }
+
+        try {
+            const response = await fetch(targetUrl, fetchOptions);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Ollama API error:', response.status, errorText);
+                return res.status(response.status).send(errorText);
+            }
+
+            // Stream the response
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                res.write(decoder.decode(value));
+            }
+            res.end();
+
+        } catch (error) {
+            // If localhost failed, try host.docker.internal
+            if (ollamaHost.includes('localhost') && error.cause && (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'EADDRNOTAVAIL')) {
+                console.log('🔄 Localhost failed, trying host.docker.internal for Docker...');
+                const dockerUrl = targetUrl.replace('localhost', 'host.docker.internal').replace('127.0.0.1', 'host.docker.internal');
+
+                try {
+                    const response = await fetch(dockerUrl, fetchOptions);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        return res.status(response.status).send(errorText);
+                    }
+
+                    // Stream the response
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        res.write(decoder.decode(value));
+                    }
+                    res.end();
+                    return;
+                } catch (dockerError) {
+                    console.error('❌ Docker host also failed:', dockerError);
+                    res.status(500).json({ error: 'Ollama connection failed on both localhost and host.docker.internal', details: dockerError });
+                    return;
+                }
+            }
+            throw error;
+        }
     } catch (error) {
         console.error('❌ Ollama proxy error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message, cause: error.cause });
     }
 });
 
@@ -516,15 +548,48 @@ app.post('/api/ollama/*', async (req, res) => {
 app.get('/api/ollama/tags', async (req, res) => {
     try {
         const ollamaHost = req.headers['x-ollama-host'] || 'http://localhost:11434';
-        const url = `${ollamaHost}/api/tags`;
 
-        console.log(`🦙 Fetching Ollama models from: ${url}`);
+        // Try localhost first, then fallback to host.docker.internal for Docker support
+        let targetUrl = `${ollamaHost}/api/tags`;
 
-        const response = await fetch(url);
-        const data = await response.json();
+        // If the host is localhost, we might need to try host.docker.internal if inside Docker
+        if (ollamaHost.includes('localhost')) {
+            try {
+                // Attempt connection to localhost
+                await fetch(targetUrl, { method: 'HEAD' }).catch(() => { });
+            } catch (e) {
+                // If it fails, we'll try the fetch and catch the error below
+            }
+        }
 
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json(data);
+        console.log(`🦙 Fetching Ollama models from: ${targetUrl}`);
+
+        try {
+            const response = await fetch(targetUrl);
+            const data = await response.json();
+
+            res.set('Access-Control-Allow-Origin', '*');
+            res.json(data);
+        } catch (error) {
+            // If localhost failed, try host.docker.internal
+            if (ollamaHost.includes('localhost') && error.cause && (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'EADDRNOTAVAIL')) {
+                console.log('🔄 Localhost failed, trying host.docker.internal for Docker...');
+                const dockerUrl = targetUrl.replace('localhost', 'host.docker.internal').replace('127.0.0.1', 'host.docker.internal');
+
+                try {
+                    const response = await fetch(dockerUrl);
+                    const data = await response.json();
+                    res.set('Access-Control-Allow-Origin', '*');
+                    res.json(data);
+                    return;
+                } catch (dockerError) {
+                    console.error('❌ Docker host also failed:', dockerError);
+                    res.status(500).json({ error: 'Ollama connection failed on both localhost and host.docker.internal', details: dockerError });
+                    return;
+                }
+            }
+            throw error;
+        }
     } catch (error) {
         console.error('❌ Ollama tags error:', error);
         res.status(500).json({ error: error.message });
@@ -535,15 +600,48 @@ app.get('/api/ollama/tags', async (req, res) => {
 app.get('/api/ollama/api/tags', async (req, res) => {
     try {
         const ollamaHost = req.headers['x-ollama-host'] || 'http://localhost:11434';
-        const url = `${ollamaHost}/api/tags`;
 
-        console.log(`🦙 Fetching Ollama models from: ${url} (via double-api path)`);
+        // Try localhost first, then fallback to host.docker.internal for Docker support
+        let targetUrl = `${ollamaHost}/api/tags`;
 
-        const response = await fetch(url);
-        const data = await response.json();
+        // If the host is localhost, we might need to try host.docker.internal if inside Docker
+        if (ollamaHost.includes('localhost')) {
+            try {
+                // Attempt connection to localhost
+                await fetch(targetUrl, { method: 'HEAD' }).catch(() => { });
+            } catch (e) {
+                // If it fails, we'll try the fetch and catch the error below
+            }
+        }
 
-        res.set('Access-Control-Allow-Origin', '*');
-        res.json(data);
+        console.log(`🦙 Fetching Ollama models from: ${targetUrl} (via double-api path)`);
+
+        try {
+            const response = await fetch(targetUrl);
+            const data = await response.json();
+
+            res.set('Access-Control-Allow-Origin', '*');
+            res.json(data);
+        } catch (error) {
+            // If localhost failed, try host.docker.internal
+            if (ollamaHost.includes('localhost') && error.cause && (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'EADDRNOTAVAIL')) {
+                console.log('🔄 Localhost failed, trying host.docker.internal for Docker...');
+                const dockerUrl = targetUrl.replace('localhost', 'host.docker.internal').replace('127.0.0.1', 'host.docker.internal');
+
+                try {
+                    const response = await fetch(dockerUrl);
+                    const data = await response.json();
+                    res.set('Access-Control-Allow-Origin', '*');
+                    res.json(data);
+                    return;
+                } catch (dockerError) {
+                    console.error('❌ Docker host also failed:', dockerError);
+                    res.status(500).json({ error: 'Ollama connection failed on both localhost and host.docker.internal', details: dockerError });
+                    return;
+                }
+            }
+            throw error;
+        }
     } catch (error) {
         console.error('❌ Ollama tags error:', error);
         res.status(500).json({ error: error.message });
@@ -573,12 +671,100 @@ app.all('/api/lmstudio/*', async (req, res) => {
             fetchOptions.body = JSON.stringify(req.body);
         }
 
-        const response = await fetch(url, fetchOptions);
+        try {
+            const response = await fetch(url, fetchOptions);
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ LM Studio API error:', response.status, errorText);
-            return res.status(response.status).send(errorText);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ LM Studio API error:', response.status, errorText);
+                return res.status(response.status).send(errorText);
+            }
+
+            // Set CORS headers
+            res.set({
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': response.headers.get('content-type') || 'application/json',
+                'Cache-Control': 'no-cache'
+            });
+
+            // Handle streaming responses
+            if (response.headers.get('content-type')?.includes('text/event-stream') ||
+                response.headers.get('transfer-encoding') === 'chunked') {
+                const reader = response.body.getReader();
+                const pump = async () => {
+                    try {
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            if (!res.write(value)) {
+                                await new Promise(resolve => res.once('drain', resolve));
+                            }
+                        }
+                        res.end();
+                    } catch (err) {
+                        console.error('Stream pump error:', err);
+                        res.end();
+                    }
+                };
+                pump();
+            } else {
+                const data = await response.json();
+                res.json(data);
+            }
+
+        } catch (error) {
+            // If localhost failed, try host.docker.internal
+            if (lmstudioHost.includes('localhost') && error.cause && (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'EADDRNOTAVAIL')) {
+                console.log('🔄 Localhost failed, trying host.docker.internal for Docker...');
+                const dockerUrl = url.replace('localhost', 'host.docker.internal').replace('127.0.0.1', 'host.docker.internal');
+
+                try {
+                    const response = await fetch(dockerUrl, fetchOptions);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        return res.status(response.status).send(errorText);
+                    }
+
+                    // Set CORS headers
+                    res.set({
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Type': response.headers.get('content-type') || 'application/json',
+                        'Cache-Control': 'no-cache'
+                    });
+
+                    // Handle streaming responses
+                    if (response.headers.get('content-type')?.includes('text/event-stream') ||
+                        response.headers.get('transfer-encoding') === 'chunked') {
+                        const reader = response.body.getReader();
+                        const pump = async () => {
+                            try {
+                                while (true) {
+                                    const { done, value } = await reader.read();
+                                    if (done) break;
+                                    if (!res.write(value)) {
+                                        await new Promise(resolve => res.once('drain', resolve));
+                                    }
+                                }
+                                res.end();
+                            } catch (err) {
+                                console.error('Stream pump error:', err);
+                                res.end();
+                            }
+                        };
+                        pump();
+                    } else {
+                        const data = await response.json();
+                        res.json(data);
+                    }
+                    return;
+                } catch (dockerError) {
+                    console.error('❌ Docker host also failed:', dockerError);
+                    res.status(500).json({ error: 'LM Studio connection failed on both localhost and host.docker.internal', details: dockerError });
+                    return;
+                }
+            }
+            throw error;
         }
 
         // Set CORS headers
@@ -1453,6 +1639,42 @@ app.post('/api/tools/myip', async (req, res) => {
 
     } catch (error) {
         console.error('❌ MyIP error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 13. LM Studio Proxy
+app.post('/api/tools/lmstudio', async (req, res) => {
+    try {
+        console.log('🔍 LM Studio Proxy Request');
+
+        // Try localhost first, then fallback to host.docker.internal for Docker support
+        let targetUrl = 'http://localhost:1234/v1/models';
+        try {
+            const response = await fetch(targetUrl);
+            const data = await response.json();
+            res.json(data);
+        } catch (error) {
+            // If localhost failed, try host.docker.internal
+            if (error.cause && (error.cause.code === 'ECONNREFUSED' || error.cause.code === 'EADDRNOTAVAIL')) {
+                console.log('🔄 Localhost failed, trying host.docker.internal for Docker...');
+                targetUrl = 'http://host.docker.internal:1234/v1/models';
+                try {
+                    const response = await fetch(targetUrl);
+                    const data = await response.json();
+                    res.json(data);
+                    return;
+                } catch (dockerError) {
+                    console.error('❌ Docker host also failed:', dockerError);
+                    res.status(500).json({ error: 'LM Studio connection failed on both localhost and host.docker.internal', details: dockerError });
+                    return;
+                }
+            }
+            console.error('❌ LM Studio proxy error:', error);
+            res.status(500).json({ error: error.message, cause: error.cause });
+        }
+    } catch (error) {
+        console.error('❌ LM Studio proxy setup error:', error);
         res.status(500).json({ error: error.message });
     }
 });

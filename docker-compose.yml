@@ -13,3 +13,5 @@ services:
     environment:
       - NODE_ENV=development
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

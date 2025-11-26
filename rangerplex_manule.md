@@ -24,6 +24,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - [Model Training & Data Tools](#model-training--data-tools)
 - [Security & Lock Screen](#security--lock-screen)
 - [Auto-Update System](#auto-update-system)
+- [Docker Support](#docker-support)
 - [Settings Reference](#settings-reference)
 - [Troubleshooting](#troubleshooting)
 - [Glossary](#glossary)
@@ -527,6 +528,35 @@ node proxy_server.js
 - **Permission Denied**: Check git credentials and file permissions
 
 **Tip:** Always ensure you're on the `main` branch before updating: `git branch` (should show `* main`)
+
+## Docker Support
+RangerPlex v2.5.33 introduces full Docker support, allowing you to run the entire application in a containerized environment.
+
+### Quick Start
+1.  **Install Docker:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Mac/Windows) or Docker Engine (Linux).
+2.  **Run Command:** `docker-compose up -d --build`
+3.  **Access:** Open `http://localhost:5173`
+
+### Key Features
+*   **Full Stack Container:** Runs Frontend, Backend, Database, and Puppeteer in one box.
+*   **Data Persistence:** Database and backups are saved to your local `./data` and `./backups` folders.
+*   **Local AI Support:** Connects seamlessly to Ollama and LM Studio running on your host machine.
+
+### Connecting to Local AI (Ollama/LM Studio)
+Docker containers are isolated, so they can't see `localhost` by default. We've solved this with **Smart Proxy Logic**:
+1.  **Automatic Failover:** The app tries `localhost` first. If it fails (because it's in Docker), it automatically switches to `host.docker.internal`.
+2.  **Manual Override:** Go to **Settings → Ollama/LM Studio** and use the "Docker Host Selection" radio buttons to force a specific connection type.
+
+### Common Docker Commands
+| Goal | Command |
+| :--- | :--- |
+| **Start/Update** | `docker-compose up -d --build` |
+| **Stop** | `docker-compose stop` |
+| **Restart** | `docker-compose restart` |
+| **View Logs** | `docker logs -f rangerplex-ai` |
+| **Clean Slate** | `docker-compose down` (Removes containers, keeps data) |
+
+For a deep dive, see the [Docker Beginner's Guide](docs/docker/DOCKER_BEGINNER_GUIDE.md).
 
 ## Settings Reference
 Key areas (see Settings modal):

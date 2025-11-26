@@ -961,6 +961,41 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                             💡 <strong>Tip:</strong> Use <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3010/api/ollama</code> as Base URL (proxy) instead of <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:11434</code> (direct) to avoid CORS errors.
                                         </p>
                                     </div>
+                                    <div className="mt-3">
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Docker Host Selection</label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="ollamaHost"
+                                                    checked={localSettings.ollamaBaseUrl.includes('localhost:11434')}
+                                                    onChange={() => setLocalSettings({ ...localSettings, ollamaBaseUrl: 'http://localhost:11434' })}
+                                                    className="accent-teal-500"
+                                                />
+                                                <span className="text-xs">Localhost (Default)</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="ollamaHost"
+                                                    checked={localSettings.ollamaBaseUrl.includes('host.docker.internal')}
+                                                    onChange={() => setLocalSettings({ ...localSettings, ollamaBaseUrl: 'http://host.docker.internal:11434' })}
+                                                    className="accent-teal-500"
+                                                />
+                                                <span className="text-xs">Docker (host.docker.internal)</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="ollamaHost"
+                                                    checked={localSettings.ollamaBaseUrl.includes('localhost:3010/api/ollama')}
+                                                    onChange={() => setLocalSettings({ ...localSettings, ollamaBaseUrl: 'http://localhost:3010/api/ollama' })}
+                                                    className="accent-teal-500"
+                                                />
+                                                <span className="text-xs">Proxy (Recommended)</span>
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1105,6 +1140,41 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <p className="text-[10px] opacity-60 mt-2">
                                             📖 <strong>Note:</strong> Use the LM Studio app to download and load models. Once a model is loaded, it will appear in the model selector.
                                         </p>
+                                    </div>
+                                    <div className="mt-3">
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Docker Host Selection</label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="lmstudioHost"
+                                                    checked={localSettings.lmstudioBaseUrl.includes('localhost:1234')}
+                                                    onChange={() => setLocalSettings({ ...localSettings, lmstudioBaseUrl: 'http://localhost:1234/v1' })}
+                                                    className="accent-teal-500"
+                                                />
+                                                <span className="text-xs">Localhost (Default)</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="lmstudioHost"
+                                                    checked={localSettings.lmstudioBaseUrl.includes('host.docker.internal')}
+                                                    onChange={() => setLocalSettings({ ...localSettings, lmstudioBaseUrl: 'http://host.docker.internal:1234/v1' })}
+                                                    className="accent-teal-500"
+                                                />
+                                                <span className="text-xs">Docker (host.docker.internal)</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="lmstudioHost"
+                                                    checked={localSettings.lmstudioBaseUrl.includes('localhost:3010/api/lmstudio')}
+                                                    onChange={() => setLocalSettings({ ...localSettings, lmstudioBaseUrl: 'http://localhost:3010/api/lmstudio' })}
+                                                    className="accent-teal-500"
+                                                />
+                                                <span className="text-xs">Proxy (Recommended)</span>
+                                            </label>
+                                        </div>
                                     </div>
 
                                     {/* Refresh Models Button */}

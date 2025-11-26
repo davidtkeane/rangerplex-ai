@@ -2,6 +2,31 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.34 - "Maximum Intelligence Unleashed" 🧠
+*Released: Nov 26, 2025*
+
+**Claude Opus 4.5 Support.** Added the latest and most powerful Claude model to RangerPlex - Claude Opus 4.5, Anthropic's premium flagship model combining maximum intelligence with practical performance.
+
+### 🚀 New Claude Models
+*   **Claude Opus 4.5**: `claude-opus-4-5-20251101` - Premium model with maximum intelligence for the most demanding tasks
+*   **Complete 4.5 Generation**: All three Claude 4.5 models now available (Sonnet, Haiku, and Opus)
+*   **Model Selection**: New Opus 4.5 option appears in the model selector dropdown
+
+### 📊 Current Anthropic Lineup
+*   **Claude 4.5 Series**: Sonnet 4.5 (Balanced) • Haiku 4.5 (Fast) • **Opus 4.5 (Premium)** ⭐ NEW!
+*   **Claude 4.x Legacy**: Opus 4.1, Sonnet 4, Opus 4
+*   **Claude 3.x Legacy**: 3.7 Sonnet, 3.5 Sonnet, 3.5 Haiku, 3 Haiku
+*   **Total Models**: 10 Anthropic models supported
+
+### 🎯 Use Cases for Opus 4.5
+*   Complex reasoning and analysis tasks
+*   Advanced code generation and architecture
+*   Multi-step problem solving
+*   Research and technical writing
+*   Maximum accuracy requirements
+
+---
+
 ## v2.5.33 - "Containerized Ranger" 🐳
 *Released: Nov 26, 2025*
 
