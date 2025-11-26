@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.32-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.33-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -399,6 +399,30 @@ npm run dev
 
 ### 🚀 Launch
 Open your web browser and go to: **[http://localhost:5173](http://localhost:5173)**
+
+---
+
+## 🐳 Docker Support (New!)
+
+RangerPlex now supports **Docker** for easy, isolated deployment.
+
+### Prerequisites
+- Docker Desktop or Docker Engine installed
+
+### Quick Start
+1. Open your terminal in the project folder
+2. Run the following command:
+   ```bash
+   docker-compose up -d --build
+   ```
+3. Access the app:
+   - **Frontend**: [http://localhost:5173](http://localhost:5173)
+   - **Backend**: [http://localhost:3010](http://localhost:3010)
+
+### Features
+- **Persistence**: Database, images, and backups are saved to your local `./data` folder
+- **Puppeteer Ready**: Includes all dependencies for screenshot and web scraping tools
+- **Hot Reloading**: Frontend updates instantly when you edit files
 
 ---
 

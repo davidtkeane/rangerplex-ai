@@ -2,6 +2,24 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.33 - "Containerized Ranger" 🐳
+*Released: Nov 26, 2025*
+
+**Docker Support & Containerization.** Added full Docker support with a production-ready `Dockerfile` and `docker-compose.yml`. Now you can spin up the entire RangerPlex stack (Frontend + Backend + Database) with a single command, fully isolated and pre-configured with all Puppeteer dependencies.
+
+### 🐳 Docker Integration
+*   **One-Command Deploy**: `docker-compose up -d --build` launches everything.
+*   **Puppeteer Ready**: Docker image includes Chromium and all required Linux libraries for screenshots and web scraping.
+*   **Persistence**: Configured volumes for `./data`, `./backups`, and `./image` to ensure data survives container restarts.
+*   **Hot Reloading**: Vite server configured with `--host` to support hot reloading from within the container.
+*   **VS Code Integration**: Optimized for use with the **Docker Extension Pack** for visual management.
+
+### 🔧 Improvements
+*   **Vite Config**: Updated `package.json` to expose host (`vite --host`) for container compatibility.
+*   **Cleanup**: Removed obsolete `version` attribute from `docker-compose.yml`.
+
+---
+
 ## v2.5.32 - "Weather Command & Auto-Updates" 🌦️
 *Released: Nov 25, 2025*
 
