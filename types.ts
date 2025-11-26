@@ -300,6 +300,9 @@ export interface AppSettings {
 
   // Canvas
   defaultCanvasColor: 'black' | 'gray' | 'white';
+
+  // Editor
+  editorAutoOpenTerminal: boolean;
 }
 
 export const DEFAULT_AGENTS: AgentConfig[] = [
@@ -552,7 +555,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   abstractEmailApiKey: import.meta.env.VITE_ABSTRACT_EMAIL_API_KEY || '',
   abstractIpApiKey: import.meta.env.VITE_ABSTRACT_IP_API_KEY || '',
 
-  defaultCanvasColor: 'white'
+  defaultCanvasColor: 'white',
+  editorAutoOpenTerminal: false
 };
 
 export interface TrainingExample {

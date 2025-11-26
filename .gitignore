@@ -60,12 +60,20 @@ Thumbs.db
 *~
 
 # Internal development files (keep private)
-# docs/
+docs/
+
+# 🛡️ PHANTOM PERSISTENCE - PRO FEATURE (KEEP PRIVATE!)
+# This is proprietary technology for RangerPlexOS PRO
+# Used to fund iCanHelp Ltd charity mission
+data/vault/
+!data/vault/.gitignore
+PHANTOM_PROTECTION_STATUS.md
 
 # RangerChain blockchain files (keep local)
 rangerblock/
 blockchain/
 
+# Ollama setup files (keep local)
 M4_OLLAMA_SETUP.sh
 ollama/M3_RANGERPLEX_SETUP.sh
 ollama/M4_OLLAMA_SETUP.sh
@@ -75,4 +83,3 @@ ollama/OSINT_TOOLS_PLAN.md
 ollama/SETUP_GUIDE_M4_M3.md
 ollama/setup_ollama.sh
 ollama/START_HERE_OLLAMA.md
-M4_OLLAMA_SETUP.sh

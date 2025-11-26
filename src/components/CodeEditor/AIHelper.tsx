@@ -111,6 +111,7 @@ export default function AIHelper({ selectedCode, onSendToChat }: AIHelperProps) 
         title="AI Assistant"
       >
         <MessageSquare size={20} />
+        <span className={styles.helpLabel}>Help</span>
         {selectedCode && <span className={styles.badge}>!</span>}
       </button>
 

@@ -1,10 +1,32 @@
-# RangerPlex Manual (v2.5.36)
+# RangerPlex Manual (v2.6.0) ⚫
 
 > 🚨 **CRITICAL NOTE FOR AI AGENTS**: This file, along with `docs/RangerPlexBrowser/rangerplexOS/RANGERPLEX_BROWSER_ARCHITECTURE.md`, are the **SINGLE SOURCE OF TRUTH**. Do not rely on old documentation scattered in other folders. We are building the **RangerPlex Browser (Project Phantom Wing)**. Stick to the plan here.
+
+**🎉 NEW IN v2.6.0:** Death Star Easter Egg, Monaco Editor with Full Persistence, AI Code Assistant, and Phantom Persistence Architecture!
 
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
 
 ## Quick Links
+- [What's New in v2.5.38](#whats-new-in-v2538)
+- [Monaco Code Editor](#monaco-code-editor)
+- [Death Star Easter Egg](#death-star-easter-egg)
+
+## What's New in v2.5.38
+> **Release Date:** 2025-11-26
+
+### 🛠️ Code Editor Evolution
+- **Auto-Save:** Your code is now safe! The editor saves your work to local storage every second.
+- **Settings Integration:** A new "Settings" button in the toolbar gives you quick access to preferences.
+- **Terminal Toggle:** Show or hide the terminal to maximize your coding space.
+- **Neon UI:** A fresh coat of paint with "Tron" styling and crisp icons.
+
+### 🚀 Browser Mode Polish
+- **Electron Fixes:** We resolved the launch issues, making the native app rock-solid.
+- **Manual Navigation:** Better controls for reading this very manual.
+
+### 🔮 The Future (Roadmap)
+- **Project IRON FORGE:** We are planning full VS Code integration.
+- **Project PRESS FORGE:** WordPress management is coming soon.
 - [Orientation](#orientation)
 - [Start a New Chat](#start-a-new-chat)
 - [Getting Started](#getting-started)

@@ -180,10 +180,11 @@ function setupIpcHandlers() {
             alwaysOnTop: true, // Floating
             transparent: true, // Glass effect
             webPreferences: {
-                preload: path.join(__dirname, 'preload.js'),
-                nodeIntegration: false,
+                preload: path.join(__dirname, 'preload.cjs'),
                 contextIsolation: true,
-            },
+                nodeIntegration: false,
+                webviewTag: true // Enable <webview> tag
+            }
         });
 
         // Load a specific route for the terminal

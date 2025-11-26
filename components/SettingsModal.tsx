@@ -754,6 +754,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <option value="AUD">AUD (A$)</option>
                                     </select>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-bold mb-2">Editor</label>
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input type="checkbox" checked={localSettings.editorAutoOpenTerminal} onChange={e => setLocalSettings({ ...localSettings, editorAutoOpenTerminal: e.target.checked })} className="accent-teal-500 w-5 h-5" />
+                                        Auto-Open Terminal in Editor
+                                    </label>
+                                </div>
                             </div>
                             <div className="space-y-3">
                                 <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">

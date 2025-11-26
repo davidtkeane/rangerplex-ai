@@ -1,6 +1,6 @@
 {
   "name": "rangerplex-ai",
-  "version": "2.5.37",
+  "version": "2.6.0",
   "type": "module",
   "scripts": {
     "start": "concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
@@ -16,7 +16,7 @@
     "preview": "vite preview",
     "proxy": "node proxy_server.js",
     "server": "node proxy_server.js",
-    "browser": "electron electron/main.js"
+    "browser": "electron electron/main.cjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

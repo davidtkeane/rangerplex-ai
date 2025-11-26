@@ -10,6 +10,7 @@ import FazalEasterEgg from './FazalEasterEgg';
 import SowmyaEasterEgg from './SowmyaEasterEgg';
 import MichaelEasterEgg from './MichaelEasterEgg';
 import Win95EasterEgg from './Win95EasterEgg';
+import DeathStarEasterEgg from './DeathStarEasterEgg';
 import { PetState } from '../src/hooks/usePetState';
 import { streamGeminiResponse } from '../services/geminiService';
 import { streamOllamaResponse } from '../services/ollamaService';
@@ -84,6 +85,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const [showSowmyaEasterEgg, setShowSowmyaEasterEgg] = useState(false);
     const [showMichaelEasterEgg, setShowMichaelEasterEgg] = useState(false);
     const [showWin95EasterEgg, setShowWin95EasterEgg] = useState(false);
+    const [showDeathStarEasterEgg, setShowDeathStarEasterEgg] = useState(false);
     const [copiedLast, setCopiedLast] = useState(false);
 
     const [isModelLoading, setIsModelLoading] = useState(false);
@@ -230,6 +232,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     id: uuidv4(),
                     sender: Sender.AI,
                     text: '💾 Launching Windows 95...',
+                    timestamp: Date.now()
+                }
+            ]);
+            return;
+        }
+
+        // ⚫ DEATH STAR EASTER EGG: Type "/deathstar" for celebration
+        if (lowerText.trim() === '/deathstar') {
+            setShowDeathStarEasterEgg(true);
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '⚫ **Initiating Imperial Override Protocol...**\n\n*The Death Star is now operational, Commander.* 🎖️',
                     timestamp: Date.now()
                 }
             ]);
@@ -3515,6 +3532,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     currentUser={currentUser}
                 />
             )}
+            {showDeathStarEasterEgg && <DeathStarEasterEgg onClose={() => setShowDeathStarEasterEgg(false)} />}
         </div>
     );
 };

@@ -1,19 +1,18 @@
 # 🛡️ RangerPlex Vault Privacy Protection
-# This folder contains user's persistent state data
+# This folder contains PROPRIETARY persistence system (PRO feature)
 
-# Ignore all user data files
-*.sqlite3
-*.db
-*_phantom_state.json
-*_memories.json
-terminal_history.json
-editor_state.json
+# ⚠️ IMPORTANT: This entire vault is PRIVATE for now
+# Phantom Persistence = Premium Feature for RangerPlexOS PRO
+# NOT for public GitHub until launch
 
-# But allow schema templates and examples
-!schemas/
-!examples/
+# Ignore EVERYTHING by default
+*
+
+# ONLY allow this .gitignore to be tracked
 !.gitignore
-!README.md
 
-# Allow documentation
-*.md
+# When ready to open-source (future decision):
+# Uncomment these lines to share templates only
+# !schemas/
+# !examples/
+# !README.md

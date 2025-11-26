@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Play, X, Save, Upload, Settings, Terminal as TerminalIcon } from 'lucide-react';
 import Editor, { Monaco, OnMount } from '@monaco-editor/react';
 import { codeExecutionService } from '../../services/codeExecutionService';
 import { detectLanguageFromFilename, SupportedLanguage } from '../../types/editor';
@@ -8,6 +9,9 @@ import styles from './EditorTerminalSplit.module.css';
 
 type EditorTerminalSplitProps = {
   onSendToChat?: (message: string) => void;
+  onClose?: () => void;
+  onOpenSettings?: () => void;
+  autoOpenTerminal?: boolean;
 };
 
 const DEFAULT_SNIPPET = `// Welcome to RangerPlex Monaco Editor
@@ -29,21 +33,85 @@ const languageOptions: SupportedLanguage[] = [
   'markdown',
 ];
 
-export default function EditorTerminalSplit({ onSendToChat }: EditorTerminalSplitProps) {
+export default function EditorTerminalSplit({
+  onSendToChat,
+  onClose,
+  onOpenSettings,
+  autoOpenTerminal = false
+}: EditorTerminalSplitProps) {
   const [code, setCode] = useState(DEFAULT_SNIPPET);
   const [filename, setFilename] = useState('app.js');
   const [language, setLanguage] = useState<SupportedLanguage>('javascript');
   const [terminalHeight, setTerminalHeight] = useState(300);
   const [selectedCode, setSelectedCode] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [isTerminalVisible, setIsTerminalVisible] = useState(autoOpenTerminal);
   const draggingRef = useRef(false);
   const terminalRef = useRef(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-Save Logic
+  useEffect(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      const workspace = {
+        code,
+        language,
+        filename,
+        terminalHeight
+      };
+      localStorage.setItem('rangerplex_editor_workspace', JSON.stringify(workspace));
+      // Don't show status for auto-save to avoid spam
+    }, 1000); // 1 second debounce
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [code, language, filename, terminalHeight]);
 
   const handleSocketReady = useCallback((ws: WebSocket | null) => {
+    console.log('🔌 EditorTerminalSplit: Socket Ready called', ws ? 'CONNECTING...' : 'DISCONNECTED');
     codeExecutionService.setTerminalWebSocket(ws);
+
+    if (ws) {
+      if (ws.readyState === WebSocket.OPEN) {
+        setIsConnected(true);
+        setStatus('Terminal Connected');
+        setTimeout(() => setStatus(''), 2000);
+      } else {
+        ws.addEventListener('open', () => {
+          setIsConnected(true);
+          setStatus('Terminal Connected');
+          setTimeout(() => setStatus(''), 2000);
+        });
+      }
+
+      ws.addEventListener('close', () => setIsConnected(false));
+      ws.addEventListener('error', () => setIsConnected(false));
+    } else {
+      setIsConnected(false);
+    }
   }, []);
 
   const handleRun = useCallback(async () => {
+    if (!isTerminalVisible) {
+      setIsTerminalVisible(true);
+      // Give it a moment to render and connect
+      setTimeout(async () => {
+        await executeRun();
+      }, 500);
+      return;
+    }
+    await executeRun();
+  }, [code, language, filename, isTerminalVisible]);
+
+  const executeRun = async () => {
     setStatus('Running…');
     const result = await codeExecutionService.executeCode(code, language, filename);
     setStatus(result.output || '');
@@ -51,7 +119,7 @@ export default function EditorTerminalSplit({ onSendToChat }: EditorTerminalSpli
     if (!result.success && result.error) {
       alert(`Error: ${result.error}`);
     }
-  }, [code, language, filename]);
+  };
 
   const onEditorMount: OnMount = (editor, monaco: Monaco) => {
     editor.onDidChangeCursorSelection((e) => {
@@ -102,6 +170,50 @@ export default function EditorTerminalSplit({ onSendToChat }: EditorTerminalSpli
     console.log('AI helper message:', message);
   };
 
+  const handleSaveWorkspace = () => {
+    const workspace = {
+      code,
+      language,
+      filename,
+      terminalHeight
+    };
+    localStorage.setItem('rangerplex_editor_workspace', JSON.stringify(workspace));
+    setStatus('Workspace Saved');
+    setTimeout(() => setStatus(''), 2000);
+  };
+
+  const handleLoadWorkspace = () => {
+    const saved = localStorage.getItem('rangerplex_editor_workspace');
+    if (saved) {
+      const workspace = JSON.parse(saved);
+      setCode(workspace.code || '');
+      setLanguage(workspace.language || 'javascript');
+      setFilename(workspace.filename || 'app.js');
+      if (workspace.terminalHeight) setTerminalHeight(workspace.terminalHeight);
+      setStatus('Workspace Loaded');
+      setTimeout(() => setStatus(''), 2000);
+    } else {
+      setStatus('No saved workspace');
+      setTimeout(() => setStatus(''), 2000);
+    }
+  };
+
+  // Button Style Helper
+  const btnStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.05)',
+    color: '#e4e4e7',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  };
+
   return (
     <div className={styles.splitContainer}>
       <div className={styles.toolbar}>
@@ -129,15 +241,76 @@ export default function EditorTerminalSplit({ onSendToChat }: EditorTerminalSpli
             </select>
           </label>
         </div>
-        <div className={styles.actions}>
-          {status && <span className={styles.status}>{status}</span>}
-          <button className={styles.runButton} onClick={handleRun} title="Run (Ctrl/Cmd + Enter)">
+        <div className={styles.actions} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {status && <span className={styles.status} style={{ marginRight: '8px', fontSize: '12px', color: '#00ff9d' }}>{status}</span>}
+
+          <button
+            onClick={handleSaveWorkspace}
+            title="Save Workspace"
+            style={{ ...btnStyle, borderColor: '#3b82f6', color: '#60a5fa' }}
+          >
+            <Save size={14} />
+            Save
+          </button>
+
+          <button
+            onClick={handleLoadWorkspace}
+            title="Load Workspace"
+            style={{ ...btnStyle, borderColor: '#8b5cf6', color: '#a78bfa' }}
+          >
+            <Upload size={14} />
+            Load
+          </button>
+
+          <button
+            onClick={() => setIsTerminalVisible(!isTerminalVisible)}
+            title={isTerminalVisible ? "Close Terminal" : "Open Terminal"}
+            style={{ ...btnStyle, borderColor: '#eab308', color: '#facc15', background: isTerminalVisible ? 'rgba(234, 179, 8, 0.1)' : 'transparent' }}
+          >
+            <TerminalIcon size={14} />
+            {isTerminalVisible ? 'Hide Term' : 'Show Term'}
+          </button>
+
+          <button
+            onClick={handleRun}
+            disabled={!isConnected && isTerminalVisible}
+            title={isConnected || !isTerminalVisible ? "Run (Ctrl/Cmd + Enter)" : "Connecting to terminal..."}
+            style={{
+              ...btnStyle,
+              borderColor: isConnected || !isTerminalVisible ? '#22c55e' : '#52525b',
+              color: isConnected || !isTerminalVisible ? '#4ade80' : '#71717a',
+              cursor: isConnected || !isTerminalVisible ? 'pointer' : 'not-allowed',
+              opacity: isConnected || !isTerminalVisible ? 1 : 0.5
+            }}
+          >
+            <Play size={14} />
             Run
           </button>
+
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              title="Editor Settings"
+              style={{ ...btnStyle, borderColor: '#06b6d4', color: '#22d3ee' }}
+            >
+              <Settings size={14} />
+              Settings
+            </button>
+          )}
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              style={{ ...btnStyle, borderColor: '#ef4444', color: '#f87171', background: 'rgba(239, 68, 68, 0.1)' }}
+            >
+              <X size={14} />
+              Close
+            </button>
+          )}
         </div>
       </div>
 
-      <div className={styles.editorSection} style={{ height: `calc(100% - ${terminalHeight}px)` }}>
+      <div className={styles.editorSection} style={{ height: isTerminalVisible ? `calc(100% - ${terminalHeight}px)` : '100%' }}>
         <Editor
           height="100%"
           defaultLanguage={language}
@@ -169,11 +342,14 @@ export default function EditorTerminalSplit({ onSendToChat }: EditorTerminalSpli
         />
       </div>
 
-      <div className={styles.resizeHandle} onMouseDown={startDragging} />
-
-      <div className={styles.terminalSection} style={{ height: `${terminalHeight}px` }}>
-        <RangerTerminal ref={terminalRef} onSocketReady={handleSocketReady} />
-      </div>
+      {isTerminalVisible && (
+        <>
+          <div className={styles.resizeHandle} onMouseDown={startDragging} />
+          <div className={styles.terminalSection} style={{ height: `${terminalHeight}px` }}>
+            <RangerTerminal ref={terminalRef} onSocketReady={handleSocketReady} />
+          </div>
+        </>
+      )}
 
       <AIHelper selectedCode={selectedCode} onSendToChat={handleSendToChat} />
     </div>
