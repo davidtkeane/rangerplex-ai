@@ -67,7 +67,7 @@ We now have a **fully functional RangerOS Browser Version 2.0**!
 
 ---
 
-## [2.5.38] - 2025-11-26
+## [2.6.0] - 2025-11-26
 ### Added
 - **Code Editor Polish**: Auto-save (localStorage), Settings button, Terminal toggle, and Neon UI refresh.
 - **Project IRON FORGE**: Plan for full VS Code integration (`code-server`).
