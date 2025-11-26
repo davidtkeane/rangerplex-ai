@@ -1,0 +1,518 @@
+{
+  "arnold_save_info": {
+    "timestamp": "20250915_234030",
+    "arnold_manager": "Arnold Auto-Save System",
+    "save_strategy": {
+      "claude_management": "cleanup_old_keep_recent",
+      "rangeros_management": "preserve_all",
+      "app_management": "smart_save",
+      "cleanup_strategy": "memory_optimization"
+    },
+    "automatic": true,
+    "user_interaction": false
+  },
+  "process_data": {
+    "claude_processes": [
+      {
+        "pid": "13945",
+        "memory": "797376",
+        "command": "claude",
+        "type": "claude_conversation",
+        "arnold_assessment": "High value - AI conversation"
+      },
+      {
+        "pid": "25345",
+        "memory": "3120",
+        "command": "/bin/zsh -c -l source /Users/ranger/.claude/shell-snapshots/snapshot-zsh-1757959058989-efr8zz.sh && eval 'python3 04-ai-integration/arnold_menu_integration.py' \\< /dev/null && pwd -P >| /var/folders/db/8dcjsg395pz4r8kbpj0sd5340000gn/T/claude-859a-cwd",
+        "type": "claude_conversation",
+        "arnold_assessment": "High value - AI conversation"
+      },
+      {
+        "pid": "21799",
+        "memory": "422592",
+        "command": "claude",
+        "type": "claude_conversation",
+        "arnold_assessment": "High value - AI conversation"
+      },
+      {
+        "pid": "8517",
+        "memory": "129824",
+        "command": "claude",
+        "type": "claude_conversation",
+        "arnold_assessment": "High value - AI conversation"
+      }
+    ],
+    "rangeros_processes": [
+      {
+        "pid": "98889",
+        "memory": "10576",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "98886",
+        "memory": "6960",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "98884",
+        "memory": "8960",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "96785",
+        "memory": "10416",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "96783",
+        "memory": "7040",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "96781",
+        "memory": "9008",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "94283",
+        "memory": "9056",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "94280",
+        "memory": "6976",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "94277",
+        "memory": "7984",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "92295",
+        "memory": "8864",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "92293",
+        "memory": "6944",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "92291",
+        "memory": "4224",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "89688",
+        "memory": "8640",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "89686",
+        "memory": "6864",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "89683",
+        "memory": "7824",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "88132",
+        "memory": "9616",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "88130",
+        "memory": "7024",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "88128",
+        "memory": "7840",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "86437",
+        "memory": "8880",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "86435",
+        "memory": "7120",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "86433",
+        "memory": "7840",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "85150",
+        "memory": "8800",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "85148",
+        "memory": "7360",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "85146",
+        "memory": "7744",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "84322",
+        "memory": "9440",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "84318",
+        "memory": "3824",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "84316",
+        "memory": "8016",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "80926",
+        "memory": "9056",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "80923",
+        "memory": "6960",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "80921",
+        "memory": "7984",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "80480",
+        "memory": "6976",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "80478",
+        "memory": "7696",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "78977",
+        "memory": "9088",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "78975",
+        "memory": "6880",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "78973",
+        "memory": "7776",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "78137",
+        "memory": "9488",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "78135",
+        "memory": "6720",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "78133",
+        "memory": "7920",
+        "command": "python3 /Users/ranger/scripts/Rangers_Stuff/browser-2025/Ranger/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "34261",
+        "memory": "464",
+        "command": "aslmanager",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "24140",
+        "memory": "3024",
+        "command": "/usr/libexec/containermanagerd_system --runmode=privileged --user-container-mode=current --bundle-container-mode=global --bundle-container-owner=_appinstalld --system-container-mode=none",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "82919",
+        "memory": "3456",
+        "command": "/usr/libexec/usermanagerd -t 15",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "64405",
+        "memory": "8928",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "64403",
+        "memory": "8096",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "64400",
+        "memory": "7360",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "61595",
+        "memory": "8704",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "61593",
+        "memory": "7712",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "61590",
+        "memory": "7392",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "60588",
+        "memory": "8352",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "60586",
+        "memory": "7680",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "60583",
+        "memory": "3504",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "59535",
+        "memory": "9056",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/terminal_supervisor_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "59532",
+        "memory": "7680",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/dj_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "59524",
+        "memory": "7520",
+        "command": "/opt/homebrew/Cellar/python@3.13/3.13.7/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/restaurant_manager_living.py --daemon",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "446",
+        "memory": "3296",
+        "command": "/usr/libexec/containermanagerd --runmode=agent --user-container-mode=current --bundle-container-mode=proxy --system-container-mode=none",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "321",
+        "memory": "11024",
+        "command": "/usr/libexec/modelmanagerd",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "146",
+        "memory": "6208",
+        "command": "/usr/libexec/nesessionmanager",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "128",
+        "memory": "3776",
+        "command": "/usr/libexec/kernelmanagerd",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      },
+      {
+        "pid": "19119",
+        "memory": "34592",
+        "command": "python3 04-ai-integration/terminator_manager_living.py",
+        "type": "rangeros_manager",
+        "arnold_assessment": "Critical - RangerOS ecosystem"
+      }
+    ],
+    "important_processes": [
+      {
+        "pid": "13526",
+        "memory": "217008",
+        "command": "/Applications/iTerm-AI-Beta.app/Contents/MacOS/iTerm2",
+        "type": "productivity_app",
+        "arnold_assessment": "Important - productivity tool"
+      },
+      {
+        "pid": "2353",
+        "memory": "12320",
+        "command": "/opt/homebrew/Cellar/node@22/22.19.0/bin/node /opt/homebrew/Cellar/code-server/4.103.2/libexec/lib/vscode/out/bootstrap-fork --type=ptyHost --logsPath /Users/ranger/.local/share/code-server/logs/20250908T005353",
+        "type": "productivity_app",
+        "arnold_assessment": "Important - productivity tool"
+      },
+      {
+        "pid": "13530",
+        "memory": "8880",
+        "command": "/Applications/iTerm-AI-Beta.app/Contents/XPCServices/pidinfo.xpc/Contents/MacOS/pidinfo",
+        "type": "productivity_app",
+        "arnold_assessment": "Important - productivity tool"
+      },
+      {
+        "pid": "13527",
+        "memory": "1216",
+        "command": "/Users/ranger/Library/Application Support/iTerm2/iTermServer-3.5.14 /Users/ranger/Library/Application Support/iTerm2/iterm2-daemon-1.socket",
+        "type": "productivity_app",
+        "arnold_assessment": "Important - productivity tool"
+      },
+      {
+        "pid": "81540",
+        "memory": "2448",
+        "command": "/Applications/iTerm.app/Contents/XPCServices/pidinfo.xpc/Contents/MacOS/pidinfo",
+        "type": "productivity_app",
+        "arnold_assessment": "Important - productivity tool"
+      },
+      {
+        "pid": "81538",
+        "memory": "1168",
+        "command": "/Users/ranger/Library/Application Support/iTerm2/iTermServer-3.5.14 /Users/ranger/Library/Application Support/iTerm2/iterm2-daemon-2.socket",
+        "type": "productivity_app",
+        "arnold_assessment": "Important - productivity tool"
+      },
+      {
+        "pid": "81525",
+        "memory": "41872",
+        "command": "/Applications/iTerm.app/Contents/MacOS/iTerm2",
+        "type": "productivity_app",
+        "arnold_assessment": "Important - productivity tool"
+      },
+      {
+        "pid": "19127",
+        "memory": "63856",
+        "command": "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal",
+        "type": "productivity_app",
+        "arnold_assessment": "Important - productivity tool"
+      }
+    ],
+    "total_scanned": 949
+  },
+  "restoration_instructions": {
+    "claude_restoration": "cleanup_old_keep_recent",
+    "rangeros_restoration": "preserve_all",
+    "app_restoration": "smart_restore"
+  }
+}

@@ -112,6 +112,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         };
     }, [settings.autoHideModelSelector, isDropdownOpen]);
 
+    // Auto-send programmatically added user messages (e.g., from Code Assistant)
+    useEffect(() => {
+        if (session.messages.length === 0 || isStreaming) return;
+
+        const lastMessage = session.messages[session.messages.length - 1];
+        const now = Date.now();
+
+        // If last message is from user and was added in the last 2 seconds, and there's no AI response after it
+        if (
+            lastMessage.sender === Sender.USER &&
+            now - lastMessage.timestamp < 2000 &&
+            !isStreaming
+        ) {
+            // Check if this message needs a response (no AI message after it)
+            const needsResponse = session.messages.length === 1 ||
+                session.messages[session.messages.length - 2]?.sender === Sender.AI ||
+                session.messages[session.messages.length - 2]?.sender === Sender.USER;
+
+            if (needsResponse && lastMessage.text) {
+                // Auto-send this message to AI
+                setTimeout(() => {
+                    handleSendMessage(lastMessage.text, [], { web: false, visual: false, flash: false, deep: false }, false);
+                }, 100);
+            }
+        }
+    }, [session.messages.length, session.id]);
+
     // Check for updates on mount
     useEffect(() => {
         const checkUpdate = async () => {

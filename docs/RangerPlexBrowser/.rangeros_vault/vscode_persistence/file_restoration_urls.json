@@ -1,0 +1,32 @@
+{
+  "urls": [
+    "http://localhost:8181/?file=/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/10-rangeros-vision/rangeros_browser_v2.py",
+    "http://localhost:8181/?file=/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/ai_communications_manager_living.py",
+    "http://localhost:8181/?file=/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/gaming_browser_manager_living.py",
+    "http://localhost:8181/?file=/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/03-web-interfaces/manager_chat_center.html"
+  ],
+  "files": [
+    {
+      "path": "/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/10-rangeros-vision/rangeros_browser_v2.py",
+      "last_modified": "2025-09-08T06:11:14.293583",
+      "size": 390004
+    },
+    {
+      "path": "/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/ai_communications_manager_living.py",
+      "last_modified": "2025-09-08T04:53:53.211035",
+      "size": 38383
+    },
+    {
+      "path": "/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/gaming_browser_manager_living.py",
+      "last_modified": "2025-09-08T03:33:48.037502",
+      "size": 47578
+    },
+    {
+      "path": "/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/03-web-interfaces/manager_chat_center.html",
+      "last_modified": "2025-09-08T05:41:42.024331",
+      "size": 50598
+    }
+  ],
+  "restoration_time": "2025-10-24T19:08:15.134927",
+  "workspace": "RangerOS-Development"
+}

@@ -1,0 +1,33 @@
+{
+  "operation_id": "mem_op_456def",
+  "tab_id": "chat_session_abc123",
+  "conversationSnapshot": {
+    "sessionTitle": "🤖 Code Assistant",
+    "messageCount": 15,
+    "lastMessage": {
+      "sender": "AI",
+      "preview": "I've successfully implemented the terminal persistence...",
+      "timestamp": 1732645500000
+    },
+    "context": {
+      "model": "gemini-2.5-pro",
+      "knowledgeBaseFiles": ["/src/App.tsx", "/src/services/terminalStateService.ts"]
+    }
+  },
+  "memoryRecipe": "deep_freeze",
+  "engineAssignment": "phantom_engine",
+  "status": "stored",
+  "freezeTime": 1732645600000,
+  "lastAccessTime": 1732645500000,
+  "qualityRating": 9.8,
+  "cosmicPowerUsed": 2.5,
+  "restorationCount": 2,
+  "metadata": {
+    "freezeStrategy": "full_state",
+    "compressionRatio": 4.2,
+    "estimatedThawTime": 150,
+    "memoryFootprintMB": 12.4,
+    "chefSatisfaction": "excellent",
+    "notes": "High-quality conversation with complete context preserved"
+  }
+}

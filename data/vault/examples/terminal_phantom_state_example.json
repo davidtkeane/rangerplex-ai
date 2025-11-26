@@ -1,0 +1,37 @@
+{
+  "session_id": "term_abc123",
+  "history": [
+    {
+      "command": "npm install",
+      "output": "added 1547 packages in 23s",
+      "timestamp": 1732645200000,
+      "exitCode": 0,
+      "workingDirectory": "/Users/ranger/Local Sites/rangerplex-ai"
+    },
+    {
+      "command": "npm run build",
+      "output": "✓ built in 16.52s",
+      "timestamp": 1732645230000,
+      "exitCode": 0,
+      "workingDirectory": "/Users/ranger/Local Sites/rangerplex-ai"
+    },
+    {
+      "command": "npm run dev",
+      "output": "Server started on http://localhost:3010",
+      "timestamp": 1732645250000,
+      "exitCode": null,
+      "workingDirectory": "/Users/ranger/Local Sites/rangerplex-ai"
+    }
+  ],
+  "workingDirectory": "/Users/ranger/Local Sites/rangerplex-ai",
+  "scrollPosition": 1250,
+  "engineAssignment": "active_engine",
+  "status": "active",
+  "lastUpdated": 1732645300000,
+  "metadata": {
+    "totalCommands": 3,
+    "sessionStartTime": 1732645000000,
+    "terminalType": "xterm",
+    "safetyChecksEnabled": true
+  }
+}

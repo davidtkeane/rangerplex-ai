@@ -1,0 +1,46 @@
+{
+  "session_id": "editor_xyz789",
+  "openTabs": [
+    {
+      "fileId": "file_001",
+      "filePath": "/src/App.tsx",
+      "fileName": "App.tsx",
+      "language": "typescript",
+      "isUnsaved": false,
+      "cursorPosition": {
+        "line": 42,
+        "column": 15
+      },
+      "scrollPosition": 340
+    },
+    {
+      "fileId": "file_002",
+      "filePath": "/src/components/Terminal/RangerTerminal.tsx",
+      "fileName": "RangerTerminal.tsx",
+      "language": "typescript",
+      "isUnsaved": true,
+      "cursorPosition": {
+        "line": 125,
+        "column": 8
+      },
+      "scrollPosition": 890
+    }
+  ],
+  "activeTabId": "file_002",
+  "recentFiles": [
+    "/src/App.tsx",
+    "/src/components/Terminal/RangerTerminal.tsx",
+    "/src/services/terminalStateService.ts"
+  ],
+  "workspaceFolder": "/Users/ranger/Local Sites/rangerplex-ai",
+  "engineAssignment": "active_engine",
+  "status": "active",
+  "lastUpdated": 1732645400000,
+  "metadata": {
+    "totalFilesOpened": 3,
+    "sessionStartTime": 1732640000000,
+    "editorTheme": "vs-dark",
+    "autoSaveEnabled": true,
+    "autoSaveDelay": 2000
+  }
+}

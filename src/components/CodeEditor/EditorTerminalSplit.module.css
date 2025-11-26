@@ -1,0 +1,91 @@
+.splitContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background: radial-gradient(circle at 10% 20%, rgba(0, 122, 204, 0.05), transparent 20%), #0b1020;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #111827;
+  border-bottom: 1px solid #1f2937;
+  color: #e5e7eb;
+}
+
+.inputs {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.input,
+.select {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  color: #e5e7eb;
+  padding: 6px 8px;
+  border-radius: 6px;
+  min-width: 160px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.runButton {
+  background: linear-gradient(135deg, #0ea5e9, #22d3ee);
+  border: none;
+  color: #0b1020;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.runButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(34, 211, 238, 0.4);
+}
+
+.status {
+  font-size: 12px;
+  color: #a5b4fc;
+}
+
+.editorSection {
+  flex: 1;
+  overflow: hidden;
+}
+
+.resizeHandle {
+  height: 6px;
+  background: #1f2937;
+  cursor: ns-resize;
+  transition: background 0.2s;
+}
+
+.resizeHandle:hover {
+  background: #0ea5e9;
+}
+
+.terminalSection {
+  background: #050910;
+  overflow: hidden;
+  padding: 8px;
+}

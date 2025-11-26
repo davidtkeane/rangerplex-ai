@@ -1,0 +1,19 @@
+# 🛡️ RangerPlex Vault Privacy Protection
+# This folder contains user's persistent state data
+
+# Ignore all user data files
+*.sqlite3
+*.db
+*_phantom_state.json
+*_memories.json
+terminal_history.json
+editor_state.json
+
+# But allow schema templates and examples
+!schemas/
+!examples/
+!.gitignore
+!README.md
+
+# Allow documentation
+*.md

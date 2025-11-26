@@ -1,0 +1,21 @@
+# Terry's VS Code File Restoration List
+# Files that should be restored when VS Code opens
+
+# Main RangerOS browser file
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/10-rangeros-vision/rangeros_browser_v2.py
+
+# Manager systems
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/ai_communications_manager_living.py
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/gaming_browser_manager_living.py
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/04-ai-integration/terminal_supervisor_living.py
+
+# Web interfaces  
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/03-web-interfaces/manager_chat_center.html
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/03-web-interfaces/rangeros_manager_profiles.html
+
+# Documentation
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/README.md
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/IRISH_PUB_BUILDING_COMPLETE.md
+
+# Current troubleshooting
+/Users/ranger/scripts/Rangers_Stuff/browser-2025/RangerOS/TROUBLESHOOTING_SESSION_2025-09-08.md

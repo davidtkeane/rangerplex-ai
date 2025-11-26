@@ -1,154 +1,197 @@
-import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import React, {
+  CSSProperties,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import 'xterm/css/xterm.css';
 
-interface RangerTerminalProps {
-  onOutput?: (data: string) => void;
-}
-
-export interface RangerTerminalRef {
-  write: (data: string) => void;
+export type RangerTerminalHandle = {
+  writeToTerminal: (data: string) => void;
+  sendToSocket: (data: string) => void;
   fit: () => void;
-}
+};
 
-const RangerTerminal = forwardRef<RangerTerminalRef, RangerTerminalProps>(({ onOutput }, ref) => {
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<Terminal | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+type RangerTerminalProps = {
+  endpoint?: string;
+  className?: string;
+  onSocketReady?: (socket: WebSocket | null) => void;
+  onOutput?: (data: string) => void;
+};
 
-  useImperativeHandle(ref, () => ({
-    write: (data: string) => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(data);
-      }
-    },
-    fit: () => {
-      fitAddonRef.current?.fit();
-    }
-  }));
+const RangerTerminal = forwardRef<RangerTerminalHandle, RangerTerminalProps>(
+  ({ endpoint, className, onSocketReady, onOutput }, ref) => {
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const terminalRef = useRef<Terminal | null>(null);
+    const fitAddonRef = useRef<FitAddon | null>(null);
+    const socketRef = useRef<WebSocket | null>(null);
+    const lastSentSize = useRef<{ cols: number; rows: number } | null>(null);
 
-  useEffect(() => {
-    if (!terminalRef.current) return;
-
-    // Initialize xterm.js
-    const term = new Terminal({
-      cursorBlink: true,
-      fontFamily: '"Fira Code", monospace',
-      fontSize: 14,
-      theme: {
-        background: '#000000',
-        foreground: '#00ff00', // Matrix Green
-        cursor: '#00ff00',
-        selectionBackground: 'rgba(0, 255, 0, 0.3)',
-        black: '#000000',
-        red: '#ff0000',
-        green: '#00ff00',
-        yellow: '#ffff00',
-        blue: '#0000ff',
-        magenta: '#ff00ff',
-        cyan: '#00ffff',
-        white: '#ffffff',
-        brightBlack: '#808080',
-        brightRed: '#ff0000',
-        brightGreen: '#00ff00',
-        brightYellow: '#ffff00',
-        brightBlue: '#0000ff',
-        brightMagenta: '#ff00ff',
-        brightCyan: '#00ffff',
-        brightWhite: '#ffffff'
+    useImperativeHandle(ref, () => ({
+      writeToTerminal: (data: string) => terminalRef.current?.write(data),
+      sendToSocket: (data: string) => {
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+          socketRef.current.send(data);
+        }
       },
-      allowProposedApi: true
-    });
+      fit: () => fitAddonRef.current?.fit(),
+    }));
 
-    const fitAddon = new FitAddon();
-    const webLinksAddon = new WebLinksAddon();
+    useEffect(() => {
+      const term = new Terminal({
+        convertEol: true,
+        cursorBlink: true,
+        fontSize: 14,
+        fontFamily: '"JetBrains Mono", "Fira Code", "SFMono-Regular", Menlo, monospace',
+        theme: {
+          background: '#050910',
+          foreground: '#3ef5d0',
+          cursor: '#3ef5d0',
+          green: '#3ef5d0',
+          black: '#000000',
+        },
+      });
+      const fitAddon = new FitAddon();
+      const linksAddon = new WebLinksAddon();
 
-    term.loadAddon(fitAddon);
-    term.loadAddon(webLinksAddon);
-    term.open(terminalRef.current);
+      terminalRef.current = term;
+      fitAddonRef.current = fitAddon;
 
-    // Initial fit
-    setTimeout(() => fitAddon.fit(), 100);
+      term.loadAddon(fitAddon);
+      term.loadAddon(linksAddon);
 
-    xtermRef.current = term;
-    fitAddonRef.current = fitAddon;
-
-    // Connect to WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = 'localhost:3010'; // Hardcoded for now, should come from config
-    const ws = new WebSocket(`${protocol}//${host}/terminal`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      term.writeln('\x1b[1;32m⚡ RANGER CONSOLE CONNECTED ⚡\x1b[0m');
-      term.writeln('\x1b[2mType "exit" to close session.\x1b[0m\r\n');
-
-      // Send initial resize
-      const dims = fitAddon.proposeDimensions();
-      if (dims) {
-        ws.send(JSON.stringify({
-          type: 'resize',
-          cols: dims.cols,
-          rows: dims.rows
-        }));
+      const container = containerRef.current;
+      if (container) {
+        term.open(container);
+        term.focus();
       }
-    };
 
-    ws.onmessage = (event) => {
-      term.write(event.data);
-      if (onOutput) onOutput(event.data);
-    };
+      const socketUrl = (() => {
+        if (endpoint) return endpoint;
+        if (typeof window === 'undefined') return 'ws://localhost:3010/terminal';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.hostname || 'localhost';
+        return `${protocol}//${host}:3010/terminal`;
+      })();
 
-    ws.onclose = () => {
-      term.writeln('\r\n\x1b[1;31m⚡ DISCONNECTED ⚡\x1b[0m');
-    };
+      const socket = new WebSocket(socketUrl);
+      socketRef.current = socket;
+      onSocketReady?.(socket);
 
-    ws.onerror = (err) => {
-      term.writeln(`\r\n\x1b[1;31mError: ${err}\x1b[0m`);
-    };
+      const resizeAndNotify = () => {
+        if (!fitAddonRef.current || !terminalRef.current) return;
+        fitAddonRef.current.fit();
+        const cols = terminalRef.current.cols;
+        const rows = terminalRef.current.rows;
+        if (!cols || !rows) return;
 
-    // Terminal Input -> WebSocket
-    term.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
+        const sizeChanged =
+          !lastSentSize.current ||
+          lastSentSize.current.cols !== cols ||
+          lastSentSize.current.rows !== rows;
+
+        if (sizeChanged) {
+          lastSentSize.current = { cols, rows };
+          if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
+          }
+        }
+      };
+
+      const dataDisposable = term.onData((data) => {
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+          socketRef.current.send(data);
+        }
+      });
+
+      socket.addEventListener('open', () => {
+        term.writeln('\x1b[1;32m⚡ RANGER CONSOLE CONNECTED ⚡\x1b[0m');
+        term.writeln('\x1b[2mType "exit" to close session.\x1b[0m\r\n');
+        resizeAndNotify();
+      });
+
+      socket.addEventListener('message', (event) => {
+        if (typeof event.data === 'string') {
+          term.write(event.data);
+          onOutput?.(event.data);
+        } else if (event.data instanceof ArrayBuffer) {
+          const text = new TextDecoder().decode(event.data);
+          term.write(text);
+          onOutput?.(text);
+        }
+      });
+
+      socket.addEventListener('close', () => {
+        term.writeln('\r\n\x1b[1;31m⚡ DISCONNECTED ⚡\x1b[0m');
+        onSocketReady?.(null);
+      });
+
+      socket.addEventListener('error', () => {
+        term.writeln('\r\n\x1b[1;31m[connection error]\x1b[0m');
+      });
+
+      const observer = new ResizeObserver(() => resizeAndNotify());
+      if (container) {
+        observer.observe(container);
       }
-    });
+      requestAnimationFrame(resizeAndNotify);
 
-    // Handle Resize
-    const handleResize = () => {
-      if (!fitAddon) return;
-      fitAddon.fit();
-      const dims = fitAddon.proposeDimensions();
-      if (dims && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'resize',
-          cols: dims.cols,
-          rows: dims.rows
-        }));
-      }
+      return () => {
+        dataDisposable.dispose();
+        observer.disconnect();
+        socket.close();
+        term.dispose();
+        onSocketReady?.(null);
+      };
+    }, [endpoint, onSocketReady, onOutput]);
+
+    const frameStyle: CSSProperties = {
+      position: 'relative',
+      height: '100%',
+      width: '100%',
+      background: 'linear-gradient(135deg, #04080f 0%, #07111c 100%)',
+      border: '1px solid rgba(0, 255, 170, 0.35)',
+      boxShadow:
+        '0 0 18px rgba(0, 255, 170, 0.35), 0 0 60px rgba(0, 170, 255, 0.18), inset 0 0 20px rgba(0, 255, 255, 0.12)',
+      borderRadius: '12px',
+      overflow: 'hidden',
     };
 
-    window.addEventListener('resize', handleResize);
-
-    // Resize observer for the container
-    const resizeObserver = new ResizeObserver(() => {
-      handleResize();
-    });
-    resizeObserver.observe(terminalRef.current);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      resizeObserver.disconnect();
-      ws.close();
-      term.dispose();
+    const gridOverlayStyle: CSSProperties = {
+      position: 'absolute',
+      inset: 0,
+      background:
+        'linear-gradient(90deg, rgba(0,255,170,0.08) 1px, transparent 1px), linear-gradient(0deg, rgba(0,170,255,0.08) 1px, transparent 1px)',
+      backgroundSize: '40px 40px',
+      mixBlendMode: 'screen',
+      pointerEvents: 'none',
+      opacity: 0.45,
+      zIndex: 1,
     };
-  }, []);
 
-  return <div ref={terminalRef} className="w-full h-full" />;
-});
+    const terminalSurfaceStyle: CSSProperties = {
+      position: 'relative',
+      zIndex: 2,
+      height: '100%',
+      width: '100%',
+      padding: '12px',
+      color: '#3ef5d0',
+      background:
+        'radial-gradient(circle at 20% 20%, rgba(0,255,170,0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(0,180,255,0.08), transparent 25%)',
+    };
+
+    return (
+      <div style={frameStyle} className={className}>
+        <div style={gridOverlayStyle} aria-hidden />
+        <div ref={containerRef} style={terminalSurfaceStyle} />
+      </div>
+    );
+  }
+);
 
 RangerTerminal.displayName = 'RangerTerminal';
 

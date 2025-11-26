@@ -19,6 +19,7 @@ interface CanvasBoardProps {
   defaultColor?: 'black' | 'gray' | 'white';
   width?: number;
   height?: number;
+  onOpenSettings?: () => void;
 }
 
 export const CanvasBoard: React.FC<CanvasBoardProps> = ({
@@ -27,7 +28,8 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
   theme,
   defaultColor = 'white',
   width = window.innerWidth,
-  height = window.innerHeight - 220
+  height = window.innerHeight - 220,
+  onOpenSettings
 }) => {
   // State
   const [currentTool, setCurrentTool] = useState<DrawingTool>({
@@ -193,7 +195,13 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
   const handleMouseUp = () => {
     if (isDrawing) {
       const imageData = stopDrawing();
-      if (imageData) saveToHistory(imageData);
+      if (imageData) {
+        saveToHistory(imageData);
+        // Auto-save on stroke end
+        if (drawingCanvasRef.current) {
+          updateBoardImage(drawingCanvasRef.current);
+        }
+      }
     }
   };
 
@@ -204,7 +212,21 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
   const onTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e.nativeEvent, currentTool);
   const onTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     const imageData = handleTouchEnd(e.nativeEvent);
-    if (imageData) saveToHistory(imageData);
+    if (imageData) {
+      saveToHistory(imageData);
+      // Auto-save on stroke end
+      if (drawingCanvasRef.current) {
+        updateBoardImage(drawingCanvasRef.current);
+      }
+    }
+  };
+
+  // Handle Close with Save
+  const handleClose = () => {
+    if (drawingCanvasRef.current) {
+      updateBoardImage(drawingCanvasRef.current);
+    }
+    if (onClose) onClose();
   };
 
   // Toolbar Handlers
@@ -280,7 +302,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
       } else if (e.key === 'p') setCurrentTool(p => ({ ...p, type: 'pen', opacity: 1.0, size: 3 }));
       else if (e.key === 'e') setCurrentTool(p => ({ ...p, type: 'eraser', size: 20 }));
       else if (e.key === 'h') setCurrentTool(p => ({ ...p, type: 'highlighter', opacity: 0.3, size: 20 }));
-      else if (e.key === 'Escape' && onClose) onClose();
+      else if (e.key === 'Escape') handleClose();
     };
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
@@ -290,9 +312,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     <div className={`canvas-board canvas-board-${theme}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <div className={`canvas-header canvas-header-${theme}`} style={{ flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {onClose && (
-            <button onClick={onClose} className="close-btn" title="Back to Chat (Esc)">← Back</button>
-          )}
+          <button onClick={handleClose} className="close-btn" title="Back to Chat (Esc)">← Back</button>
           <h2>🎨 Canvas Board</h2>
         </div>
         <div className="canvas-controls" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -320,6 +340,16 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
           />
           {canCreateBoard && (
             <button onClick={() => setShowBoardModal(true)} className={`action-btn`} style={{ fontWeight: 'bold' }}>➕ New Board</button>
+          )}
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className={`action-btn`}
+              title="Open Settings"
+              style={{ fontWeight: 'bold' }}
+            >
+              <i className="fa-solid fa-gear"></i>
+            </button>
           )}
         </div>
       </div>

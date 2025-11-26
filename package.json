@@ -1,6 +1,6 @@
 {
   "name": "rangerplex-ai",
-  "version": "2.5.35",
+  "version": "2.5.37",
   "type": "module",
   "scripts": {
     "start": "concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
@@ -15,10 +15,12 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "proxy": "node proxy_server.js",
-    "server": "node proxy_server.js"
+    "server": "node proxy_server.js",
+    "browser": "electron electron/main.js"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
+    "@monaco-editor/react": "^4.7.0",
     "better-sqlite3": "^12.4.6",
     "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
@@ -53,6 +55,8 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
     "concurrently": "^9.2.1",
+    "electron": "^39.2.3",
+    "electron-builder": "^26.0.12",
     "pm2": "^6.0.13",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",

@@ -1,0 +1,312 @@
+{
+  "backup_time": "2025-09-10T03:01:38.501818",
+  "managers_backed_up": [
+    {
+      "manager": "Dave",
+      "source_size": 72.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/Dave_basement_it_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/Dave_latest_basement_it_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/Dave_basement_it_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/Dave_latest_basement_it_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/Dave_basement_it_manager_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/Dave_latest_basement_it_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/Dave_basement_it_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/Dave_latest_basement_it_manager_memories.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "M\u00e1ire",
+      "source_size": 68.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/M\u00e1ire_cloakroom_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/M\u00e1ire_latest_cloakroom_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/M\u00e1ire_cloakroom_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/M\u00e1ire_latest_cloakroom_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/M\u00e1ire_cloakroom_manager_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/M\u00e1ire_latest_cloakroom_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/M\u00e1ire_cloakroom_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/M\u00e1ire_latest_cloakroom_manager_memories.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "Seamus",
+      "source_size": 588.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/Seamus_restaurant_memory_chef.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/Seamus_latest_restaurant_memory_chef.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/Seamus_restaurant_memory_chef.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/Seamus_latest_restaurant_memory_chef.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/Seamus_restaurant_memory_chef.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/Seamus_latest_restaurant_memory_chef.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/Seamus_restaurant_memory_chef.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/Seamus_latest_restaurant_memory_chef.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "Declan",
+      "source_size": 380.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/Declan_dj_cosmic_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/Declan_latest_dj_cosmic_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/Declan_dj_cosmic_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/Declan_latest_dj_cosmic_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/Declan_dj_cosmic_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/Declan_latest_dj_cosmic_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/Declan_dj_cosmic_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/Declan_latest_dj_cosmic_memories.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "Terry",
+      "source_size": 40.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/Terry_terminal_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/Terry_latest_terminal_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/Terry_terminal_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/Terry_latest_terminal_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/Terry_terminal_manager_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/Terry_latest_terminal_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/Terry_terminal_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/Terry_latest_terminal_manager_memories.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "Paddy",
+      "source_size": 84.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/Paddy_gaming_browser_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/Paddy_latest_gaming_browser_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/Paddy_gaming_browser_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/Paddy_latest_gaming_browser_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/Paddy_gaming_browser_manager_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/Paddy_latest_gaming_browser_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/Paddy_gaming_browser_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/Paddy_latest_gaming_browser_manager_memories.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "R\u00f3is\u00edn",
+      "source_size": 68.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/R\u00f3is\u00edn_ai_communications_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/R\u00f3is\u00edn_latest_ai_communications_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/R\u00f3is\u00edn_ai_communications_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/R\u00f3is\u00edn_latest_ai_communications_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/R\u00f3is\u00edn_ai_communications_manager_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/R\u00f3is\u00edn_latest_ai_communications_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/R\u00f3is\u00edn_ai_communications_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/R\u00f3is\u00edn_latest_ai_communications_manager_memories.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "RangerBot",
+      "source_size": 96.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/RangerBot_rangerbot_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/RangerBot_latest_rangerbot_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/RangerBot_rangerbot_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/RangerBot_latest_rangerbot_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/RangerBot_rangerbot_manager_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/RangerBot_latest_rangerbot_manager_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/RangerBot_rangerbot_manager_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/RangerBot_latest_rangerbot_manager_memories.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "IR",
+      "source_size": 72.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/IR_ir_security_guard_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/IR_latest_ir_security_guard_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/IR_ir_security_guard_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/IR_latest_ir_security_guard_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/IR_ir_security_guard_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/IR_latest_ir_security_guard_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/IR_ir_security_guard_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/IR_latest_ir_security_guard_memories.sqlite3",
+          "success": true
+        }
+      ]
+    },
+    {
+      "manager": "Professor Bridget",
+      "source_size": 12.0,
+      "backups": [
+        {
+          "location": "/Users/ranger/.rangeros_vault/manager_backups",
+          "timestamped": "/Users/ranger/.rangeros_vault/manager_backups/Professor Bridget_professor_bridget_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/.rangeros_vault/manager_backups/Professor Bridget_latest_professor_bridget_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Library/RangerOS/manager_backups",
+          "timestamped": "/Users/ranger/Library/RangerOS/manager_backups/Professor Bridget_professor_bridget_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Library/RangerOS/manager_backups/Professor Bridget_latest_professor_bridget_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/tmp/rangeros_manager_emergency",
+          "timestamped": "/tmp/rangeros_manager_emergency/Professor Bridget_professor_bridget_memories.sqlite3_20250910_030138",
+          "latest": "/tmp/rangeros_manager_emergency/Professor Bridget_latest_professor_bridget_memories.sqlite3",
+          "success": true
+        },
+        {
+          "location": "/Users/ranger/Documents/RangerOS_Manager_Backup",
+          "timestamped": "/Users/ranger/Documents/RangerOS_Manager_Backup/Professor Bridget_professor_bridget_memories.sqlite3_20250910_030138",
+          "latest": "/Users/ranger/Documents/RangerOS_Manager_Backup/Professor Bridget_latest_professor_bridget_memories.sqlite3",
+          "success": true
+        }
+      ]
+    }
+  ],
+  "backup_locations": [
+    "/Users/ranger/.rangeros_vault/manager_backups",
+    "/Users/ranger/Library/RangerOS/manager_backups",
+    "/tmp/rangeros_manager_emergency",
+    "/Users/ranger/Documents/RangerOS_Manager_Backup"
+  ],
+  "total_backup_size": 5920.0
+}

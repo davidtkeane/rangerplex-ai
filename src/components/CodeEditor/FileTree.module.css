@@ -1,0 +1,88 @@
+.fileTree {
+  width: 250px;
+  background: #252526;
+  color: #cccccc;
+  height: 100%;
+  overflow-y: auto;
+  border-right: 1px solid #3e3e42;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.header button {
+  background: none;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+}
+
+.header button:hover {
+  background: #2a2d2e;
+}
+
+.tree {
+  padding: 4px 0;
+}
+
+.treeItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+}
+
+.treeItem:hover {
+  background: #2a2d2e;
+}
+
+.treeItem.active {
+  background: #37373d;
+}
+
+.treeItem svg {
+  flex-shrink: 0;
+}
+
+.children {
+  /* No extra styling needed, handled by depth padding */
+}
+
+.contextMenu {
+  position: fixed;
+  background: #3c3c3c;
+  border: 1px solid #454545;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  padding: 4px 0;
+  z-index: 1000;
+}
+
+.contextMenu button {
+  display: block;
+  width: 100%;
+  padding: 6px 20px;
+  background: none;
+  border: none;
+  color: #cccccc;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.contextMenu button:hover {
+  background: #094771;
+}

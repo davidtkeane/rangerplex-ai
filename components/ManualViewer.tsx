@@ -6,9 +6,10 @@ import manualContent from '../rangerplex_manule.md?raw';
 interface ManualViewerProps {
   open: boolean;
   onClose: () => void;
+  onOpenSettings: () => void;
 }
 
-const ManualViewer: React.FC<ManualViewerProps> = ({ open, onClose }) => {
+const ManualViewer: React.FC<ManualViewerProps> = ({ open, onClose, onOpenSettings }) => {
   const content = useMemo(() => manualContent, []);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
@@ -34,12 +35,26 @@ const ManualViewer: React.FC<ManualViewerProps> = ({ open, onClose }) => {
               Open in new tab
             </a>
           </div>
-          <button
-            onClick={onClose}
-            className="text-xs px-3 py-1 rounded-full border border-zinc-700 text-zinc-200 hover:bg-zinc-800"
-          >
-            Back to chat
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onOpenSettings}
+              className="text-xs px-3 py-1 rounded-md border border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 transition-colors flex items-center gap-1"
+            >
+              <i className="fa-solid fa-gear"></i> Settings
+            </button>
+            <button
+              onClick={onClose}
+              className="text-xs px-3 py-1 rounded-md border border-green-500 text-green-400 hover:bg-green-500/10 transition-colors flex items-center gap-1"
+            >
+              <i className="fa-solid fa-house"></i> Main Area
+            </button>
+            <button
+              onClick={onClose}
+              className="text-xs px-3 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-1 font-bold shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+            >
+              <i className="fa-solid fa-xmark"></i> Close
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-3 prose prose-invert max-w-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>

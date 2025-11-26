@@ -1,0 +1,11 @@
+{
+  "backup_date": "2025-09-10T03:18:36.224605",
+  "reason": "manual",
+  "wordpress_version": "6.8.2",
+  "original_size_mb": 80.25,
+  "compressed_size_mb": 32.9,
+  "compression_ratio": 59.0,
+  "files_backed_up": 3416,
+  "rollback_script": "wordpress_5_minute_rollback.sh",
+  "restoration_time": "~5 minutes"
+}

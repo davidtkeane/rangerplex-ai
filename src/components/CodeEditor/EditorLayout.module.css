@@ -1,0 +1,38 @@
+.editorLayout {
+    display: flex;
+    height: 100vh;
+    background: #1e1e1e;
+    color: #cccccc;
+}
+
+.editorArea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.editorContainer {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #cccccc;
+    font-size: 16px;
+    background: #1e1e1e;
+}
+
+.emptyState {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #555;
+    font-size: 14px;
+}

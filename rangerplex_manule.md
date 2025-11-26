@@ -1,12 +1,14 @@
-# RangerPlex Manual (v2.5.35)
+# RangerPlex Manual (v2.5.36)
+
+> 🚨 **CRITICAL NOTE FOR AI AGENTS**: This file, along with `docs/RangerPlexBrowser/rangerplexOS/RANGERPLEX_BROWSER_ARCHITECTURE.md`, are the **SINGLE SOURCE OF TRUTH**. Do not rely on old documentation scattered in other folders. We are building the **RangerPlex Browser (Project Phantom Wing)**. Stick to the plan here.
 
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
-> Doc policy: Keep this manual and the plan as the primary docs. Only add new docs when strictly necessary (e.g., per-feature deep dives).
 
 ## Quick Links
 - [Orientation](#orientation)
 - [Start a New Chat](#start-a-new-chat)
 - [Getting Started](#getting-started)
+- [Browser Mode (New)](#browser-mode-new)
 - [Chat HQ](#chat-hq)
 - [Models & Costs](#models--costs)
 - [Shortcuts & Commands](#shortcuts--commands)
@@ -74,6 +76,27 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 3) Create/select a user (avatar optional).  
 4) Pick a model, type a message, hit Enter (Shift+Enter = newline).  
 5) Explore the sidebar tools: Study, Notes, Canvas, Radio, Settings.
+
+### 🧭 Manual Navigation
+The Manual Viewer now includes quick navigation buttons in the top header:
+- **Settings**: Opens the main configuration panel.
+- **Main Area**: Returns to the main chat interface.
+- **Close**: Exits the manual viewer.
+
+## Browser Mode (New)
+> **Project Phantom Wing**: RangerPlex is now a standalone browser.
+
+- **Three Modes of Operation**:
+  1.  **Server Mode** (`npm start`): The classic web app. Accessible via Chrome/Firefox.
+  2.  **Docker Mode** (`docker-compose up`): The containerized version for deployment.
+  3.  **Browser Mode** (`npm run browser`): **The Native App**. A Chromium-based browser that *is* RangerPlex.
+
+- **Key Features**:
+  - **Ghost Protocol**: Press `Cmd+Shift+Esc` (Panic Button) to instantly kill the app, wipe RAM, and vanish.
+  - **The Lens**: AI Vision that reads the webpage you are browsing.
+  - **Mini OS**: Press `F12` to drop down a floating Terminal window.
+  - **Tor Mode**: Toggle anonymous browsing in the toolbar.
+  - **Memory Magic**: Uses "Restaurant Memory" to run 100 tabs with the RAM of 1.
 
 ## Chat HQ
 - **Message Actions:** Copy pill under every message; action bar on hover for copy, TTS, download, feedback, regenerate (AI only), make note.

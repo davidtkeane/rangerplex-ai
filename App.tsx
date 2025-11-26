@@ -20,14 +20,22 @@ import { SaveStatusIndicator } from './components/SaveStatusIndicator';
 import { BackupManager } from './src/components/BackupManager';
 import { StudyClock } from './components/StudyClock'; // Import Study Clock
 import ManualViewer from './components/ManualViewer';
+import { EditorLayout, EditorTerminalSplit } from './src/components/CodeEditor'; // Monaco editor with full UI
 import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS, DEFAULT_SAVED_PROMPTS } from './types';
 import { generateTitle } from './services/geminiService';
 import { dbService } from './services/dbService';
 import { syncService } from './services/syncService';
 import { autoSaveService, queueChatSave, queueSettingSave } from './services/autoSaveService';
 import { usePetState } from './src/hooks/usePetState';
+import TerminalPopup from './src/components/Browser/TerminalPopup'; // Import TerminalPopup
 
 const App: React.FC = () => {
+  // MINI-OS: Floating Terminal Route
+  // If this window is opened as the floating terminal, render ONLY that component
+  if (window.location.pathname === '/terminal-popup') {
+    return <TerminalPopup />;
+  }
+
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -55,6 +63,7 @@ const App: React.FC = () => {
   const [hydrationSource, setHydrationSource] = useState<'none' | 'local' | 'server'>('none');
   const [isStudyClockOpen, setIsStudyClockOpen] = useState(false); // State for Study Clock visibility
   const [isManualOpen, setIsManualOpen] = useState(false); // Manual overlay
+  const [isEditorOpen, setIsEditorOpen] = useState(false); // State for Code Editor visibility
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
@@ -568,6 +577,61 @@ const App: React.FC = () => {
     [petBridge]
   );
 
+  const handleSendCodeQuestion = useCallback(
+    (message: string, createNewSession = false) => {
+      let targetSessionId = currentSessionId;
+
+      // Create or reuse Code Assistant session
+      if (createNewSession) {
+        // Check if we have an existing Code Assistant session
+        let codeSession = sessions.find((s) => s.title === '🤖 Code Assistant');
+
+        if (!codeSession) {
+          // Create new Code Assistant session
+          const newSessionId = uuidv4();
+          const newSession: ChatSession = {
+            id: newSessionId,
+            title: '🤖 Code Assistant',
+            messages: [],
+            model: ModelType.GEMINI_2_5_PRO,
+            updatedAt: Date.now(),
+            knowledgeBase: [],
+          };
+          setSessions((prev) => [newSession, ...prev]);
+          targetSessionId = newSessionId;
+        } else {
+          targetSessionId = codeSession.id;
+        }
+      } else if (!currentSessionId) {
+        // No session selected and not creating new one
+        alert('Please open a chat session or use the quick actions to create a Code Assistant session.');
+        return;
+      }
+
+      // Safety check
+      if (!targetSessionId) {
+        alert('Unable to create or find chat session.');
+        return;
+      }
+
+      // Add user message
+      const newMessage: Message = {
+        id: uuidv4(),
+        sender: Sender.USER,
+        text: message,
+        timestamp: Date.now()
+      };
+
+      updateMessages(targetSessionId, (prev) => [...prev, newMessage]);
+
+      // Switch to the session and open sidebar
+      setCurrentSessionId(targetSessionId);
+      setSidebarOpen(true);
+      setIsEditorOpen(false);
+    },
+    [currentSessionId, sessions, updateMessages, setSessions, setCurrentSessionId]
+  );
+
   if (!currentUser) return <AuthPage onLogin={handleLogin} securityMode={settings.securityMode} />;
   if (isLocked) return <AuthPage onLogin={() => setIsLocked(false)} securityMode={settings.securityMode} isLocked={true} lockedUser={currentUser} />;
 
@@ -642,6 +706,7 @@ const App: React.FC = () => {
           onOpenStudyNotes={openStudyNotes}
           onOpenStudyClock={() => setIsStudyClockOpen(true)}
           onOpenCanvas={openCanvas}
+          onOpenEditor={() => setIsEditorOpen(true)}
           onLock={() => setIsLocked(true)}
           onOpenVisionMode={() => {
             setIsVisionModeOpen(true);
@@ -918,12 +983,32 @@ const App: React.FC = () => {
               theme={settings.theme}
               onClose={() => setIsCanvasOpen(false)}
               defaultColor={settings.defaultCanvasColor}
+              onOpenSettings={() => setIsSettingsOpen(true)}
             />
           </div>
         )}
 
+        {/* Code Editor */}
+        {isEditorOpen && (
+          <div className="fixed inset-0 z-[9999] bg-black">
+            <div className="absolute top-4 right-4 z-[10000]">
+              <button
+                onClick={() => setIsEditorOpen(false)}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+              >
+                Close Editor
+              </button>
+            </div>
+            <EditorTerminalSplit onSendToChat={handleSendCodeQuestion} />
+          </div>
+        )}
+
         {/* Manual Viewer */}
-        <ManualViewer open={isManualOpen} onClose={() => setIsManualOpen(false)} />
+        <ManualViewer
+          open={isManualOpen}
+          onClose={() => setIsManualOpen(false)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
 
         {/* Ranger Pet */}
         <RangerPet

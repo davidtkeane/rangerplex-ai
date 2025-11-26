@@ -1,0 +1,175 @@
+.aiHelper {
+  position: fixed;
+  right: 20px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: bottom 0.1s ease-out;
+}
+
+.dragHandle {
+  width: 24px;
+  height: 56px;
+  background: #3c3c3c;
+  border: 1px solid #454545;
+  border-radius: 8px 0 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  color: #888;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.dragHandle:hover {
+  background: #505050;
+  color: #007acc;
+}
+
+.dragHandle.dragging {
+  background: #007acc;
+  color: white;
+  cursor: ns-resize;
+}
+
+.toggleBtn {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #007acc;
+  border: none;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 122, 204, 0.4);
+  transition: all 0.2s;
+}
+
+.toggleBtn:hover {
+  background: #005a9e;
+  transform: scale(1.05);
+}
+
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  background: #ff6b6b;
+  border-radius: 50%;
+}
+
+.panel {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 350px;
+  background: #2d2d2d;
+  border: 1px solid #3e3e42;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.header button {
+  background: none;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+}
+
+.selectedCode {
+  background: #1e1e1e;
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #cccccc;
+}
+
+.selectedCode code {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quickActions h4,
+.customPrompt h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #cccccc;
+}
+
+.quickActions {
+  margin-bottom: 16px;
+}
+
+.quickActions button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: #3c3c3c;
+  border: 1px solid #454545;
+  color: #cccccc;
+  text-align: left;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.quickActions button:hover {
+  background: #505050;
+}
+
+.customPrompt textarea {
+  width: 100%;
+  padding: 8px;
+  background: #1e1e1e;
+  border: 1px solid #3e3e42;
+  color: #cccccc;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  margin-bottom: 8px;
+}
+
+.customPrompt button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #007acc;
+  border: none;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.customPrompt button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.customPrompt button:not(:disabled):hover {
+  background: #005a9e;
+}
