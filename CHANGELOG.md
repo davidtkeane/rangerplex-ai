@@ -2,6 +2,27 @@
 
 *Built with a little help from friends: Ranger, plus Gemini, Claude, and ChatGPT keeping the studio sharp.*
 
+## v2.5.35 - "Terminal Velocity" 🚀
+*Released: Nov 26, 2025*
+
+**Ranger Console Integration.** A fully functional system terminal has been embedded directly into the RangerPlex UI, allowing for seamless command execution, log monitoring, and "Matrix-style" operations without leaving the app.
+
+### 📟 Ranger Console
+*   **Embedded Terminal**: Real `xterm.js` terminal connected to your system shell (bash/zsh/powershell) via WebSocket.
+*   **Matrix Theme**: Styled with a retro-futuristic green-on-black aesthetic to match the RangerPlex vibe.
+*   **Smart Resizing**: Automatically adapts to the panel size for a crisp layout.
+*   **Toggle Access**: Quickly open/close the console from the new sidebar button.
+
+### 🎨 Canvas Board 2.0
+*   **Responsive Infinite Canvas**: The canvas now dynamically resizes to fill the entire viewport, eliminating the "80/20" split issue.
+*   **Seamless Backgrounds**: The container background now matches your board color (White, Gray, Black) for a flawless, edge-to-edge experience.
+
+### 🧭 Navigation Improvements
+*   **"Chats" Sidebar Button**: Added a dedicated button to instantly close all overlays (Canvas, Clock, Console) and return to the main chat view.
+*   **Mobile Friendly**: The new button ensures the sidebar opens on mobile for easy navigation.
+
+---
+
 ## v2.5.34 - "Maximum Intelligence Unleashed" 🧠
 *Released: Nov 26, 2025*
 

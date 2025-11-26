@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Auto-Refresh Notification Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateX(100%); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+        @keyframes slideOut {
+            from { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+            to { 
+                opacity: 0; 
+                transform: translateX(100%); 
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Auto-Refresh Notification Test</h1>
+        <p>This page tests the new auto-refresh notification system for sticky notes.</p>
+        
+        <button class="test-button" onclick="testAutoRefresh()">
+            📝 Test Auto-Refresh Notification
+        </button>
+        
+        <button class="test-button" onclick="testOldAlert()">
+            ⚠️ Test Old Alert (for comparison)
+        </button>
+        
+        <div style="margin-top: 40px; text-align: left; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+            <h3>🎯 What the new notification includes:</h3>
+            <ul>
+                <li>✅ <strong>Auto-closes after 3 seconds</strong></li>
+                <li>✅ <strong>Countdown timer</strong> - shows remaining time</li>
+                <li>✅ <strong>Refresh Now button</strong> - immediate refresh option</li>
+                <li>✅ <strong>Cancel button</strong> - stop auto-refresh if needed</li>
+                <li>✅ <strong>Smooth animations</strong> - slides in from right</li>
+                <li>✅ <strong>ADHD-friendly</strong> - clear visual feedback and control</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Copy of the new auto-refresh notification function from app.js
+        function showAutoRefreshNotification() {
+            // Create notification overlay
+            const notification = document.createElement('div');
+            notification.id = 'auto-refresh-notification';
+            notification.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #4CAF50, #45a049);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+                    z-index: 10000;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    min-width: 300px;
+                    animation: slideIn 0.3s ease-out;
+                ">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="font-size: 1.2em;">📝</span>
+                        <strong>Sticky Note Added!</strong>
+                    </div>
+                    <div style="font-size: 0.9em; margin-bottom: 15px;">
+                        Page will refresh in <span id="countdown">3</span> seconds to sync your notes...
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="refreshNow()" style="
+                            background: rgba(255, 255, 255, 0.2);
+                            border: none;
+                            color: white;
+                            padding: 8px 15px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 0.8em;
+                        ">Refresh Now</button>
+                        <button onclick="cancelRefresh()" style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            color: white;
+                            padding: 8px 15px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 0.8em;
+                        ">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Start countdown
+            let countdown = 3;
+            const countdownElement = document.getElementById('countdown');
+            
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdownElement) {
+                    countdownElement.textContent = countdown;
+                }
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    refreshNow();
+                }
+            }, 1000);
+            
+            // Store interval for potential cancellation
+            window.autoRefreshInterval = countdownInterval;
+            
+            // Global functions for buttons
+            window.refreshNow = function() {
+                clearInterval(window.autoRefreshInterval);
+                removeNotification();
+                // location.reload(); // Commented out for testing
+                alert('Would refresh page now!');
+            };
+            
+            window.cancelRefresh = function() {
+                clearInterval(window.autoRefreshInterval);
+                removeNotification();
+                console.log('Auto-refresh cancelled by user');
+            };
+            
+            function removeNotification() {
+                const notif = document.getElementById('auto-refresh-notification');
+                if (notif) {
+                    notif.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => {
+                        if (notif.parentNode) {
+                            notif.parentNode.removeChild(notif);
+                        }
+                    }, 300);
+                }
+            }
+        }
+        
+        function testAutoRefresh() {
+            showAutoRefreshNotification();
+        }
+        
+        function testOldAlert() {
+            if (confirm('Notes have been updated by another source (or script).\\n\\nRefresh the page to see the latest changes?')) {
+                alert('Would refresh page now!');
+            } else {
+                console.log('User chose not to refresh after SSE update.');
+            }
+        }
+    </script>
+</body>
+</html>

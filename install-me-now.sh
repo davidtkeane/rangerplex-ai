@@ -122,17 +122,75 @@ spinner() {
   local pid
   ("$@") &
   pid=$!
-  local frames=('/' '-' '\' '|')
+  local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
   local i=0
-  printf "%s " "$msg"
+  
+  # Hide cursor
+  tput civis 2>/dev/null || true
+  
   while kill -0 "$pid" >/dev/null 2>&1; do
-    printf "\r%s %s" "$msg" "${frames[i++ % ${#frames[@]}]}"
+    printf "\r${cyan}%s${reset} %s" "${frames[i++ % ${#frames[@]}]}" "$msg"
     sleep 0.1
   done
+  
   wait "$pid"
   local status=$?
-  printf "\r"
+  
+  # Show cursor
+  tput cnorm 2>/dev/null || true
+  
+  if [ $status -eq 0 ]; then
+    printf "\r${green}✓${reset} %s\n" "$msg"
+  else
+    printf "\r${red}✗${reset} %s\n" "$msg"
+  fi
   return $status
+}
+
+progress_bar() {
+    local duration=${1}
+    local prefix=${2}
+    local width=40
+    local progress=0
+    local step_size=$((100 / (duration * 10))) # Update every 0.1s
+
+    tput civis 2>/dev/null || true
+    
+    while [ $progress -le 100 ]; do
+        local filled=$((progress * width / 100))
+        local empty=$((width - filled))
+        
+        printf "\r${cyan}%s${reset} [" "$prefix"
+        printf "%${filled}s" | tr ' ' '█'
+        printf "%${empty}s" | tr ' ' '░'
+        printf "] %d%%" "$progress"
+        
+        progress=$((progress + 1))
+        sleep 0.01
+    done
+    printf "\n"
+    tput cnorm 2>/dev/null || true
+}
+
+ask_skip() {
+    local step_name="$1"
+    printf "${yellow}Skip %s? (y/N): ${reset}" "$step_name"
+    read -r reply
+    if [[ "$reply" =~ ^[Yy]$ ]]; then
+        log "${dim}Skipping $step_name...${reset}"
+        return 0 # True, skip it
+    fi
+    return 1 # False, don't skip
+}
+
+ask_redo() {
+    local step_name="$1"
+    printf "${yellow}Redo %s? (y/N): ${reset}" "$step_name"
+    read -r reply
+    if [[ "$reply" =~ ^[Yy]$ ]]; then
+        return 0 # True, redo it
+    fi
+    return 1 # False, don't redo
 }
 
 ################
@@ -375,6 +433,7 @@ check_ollama() {
     log "${dim}Skipped Ollama. Install later from:${reset}"
     log "${dim}   • Ollama: ${cyan}https://ollama.com${reset}"
     log "${dim}   • LM Studio: ${cyan}https://lmstudio.ai/${reset}"
+    log "${dim}   • Installation Tutorial: ${cyan}https://www.hostinger.com/tutorials/how-to-install-ollama${reset}"
     return 0
   fi
 
@@ -750,27 +809,54 @@ EOF
 ########################
 # Main sequence        #
 ########################
-step "Checking essentials (curl, git)..."
-ensure_pkg curl
-ensure_pkg git
+########################
+# Main sequence        #
+########################
 
-step "Ensuring Node.js 22.x..."
-ensure_node
+log
+progress_bar 1 "Initializing Installer"
+log
 
-step "Installing PM2 process manager..."
-install_pm2
+if ! ask_skip "System Checks"; then
+    step "Checking essentials (curl, git)..."
+    ensure_pkg curl
+    ensure_pkg git
+fi
 
-step "Checking for Ollama (optional local AI)..."
-check_ollama
+if ! ask_skip "Node.js Setup"; then
+    step "Ensuring Node.js 22.x..."
+    ensure_node
+fi
 
-step "Checking for Docker (optional container support)..."
-check_docker
+if ! ask_skip "PM2 Installation"; then
+    step "Installing PM2 process manager..."
+    install_pm2
+fi
 
-step "Installing project dependencies..."
-prepare_deps
+if ! ask_skip "Ollama Check"; then
+    step "Checking for Ollama (optional local AI)..."
+    check_ollama
+fi
 
-step "Collecting API keys into .env..."
-collect_env
+if ! ask_skip "Docker Check"; then
+    step "Checking for Docker (optional container support)..."
+    check_docker
+fi
+
+if ! ask_skip "Dependency Installation"; then
+    step "Installing project dependencies..."
+    prepare_deps
+fi
+
+if ! ask_skip "API Key Setup"; then
+    step "Collecting API keys into .env..."
+    collect_env
+    
+    # Redo option for API keys
+    while ask_redo "API Key Setup"; do
+        collect_env
+    done
+fi
 
 log
 verify_ports

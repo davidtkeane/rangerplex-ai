@@ -21,10 +21,27 @@ export const streamPerplexityResponse = async (
   // Collapse any consecutive same-role messages to enforce strict alternation
   const messages: { role: 'user' | 'assistant'; content: string }[] = [];
   for (const m of rawMessages) {
-    if (messages.length === 0 || messages[messages.length - 1].role !== m.role) {
-      messages.push(m);
+    // Perplexity doesn't support system messages in the messages array for some endpoints, 
+    // but if it does, it usually expects 'system'. 
+    // However, the types say "user" | "assistant". 
+    // We'll skip system messages here or map them to user.
+    // For now, let's just ignore them to satisfy the type checker if strict.
+    if (m.role === 'system') {
+      continue;
+    }
+
+    // Ensure role is strictly "user" | "assistant"
+    const role = (m.role === 'user' || m.role === 'assistant') ? m.role : 'user';
+
+    const cleanMessage = {
+      role: role as any,
+      content: m.content
+    };
+
+    if (messages.length > 0 && messages[messages.length - 1].role === role) {
+      messages[messages.length - 1] = cleanMessage; // keep the latest of that role
     } else {
-      messages[messages.length - 1] = m; // keep the latest of that role
+      messages.push(cleanMessage);
     }
   }
 
@@ -51,8 +68,8 @@ export const streamPerplexityResponse = async (
     });
 
     if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`Perplexity API Error (${response.status}): ${body || response.statusText}`);
+      const body = await response.text();
+      throw new Error(`Perplexity API Error (${response.status}): ${body || response.statusText}`);
     }
 
     if (!response.body) throw new Error("No response body");
@@ -77,23 +94,23 @@ export const streamPerplexityResponse = async (
             if (json.choices && json.choices[0].delta.content) {
               const text = json.choices[0].delta.content;
               fullText += text;
-              
+
               // Perplexity returns citations in the final object usually, or we extract indices
               // citations = json.citations || []; 
-              
+
               // We pass undefined for citations during stream until end if possible,
               // but Perplexity API citations handling varies. We often get them at end.
               if (json.citations) citations = json.citations;
-              
-              const sources: GroundingSource[] = citations.map((uri, idx) => ({ title: `Source ${idx+1}`, uri }));
+
+              const sources: GroundingSource[] = citations.map((uri, idx) => ({ title: `Source ${idx + 1}`, uri }));
               onChunk(fullText, sources);
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     }
-    
-    const sources: GroundingSource[] = citations.map((uri, idx) => ({ title: `Source ${idx+1}`, uri }));
+
+    const sources: GroundingSource[] = citations.map((uri, idx) => ({ title: `Source ${idx + 1}`, uri }));
     return { text: fullText, sources };
 
   } catch (error) {

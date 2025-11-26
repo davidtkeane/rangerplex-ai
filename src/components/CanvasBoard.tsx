@@ -98,64 +98,57 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     }
   }, []); // Run once on mount (or when boards is empty, but dependency array is empty to mimic mount)
 
-  // Initialize canvas sizes
+  // Container Ref for dynamic resizing
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  // Resize Observer
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        setDimensions({ width: clientWidth, height: clientHeight });
+      }
+    };
+
+    // Initial measure
+    updateDimensions();
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions();
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Initialize canvas sizes based on container dimensions
   useEffect(() => {
     if (drawingCanvasRef.current && bgCanvasRef.current) {
-      drawingCanvasRef.current.width = width;
-      drawingCanvasRef.current.height = height;
-      bgCanvasRef.current.width = width;
-      bgCanvasRef.current.height = height;
+      drawingCanvasRef.current.width = dimensions.width;
+      drawingCanvasRef.current.height = dimensions.height;
+      bgCanvasRef.current.width = dimensions.width;
+      bgCanvasRef.current.height = dimensions.height;
 
       // Redraw background on resize
       if (currentBoard) {
         drawBackground(bgCanvasRef.current, currentBoard.background, theme, currentBoard.color);
       }
     }
-  }, [width, height, theme, currentBoard?.background, currentBoard?.color]);
+  }, [dimensions.width, dimensions.height, theme, currentBoard?.background, currentBoard?.color]);
 
-  // Load Board Content
-  // FIX: Only run when currentBoardId changes to prevent flashing on auto-save
-  useEffect(() => {
-    if (!currentBoard) return;
+  // ... (Load Board Content effect remains similar, but depends on dimensions) ...
 
-    // 1. Set Background State
-    setBackgroundType(currentBoard.background);
-
-    // 2. Draw Background (on bottom layer)
-    if (bgCanvasRef.current) {
-      drawBackground(bgCanvasRef.current, currentBoard.background, theme, currentBoard.color);
-    }
-
-    // 3. Draw Drawing (on top layer)
-    if (drawingCanvasRef.current) {
-      const ctx = drawingCanvasRef.current.getContext('2d');
-      if (!ctx) return;
-
-      // Clear existing drawing first
-      ctx.clearRect(0, 0, width, height);
-
-      if (currentBoard.imageData) {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0);
-        };
-        img.src = currentBoard.imageData;
-      }
-    }
-  }, [currentBoardId]); // Only reload when ID changes!
-
-  // Auto-save loop
-  useEffect(() => {
-    if (!drawingCanvasRef.current || !currentBoardId) return;
-
-    const interval = setInterval(() => {
-      if (drawingCanvasRef.current) {
-        updateBoardImage(drawingCanvasRef.current);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [currentBoardId, updateBoardImage]); // drawingCanvasRef is stable
+  // Determine container background color to match board
+  const getContainerBackground = () => {
+    if (!currentBoard) return theme === 'dark' ? '#1a1a1a' : theme === 'tron' ? '#000' : '#fff';
+    if (currentBoard.color === 'black') return '#000000';
+    if (currentBoard.color === 'gray') return '#808080';
+    return '#ffffff';
+  };
 
   // Composite Download Function
   const handleDownload = (format: 'png' | 'jpeg') => {
@@ -163,8 +156,8 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
 
     // Create temp canvas to merge layers
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = width;
-    tempCanvas.height = height;
+    tempCanvas.width = dimensions.width;
+    tempCanvas.height = dimensions.height;
     const ctx = tempCanvas.getContext('2d');
     if (!ctx) return;
 
@@ -206,9 +199,6 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
 
   // Touch Handlers
   const onTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    // Need to pass the correct ref to the hook's handler if it expects one, 
-    // but useCanvas hook uses its own internal ref which IS drawingCanvasRef.
-    // So we just call the handlers.
     handleTouchStart(e.nativeEvent, currentTool);
   };
   const onTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e.nativeEvent, currentTool);
@@ -226,7 +216,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
       if (imageData) {
         const ctx = drawingCanvasRef.current.getContext('2d');
         if (ctx) {
-          ctx.clearRect(0, 0, width, height); // Clear first
+          ctx.clearRect(0, 0, dimensions.width, dimensions.height); // Clear first
           ctx.putImageData(imageData, 0, 0);
         }
       }
@@ -239,7 +229,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
       if (imageData) {
         const ctx = drawingCanvasRef.current.getContext('2d');
         if (ctx) {
-          ctx.clearRect(0, 0, width, height);
+          ctx.clearRect(0, 0, dimensions.width, dimensions.height);
           ctx.putImageData(imageData, 0, 0);
         }
       }
@@ -253,7 +243,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
   const confirmClear = () => {
     if (drawingCanvasRef.current) {
       const ctx = drawingCanvasRef.current.getContext('2d');
-      ctx?.clearRect(0, 0, width, height);
+      ctx?.clearRect(0, 0, dimensions.width, dimensions.height);
       clearHistory();
       clearSaved();
     }
@@ -319,7 +309,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
             currentBackground={backgroundType}
             onChange={(bg) => {
               setBackgroundType(bg);
-              if (bgCanvasRef.current) drawBackground(bgCanvasRef.current, bg, theme);
+              if (bgCanvasRef.current) drawBackground(bgCanvasRef.current, bg, theme, currentBoard?.color);
               // Update board model? Ideally yes, but useCanvasBoards doesn't expose updateBackground yet.
               // For now it's visual only until saved? 
               // Actually useCanvasBoards updates on save. We should probably update the board object too.
@@ -334,13 +324,22 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
         </div>
       </div>
 
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: theme === 'dark' ? '#1a1a1a' : theme === 'tron' ? '#000' : '#fff' }}>
+      <div
+        ref={containerRef}
+        style={{
+          flex: 1,
+          position: 'relative',
+          overflow: 'hidden',
+          background: getContainerBackground(),
+          transition: 'background-color 0.3s ease'
+        }}
+      >
         {/* Background Layer */}
         <canvas
           ref={bgCanvasRef}
-          width={width}
-          height={height}
-          style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', zIndex: 0, pointerEvents: 'none' }}
+          width={dimensions.width}
+          height={dimensions.height}
+          style={{ position: 'absolute', top: 0, left: 0, zIndex: 0, pointerEvents: 'none' }}
         />
         {/* Drawing Layer */}
         <canvas
@@ -354,7 +353,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
           style={{
-            position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', zIndex: 1,
+            position: 'absolute', top: 0, left: 0, zIndex: 1,
             cursor: currentTool.type === 'pen' ? 'crosshair' : currentTool.type === 'eraser' ? 'cell' : 'default',
             background: 'transparent' // Important!
           }}

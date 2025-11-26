@@ -11,7 +11,7 @@ const KNOWN_GEMINI_MODELS = [
 ];
 
 export const fetchOpenAIModels = async (apiKey: string): Promise<string[]> => {
-    if(!apiKey) return [];
+    if (!apiKey) return [];
     try {
         const res = await fetch('https://api.openai.com/v1/models', {
             headers: { 'Authorization': `Bearer ${apiKey}` }
@@ -50,7 +50,7 @@ export const fetchGeminiModels = async (apiKey: string): Promise<string[]> => {
             .map((m: any) => (m.name || '').replace(/^models\//, ''))
             .filter((name: string) => KNOWN_GEMINI_MODELS.includes(name));
 
-        const deduped = Array.from(new Set(models));
+        const deduped = Array.from(new Set(models)) as string[];
         return deduped.length > 0 ? deduped : KNOWN_GEMINI_MODELS;
     } catch (e) {
         console.error(e);

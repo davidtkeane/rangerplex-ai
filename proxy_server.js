@@ -15,6 +15,7 @@ import exifParser from 'exif-parser';
 import os from 'os';
 import net from 'net';
 import puppeteer from 'puppeteer';
+import pty from 'node-pty';
 
 const resolve4 = promisify(dns.resolve4);
 const resolve6 = promisify(dns.resolve6);
@@ -3153,8 +3154,94 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 const clients = new Set();
+const terminalSessions = new Map(); // Map of ws -> ptyProcess
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
+    const pathname = req.url;
+
+    // Route: /terminal - Terminal sessions
+    if (pathname === '/terminal') {
+        console.log('🖥️  Terminal WebSocket connected');
+
+        // Detect shell (prefer user's shell, fallback to bash/sh)
+        const shell = process.env.SHELL || (os.platform() === 'win32' ? 'powershell.exe' : 'bash');
+
+        // Spawn pty process
+        const ptyProcess = pty.spawn(shell, [], {
+            name: 'xterm-color',
+            cols: 80,
+            rows: 24,
+            cwd: process.env.HOME || process.cwd(),
+            env: {
+                ...process.env,
+                RANGER_CONSOLE: '1',
+                TERM: 'xterm-256color'
+            }
+        });
+
+        // Store session
+        terminalSessions.set(ws, ptyProcess);
+
+        // Backend -> Frontend: Send pty output to WebSocket
+        ptyProcess.onData((data) => {
+            if (ws.readyState === 1) { // OPEN
+                ws.send(data);
+            }
+        });
+
+        // Frontend -> Backend: Receive input and write to pty
+        ws.on('message', (data) => {
+            try {
+                const message = data.toString();
+
+                // Check if it's a resize command
+                try {
+                    if (message.startsWith('{')) {
+                        const json = JSON.parse(message);
+                        if (json.type === 'resize' && json.cols && json.rows) {
+                            ptyProcess.resize(json.cols, json.rows);
+                            console.log(`🖥️  Terminal resized to ${json.cols}x${json.rows}`);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    // Not JSON, treat as regular input
+                }
+
+                // Regular input - write to pty
+                ptyProcess.write(message);
+            } catch (error) {
+                console.error('Terminal message error:', error);
+            }
+        });
+
+        // Cleanup on close
+        ws.on('close', () => {
+            console.log('🖥️  Terminal WebSocket disconnected');
+            if (terminalSessions.has(ws)) {
+                const pty = terminalSessions.get(ws);
+                pty.kill();
+                terminalSessions.delete(ws);
+            }
+        });
+
+        // Handle pty exit
+        ptyProcess.onExit(({ exitCode, signal }) => {
+            console.log(`🖥️  Terminal process exited (code: ${exitCode}, signal: ${signal})`);
+            if (ws.readyState === 1) {
+                ws.close();
+            }
+            terminalSessions.delete(ws);
+        });
+
+        ws.on('error', (error) => {
+            console.error('Terminal WebSocket error:', error);
+        });
+
+        return; // Don't add to general clients
+    }
+
+    // Default: General WebSocket connections (existing sync functionality)
     clients.add(ws);
     console.log('🔌 WebSocket client connected. Total:', clients.size);
 

@@ -1,4 +1,4 @@
-# RangerPlex Manual (v2.5.28)
+# RangerPlex Manual (v2.5.35)
 
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
 > Doc policy: Keep this manual and the plan as the primary docs. Only add new docs when strictly necessary (e.g., per-feature deep dives).
@@ -13,6 +13,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - [Study Tools](#study-tools)
 - [Vision Mode & Holiday FX](#vision-mode--holiday-fx)
 - [Kitty (Ranger Pet)](#kitty-ranger-pet)
+- [Ranger Console (Terminal)](#ranger-console-terminal)
 - [Canvas Board](#canvas-board)
 - [Radio](#radio)
 - [Win95 Retro Mode](#win95-retro-mode)
@@ -29,6 +30,29 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - [Troubleshooting](#troubleshooting)
 - [Glossary](#glossary)
 - [Support & Contribute](#support--contribute)
+
+---
+
+## Ranger Console (Terminal)
+> **New in v2.5.35:** A fully functional system terminal embedded right in your dashboard.
+
+- **Access:** Click the **Console** button in the sidebar (or use the toggle).
+- **Features:**
+  - **Real Shell:** Connects directly to your system's shell (bash, zsh, or powershell).
+  - **Matrix Theme:** Styled with a retro-futuristic green-on-black aesthetic.
+  - **Bi-directional:** Type commands, run scripts, and see output in real-time.
+  - **Smart Resize:** Automatically adapts to the panel size.
+- **Usage:** Use it to run git commands, check system stats, or execute scripts without leaving RangerPlex.
+
+## Canvas Board
+> **Updated in v2.5.35:** Now with Infinite Canvas and Smart Backgrounds.
+
+- **Infinite Canvas:** The board now dynamically resizes to fill your entire screen, no matter how you resize the window.
+- **Tools:** Pen, Eraser, Highlighter (toggle via toolbar or keyboard shortcuts `P`, `E`, `H`).
+- **Shortcuts:** `Ctrl+Z` (Undo), `Ctrl+Y` (Redo), `Ctrl+S` (Save PNG).
+- **Backgrounds:** Choose from Blank, Grid, Lines, Dots, or Graph. The container background now seamlessly matches your board color.
+- **Management:** Create multiple boards, switch between them, and delete old ones.
+
 
 ---
 

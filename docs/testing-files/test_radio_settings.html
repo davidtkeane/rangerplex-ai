@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Radio Settings Test</title>
+</head>
+<body>
+    <h1>IndexedDB Radio Settings Test</h1>
+    <button onclick="checkSettings()">Check Saved Settings</button>
+    <button onclick="clearDB()">Clear All Data</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function checkSettings() {
+            const output = document.getElementById('output');
+
+            // Open IndexedDB (let it open whatever version exists)
+            const request = indexedDB.open('rangerplex-db');
+
+            request.onsuccess = function(event) {
+                const db = event.target.result;
+                output.textContent = `Database version: ${db.version}\n`;
+                output.textContent += `Object stores: ${Array.from(db.objectStoreNames).join(', ')}\n\n`;
+
+                // Check if settings store exists
+                if (!db.objectStoreNames.contains('settings')) {
+                    output.textContent += '❌ SETTINGS STORE NOT FOUND!\n';
+                    output.textContent += 'Solution: Refresh RangerPlex to trigger database upgrade.\n';
+                    return;
+                }
+
+                const transaction = db.transaction(['settings'], 'readonly');
+                const store = transaction.objectStore('settings');
+                const getAllRequest = store.getAllKeys();
+
+                getAllRequest.onsuccess = function() {
+                    const keys = getAllRequest.result;
+                    output.textContent += `Settings keys found: ${keys.length}\n`;
+                    output.textContent += `Keys: ${JSON.stringify(keys, null, 2)}\n\n`;
+
+                    // Get all settings values
+                    const getAllValues = store.getAll();
+                    getAllValues.onsuccess = function() {
+                        output.textContent += 'Settings values:\n';
+                        output.textContent += JSON.stringify(getAllValues.result, null, 2);
+                    };
+                };
+            };
+
+            request.onerror = function() {
+                output.textContent = 'Error opening database';
+            };
+        }
+
+        async function clearDB() {
+            indexedDB.deleteDatabase('rangerplex-db');
+            document.getElementById('output').textContent = 'Database cleared! Refresh RangerPlex.';
+        }
+    </script>
+</body>
+</html>

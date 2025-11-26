@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.5.34-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.5.35-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -440,6 +440,9 @@ RangerPlex supports running AI models **locally** on your machine using Ollama! 
 
 #### Step 1: Install Ollama
 Download from [https://ollama.ai](https://ollama.ai)
+
+**Need installation help?** Follow this step-by-step tutorial:
+📖 [How to Install Ollama - Complete Guide](https://www.hostinger.com/tutorials/how-to-install-ollama)
 
 #### Step 2: Pull a Model
 Open Terminal and run:

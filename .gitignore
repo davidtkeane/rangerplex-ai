@@ -60,7 +60,7 @@ Thumbs.db
 *~
 
 # Internal development files (keep private)
-docs/
+# docs/
 
 # RangerChain blockchain files (keep local)
 rangerblock/

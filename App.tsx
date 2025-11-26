@@ -9,6 +9,7 @@ import TrainingPage from './components/TrainingPage';
 import MatrixRain from './components/MatrixRain';
 import RangerVisionMode from './components/RangerVisionMode';
 import RadioPlayer from './components/RadioPlayer';
+import RangerTerminal from './components/Terminal/RangerTerminal';
 import SnowOverlay from './components/SnowOverlay';
 import ConfettiOverlay from './components/ConfettiOverlay';
 import SparkleOverlay from './components/SparkleOverlay';
@@ -32,6 +33,7 @@ const App: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false); // Ranger Console State
   const [isTrainingOpen, setIsTrainingOpen] = useState(false);
   const [isStudyNotesOpen, setIsStudyNotesOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState<{ title?: string; content?: string; imageUrl?: string; savedImagePath?: string } | null>(null);
@@ -646,6 +648,16 @@ const App: React.FC = () => {
             setWasVisionModeAutoActivated(false); // Manual activation - don't auto-close on activity
           }}
           toggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
+          onToggleTerminal={() => setIsTerminalOpen(!isTerminalOpen)}
+          isTerminalOpen={isTerminalOpen}
+          onShowChats={() => {
+            setIsTrainingOpen(false);
+            setIsStudyNotesOpen(false);
+            setIsCanvasOpen(false);
+            setIsStudyClockOpen(false);
+            setIsManualOpen(false);
+            if (window.innerWidth < 768) setSidebarOpen(true); // Ensure sidebar is open on mobile to see chats
+          }}
         />
 
         <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 md:ml-72 pt-14 md:pt-0 z-10`}>
@@ -784,6 +796,26 @@ const App: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Ranger Console (Terminal) Panel */}
+          {isTerminalOpen && (
+            <div className={`h-1/3 min-h-[250px] border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-zinc-900'} text-white p-0 font-mono text-sm overflow-hidden relative z-40 shadow-2xl flex flex-col`}>
+              <div className={`flex items-center justify-between px-4 py-2 text-xs font-bold uppercase tracking-wider border-b ${isTron ? 'bg-tron-cyan/10 border-tron-cyan/30 text-tron-cyan' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
+                <div className="flex items-center gap-2">
+                  <i className="fa-solid fa-terminal"></i>
+                  <span>Ranger Console</span>
+                  <span className="px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 text-[10px]">CONNECTED</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button className="hover:text-white transition-colors"><i className="fa-solid fa-expand"></i></button>
+                  <button onClick={() => setIsTerminalOpen(false)} className="hover:text-white transition-colors"><i className="fa-solid fa-xmark"></i></button>
+                </div>
+              </div>
+              <div className="flex-1 bg-black p-1 font-mono overflow-hidden">
+                <RangerTerminal />
+              </div>
+            </div>
+          )}
         </main>
 
         {isSettingsOpen && (
@@ -892,20 +924,26 @@ const App: React.FC = () => {
 
         {/* Manual Viewer */}
         <ManualViewer open={isManualOpen} onClose={() => setIsManualOpen(false)} />
-      </div>
 
-      <RangerPet
-        isVisible={isPetVisible}
-        onClose={() => setIsPetVisible(false)}
-        message={petMessage}
-      />
-      {showBackupManager && (
-        <BackupManager theme={settings.theme} onClose={() => setShowBackupManager(false)} />
-      )}
-      <SaveStatusIndicator
-        enabled={settings.saveStatusNotifications}
-        displayMs={settings.saveStatusDurationMs}
-      />
+        {/* Ranger Pet */}
+        <RangerPet
+          isVisible={isPetVisible}
+          onClose={() => setIsPetVisible(false)}
+          message={petMessage}
+        />
+
+        {/* Backup Manager */}
+        {showBackupManager && (
+          <BackupManager theme={settings.theme} onClose={() => setShowBackupManager(false)} />
+        )}
+
+        {/* Save Status Indicator */}
+        <SaveStatusIndicator
+          enabled={settings.saveStatusNotifications}
+          displayMs={settings.saveStatusDurationMs}
+        />
+
+      </div>
     </div>
   );
 };

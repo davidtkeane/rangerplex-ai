@@ -1,0 +1,194 @@
+GROK / xAI API — COMPLETE INTEGRATION SPEC FOR RANGERPlex
+Date: November 23, 2025
+Source: Official xAI API + Grok direct verification
+Purpose: Single source of truth for 100% correct RangerPlex integration
+
+================================================================
+1. OFFICIAL ENDPOINT
+================================================================
+https://api.x.ai/v1/chat/completions
+- OpenAI-compatible
+- Supports streaming (Server-Sent Events)
+- No trailing slash
+
+================================================================
+2. CURRENT ACTIVE MODELS (November 2025)
+================================================================
+Model ID           | Display Name     | Vision? | Recommended | Context | Notes
+-------------------|------------------|---------|-------------|---------|----------------------
+grok-3             | Grok 3           | Yes     | STRONGLY    | 128k    | Flagship, best quality
+grok-3-mini        | Grok 3 Mini      | No      | Yes (fast)  | 128k    | Faster & cheaper
+grok-2             | Grok 2           | No      | Legacy      | 128k    | Still supported
+grok-2-vision      | Grok 2 Vision    | Yes     | Legacy      | 128k    | Older vision model
+
+DEPRECATED / REMOVE IMMEDIATELY:
+- grok-beta
+- grok-2-1212
+- grok-2-vision-1212
+- Any other dated/test IDs
+
+RECOMMENDED FINAL ARRAY FOR RANGERPlex settings:
+grok: [
+  'grok-3',
+  'grok-3-mini',
+  'grok-2',
+  'grok-2-vision'
+]
+
+================================================================
+3. FULL REQUEST FORMAT (Streaming + Vision Ready)
+================================================================
+{
+  "model": "grok-3",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "text", "text": "Describe this image in detail." },
+        {
+          "type": "image_url",
+          "image_url": { "url": "https://example.com/photo.jpg" }
+          // OR base64: "data:image/jpeg;base64,/9j/4AAQSk..."
+        }
+      ]
+    }
+  ],
+  "stream": true,
+  "temperature": 0.7,
+  "max_tokens": 8192,
+  "top_p": 1,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "stop": null,
+  "seed": null
+}
+
+================================================================
+4. ALL SUPPORTED PARAMETERS (TypeScript interface)
+================================================================
+interface GrokMessageContentText { type: "text"; text: string; }
+interface GrokMessageContentImage { type: "image_url"; image_url: { url: string; }; }
+
+type GrokMessage = {
+  role: "system" | "user" | "assistant";
+  content: string | (GrokMessageContentText | GrokMessageContentImage)[];
+};
+
+interface GrokRequest {
+  model: "grok-3" | "grok-3-mini" | "grok-2" | "grok-2-vision";
+  messages: GrokMessage[];
+  stream: boolean;
+  temperature?: number;        // 0.0–2.0, default 1.0
+  max_tokens?: number;         // 1–131072 (model dependent)
+  top_p?: number;              // 0.0–1.0
+  frequency_penalty?: number;  // -2.0–2.0
+  presence_penalty?: number;   // -2.0–2.0
+  stop?: string[] | null;      // Up to 4 stop sequences
+  seed?: number | null;
+}
+
+================================================================
+5. VISION & MULTIMODAL RULES
+================================================================
+Vision-capable models: grok-3 (best), grok-2-vision (legacy)
+
+Image/Video sending methods (both work):
+1. URL (preferred): "https://..."
+2. Base64: "data:image/jpeg;base64,..." or "data:video/mp4;base64,..."
+
+Multiple images/videos in one message: YES (just add more image_url blocks)
+
+Limits:
+- Max file size: 20 MB per image/video
+- Max resolution: 2048×2048 (images), 512×512 recommended (videos)
+- Supported: JPEG, PNG, GIF, WebP, MP4
+
+================================================================
+6. STREAMING RESPONSE FORMAT (SSE)
+================================================================
+data: {"id":"chatcmpl-xxx","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-xxx","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}
+
+data: [DONE]
+
+Parse: choices[0].delta.content
+Stop on: data: [DONE]
+
+================================================================
+7. HEADERS (exact)
+================================================================
+Content-Type: application/json
+Authorization: Bearer YOUR_XAI_API_KEY
+
+================================================================
+8. RATE LIMITS & BEST PRACTICES
+================================================================
+⚠️  IMPORTANT: xAI has NO FREE TIER
+- You MUST add credits to your account before API calls work
+- New accounts get HTTP 403 until credits are purchased
+- Go to console.x.ai → Billing → Add payment method
+
+Rate limits:
+- Free tier: NONE (must purchase credits)
+- Paid tiers: Up to 10k RPM / 1M+ TPM (varies by plan)
+- Each image/video counts extra toward limits
+
+Pricing (approximate, check console.x.ai for current rates):
+- grok-3: ~$2-5 per 1M tokens
+- grok-3-mini: ~$0.50-1 per 1M tokens
+- grok-2: ~$2 per 1M tokens
+- grok-2-vision: ~$5 per 1M tokens
+
+Best practices:
+- Start with $5-10 credits for testing
+- Use URLs over base64 when possible (more efficient)
+- Implement exponential backoff on 429 (rate limit)
+
+================================================================
+9. ERROR CODES TO HANDLE
+================================================================
+400 → Bad request - Multiple causes:
+     a) Incorrect API key format
+        Error: "Incorrect API key provided: xx***xx. You can obtain an API key from https://console.x.ai"
+        Fix: Get new key from console.x.ai → API Keys (keys start with 'xai-')
+     b) Invalid image/format/size
+        Error: "Invalid image URL" or "Image too large"
+        Fix: Check image ≤20MB, ≤2048x2048, supported format
+
+401 → Invalid/missing API key (rare, usually 400 instead)
+
+403 → No credits (VERY COMMON for new accounts!)
+     Error: "Your newly created teams doesn't have any credits yet"
+     Fix: Go to console.x.ai → Billing → Purchase credits ($5-10 to start)
+
+429 → Rate limit (too many requests)
+     Error: Rate limit exceeded
+     Fix: Wait and retry, implement exponential backoff
+
+500+ → Server error
+     Fix: Retry after delay, check xAI status page
+
+Error response examples:
+{"code":"Client specified an invalid argument","error":"Incorrect API key provided: gs***QC. You can obtain an API key from https://console.x.ai."}
+{"error":{"message":"Invalid image URL","type":"invalid_request_error"}}
+{"code":"The caller does not have permission","error":"Your newly created teams doesn't have any credits yet. You can purchase credits on https://console.x.ai/team/..."}
+
+================================================================
+10. QUICK BASH TEST SCRIPT (included)
+================================================================
+#!/bin/bash
+read -s -p "Enter your xAI API key: " key
+echo
+curl https://api.x.ai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $key" \
+  -d '{
+    "model": "grok-3",
+    "messages": [{"role": "user", "content": "Say: API key works!"}],
+    "stream": false
+  }' | jq .
+
+================================================================
+END OF SPEC — 100% VERIFIED & READY FOR RANGERPlex v2.4.3+
+Rangers Lead The Way!
