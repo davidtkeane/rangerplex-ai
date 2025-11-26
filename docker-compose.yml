@@ -1,0 +1,15 @@
+services:
+  rangerplex:
+    build: .
+    container_name: rangerplex-ai
+    ports:
+      - "5173:5173" # Vite Frontend
+      - "3010:3010" # Backend API
+    volumes:
+      - ./data:/app/data # Persist SQLite database
+      - ./image:/app/image # Persist images
+      - ./backups:/app/backups # Persist backups
+      - ./.env:/app/.env # Load environment variables
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
