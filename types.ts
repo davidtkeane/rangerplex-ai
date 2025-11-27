@@ -285,7 +285,7 @@ export interface AppSettings {
   // Notifications
   saveStatusNotifications: boolean;
   saveStatusDurationMs: number;
-
+  openLinksInApp?: boolean;
   // Data & Backup
   autoBackupEnabled: boolean;
   autoBackupInterval: number; // minutes
@@ -533,6 +533,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   saveStatusNotifications: true,
   saveStatusDurationMs: 5000,
+  openLinksInApp: false,
 
   autoBackupEnabled: true,
   autoBackupInterval: 5, // minutes

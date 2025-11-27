@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.6.0-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.6.4-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -402,12 +402,25 @@ Open your web browser and go to: **[http://localhost:5173](http://localhost:5173
 
 ---
 
-## 🐳 Docker Support (New!)
+## 🐳 Docker Support
 
-RangerPlex now supports **Docker** for easy, isolated deployment.
+RangerPlex supports **Docker** for containerized deployment and **WordPress hosting** via Project PRESS FORGE.
 
 ### Prerequisites
-- Docker Desktop or Docker Engine installed
+**Docker Desktop** (Recommended - Includes Everything):
+- 🖥️ **Download**: [https://www.docker.com/get-started/](https://www.docker.com/get-started/)
+- ✅ **Includes ALL CLI Tools**:
+  - Docker Engine (daemon)
+  - Docker CLI (`docker` command)
+  - Docker Compose (multi-container management)
+  - Docker Desktop GUI
+
+**Platform Notes**:
+- **Mac**: Download for Apple Silicon (M1/M2/M3/M4) or Intel
+- **Windows**: Includes WSL 2 integration (works seamlessly!)
+- **Linux**: Docker Desktop or use Docker Engine + Docker Compose separately
+
+**Auto-Installation**: The `install-me-now.sh` script can guide you through Docker installation!
 
 ### Quick Start
 1. Open your terminal in the project folder
@@ -419,10 +432,22 @@ RangerPlex now supports **Docker** for easy, isolated deployment.
    - **Frontend**: [http://localhost:5173](http://localhost:5173)
    - **Backend**: [http://localhost:3010](http://localhost:3010)
 
+### WordPress Hosting (Project PRESS FORGE)
+Run up to **3 independent WordPress sites** locally with Docker:
+```bash
+docker-compose -f docker-compose.wordpress.yml --profile site1 up -d
+```
+- **Site 1**: [http://localhost:8081](http://localhost:8081)
+- **Site 2**: [http://localhost:8082](http://localhost:8082)
+- **Site 3**: [http://localhost:8083](http://localhost:8083)
+
+Manage them all from the **WordPress Dashboard** in the app!
+
 ### Features
 - **Persistence**: Database, images, and backups are saved to your local `./data` folder
 - **Puppeteer Ready**: Includes all dependencies for screenshot and web scraping tools
 - **Hot Reloading**: Frontend updates instantly when you edit files
+- **WordPress Ready**: Full WordPress + MySQL stack with one command
 
 ---
 

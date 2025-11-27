@@ -28,6 +28,8 @@ import { syncService } from './services/syncService';
 import { autoSaveService, queueChatSave, queueSettingSave } from './services/autoSaveService';
 import { usePetState } from './src/hooks/usePetState';
 import TerminalPopup from './src/components/Browser/TerminalPopup'; // Import TerminalPopup
+import { WordPressDashboard } from './src/components/WordPress/WordPressDashboard'; // Import WordPress Dashboard
+import BrowserLayout from './src/components/Browser/BrowserLayout'; // Import BrowserLayout
 
 const App: React.FC = () => {
   // MINI-OS: Floating Terminal Route
@@ -64,6 +66,9 @@ const App: React.FC = () => {
   const [isStudyClockOpen, setIsStudyClockOpen] = useState(false); // State for Study Clock visibility
   const [isManualOpen, setIsManualOpen] = useState(false); // Manual overlay
   const [isEditorOpen, setIsEditorOpen] = useState(false); // State for Code Editor visibility
+  const [isWordPressOpen, setIsWordPressOpen] = useState(false); // State for WordPress Dashboard visibility
+  const [isBrowserOpen, setIsBrowserOpen] = useState(false); // State for Browser visibility
+  const [initialBrowserUrl, setInitialBrowserUrl] = useState<string | undefined>(undefined);
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
@@ -462,19 +467,65 @@ const App: React.FC = () => {
   const openStudyNotes = useCallback(() => {
     setIsStudyNotesOpen(true);
     setIsTrainingOpen(false);
+    setIsWordPressOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
   const openTraining = useCallback(() => {
     setIsTrainingOpen(true);
     setIsStudyNotesOpen(false);
+    setIsWordPressOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
   const openCanvas = useCallback(() => {
     setIsCanvasOpen(true);
+    setIsWordPressOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
+
+  const openWordPress = useCallback(() => {
+    setIsWordPressOpen(true);
+    setIsCanvasOpen(false);
+    setIsTrainingOpen(false);
+    setIsStudyNotesOpen(false);
+    setIsEditorOpen(false);
+    setIsStudyClockOpen(false);
+    setIsManualOpen(false);
+    setIsBrowserOpen(false);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, []);
+
+  const openBrowser = useCallback((url?: string) => {
+    if (url) setInitialBrowserUrl(url);
+    setIsBrowserOpen(true);
+    setIsWordPressOpen(false);
+    setIsCanvasOpen(false);
+    setIsTrainingOpen(false);
+    setIsStudyNotesOpen(false);
+    setIsEditorOpen(false);
+    setIsStudyClockOpen(false);
+    setIsManualOpen(false);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, []);
+
+  // Listen for "request-open-url" from Main Process (for external links)
+  useEffect(() => {
+    if (window.electronAPI?.on) {
+      const cleanup = window.electronAPI.on('request-open-url', (url: any) => {
+        console.log('🔗 Opening external link in internal tab:', url);
+        openBrowser(url);
+      });
+      return cleanup;
+    }
+  }, [openBrowser]);
+
+  // Sync "Open Links in App" setting to Main Process
+  useEffect(() => {
+    if (window.electronAPI?.setLinkBehavior) {
+      window.electronAPI.setLinkBehavior(settings.openLinksInApp || false);
+    }
+  }, [settings.openLinksInApp]);
 
   const saveImageToLocal = useCallback(async (url?: string) => {
     if (!url) return undefined;
@@ -706,7 +757,9 @@ const App: React.FC = () => {
           onOpenStudyNotes={openStudyNotes}
           onOpenStudyClock={() => setIsStudyClockOpen(true)}
           onOpenCanvas={openCanvas}
+          onOpenWordPress={openWordPress}
           onOpenEditor={() => setIsEditorOpen(true)}
+          onOpenBrowser={() => openBrowser()}
           onLock={() => setIsLocked(true)}
           onOpenVisionMode={() => {
             setIsVisionModeOpen(true);
@@ -719,6 +772,7 @@ const App: React.FC = () => {
             setIsTrainingOpen(false);
             setIsStudyNotesOpen(false);
             setIsCanvasOpen(false);
+            setIsWordPressOpen(false);
             setIsStudyClockOpen(false);
             setIsManualOpen(false);
             if (window.innerWidth < 768) setSidebarOpen(true); // Ensure sidebar is open on mobile to see chats
@@ -726,6 +780,12 @@ const App: React.FC = () => {
         />
 
         <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 md:ml-72 pt-14 md:pt-0 z-10`}>
+          {/* Electron API Warning */}
+          {typeof window !== 'undefined' && !(window as any).electronAPI && (
+            <div className="bg-red-600 text-white px-4 py-1 text-xs text-center font-bold z-50">
+              ⚠️ ELECTRON API MISSING - RESTART REQUIRED
+            </div>
+          )}
           <div className={`h-14 px-4 hidden md:flex items-center gap-3 border-b ${isTron ? 'border-tron-cyan/40 bg-black/70 backdrop-blur shadow-[0_0_10px_rgba(0,243,255,0.15)]' : 'bg-white/80 dark:bg-zinc-900/80 border-gray-200 dark:border-zinc-800 backdrop-blur-sm'}`}>
             <img
               src="/image/rangersmyth-pic.png"
@@ -823,8 +883,31 @@ const App: React.FC = () => {
             <StudyNotes currentUser={currentUser} settings={settings} initialDraft={noteDraft || undefined} onOpenSettings={() => setIsSettingsOpen(true)} />
           ) : isTrainingOpen ? (
             <TrainingPage sessions={sessions} onClose={() => setIsTrainingOpen(false)} />
+          ) : isWordPressOpen ? (
+            <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-zinc-900 relative">
+              <button
+                onClick={() => setIsWordPressOpen(false)}
+                className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                title="Close WordPress"
+              >
+                <i className="fa-solid fa-xmark text-gray-600 dark:text-gray-300"></i>
+              </button>
+              <WordPressDashboard onOpenBrowser={openBrowser} autoStart={true} />
+            </div>
+          ) : isBrowserOpen ? (
+            <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-zinc-900 relative h-full">
+              <button
+                onClick={() => setIsBrowserOpen(false)}
+                className="absolute top-2 right-2 z-50 p-1 bg-white dark:bg-zinc-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                title="Close Browser"
+              >
+                <i className="fa-solid fa-xmark text-gray-600 dark:text-gray-300"></i>
+              </button>
+              <BrowserLayout initialUrl={initialBrowserUrl} />
+            </div>
           ) : currentSession ? (
             <ChatInterface
+              onOpenWordPress={openWordPress}
               session={currentSession}
               currentUser={currentUser}
               onUpdateMessages={(msgs) => updateMessages(currentSession.id, msgs)}

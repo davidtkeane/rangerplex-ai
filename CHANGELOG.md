@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.4] - 2025-11-27
+### ✨ Added
+- **Browser Tab in Sidebar**: Quick access button to open a new browser tab directly from the sidebar.
+- **Open Links in App**: New setting (Settings -> General -> Browser) to open external links (like WordPress Admin) in a RangerPlex tab instead of the default system browser.
+- **WordPress Dashboard**: Added "New Browser Tab" button for seamless multitasking.
+- **Multi-Site WordPress**: You can now run up to **3 independent WordPress sites** locally (Ports 8081, 8082, 8083).
+- **Delete / Reinstall**: Added a dedicated button to wipe a WordPress site's data for a fresh start.
+- **Log Cleanup**: Terminal output is now cleaner, hiding verbose "Skipping..." messages during site scanning.
+
+### 🛠️ Installer Improvements (v2.5.32)
+- **Docker Installation**: Automated installer now includes Docker Desktop setup
+  - Updated download URL to https://www.docker.com/get-started/
+  - Clear documentation that Docker Desktop includes ALL CLI tools (Engine, CLI, Compose)
+  - Added Docker Desktop to API Dashboard Links section (🐳 Development Tools)
+  - Platform-specific instructions for Mac (M1/M2/M3/M4), Windows, and WSL
+  - Emphasized Docker is HIGHLY RECOMMENDED for WordPress hosting
+  - Auto-opens download page in browser during installation
+
+## [2.6.2] - 2025-11-27
+### Fixed
+- **Browser Launch**: Resolved issue where `npm run browser` opened a Chrome tab instead of the app.
+- **White Screen**: Fixed "white screen of death" by ensuring server connection uses `127.0.0.1` instead of `localhost`.
+- **Process Cleanup**: Closing the Electron app now correctly terminates the terminal process and all child servers.
+- **DevTools Access**: Added a native "View" menu with "Toggle Developer Tools" option.
+
+## [2.6.1] - 2025-11-27 🐳 PROJECT PRESS FORGE: ONLINE
+
+### 🎉 Major Features
+**WordPress Integration Complete**: RangerPlex can now manage local WordPress instances via Docker!
+
+### ✨ Added
+- **WordPress Dashboard**: Full control center for local WordPress management.
+  - **Docker Control**: Start, Stop, and **Uninstall/Reset** containers directly from the UI.
+  - **Auto-Start**: Dashboard automatically starts Docker if needed.
+  - **Native Integration**: `/wordpress` command opens dashboard; "Open Admin" launches site in a native RangerPlex tab.
+  - **Sidebar Access**: New "WP" button for quick access.
+- **Browser Launch Modes**: Enhanced `npm run browser` with flexible flags:
+  - `npm run browser` (Default): Opens Electron App only.
+  - `npm run browser -- -b`: Opens **Both** App and a browser tab.
+  - `npm run browser -- -t`: Opens **Tab** only.
+
+### 🔧 Fixed
+- **Docker Port Conflict**: Moved WordPress to port **8081** to avoid conflicts.
+- **Electron API**: Fixed critical "Electron API unavailable" error by correcting preload script path (`.js` -> `.cjs`).
+- **Path Issues**: Fixed `docker-compose` not found error on macOS by explicitly adding `/opt/homebrew/bin` to PATH in Electron.
+- **Browser Recursion**: Fixed "Window inside Window" bug in `BrowserLayout.tsx`.
+
+---
+
 ## [2.6.0] - 2025-11-26 ⚫ DEATH STAR OPERATIONAL
 
 ### 🎉 Major Features

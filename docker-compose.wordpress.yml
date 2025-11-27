@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # SITE 1 (Port 8081)
+  wordpress-1:
+    image: wordpress:latest
+    container_name: rangerplex-wp-1
+    profiles: ["site1", "all"]
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      WORDPRESS_DB_HOST: db-1:3306
+      WORDPRESS_DB_USER: ranger
+      WORDPRESS_DB_PASSWORD: ranger_password_2025
+      WORDPRESS_DB_NAME: ranger_blog
+    volumes:
+      - ./wordpress-data/site1/wp-content:/var/www/html/wp-content
+      - ./wordpress-data/site1/uploads:/var/www/html/wp-content/uploads
+    networks:
+      - ranger-net
+    depends_on:
+      - db-1
+
+  db-1:
+    image: mysql:8.0
+    container_name: rangerplex-db-1
+    profiles: ["site1", "all"]
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ranger_blog
+      MYSQL_USER: ranger
+      MYSQL_PASSWORD: ranger_password_2025
+      MYSQL_ROOT_PASSWORD: ranger_root_2025
+    volumes:
+      - ./wordpress-data/site1/mysql:/var/lib/mysql
+    networks:
+      - ranger-net
+
+  # SITE 2 (Port 8082)
+  wordpress-2:
+    image: wordpress:latest
+    container_name: rangerplex-wp-2
+    profiles: ["site2", "all"]
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    environment:
+      WORDPRESS_DB_HOST: db-2:3306
+      WORDPRESS_DB_USER: ranger
+      WORDPRESS_DB_PASSWORD: ranger_password_2025
+      WORDPRESS_DB_NAME: ranger_blog
+    volumes:
+      - ./wordpress-data/site2/wp-content:/var/www/html/wp-content
+      - ./wordpress-data/site2/uploads:/var/www/html/wp-content/uploads
+    networks:
+      - ranger-net
+    depends_on:
+      - db-2
+
+  db-2:
+    image: mysql:8.0
+    container_name: rangerplex-db-2
+    profiles: ["site2", "all"]
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ranger_blog
+      MYSQL_USER: ranger
+      MYSQL_PASSWORD: ranger_password_2025
+      MYSQL_ROOT_PASSWORD: ranger_root_2025
+    volumes:
+      - ./wordpress-data/site2/mysql:/var/lib/mysql
+    networks:
+      - ranger-net
+
+  # SITE 3 (Port 8083)
+  wordpress-3:
+    image: wordpress:latest
+    container_name: rangerplex-wp-3
+    profiles: ["site3", "all"]
+    restart: unless-stopped
+    ports:
+      - "8083:80"
+    environment:
+      WORDPRESS_DB_HOST: db-3:3306
+      WORDPRESS_DB_USER: ranger
+      WORDPRESS_DB_PASSWORD: ranger_password_2025
+      WORDPRESS_DB_NAME: ranger_blog
+    volumes:
+      - ./wordpress-data/site3/wp-content:/var/www/html/wp-content
+      - ./wordpress-data/site3/uploads:/var/www/html/wp-content/uploads
+    networks:
+      - ranger-net
+    depends_on:
+      - db-3
+
+  db-3:
+    image: mysql:8.0
+    container_name: rangerplex-db-3
+    profiles: ["site3", "all"]
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ranger_blog
+      MYSQL_USER: ranger
+      MYSQL_PASSWORD: ranger_password_2025
+      MYSQL_ROOT_PASSWORD: ranger_root_2025
+    volumes:
+      - ./wordpress-data/site3/mysql:/var/lib/mysql
+    networks:
+      - ranger-net
+
+networks:
+  ranger-net:
+    driver: bridge

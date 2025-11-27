@@ -1,32 +1,51 @@
-# RangerPlex Manual (v2.6.0) ⚫
+# RangerPlex Manual (v2.6.4) 🐳
 
 > 🚨 **CRITICAL NOTE FOR AI AGENTS**: This file, along with `docs/RangerPlexBrowser/rangerplexOS/RANGERPLEX_BROWSER_ARCHITECTURE.md`, are the **SINGLE SOURCE OF TRUTH**. Do not rely on old documentation scattered in other folders. We are building the **RangerPlex Browser (Project Phantom Wing)**. Stick to the plan here.
 
-**🎉 NEW IN v2.6.0:** Code Editor Auto-Save, Settings Integration, Terminal Toggle, and Future Roadmaps!
+**🎉 NEW IN v2.6.4:** Multi-Site WordPress, Native Browser Tabs, and Link Handling!
 
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
 
 ## Quick Links
-- [What's New in v2.6.0](#whats-new-in-v260)
+- [What's New in v2.6.4](#whats-new-in-v264)
+- [WordPress Management](#wordpress-management)
 - [Monaco Code Editor](#monaco-code-editor)
 - [Death Star Easter Egg](#death-star-easter-egg)
 
-## What's New in v2.6.0
-> **Release Date:** 2025-11-26
+## What's New in v2.6.4
+> **Release Date:** 2025-11-27
 
-### 🛠️ Code Editor Evolution
-- **Auto-Save:** Your code is now safe! The editor saves your work to local storage every second.
-- **Settings Integration:** A new "Settings" button in the toolbar gives you quick access to preferences.
-- **Terminal Toggle:** Show or hide the terminal to maximize your coding space.
-- **Neon UI:** A fresh coat of paint with "Tron" styling and crisp icons.
+### 🐳 Multi-Site WordPress
+- **3 Independent Sites**: Run up to 3 WordPress sites simultaneously (Ports 8081, 8082, 8083).
+- **Delete / Reinstall**: Wipe a site's data with one click for a fresh start.
+- **Dashboard**: Manage all sites from a single interface.
 
-### 🚀 Browser Mode Polish
-- **Electron Fixes:** We resolved the launch issues, making the native app rock-solid.
-- **Manual Navigation:** Better controls for reading this very manual.
+### ✨ Browser Enhancements
+- **Open Links in App**: You can now choose to open external links (like WordPress Admin) in a RangerPlex tab instead of your default browser. Toggle this in **Settings -> General -> Browser**.
+- **Sidebar Quick Tab**: A new "Tab" button in the sidebar lets you open a browser tab instantly.
+- **Cleaner Logs**: Terminal output is now much cleaner, hiding verbose "Skipping..." messages.
+
+### 🛠️ Developer Tools
+- **Native Menu Bar**: Added a standard "View" menu to the top bar.
+- **Toggle DevTools**: You can now open the Console/Network panel via **View -> Toggle Developer Tools** or `Cmd+Option+I` / `Ctrl+Shift+I`.
+- **Process Cleanup**: The app now shuts down cleanly, killing all background servers when you close the window.
+
+### 🐳 Project PRESS FORGE (WordPress)
+- **WordPress Dashboard**: Complete control center for local WordPress sites.
+- **Docker Management**: Start, Stop, and **Reset** containers with one click.
+- **Native Integration**: Sites open in RangerPlex tabs, not external browsers.
+- **Auto-Start**: Dashboard manages the Docker lifecycle automatically.
+
+### 🚀 Browser Enhancements
+- **New Launch Modes**:
+  - `npm run browser` (Default): App only.
+  - `npm run browser -- -b`: App + Tab.
+  - `npm run browser -- -t`: Tab only.
+- **Stability**: Fixed critical Electron API and Docker path issues.
 
 ### 🔮 The Future (Roadmap)
-- **Project IRON FORGE:** We are planning full VS Code integration.
-- **Project PRESS FORGE:** WordPress management is coming soon.
+- **Project IRON FORGE**: Full VS Code integration.
+- **Native WordPress**: Running WP without Docker (PHP + SQLite).
 - [Orientation](#orientation)
 - [Start a New Chat](#start-a-new-chat)
 - [Getting Started](#getting-started)
@@ -105,13 +124,35 @@ The Manual Viewer now includes quick navigation buttons in the top header:
 - **Main Area**: Returns to the main chat interface.
 - **Close**: Exits the manual viewer.
 
+## WordPress Management
+> **New in v2.6.1:** Full local WordPress control via Docker.
+
+- **Access**:
+  - Click the **WP** button in the sidebar.
+  - Type `/wordpress` in the chat.
+- **Features**:
+  - **Dashboard**: View status of Local by Flywheel sites and the internal Docker instances.
+  - **Multi-Site Support**: Run up to **3 independent WordPress sites** simultaneously.
+  - **Docker Control**: Start, Stop, and **Delete/Reinstall** each site individually.
+  - **Auto-Start**: The dashboard automatically ensures Site #1 is running when opened (configurable).
+  - **Native Tabs**: Clicking "Open Admin" opens the WP Admin panel directly in a RangerPlex browser tab.
+- **Technical Details**:
+  - **Site 1**: Port **8081** (`http://localhost:8081`)
+  - **Site 2**: Port **8082** (`http://localhost:8082`)
+  - **Site 3**: Port **8083** (`http://localhost:8083`)
+  - Uses `docker-compose` profiles (`site1`, `site2`, `site3`) with persistent volumes in `./wordpress-data/siteX`.
+  - **Delete / Reinstall**: The button wipes the database and files for that specific site, giving you a fresh start.
+
 ## Browser Mode (New)
 > **Project Phantom Wing**: RangerPlex is now a standalone browser.
 
 - **Three Modes of Operation**:
   1.  **Server Mode** (`npm start`): The classic web app. Accessible via Chrome/Firefox.
   2.  **Docker Mode** (`docker-compose up`): The containerized version for deployment.
-  3.  **Browser Mode** (`npm run browser`): **The Native App**. A Chromium-based browser that *is* RangerPlex.
+  3.  **Browser Mode** (`npm run browser`): **The Native App**.
+      - `npm run browser` (Default): Opens Electron App only.
+      - `npm run browser -- -b`: Opens **Both** App and a browser tab.
+      - `npm run browser -- -t`: Opens **Tab** only.
 
 - **Key Features**:
   - **Ghost Protocol**: Press `Cmd+Shift+Esc` (Panic Button) to instantly kill the app, wipe RAM, and vanish.
@@ -599,17 +640,41 @@ node proxy_server.js
 **Tip:** Always ensure you're on the `main` branch before updating: `git branch` (should show `* main`)
 
 ## Docker Support
-RangerPlex v2.5.33 introduces full Docker support, allowing you to run the entire application in a containerized environment.
+RangerPlex includes full Docker support for containerized deployment and **WordPress hosting** via Project PRESS FORGE.
 
-### Quick Start
-1.  **Install Docker:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Mac/Windows) or Docker Engine (Linux).
+### Installing Docker Desktop (Recommended)
+**Docker Desktop includes EVERYTHING you need** (Engine, CLI, Compose, GUI):
+- 🖥️ **Download:** [https://www.docker.com/get-started/](https://www.docker.com/get-started/)
+- ✅ **Includes ALL CLI Tools:**
+  - Docker Engine (daemon)
+  - Docker CLI (`docker` command)
+  - Docker Compose (multi-container management)
+  - Docker Desktop GUI
+
+**Platform-Specific Tips:**
+- **Mac:** Choose Apple Silicon (M1/M2/M3/M4) or Intel version
+- **Windows:** Includes WSL 2 integration - works seamlessly!
+- **Linux:** Docker Desktop or use Docker Engine + Docker Compose separately
+
+**Auto-Installation:** Run `bash install-me-now.sh` and the installer will guide you through Docker setup!
+
+### Quick Start - RangerPlex Container
+1.  **Install Docker Desktop** (see above)
 2.  **Run Command:** `docker-compose up -d --build`
 3.  **Access:** Open `http://localhost:5173`
 
+### Quick Start - WordPress Hosting (Project PRESS FORGE)
+1.  **Ensure Docker is running** (whale icon in menu bar/system tray)
+2.  **Launch WordPress:** `docker-compose -f docker-compose.wordpress.yml up -d`
+3.  **Access:** Open `http://localhost:8081`
+4.  **Manage:** Use the WordPress Dashboard in RangerPlex (click "WP" in sidebar or type `/wordpress`)
+
 ### Key Features
 *   **Full Stack Container:** Runs Frontend, Backend, Database, and Puppeteer in one box.
+*   **WordPress Hosting:** Complete WordPress + MySQL stack with Project PRESS FORGE.
 *   **Data Persistence:** Database and backups are saved to your local `./data` and `./backups` folders.
 *   **Local AI Support:** Connects seamlessly to Ollama and LM Studio running on your host machine.
+*   **Native Integration:** WordPress Admin opens in RangerPlex tabs, not external browsers.
 
 ### Connecting to Local AI (Ollama/LM Studio)
 Docker containers are isolated, so they can't see `localhost` by default. We've solved this with **Smart Proxy Logic**:

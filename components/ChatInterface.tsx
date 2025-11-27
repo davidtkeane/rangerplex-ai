@@ -44,6 +44,7 @@ interface ChatInterfaceProps {
     showHolidayButtons: boolean;
     onPetCommand: () => void; // New prop
     onOpenCanvas?: () => void; // Canvas Easter egg
+    onOpenWordPress?: () => void; // WordPress Dashboard opener
     onOpenStudyClock?: () => void; // Study Clock opener
     onOpenManual?: () => void; // Manual viewer
     saveImageToLocal: (url?: string) => Promise<string | undefined>;
@@ -68,6 +69,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     showHolidayButtons,
     onPetCommand, // Destructure new prop
     onOpenCanvas, // Destructure Canvas opener
+    onOpenWordPress, // Destructure WordPress opener
     onOpenStudyClock, // Destructure Study Clock opener
     onOpenManual,
     saveImageToLocal,
@@ -274,6 +276,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             return; // Don't process as normal message
         }
 
+        // 📝 WORDPRESS: Type "/wordpress" to open WordPress Dashboard
+        if (lowerText.trim() === '/wordpress' && onOpenWordPress) {
+            onOpenWordPress();
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '📝 **Opening WordPress Dashboard...**\n\nAccess your local WordPress environment, manage posts, and publish content directly from RangerPlex.',
+                    timestamp: Date.now()
+                }
+            ]);
+            return; // Don't process as normal message
+        }
+
         const docAttachments = attachments.filter(att => !att.mimeType.startsWith('image/'));
         const imageAttachments = attachments.filter(att => att.mimeType.startsWith('image/'));
 
@@ -438,6 +455,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `- 📊 **Today's Stats**: Track total study time and pomodoros completed\n`;
                     helpMsg += `- 🔔 **Notifications**: Desktop alerts when sessions complete\n\n`;
                     helpMsg += `*Pro Tip: The Study Clock uses 3-Tier Persistence - your progress is never lost!*`;
+                }
+                else if (cmd === 'wordpress') {
+                    helpMsg = `### 📝 Command: /wordpress\n\n`;
+                    helpMsg += `**Usage:** \`/wordpress\`\n`;
+                    helpMsg += `**Purpose:** Opens the WordPress Dashboard to manage your local WordPress instance.\n\n`;
+                    helpMsg += `**Features:**\n`;
+                    helpMsg += `- 🚀 **One-Click Start**: Automatically starts Docker containers\n`;
+                    helpMsg += `- ✍️ **Publisher**: Write and publish posts with Markdown\n`;
+                    helpMsg += `- 🔌 **Playground**: Test plugins and themes in a disposable sandbox\n`;
+                    helpMsg += `- 📊 **Management**: View site status and health\n\n`;
+                    helpMsg += `*Pro Tip: Use the Publisher to draft content offline and sync when ready!*`;
                 }
                 else if (cmd === 'sherlock') {
                     helpMsg = `### 🔎 Command: /sherlock\n\n`;

@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
-# RangerPlex AI Installer (v2.5.31)
+# RangerPlex AI Installer (v2.5.32)
 # One-command setup for macOS/Linux/WSL. Installs Node.js 22, PM2, npm deps, and guides API key setup.
 # Safe defaults: prompts before package installs; writes .env only when you confirm.
 #
-# IMPROVEMENTS (v2.5.31):
+# IMPROVEMENTS (v2.5.32):
+# ✅ IMPROVED: Docker installation now uses https://www.docker.com/get-started/
+# ✅ ADDED: Clear documentation that Docker Desktop includes ALL CLI tools
+# ✅ ADDED: Docker Desktop to API Dashboard Links section (🐳 Development Tools)
+# ✅ IMPROVED: Better instructions for Mac (M1/M2/M3/M4 mention), Windows, and WSL
+# ✅ IMPROVED: Emphasized Docker is HIGHLY RECOMMENDED for WordPress hosting
+#
+# PREVIOUS (v2.5.31):
 # ✅ FIXED: Unbound variable error in shell detection (ZSH_VERSION, BASH_VERSION)
 # ✅ IMPROVED: Safe variable checking using ${VAR:-} syntax
 #
@@ -102,6 +109,7 @@ ${bold}${green}🎉 Thank you for downloading RangerPlex AI!${reset}
 ${dim}This installer will guide you through:${reset}
   ${cyan}•${reset} Node.js 22.x setup (via nvm)
   ${cyan}•${reset} PM2 process manager (zero-downtime updates!)
+  ${cyan}•${reset} Docker Desktop (WordPress hosting + containers!)
   ${cyan}•${reset} Ollama & LM Studio (optional local AI)
   ${cyan}•${reset} API key collection for cloud providers
   ${cyan}•${reset} Automatic alias setup (type ${bold}rangerplex${reset}${dim} to start anytime)${reset}
@@ -484,34 +492,48 @@ check_docker() {
   fi
 
   log
-  warn "Docker not detected. Docker enables running RangerPlex in a container."
-  log "${dim}Docker is OPTIONAL but recommended for isolation and easy updates.${reset}"
+  warn "Docker not detected. Docker enables WordPress hosting and containerized deployments."
+  log "${dim}Docker is OPTIONAL but HIGHLY RECOMMENDED for WordPress integration.${reset}"
+  log "${dim}Docker Desktop includes: Docker Engine, CLI tools, and Docker Compose.${reset}"
   log
   printf "Install Docker now? (y/N): "
   read -r reply
   if [[ ! "$reply" =~ ^[Yy]$ ]]; then
-    log "${dim}Skipped Docker. Install later from: ${cyan}https://www.docker.com/${reset}"
+    log "${dim}Skipped Docker. Install later from: ${cyan}https://www.docker.com/get-started/${reset}"
     return 0
   fi
 
   case "$OS" in
     Darwin)
       log "Opening Docker Desktop download page..."
-      log "${dim}Docker Desktop for Mac includes the Engine, CLI, and Compose.${reset}"
-      log "${dim}1. Download the .dmg (Apple Chip for M1/M2/M3, Intel for others).${reset}"
-      log "${dim}2. Drag to Applications.${reset}"
-      log "${dim}3. Open Docker to start the engine.${reset}"
-      open "https://www.docker.com/products/docker-desktop/" 2>/dev/null || log "Visit: https://www.docker.com/products/docker-desktop/"
+      log "${dim}${bold}Docker Desktop for Mac includes ALL CLI tools:${reset}"
+      log "${dim}  ✓ Docker Engine (daemon)${reset}"
+      log "${dim}  ✓ Docker CLI (docker command)${reset}"
+      log "${dim}  ✓ Docker Compose (multi-container management)${reset}"
+      log "${dim}  ✓ Docker Desktop GUI${reset}"
+      log
+      log "${dim}Installation steps:${reset}"
+      log "${dim}1. Download the .dmg (Apple Chip for M1/M2/M3/M4, Intel for others)${reset}"
+      log "${dim}2. Drag Docker.app to Applications folder${reset}"
+      log "${dim}3. Open Docker from Applications to start${reset}"
+      log "${dim}4. Wait for Docker to fully start (whale icon in menu bar)${reset}"
+      log
+      open "https://www.docker.com/get-started/" 2>/dev/null || log "Visit: ${cyan}https://www.docker.com/get-started/${reset}"
       ;;
     Linux)
       # Check for WSL
       if grep -q Microsoft /proc/version 2>/dev/null || grep -q microsoft /proc/version 2>/dev/null; then
          log "${cyan}WSL (Windows Subsystem for Linux) detected.${reset}"
          log "${yellow}STOP! Do NOT install Docker Engine here.${reset}"
-         log "${dim}For WSL, you should install **Docker Desktop for Windows** on your main Windows system.${reset}"
+         log "${dim}For WSL, install Docker Desktop for Windows on your main Windows system.${reset}"
          log "${dim}Then enable 'WSL 2 Integration' in Docker Desktop settings.${reset}"
          log
-         log "${dim}Download Docker Desktop for Windows: ${cyan}https://www.docker.com/products/docker-desktop/${reset}"
+         log "${dim}${bold}Docker Desktop for Windows includes ALL CLI tools:${reset}"
+         log "${dim}  ✓ Docker Engine${reset}"
+         log "${dim}  ✓ Docker CLI (works in WSL too!)${reset}"
+         log "${dim}  ✓ Docker Compose${reset}"
+         log
+         log "${dim}Download: ${cyan}https://www.docker.com/get-started/${reset}"
          return 0
       fi
 
@@ -528,12 +550,21 @@ check_docker() {
     Windows)
       log "${cyan}Windows detected.${reset}"
       log "Please download Docker Desktop for Windows:"
-      log "${bold}${cyan}https://www.docker.com/products/docker-desktop/${reset}"
-      log "${dim}Run the installer and ensure 'Use WSL 2 instead of Hyper-V' is checked.${reset}"
-      if command -v start >/dev/null 2>&1; then start "https://www.docker.com/products/docker-desktop/"; fi
+      log "${bold}${cyan}https://www.docker.com/get-started/${reset}"
+      log
+      log "${dim}${bold}Docker Desktop for Windows includes ALL CLI tools:${reset}"
+      log "${dim}  ✓ Docker Engine${reset}"
+      log "${dim}  ✓ Docker CLI (docker command)${reset}"
+      log "${dim}  ✓ Docker Compose${reset}"
+      log "${dim}  ✓ WSL 2 integration (works seamlessly!)${reset}"
+      log
+      log "${dim}Installation tips:${reset}"
+      log "${dim}  • Run the installer and ensure 'Use WSL 2 instead of Hyper-V' is checked${reset}"
+      log "${dim}  • Restart after installation if prompted${reset}"
+      if command -v start >/dev/null 2>&1; then start "https://www.docker.com/get-started/"; fi
       ;;
     *)
-      log "Visit https://www.docker.com/products/docker-desktop/ to download Docker."
+      log "Visit ${cyan}https://www.docker.com/get-started/${reset} to download Docker."
       ;;
   esac
 }
@@ -651,6 +682,10 @@ collect_env() {
   log "   ${green}•${reset} Ollama (Mac):      ${cyan}https://ollama.com/download/mac${reset}"
   log "   ${green}•${reset} Ollama (Windows):  ${cyan}https://ollama.com/download/windows${reset}"
   log "   ${green}•${reset} LM Studio:         ${cyan}https://lmstudio.ai/${reset}"
+  log
+  log "${bold}🐳 Development Tools (RECOMMENDED):${reset}"
+  log "   ${green}•${reset} Docker Desktop:    ${cyan}https://www.docker.com/get-started/${reset}"
+  log "   ${dim}   (Includes Engine, CLI, Compose - Required for WordPress hosting)${reset}"
   log
   log "${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}"
   log

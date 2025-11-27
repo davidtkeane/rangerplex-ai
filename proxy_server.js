@@ -6,7 +6,7 @@ import { createServer } from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
 import dns from 'dns';
 import tls from 'tls';
 import https from 'https';
@@ -23,6 +23,7 @@ const resolveMx = promisify(dns.resolveMx);
 const resolveTxt = promisify(dns.resolveTxt);
 const resolveNs = promisify(dns.resolveNs);
 const lookup = promisify(dns.lookup);
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -3611,6 +3612,138 @@ app.post('/api/system/stop', async (req, res) => {
             success: false,
             error: error.message || 'Stop failed',
             message: 'Please stop manually with: npm run pm2:stop'
+        });
+    }
+});
+
+// ========================================
+// WORDPRESS INTEGRATION (Project PRESS FORGE)
+// ========================================
+
+// WordPress Start
+app.post('/api/wordpress/start', async (req, res) => {
+    try {
+        console.log('🐳 Starting WordPress Docker stack...');
+
+        const { stdout, stderr } = await execAsync('docker-compose -f docker-compose.wordpress.yml up -d');
+
+        res.json({
+            success: true,
+            message: '✅ WordPress started successfully!\n📝 Access at: http://localhost:8080',
+            url: 'http://localhost:8080',
+            output: stdout
+        });
+    } catch (error) {
+        console.error('❌ WordPress start error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to start WordPress',
+            error: error.message
+        });
+    }
+});
+
+// WordPress Stop
+app.post('/api/wordpress/stop', async (req, res) => {
+    try {
+        console.log('🐳 Stopping WordPress Docker stack...');
+
+        const { stdout } = await execAsync('docker-compose -f docker-compose.wordpress.yml down');
+
+        res.json({
+            success: true,
+            message: '✅ WordPress stopped successfully',
+            output: stdout
+        });
+    } catch (error) {
+        console.error('❌ WordPress stop error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to stop WordPress',
+            error: error.message
+        });
+    }
+});
+
+// WordPress Status
+app.get('/api/wordpress/status', async (req, res) => {
+    try {
+        try {
+            const { stdout } = await execAsync('docker-compose -f docker-compose.wordpress.yml ps');
+            const isRunning = stdout.includes('Up') || stdout.includes('running');
+
+            res.json({
+                success: true,
+                status: isRunning ? 'running' : 'stopped',
+                output: stdout
+            });
+        } catch {
+            res.json({
+                success: true,
+                status: 'stopped'
+            });
+        }
+    } catch (error) {
+        console.error('❌ WordPress status error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// WordPress Publish Note
+app.post('/api/wordpress/publish', async (req, res) => {
+    try {
+        const { filePath, title } = req.body;
+
+        if (!filePath) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a file path'
+            });
+        }
+
+        console.log(`📝 Publishing note to WordPress: ${filePath}`);
+
+        // Read the file
+        const content = fs.readFileSync(filePath, 'utf-8');
+
+        // Extract title from filename if not provided
+        const postTitle = title || path.basename(filePath, path.extname(filePath))
+            .replace(/-/g, ' ')
+            .replace(/_/g, ' ');
+
+        // Basic Markdown to HTML conversion
+        let html = content;
+        html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+        html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+        html = html.replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>');
+        html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = `<p>${html}</p>`;
+
+        // Create WordPress post using WP-CLI
+        const wpCommand = `docker exec rangerplex-wordpress wp post create --post_title="${postTitle}" --post_content="${html.replace(/"/g, '\\"')}" --post_status=draft --allow-root`;
+
+        const { stdout } = await execAsync(wpCommand);
+
+        res.json({
+            success: true,
+            message: `✅ Published "${postTitle}" to WordPress as draft`,
+            title: postTitle,
+            output: stdout
+        });
+    } catch (error) {
+        console.error('❌ WordPress publish error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to publish note',
+            error: error.message
         });
     }
 });

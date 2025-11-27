@@ -24,7 +24,9 @@ interface SidebarProps {
     onOpenStudyNotes: () => void;
     onOpenStudyClock?: () => void;
     onOpenCanvas?: () => void;
+    onOpenWordPress?: () => void;
     onOpenEditor?: () => void;
+    onOpenBrowser?: () => void;
     onLock: () => void;
     onOpenVisionMode: () => void;
     toggleSidebar: () => void;
@@ -61,7 +63,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     onOpenStudyNotes,
     onOpenStudyClock,
     onOpenCanvas,
+    onOpenWordPress,
     onOpenEditor,
+    onOpenBrowser,
     onLock,
     onOpenVisionMode,
     toggleSidebar,
@@ -267,6 +271,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
+                        {/* WordPress */}
+                        {onOpenWordPress && (
+                            <button
+                                onClick={onOpenWordPress}
+                                title="WordPress Dashboard"
+                                className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'}`}
+                            >
+                                <i className="fa-brands fa-wordpress text-lg mb-1"></i>
+                                <span className="text-[9px] uppercase tracking-wide">WP</span>
+                            </button>
+                        )}
+
                         {/* Code Editor */}
                         {onOpenEditor && (
                             <button
@@ -276,6 +292,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                             >
                                 <i className="fa-solid fa-code text-lg mb-1"></i>
                                 <span className="text-[9px] uppercase tracking-wide">Editor</span>
+                            </button>
+                        )}
+
+                        {/* Browser Tab */}
+                        {onOpenBrowser && (
+                            <button
+                                onClick={onOpenBrowser}
+                                title="Open Browser Tab"
+                                className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'}`}
+                            >
+                                <i className="fa-solid fa-window-maximize text-lg mb-1"></i>
+                                <span className="text-[9px] uppercase tracking-wide">Tab</span>
                             </button>
                         )}
 
@@ -356,7 +384,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     )}
                     <div className={`text-[10px] flex items-center justify-center gap-2 ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>
-                        <span>v2.5.36 // CANVAS REVOLUTION 🎨</span>
+                        <span>v2.6.4 // PRESS FORGE 🐳</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText('bc1q3jvxvhqt7u7qnnjjv5jtkh7wsgg9nrgk3hgsce');

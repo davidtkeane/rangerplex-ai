@@ -761,6 +761,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         Auto-Open Terminal in Editor
                                     </label>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-bold mb-2">Browser</label>
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input type="checkbox" checked={localSettings.openLinksInApp || false} onChange={e => setLocalSettings({ ...localSettings, openLinksInApp: e.target.checked })} className="accent-teal-500 w-5 h-5" />
+                                        Open External Links in RangerPlex Tab
+                                    </label>
+                                </div>
                             </div>
                             <div className="space-y-3">
                                 <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">

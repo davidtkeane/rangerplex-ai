@@ -1,4 +1,4 @@
-```javascript
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, X, ArrowLeft, ArrowRight, RotateCw, Shield, Ghost, Eye, FileText, Save, Terminal } from 'lucide-react';
 import styles from './BrowserLayout.module.css';
@@ -31,12 +31,16 @@ interface Tab {
   isPhantom: boolean; // Is the process suspended?
 }
 
-export default function BrowserLayout() {
+interface BrowserLayoutProps {
+  initialUrl?: string;
+}
+
+export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
   const [tabs, setTabs] = useState<Tab[]>([
     {
       id: '1',
-      title: 'RangerPlex Dashboard',
-      url: 'http://localhost:5173',
+      title: initialUrl ? 'New Tab' : 'RangerPlex Dashboard',
+      url: initialUrl || 'http://localhost:5173',
       lastActive: Date.now(),
       isPhantom: false,
     },
@@ -72,7 +76,7 @@ export default function BrowserLayout() {
 
     // Initial update
     setTimeout(updateBounds, 100);
-    
+
     window.addEventListener('resize', updateBounds);
     return () => window.removeEventListener('resize', updateBounds);
   }, [activeTabId, showNotes]); // Re-calc when notes toggle
@@ -89,7 +93,7 @@ export default function BrowserLayout() {
             !tab.isPhantom &&
             now - tab.lastActive > 10 * 60 * 1000
           ) {
-            console.log(`👻 Seamus: Converting tab ${ tab.title } to Phantom Mode`);
+            console.log(`👻 Seamus: Converting tab ${tab.title} to Phantom Mode`);
             // In Electron, we would destroy the view here
             if (window.electronAPI) window.electronAPI.closeTab(tab.id);
             return { ...tab, isPhantom: true };
@@ -109,7 +113,7 @@ export default function BrowserLayout() {
       setUrlInput(activeTab.url);
       // Wake up if phantom
       if (activeTab.isPhantom) {
-        console.log(`⚡ Seamus: Waking up tab ${ activeTab.title } `);
+        console.log(`⚡ Seamus: Waking up tab ${activeTab.title} `);
         setTabs((prev) =>
           prev.map((t) =>
             t.id === activeTabId ? { ...t, isPhantom: false, lastActive: Date.now() } : t
@@ -141,7 +145,7 @@ export default function BrowserLayout() {
   const closeTab = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (window.electronAPI) window.electronAPI.closeTab(id);
-    
+
     const newTabs = tabs.filter((t) => t.id !== id);
     if (newTabs.length === 0) {
       handleNewTab(); // Always keep one tab open
@@ -156,146 +160,146 @@ export default function BrowserLayout() {
     let url = urlInput;
     if (!url.startsWith('http')) url = `https://${url}`;
 
-setTabs((prev) =>
-  prev.map((t) => (t.id === activeTabId ? { ...t, url, title: url } : t))
-);
+    setTabs((prev) =>
+      prev.map((t) => (t.id === activeTabId ? { ...t, url, title: url } : t))
+    );
 
-if (window.electronAPI) window.electronAPI.navigate(activeTabId, url);
+    if (window.electronAPI) window.electronAPI.navigate(activeTabId, url);
   };
 
-// 👁️ THE LENS: AI Vision
-const handleLens = async () => {
-  if (window.electronAPI) {
-    console.log('👁️ Activating Lens...');
-    const text = await window.electronAPI.getPageText();
-    console.log('👁️ Lens captured text:', text.substring(0, 200) + '...');
-    setNoteContent((prev) => prev + '\n\n--- Lens Capture ---\n' + text.substring(0, 500) + '...');
-    setShowNotes(true);
-  } else {
-    alert('Lens only works in Electron Mode');
-  }
-};
-
-// 📝 MINI-OS: Save Note
-const handleSaveNote = async () => {
-  if (window.electronAPI) {
-    const result = await window.electronAPI.fsWriteFile('./data/notes/quick_note.txt', noteContent);
-    if (result.success) {
-      alert('Note saved to ./data/notes/quick_note.txt');
+  // 👁️ THE LENS: AI Vision
+  const handleLens = async () => {
+    if (window.electronAPI) {
+      console.log('👁️ Activating Lens...');
+      const text = await window.electronAPI.getPageText();
+      console.log('👁️ Lens captured text:', text.substring(0, 200) + '...');
+      setNoteContent((prev) => prev + '\n\n--- Lens Capture ---\n' + text.substring(0, 500) + '...');
+      setShowNotes(true);
     } else {
-      alert('Error saving note: ' + result.error);
+      alert('Lens only works in Electron Mode');
     }
-  } else {
-    console.log('Note content:', noteContent);
-    alert('Save only works in Electron Mode');
-  }
-};
+  };
 
-return (
-  <div className={styles.browserContainer}>
-    {/* Tab Bar */}
-    <div className={styles.tabBar}>
-      {tabs.map((tab) => (
-        <div
-          key={tab.id}
-          className={`${styles.tab} ${tab.id === activeTabId ? styles.active : ''} ${tab.isPhantom ? styles.phantom : ''
-            }`}
-          onClick={() => setActiveTabId(tab.id)}
-        >
-          {tab.isPhantom && <Ghost size={12} className={styles.ghostIcon} />}
-          <span className={styles.tabTitle}>{tab.title}</span>
-          <X
-            size={14}
-            className={styles.closeBtn}
-            onClick={(e) => closeTab(e, tab.id)}
-          />
-        </div>
-      ))}
-      <button className={styles.newTabBtn} onClick={handleNewTab}>
-        <Plus size={16} />
-      </button>
-    </div>
+  // 📝 MINI-OS: Save Note
+  const handleSaveNote = async () => {
+    if (window.electronAPI) {
+      const result = await window.electronAPI.fsWriteFile('./data/notes/quick_note.txt', noteContent);
+      if (result.success) {
+        alert('Note saved to ./data/notes/quick_note.txt');
+      } else {
+        alert('Error saving note: ' + result.error);
+      }
+    } else {
+      console.log('Note content:', noteContent);
+      alert('Save only works in Electron Mode');
+    }
+  };
 
-    {/* Toolbar */}
-    <div className={styles.toolbar}>
-      <div className={styles.navControls}>
-        <button className={styles.iconBtn}><ArrowLeft size={18} /></button>
-        <button className={styles.iconBtn}><ArrowRight size={18} /></button>
-        <button className={styles.iconBtn}><RotateCw size={18} /></button>
-      </div>
-
-      <form className={styles.addressBar} onSubmit={handleNavigate}>
-        <Shield size={14} className={styles.secureIcon} />
-        <input
-          type="text"
-          value={urlInput}
-          onChange={(e) => setUrlInput(e.target.value)}
-          className={styles.urlInput}
-        />
-      </form>
-
-      <div className={styles.extensions}>
-        {/* Notes Toggle */}
-        <button
-          className={`${styles.iconBtn} ${showNotes ? styles.active : ''}`}
-          onClick={() => setShowNotes(!showNotes)}
-          title="Toggle Notes"
-        >
-          <FileText size={18} />
-        </button>
-
-        {/* Floating Terminal Toggle */}
-        <button
-          className={styles.iconBtn}
-          onClick={() => window.electronAPI?.toggleFloatingTerminal()}
-          title="Toggle Floating Terminal"
-        >
-          <Terminal size={18} />
-        </button>
-
-        {/* The Lens Button */}
-        <button className={styles.iconBtn} onClick={handleLens} title="Activate Lens">
-          <Eye size={18} color="#00ff9d" />
-        </button>
-
-        <div className={styles.walletWidget}>💰 0.00 RNC</div>
-      </div>
-    </div>
-
-    {/* Main Content Area (Split View) */}
-    <div className={styles.mainContent}>
-      {/* Web Content Area */}
-      <div className={styles.contentArea} ref={contentRef}>
-        {/* If NOT in Electron, show iframe for dev */}
-        {!window.electronAPI && (
-          <iframe
-            src={activeTab?.url}
-            className={styles.webview}
-            title="content"
-          />
-        )}
-        {/* If in Electron, this div is just a placeholder for the BrowserView */}
-      </div>
-
-      {/* Notes Panel (Mini-OS) */}
-      {showNotes && (
-        <div className={styles.notesPanel}>
-          <div className={styles.notesHeader}>
-            <span>Quick Notes</span>
-            <button className={styles.iconBtn} onClick={handleSaveNote} title="Save to Disk">
-              <Save size={16} />
-            </button>
+  return (
+    <div className={styles.browserContainer}>
+      {/* Tab Bar */}
+      <div className={styles.tabBar}>
+        {tabs.map((tab) => (
+          <div
+            key={tab.id}
+            className={`${styles.tab} ${tab.id === activeTabId ? styles.active : ''} ${tab.isPhantom ? styles.phantom : ''
+              }`}
+            onClick={() => setActiveTabId(tab.id)}
+          >
+            {tab.isPhantom && <Ghost size={12} className={styles.ghostIcon} />}
+            <span className={styles.tabTitle}>{tab.title}</span>
+            <X
+              size={14}
+              className={styles.closeBtn}
+              onClick={(e) => closeTab(e, tab.id)}
+            />
           </div>
-          <textarea
-            className={styles.notesEditor}
-            value={noteContent}
-            onChange={(e) => setNoteContent(e.target.value)}
-            placeholder="Type notes here..."
-          />
+        ))}
+        <button className={styles.newTabBtn} onClick={handleNewTab}>
+          <Plus size={16} />
+        </button>
+      </div>
+
+      {/* Toolbar */}
+      <div className={styles.toolbar}>
+        <div className={styles.navControls}>
+          <button className={styles.iconBtn}><ArrowLeft size={18} /></button>
+          <button className={styles.iconBtn}><ArrowRight size={18} /></button>
+          <button className={styles.iconBtn}><RotateCw size={18} /></button>
         </div>
-      )}
+
+        <form className={styles.addressBar} onSubmit={handleNavigate}>
+          <Shield size={14} className={styles.secureIcon} />
+          <input
+            type="text"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            className={styles.urlInput}
+          />
+        </form>
+
+        <div className={styles.extensions}>
+          {/* Notes Toggle */}
+          <button
+            className={`${styles.iconBtn} ${showNotes ? styles.active : ''}`}
+            onClick={() => setShowNotes(!showNotes)}
+            title="Toggle Notes"
+          >
+            <FileText size={18} />
+          </button>
+
+          {/* Floating Terminal Toggle */}
+          <button
+            className={styles.iconBtn}
+            onClick={() => window.electronAPI?.toggleFloatingTerminal()}
+            title="Toggle Floating Terminal"
+          >
+            <Terminal size={18} />
+          </button>
+
+          {/* The Lens Button */}
+          <button className={styles.iconBtn} onClick={handleLens} title="Activate Lens">
+            <Eye size={18} color="#00ff9d" />
+          </button>
+
+          <div className={styles.walletWidget}>💰 0.00 RNC</div>
+        </div>
+      </div>
+
+      {/* Main Content Area (Split View) */}
+      <div className={styles.mainContent}>
+        {/* Web Content Area */}
+        <div className={styles.contentArea} ref={contentRef}>
+          {/* If NOT in Electron, show iframe for dev */}
+          {!window.electronAPI && (
+            <iframe
+              src={activeTab?.url}
+              className={styles.webview}
+              title="content"
+            />
+          )}
+          {/* If in Electron, this div is just a placeholder for the BrowserView */}
+        </div>
+
+        {/* Notes Panel (Mini-OS) */}
+        {showNotes && (
+          <div className={styles.notesPanel}>
+            <div className={styles.notesHeader}>
+              <span>Quick Notes</span>
+              <button className={styles.iconBtn} onClick={handleSaveNote} title="Save to Disk">
+                <Save size={16} />
+              </button>
+            </div>
+            <textarea
+              className={styles.notesEditor}
+              value={noteContent}
+              onChange={(e) => setNoteContent(e.target.value)}
+              placeholder="Type notes here..."
+            />
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 }
-```
+
