@@ -492,7 +492,6 @@ class RangerBlockNode {
         // Ignore our own broadcasts
         if (data.name === this.name) return;
 
-        const peerAddress = `ws://${data.ip}:${data.port}`;
         const peerId = `${data.name}-${data.ip}:${data.port}`;
 
         // Check if already connected
@@ -500,50 +499,16 @@ class RangerBlockNode {
 
         console.log(`📡 Discovered peer: ${data.name} at ${data.ip}:${data.port}`);
 
-        // Connect to peer
-        this.connectToPeer(peerAddress, peerId, data.name);
-    }
+        // Connect to discovered peer using existing async connectToPeer method
+        const peerObject = {
+            nodeId: peerId,
+            address: data.name,
+            ip: data.ip,
+            port: data.port,
+            blockchainHeight: 0
+        };
 
-    connectToPeer(address, peerId, peerName) {
-        if (this.peers.has(peerId)) {
-            return; // Already connected
-        }
-
-        console.log(`🔌 Connecting to ${peerName} at ${address}...`);
-
-        const ws = new WebSocket(address);
-
-        ws.on('open', () => {
-            console.log(`✅ Connected to ${peerName}`);
-
-            this.peers.set(peerId, {
-                ws,
-                address,
-                name: peerName,
-                blockchainHeight: 0
-            });
-
-            // Send hello
-            ws.send(JSON.stringify({
-                type: 'hello',
-                from: this.name,
-                blockchainHeight: this.blockchain.chain.length
-            }));
-        });
-
-        ws.on('message', (data) => {
-            this.handlePeerMessage(ws, JSON.parse(data.toString()));
-        });
-
-        ws.on('close', () => {
-            console.log(`❌ Disconnected from ${peerName}`);
-            this.peers.delete(peerId);
-        });
-
-        ws.on('error', (error) => {
-            // Silently ignore connection errors (peer might not be ready yet)
-            this.peers.delete(peerId);
-        });
+        this.connectToPeer(peerObject);
     }
 
     // ========================================================================
