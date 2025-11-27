@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.5] - 2025-11-27 🎖️ RANGERBLOCK BLOCKCHAIN INTEGRATION
+
+### ✨ Added
+- **🎖️ RangerBlock P2P Blockchain**: Fully integrated peer-to-peer blockchain network!
+  - **Auto-Start**: Blockchain node starts automatically with RangerPlex (when enabled)
+  - **Hardware Detection**: Automatically identifies node by Mac hardware UUID (Genesis security system)
+  - **Network Modes**:
+    - 🏠 **Local Only**: Connects to devices on your WiFi/LAN
+    - 🌐 **Local + Global**: Connects both locally AND globally via relay server
+    - 🌍 **Global Only**: Cross-network communication via relay server
+  - **Settings Tab**: Complete RangerBlock configuration in Settings
+    - Enable/Disable toggle
+    - Network mode selector
+    - Port configuration (default: 5000)
+    - Relay server URL input
+    - Auto-start toggle
+    - Real-time status panel (running/stopped + hardware info)
+  - **Node Management**: Start/Stop/Restart blockchain node from UI
+  - **Dashboard Access**: Direct link to blockchain node dashboard (http://localhost:5000)
+  - **Secure Identification**: Each node identified by unique hardware UUID
+  - **Graceful Shutdown**: Node stops cleanly when RangerPlex closes
+
+### 🔧 Backend
+- **blockchainService.cjs**: Complete node lifecycle management
+- **hardwareDetection.cjs**: Mac hardware UUID detection (M1/M2/M3/M4)
+- **RangerBlockNode.cjs**: Full P2P blockchain node with WebSocket networking
+- **relay-server.cjs**: Discovery server for cross-network nodes
+- **API Endpoints**:
+  - `GET /api/rangerblock/status` - Node status
+  - `POST /api/rangerblock/start` - Start node
+  - `POST /api/rangerblock/stop` - Stop node
+  - `POST /api/rangerblock/restart` - Restart node
+  - `POST /api/rangerblock/config` - Update config
+  - `GET /api/rangerblock/config` - Get config
+- **Database Integration**: Settings saved to SQLite database
+
+### 🎯 Next Steps
+- Group chat functionality (coming soon!)
+- Relay server deployment guide
+- Multi-machine blockchain testing
+
+---
+
 ## [2.6.4] - 2025-11-27
 ### ✨ Added
 - **Browser Tab in Sidebar**: Quick access button to open a new browser tab directly from the sidebar.
