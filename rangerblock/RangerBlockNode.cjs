@@ -23,6 +23,8 @@ const crypto = require('crypto');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express');
+const dgram = require('dgram');
+const os = require('os');
 
 // ============================================================================
 // BLOCKCHAIN CORE (from SimpleBlockchain.cjs)
@@ -247,6 +249,11 @@ class RangerBlockNode {
         this.relayWs = null;
         this.nodeId = null;
 
+        // Local network discovery (UDP)
+        this.discoverySocket = null;
+        this.discoveryPort = 5005;
+        this.discoveryInterval = null;
+
         // Chat system
         this.chatMessages = [];
         this.maxChatMessages = 100;
@@ -383,6 +390,135 @@ class RangerBlockNode {
                 }));
             }
         }, 60000); // Every 60 seconds
+    }
+
+    // ========================================================================
+    // LOCAL NETWORK DISCOVERY (UDP Broadcast)
+    // ========================================================================
+
+    getLocalIP() {
+        const interfaces = os.networkInterfaces();
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+                // Skip internal (loopback) and non-IPv4 addresses
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    return iface.address;
+                }
+            }
+        }
+        return '127.0.0.1';
+    }
+
+    startLocalDiscovery() {
+        console.log('\n🔍 Starting local network discovery (UDP)...');
+
+        // Create UDP socket
+        this.discoverySocket = dgram.createSocket('udp4');
+
+        // Handle incoming discovery messages
+        this.discoverySocket.on('message', (msg, rinfo) => {
+            try {
+                const data = JSON.parse(msg.toString());
+                this.handleDiscoveryMessage(data, rinfo);
+            } catch (error) {
+                // Ignore malformed messages
+            }
+        });
+
+        // Bind to discovery port
+        this.discoverySocket.bind(this.discoveryPort, () => {
+            this.discoverySocket.setBroadcast(true);
+            console.log(`✅ UDP discovery listening on port ${this.discoveryPort}`);
+
+            // Start broadcasting
+            this.broadcastDiscovery();
+
+            // Broadcast every 5 seconds
+            this.discoveryInterval = setInterval(() => {
+                this.broadcastDiscovery();
+            }, 5000);
+        });
+
+        this.discoverySocket.on('error', (err) => {
+            console.error('❌ Discovery socket error:', err.message);
+        });
+    }
+
+    broadcastDiscovery() {
+        const message = JSON.stringify({
+            type: 'discovery',
+            name: this.name,
+            ip: this.getLocalIP(),
+            port: this.port,
+            timestamp: Date.now()
+        });
+
+        const buf = Buffer.from(message);
+
+        // Broadcast to local network
+        this.discoverySocket.send(buf, 0, buf.length, this.discoveryPort, '255.255.255.255', (err) => {
+            if (err) {
+                console.error('❌ Broadcast error:', err.message);
+            }
+        });
+    }
+
+    handleDiscoveryMessage(data, rinfo) {
+        // Ignore our own broadcasts
+        if (data.name === this.name) return;
+
+        const peerAddress = `ws://${data.ip}:${data.port}`;
+        const peerId = `${data.name}-${data.ip}:${data.port}`;
+
+        // Check if already connected
+        if (this.peers.has(peerId)) return;
+
+        console.log(`📡 Discovered peer: ${data.name} at ${data.ip}:${data.port}`);
+
+        // Connect to peer
+        this.connectToPeer(peerAddress, peerId, data.name);
+    }
+
+    connectToPeer(address, peerId, peerName) {
+        if (this.peers.has(peerId)) {
+            return; // Already connected
+        }
+
+        console.log(`🔌 Connecting to ${peerName} at ${address}...`);
+
+        const ws = new WebSocket(address);
+
+        ws.on('open', () => {
+            console.log(`✅ Connected to ${peerName}`);
+
+            this.peers.set(peerId, {
+                ws,
+                address,
+                name: peerName,
+                blockchainHeight: 0
+            });
+
+            // Send hello
+            ws.send(JSON.stringify({
+                type: 'hello',
+                from: this.name,
+                blockchainHeight: this.blockchain.chain.length
+            }));
+        });
+
+        ws.on('message', (data) => {
+            this.handlePeerMessage(ws, JSON.parse(data.toString()));
+        });
+
+        ws.on('close', () => {
+            console.log(`❌ Disconnected from ${peerName}`);
+            this.peers.delete(peerId);
+        });
+
+        ws.on('error', (error) => {
+            // Silently ignore connection errors (peer might not be ready yet)
+            this.peers.delete(peerId);
+        });
     }
 
     // ========================================================================
@@ -898,19 +1034,22 @@ class RangerBlockNode {
             // 1. Start P2P server
             this.startP2PServer();
 
-            // 2. Connect to relay (if configured)
+            // 2. Start local network discovery (UDP broadcast)
+            this.startLocalDiscovery();
+
+            // 3. Connect to relay (if configured)
             if (this.relayUrl) {
                 await this.connectToRelay();
                 await this.registerWithRelay();
 
-                // 3. Get peers from relay
+                // 4. Get peers from relay
                 const peers = await this.getPeersFromRelay();
                 console.log(`📋 Received ${peers.length} peers from relay`);
 
-                // 4. Connect to peers
+                // 5. Connect to peers
                 await this.connectToPeers(peers);
 
-                // 5. Start heartbeat
+                // 6. Start heartbeat
                 this.startHeartbeat();
             } else {
                 console.log('⚠️  No relay server configured (local network mode)');

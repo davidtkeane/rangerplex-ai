@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Auto-refresh every 2 seconds
     - Shows online peer count
     - Perfect for testing M3Pro ↔ M4Max communication
+  - **🔍 UDP Broadcast Discovery**: Local network peer discovery!
+    - Automatic peer discovery on same WiFi/LAN (no manual IP entry!)
+    - UDP broadcast on port 5005 every 5 seconds
+    - Nodes automatically find and connect to each other
+    - Works seamlessly for M3Pro ↔ M4Max communication
+    - Zero-configuration networking
 
 ### 🔧 Fixed
 - **Port Conflict**: Changed default port from 5000 → 5555 (macOS Control Center uses port 5000)
@@ -56,9 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Database Integration**: Settings saved to SQLite database
 
 ### 🎯 Next Steps
-- Group chat functionality (coming soon!)
+- ✅ ~~Group chat functionality~~ **COMPLETE!**
+- ✅ ~~Local network discovery~~ **COMPLETE!**
 - Relay server deployment guide
-- Multi-machine blockchain testing
+- Multi-machine blockchain testing (ready to test!)
 
 ---
 
