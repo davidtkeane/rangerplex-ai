@@ -409,8 +409,32 @@ class RangerBlockNode {
         return '127.0.0.1';
     }
 
+    getBroadcastAddress() {
+        const interfaces = os.networkInterfaces();
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+                // Skip internal (loopback) and non-IPv4 addresses
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    // Calculate broadcast address from IP and netmask
+                    const ip = iface.address.split('.').map(Number);
+                    const netmask = iface.netmask.split('.').map(Number);
+
+                    // Broadcast = (IP & Netmask) | (~Netmask)
+                    const broadcast = ip.map((byte, i) => {
+                        return (byte & netmask[i]) | (~netmask[i] & 255);
+                    });
+
+                    return broadcast.join('.');
+                }
+            }
+        }
+        return '255.255.255.255'; // Fallback to global broadcast
+    }
+
     startLocalDiscovery() {
         console.log('\n🔍 Starting local network discovery (UDP)...');
+        console.log(`📡 Local IP: ${this.getLocalIP()}`);
+        console.log(`📡 Broadcast: ${this.getBroadcastAddress()}`);
 
         // Create UDP socket
         this.discoverySocket = dgram.createSocket('udp4');
@@ -454,9 +478,10 @@ class RangerBlockNode {
         });
 
         const buf = Buffer.from(message);
+        const broadcastAddr = this.getBroadcastAddress();
 
-        // Broadcast to local network
-        this.discoverySocket.send(buf, 0, buf.length, this.discoveryPort, '255.255.255.255', (err) => {
+        // Broadcast to subnet (e.g., 192.168.1.255 instead of 255.255.255.255)
+        this.discoverySocket.send(buf, 0, buf.length, this.discoveryPort, broadcastAddr, (err) => {
             if (err) {
                 console.error('❌ Broadcast error:', err.message);
             }
