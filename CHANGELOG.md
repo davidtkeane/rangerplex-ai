@@ -7,9 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2025-11-27 🕵️ FORENSICS MODULE DEPLOYED
+
+### ✨ Added
+- **🕵️ Forensics Module**: Comprehensive digital forensics toolkit integrated directly into RangerPlex.
+  - **Hashing**: `/hash`, `/hash-verify`, `/hash-dir` (MD5, SHA1, SHA256, SHA512)
+  - **Metadata**: `/metadata` (File stats), `/exif` (Image metadata)
+  - **Timeline**: `/timeline` (Directory event reconstruction)
+  - **Analysis**: `/strings` (Binary string extraction), `/grep` (Pattern search)
+  - **Chain of Custody**: `/custody-create`, `/custody-update`, `/custody-verify` (Evidence tracking)
+  - **Documentation**: Full command reference in `help-files/forensics/COMMAND_REFERENCE.md`
+  - **Help Menu**: New "FORENSICS MODULE" section in `/help`
+
 ## [2.6.5] - 2025-11-27 🎖️ RANGERBLOCK BLOCKCHAIN INTEGRATION
 
 ### ✨ Added
+- **🐾 Ranger Pet Widget - Minimize/Collapse Feature**: Sidebar space optimization for smaller screens!
+  - **Collapse Button**: Click chevron icon to minimize pet widget (saves ~150px of sidebar space)
+  - **Collapsed View**: Compact display showing mini pet avatar (8x8), name, level, mood emoji, XP%, and quick action buttons (Feed 🍎 & Play 🎾)
+  - **Persistent State**: localStorage saves your collapsed/expanded preference between sessions
+  - **Smooth Animations**: Clean transitions with duration-300 ease
+  - **Small Screen Optimization**: Perfect for M3 Pro MacBooks and other devices with limited vertical space
+  - **More Chat Logs Visible**: Maximizes space for viewing recent chat history in sidebar
 - **🎖️ RangerBlock P2P Blockchain**: Fully integrated peer-to-peer blockchain network!
   - **Auto-Start**: Blockchain node starts automatically with RangerPlex (when enabled)
   - **Hardware Detection**: Automatically identifies node by Mac hardware UUID (Genesis security system)

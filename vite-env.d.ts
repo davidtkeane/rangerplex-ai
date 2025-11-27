@@ -14,3 +14,17 @@ interface ImportMetaEnv {
 interface ImportMeta {
     readonly env: ImportMetaEnv
 }
+
+interface Window {
+    electronAPI: {
+        sendMessage: (channel: string, data: any) => void;
+        onMessage: (channel: string, func: (...args: any[]) => void) => void;
+        fsReadDir: (path: string) => Promise<any>;
+        fsReadFile: (path: string) => Promise<any>;
+        fsWriteFile: (path: string, content: string) => Promise<any>;
+        fsStat: (path: string) => Promise<any>;
+        fsReadBuffer: (path: string, size?: number) => Promise<Uint8Array | { error: string }>;
+        calculateHash: (filePath: string, algorithm: string) => Promise<string | { error: string }>;
+        [key: string]: any; // Allow other methods
+    }
+}

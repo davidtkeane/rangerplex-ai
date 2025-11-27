@@ -38,6 +38,12 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
   const [adoptionName, setAdoptionName] = useState(settings.petName || 'Kitty');
   const visitRecorded = useRef(false);
 
+  // Collapse state with localStorage persistence
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('pet_widget_collapsed');
+    return saved === 'true';
+  });
+
   const xpProgress = useMemo(() => {
     if (!pet) return 0;
     const xpToNext = pet.level * 100;
@@ -67,6 +73,12 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
   useEffect(() => {
     if (welcomeMessage) setMessage(welcomeMessage);
   }, [welcomeMessage]);
+
+  const toggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('pet_widget_collapsed', String(newState));
+  };
 
   const playSound = (src: string) => {
     try {
@@ -146,19 +158,86 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
     <div
       className={`
       pet-widget-sidebar
-      border-t border-b p-3
+      border-t border-b transition-all duration-300
+      ${isCollapsed ? 'p-2' : 'p-3'}
       ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800'}
     `}
     >
       {/* Header */}
       <div
         className={`
-        text-center text-xs font-bold uppercase tracking-wider mb-2 pb-2 border-b
+        flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-2 pb-2 border-b
         ${isTron ? 'text-tron-cyan border-tron-cyan/20' : 'text-gray-700 dark:text-zinc-300 border-gray-300 dark:border-zinc-600'}
       `}
       >
-        🐾 Ranger Pet
+        <span className="flex items-center gap-2">
+          🐾 Ranger Pet
+          {isCollapsed && pet && (
+            <span className={`text-[10px] ${isTron ? 'text-tron-cyan/70' : 'text-gray-500 dark:text-zinc-400'}`}>
+              Lvl {pet.level}
+            </span>
+          )}
+        </span>
+        <button
+          onClick={toggleCollapse}
+          className={`px-2 py-1 rounded transition-colors ${
+            isTron
+              ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan'
+              : 'hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-500 dark:text-zinc-400'
+          }`}
+          title={isCollapsed ? 'Expand Pet Widget' : 'Minimize Pet Widget'}
+        >
+          <i className={`fa-solid ${isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'} text-xs`}></i>
+        </button>
       </div>
+
+      {/* Collapsed View */}
+      {isCollapsed && pet && (
+        <div className="flex items-center justify-between gap-2">
+          <img
+            src={currentAnimationSrc}
+            alt={pet.name}
+            className="w-8 h-8"
+            style={{ imageRendering: 'pixelated' }}
+          />
+          <div className="flex-1 text-xs">
+            <div className={`font-semibold ${isTron ? 'text-tron-cyan' : 'text-gray-900 dark:text-zinc-100'}`}>
+              {pet.name}
+            </div>
+            <div className={`text-[10px] ${isTron ? 'text-tron-cyan/60' : 'text-gray-600 dark:text-zinc-400'}`}>
+              {pet.mood === 'playful' ? '🎾' : pet.mood === 'celebrating' ? '🎉' : '💚'} XP {xpProgress}%
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={handleFeed}
+              className={`px-2 py-1 rounded text-[10px] transition-all ${
+                isTron
+                  ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black'
+                  : 'bg-green-500 text-white hover:bg-green-600'
+              }`}
+              title="Feed"
+            >
+              🍎
+            </button>
+            <button
+              onClick={handlePlay}
+              className={`px-2 py-1 rounded text-[10px] transition-all ${
+                isTron
+                  ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black'
+                  : 'bg-blue-500 text-white hover:bg-blue-600'
+              }`}
+              title="Play"
+            >
+              🎾
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Expanded View */}
+      {!isCollapsed && (
+        <>
 
       {/* Pet Display */}
       <div className="flex flex-col items-center gap-2 mb-4">
@@ -276,6 +355,8 @@ const PetWidget: React.FC<PetWidgetProps> = ({ isTron = false, settings, current
           transition: transform 0.2s ease;
         }
       `}</style>
+      </>
+      )}
     </div>
   );
 };

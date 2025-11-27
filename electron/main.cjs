@@ -178,6 +178,42 @@ function setupIpcHandlers() {
         }
     });
 
+    // Get File Stats (Metadata)
+    ipcMain.handle('fs-stat', async (event, filePath) => {
+        try {
+            const stats = await fs.stat(filePath);
+            return {
+                size: stats.size,
+                atime: stats.atime,
+                mtime: stats.mtime,
+                ctime: stats.ctime,
+                birthtime: stats.birthtime,
+                isFile: stats.isFile(),
+                isDirectory: stats.isDirectory(),
+                mode: stats.mode,
+                uid: stats.uid,
+                gid: stats.gid
+            };
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
+    // Read File Buffer (For EXIF/Binary analysis)
+    // Reads first 64KB by default if size not specified, which is usually enough for headers/EXIF
+    ipcMain.handle('fs-read-buffer', async (event, { filePath, size }) => {
+        try {
+            const fd = await fs.open(filePath, 'r');
+            const bufferSize = size || 65536; // Default 64KB
+            const buffer = Buffer.alloc(bufferSize);
+            const { bytesRead } = await fd.read(buffer, 0, bufferSize, 0);
+            await fd.close();
+            return buffer.subarray(0, bytesRead);
+        } catch (err) {
+            return { error: err.message };
+        }
+    });
+
     // 8. MINI-OS: Floating Terminal
     let floatingTerminalWindow = null;
 
@@ -338,6 +374,25 @@ function setupIpcHandlers() {
     ipcMain.handle('set-link-behavior', (event, enabled) => {
         openLinksInApp = enabled;
         return true;
+    });
+
+    // 11. FORENSICS: Hash File
+    ipcMain.handle('forensics-hash', async (event, { filePath, algorithm }) => {
+        try {
+            const crypto = require('crypto');
+            const fs = require('fs');
+
+            return new Promise((resolve, reject) => {
+                const hash = crypto.createHash(algorithm);
+                const stream = fs.createReadStream(filePath);
+
+                stream.on('error', err => resolve({ error: err.message }));
+                stream.on('data', chunk => hash.update(chunk));
+                stream.on('end', () => resolve(hash.digest('hex')));
+            });
+        } catch (error) {
+            return { error: error.message };
+        }
     });
 }
 

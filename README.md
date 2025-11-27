@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.6.5-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.7.0-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -186,6 +186,11 @@ RangerPlex has **TWO different image features** that work in completely differen
 
 ### 🐾 Ranger Pet (NEW in v2.4.7 - Pet Evolution!)
 *   **Your Evolving Study Companion**: A lovable Cyber Cat that lives in your sidebar, offering positive reinforcement and evolving as you interact with it.
+*   **Minimize/Collapse Widget (NEW in v2.6.5)**: Click the chevron button to collapse the pet widget and save ~150px of sidebar space! Perfect for smaller screens like M3 Pro MacBooks.
+    *   **Collapsed View**: Shows mini pet avatar, name, level, mood emoji, and quick action buttons (Feed 🍎 & Play 🎾)
+    *   **Persistent State**: Remembers your preference between sessions using localStorage
+    *   **Smooth Animations**: Clean transitions when expanding/collapsing
+    *   **More Chat Logs**: Maximize space for viewing your recent chat history
 *   **New Gamification**:
     *   **Happiness Bar**: A visual bar that slowly decays. Keep your pet happy by interacting with it!
     *   **Hunger Bar**: A new stat that slowly increases. Feed your pet to keep it content!

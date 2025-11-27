@@ -34,6 +34,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     fsReadDir: (path) => ipcRenderer.invoke('fs-read-dir', path),
     fsReadFile: (path) => ipcRenderer.invoke('fs-read-file', path),
     fsWriteFile: (path, content) => ipcRenderer.invoke('fs-write-file', { filePath: path, content }),
+    fsStat: (path) => ipcRenderer.invoke('fs-stat', path),
+    fsReadBuffer: (path, size) => ipcRenderer.invoke('fs-read-buffer', { filePath: path, size }),
 
     // Mini-OS: Floating Terminal
     toggleFloatingTerminal: () => ipcRenderer.invoke('toggle-floating-terminal'),
@@ -45,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openExternal: (url) => ipcRenderer.invoke('open-external', url),
     showNotification: (title, body) => ipcRenderer.invoke('show-notification', { title, body }),
     setLinkBehavior: (enabled) => ipcRenderer.invoke('set-link-behavior', enabled),
+
+    // Forensics
+    calculateHash: (filePath, algorithm) => ipcRenderer.invoke('forensics-hash', { filePath, algorithm }),
 
     // Generic Event Listener
     on: (channel, func) => {

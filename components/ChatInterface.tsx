@@ -29,6 +29,7 @@ import { streamGrokResponse } from '../services/xaiService';
 import { dbService } from '../services/dbService';
 import { updateService } from '../services/updateService';
 import pkg from '../package.json';
+import { forensicCommandHandler } from '../src/commands/forensicCommandHandler';
 
 interface ChatInterfaceProps {
     session: ChatSession;
@@ -330,6 +331,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
             // --- COMMAND HANDLING ---
 
+            // --- COMMAND HANDLING ---
+
+            // Forensics Commands
+            if (text.startsWith('/hash') || text.startsWith('/metadata') || text.startsWith('/exif') || text.startsWith('/timeline') || text.startsWith('/strings') || text.startsWith('/grep') || text.startsWith('/custody')) {
+                const handled = await forensicCommandHandler.handleCommand(text);
+                if (handled) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: '⚡ Command executed in terminal.',
+                        timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+            }
+
             // 0a. Manual (/manual) - opens the in-app manual overlay
             if (text.trim() === '/manual') {
                 onOpenManual?.();
@@ -429,10 +447,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `╠════ CREATIVE SUITE ══════════════════════════╣\n`;
                     helpMsg += `║ 🎨  IMAGINE     :: /imagine <prompt>        ║\n`;
                     helpMsg += `║ ♾️   CANVAS      :: canvas                   ║\n`;
+                    helpMsg += `╠════ FORENSICS MODULE ════════════════════════╣\n`;
+                    helpMsg += `║ 🧬  HASH        :: /hash <file>             ║\n`;
+                    helpMsg += `║ 📄  METADATA    :: /metadata <file>         ║\n`;
+                    helpMsg += `║ 📸  EXIF        :: /exif <image>            ║\n`;
+                    helpMsg += `║ ⏳  TIMELINE    :: /timeline <dir>          ║\n`;
+                    helpMsg += `║ 🔤  STRINGS     :: /strings <file>          ║\n`;
+                    helpMsg += `║ 🔐  CUSTODY     :: /custody-create ...      ║\n`;
                     helpMsg += `╚══════════════════════════════════════════════╝\n`;
                     helpMsg += `\`\`\`\n`;
                     helpMsg += `*SYSTEM READY. Awaiting command input...*\n`;
                     helpMsg += `*Type \`/help <command>\` for detailed specs (e.g. \`/help shodan\`)*`;
+                }
+                else if (cmd === 'forensics' || cmd === 'hash' || cmd === 'metadata' || cmd === 'exif' || cmd === 'timeline' || cmd === 'strings' || cmd === 'custody') {
+                    helpMsg = `### 🕵️ Forensics Module\n\n`;
+                    helpMsg += `**Commands:**\n`;
+                    helpMsg += `- \`/hash <file> [algo] [--copy]\` - Calculate file hash\n`;
+                    helpMsg += `- \`/hash-verify <file> <hash>\` - Verify file integrity\n`;
+                    helpMsg += `- \`/hash-dir <dir>\` - Hash all files in directory\n`;
+                    helpMsg += `- \`/metadata <file>\` - View file system metadata\n`;
+                    helpMsg += `- \`/exif <image>\` - Extract EXIF data\n`;
+                    helpMsg += `- \`/timeline <dir>\` - Generate file timeline\n`;
+                    helpMsg += `- \`/strings <file> [min_len]\` - Extract strings\n`;
+                    helpMsg += `- \`/grep <file> <pattern>\` - Search file content\n`;
+                    helpMsg += `- \`/custody-create <id> <file> <desc>\` - Start chain of custody\n`;
+                    helpMsg += `- \`/custody-update <id> <action> <notes>\` - Update chain\n`;
+                    helpMsg += `- \`/custody-verify <id> [file]\` - Verify chain integrity\n\n`;
+                    helpMsg += `*See \`help-files/forensics/COMMAND_REFERENCE.md\` for full details.*`;
                 }
                 else if (cmd === 'about') {
                     helpMsg = `### 💠 Command: /about\n\n`;
