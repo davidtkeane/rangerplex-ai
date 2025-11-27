@@ -28,7 +28,13 @@ function openElectron() {
     });
 
     child.on('error', (err) => {
-        console.error('Failed to start Electron:', err);
+        if (err.code === 'ENOENT') {
+            console.error('\n❌ Electron not found!');
+            console.error('   This usually means dependencies are missing.');
+            console.error('   👉 Please run: npm install\n');
+        } else {
+            console.error(`Failed to start Electron: ${err}`);
+        }
     });
 
     child.on('close', (code) => {
