@@ -16,6 +16,11 @@ import os from 'os';
 import net from 'net';
 import puppeteer from 'puppeteer';
 import pty from 'node-pty';
+import { createRequire } from 'module';
+
+// Import blockchain service (CommonJS)
+const require = createRequire(import.meta.url);
+const blockchainService = require('./rangerblock/blockchainService.cjs');
 
 const resolve4 = promisify(dns.resolve4);
 const resolve6 = promisify(dns.resolve6);
@@ -3649,6 +3654,89 @@ app.get('/api/wordpress/status', async (req, res) => {
     }
 });
 
+// ============================================================================
+// RANGERBLOCK BLOCKCHAIN API
+// ============================================================================
+
+// Get blockchain status
+app.get('/api/rangerblock/status', (req, res) => {
+    try {
+        const status = blockchainService.getStatus();
+        res.json({ success: true, ...status });
+    } catch (error) {
+        console.error('❌ Blockchain status error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Start blockchain node
+app.post('/api/rangerblock/start', async (req, res) => {
+    try {
+        const result = await blockchainService.start();
+        res.json(result);
+    } catch (error) {
+        console.error('❌ Blockchain start error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Stop blockchain node
+app.post('/api/rangerblock/stop', async (req, res) => {
+    try {
+        const result = await blockchainService.stop();
+        res.json(result);
+    } catch (error) {
+        console.error('❌ Blockchain stop error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Restart blockchain node
+app.post('/api/rangerblock/restart', async (req, res) => {
+    try {
+        const result = await blockchainService.restart();
+        res.json(result);
+    } catch (error) {
+        console.error('❌ Blockchain restart error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update blockchain config
+app.post('/api/rangerblock/config', (req, res) => {
+    try {
+        const { enabled, networkMode, port, relayUrl, autoStart } = req.body;
+
+        // Update config
+        blockchainService.updateConfig({
+            enabled,
+            networkMode,
+            port,
+            relayUrl,
+            autoStart
+        });
+
+        // Save to database
+        const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+        stmt.run('rangerblock_config', JSON.stringify(blockchainService.getConfig()));
+
+        res.json({ success: true, config: blockchainService.getConfig() });
+    } catch (error) {
+        console.error('❌ Blockchain config error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get blockchain config
+app.get('/api/rangerblock/config', (req, res) => {
+    try {
+        res.json({ success: true, config: blockchainService.getConfig() });
+    } catch (error) {
+        console.error('❌ Blockchain config error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // WordPress Publish Note
 app.post('/api/wordpress/publish', async (req, res) => {
     try {
@@ -3705,8 +3793,24 @@ app.post('/api/wordpress/publish', async (req, res) => {
     }
 });
 
+// Load blockchain config from database
+function loadBlockchainConfig() {
+    try {
+        const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+        const row = stmt.get('rangerblock_config');
+
+        if (row) {
+            const config = JSON.parse(row.value);
+            blockchainService.updateConfig(config);
+            console.log('✅ RangerBlock config loaded');
+        }
+    } catch (error) {
+        console.log('⚠️  No RangerBlock config found (using defaults)');
+    }
+}
+
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
@@ -3721,4 +3825,40 @@ server.listen(PORT, () => {
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
+
+    // Load and auto-start blockchain
+    loadBlockchainConfig();
+
+    const config = blockchainService.getConfig();
+    if (config.enabled && config.autoStart) {
+        console.log('🚀 Auto-starting RangerBlock...');
+        const result = await blockchainService.start();
+
+        if (result.success) {
+            console.log(`✅ RangerBlock started: ${result.nodeName} on port ${result.port}`);
+        } else {
+            console.error(`❌ RangerBlock failed to start: ${result.message}`);
+        }
+    } else {
+        console.log('⚠️  RangerBlock disabled (enable in settings)');
+    }
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+    console.log('\n\n🛑 Shutting down RangerPlex...');
+
+    // Stop blockchain
+    if (blockchainService.isRunning) {
+        console.log('🛑 Stopping RangerBlock...');
+        await blockchainService.stop();
+    }
+
+    // Close database
+    db.close();
+    console.log('✅ Database closed');
+
+    // Exit
+    console.log('🎖️ Rangers lead the way!\n');
+    process.exit(0);
 });

@@ -41,8 +41,18 @@ const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'data' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'data' | 'about' | 'github'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
+
+    // RangerBlock state
+    const [blockchainStatus, setBlockchainStatus] = useState<any>(null);
+    const [blockchainConfig, setBlockchainConfig] = useState<any>({
+        enabled: false,
+        networkMode: 'local',
+        port: 5000,
+        relayUrl: '',
+        autoStart: true
+    });
     const [loadingModels, setLoadingModels] = useState(false);
     const [promptSearch, setPromptSearch] = useState('');
     const [promptImportText, setPromptImportText] = useState('');
@@ -209,8 +219,122 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             if (activeTab === 'lmstudio' && localSettings.lmstudioBaseUrl) {
                 fetchLMStudioModelsOnly();
             }
+
+            // Load blockchain status when opening RangerBlock tab
+            if (activeTab === 'rangerblock') {
+                loadBlockchainStatus();
+                loadBlockchainConfig();
+            }
         }
     }, [settings, isOpen, activeTab]);
+
+    // Load blockchain status
+    const loadBlockchainStatus = async () => {
+        try {
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/rangerblock/status`);
+            const data = await response.json();
+            if (data.success) {
+                setBlockchainStatus(data);
+            }
+        } catch (error) {
+            console.error('Failed to load blockchain status:', error);
+        }
+    };
+
+    // Load blockchain config
+    const loadBlockchainConfig = async () => {
+        try {
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/rangerblock/config`);
+            const data = await response.json();
+            if (data.success) {
+                setBlockchainConfig(data.config);
+            }
+        } catch (error) {
+            console.error('Failed to load blockchain config:', error);
+        }
+    };
+
+    // Save blockchain config
+    const saveBlockchainConfig = async () => {
+        try {
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/rangerblock/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(blockchainConfig)
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert('✅ RangerBlock settings saved!');
+                loadBlockchainStatus();
+            }
+        } catch (error) {
+            console.error('Failed to save blockchain config:', error);
+            alert('❌ Failed to save settings');
+        }
+    };
+
+    // Start blockchain node
+    const startBlockchain = async () => {
+        try {
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/rangerblock/start`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert(`✅ RangerBlock started: ${data.nodeName}`);
+                loadBlockchainStatus();
+            } else {
+                alert(`❌ ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Failed to start blockchain:', error);
+            alert('❌ Failed to start blockchain');
+        }
+    };
+
+    // Stop blockchain node
+    const stopBlockchain = async () => {
+        try {
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/rangerblock/stop`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert('✅ RangerBlock stopped');
+                loadBlockchainStatus();
+            } else {
+                alert(`❌ ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Failed to stop blockchain:', error);
+            alert('❌ Failed to stop blockchain');
+        }
+    };
+
+    // Restart blockchain node
+    const restartBlockchain = async () => {
+        try {
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const response = await fetch(`${proxyUrl}/api/rangerblock/restart`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert('✅ RangerBlock restarted');
+                loadBlockchainStatus();
+            } else {
+                alert(`❌ ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Failed to restart blockchain:', error);
+            alert('❌ Failed to restart blockchain');
+        }
+    };
 
     const fetchLMStudioModelsOnly = async () => {
         try {
@@ -692,7 +816,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                 {/* Tabs */}
                 <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'data', 'about', 'github'].map((tab) => (
+                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'rangerblock', 'data', 'about', 'github'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -1615,6 +1739,205 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     />
                                     <span className="text-[10px] opacity-60">Points added per 5 seconds.</span>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* RANGERBLOCK TAB */}
+                    {activeTab === 'rangerblock' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold mb-4 border-b border-inherit pb-2">🎖️ RangerBlock Blockchain</h3>
+
+                            {/* Status Panel */}
+                            {blockchainStatus && (
+                                <div className={`p-4 border rounded ${blockchainStatus.isRunning ? 'border-green-500 bg-green-500/10' : 'border-inherit bg-opacity-5'}`}>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-3 h-3 rounded-full ${blockchainStatus.isRunning ? 'bg-green-500 animate-pulse' : 'bg-zinc-500'}`}></div>
+                                            <span className="font-bold">
+                                                {blockchainStatus.isRunning ? '✅ Node Running' : '⚪ Node Stopped'}
+                                            </span>
+                                        </div>
+                                        <button onClick={loadBlockchainStatus} className="text-xs opacity-60 hover:opacity-100">
+                                            <i className="fa-solid fa-refresh"></i> Refresh
+                                        </button>
+                                    </div>
+
+                                    {blockchainStatus.hardware && (
+                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                            <div>
+                                                <div className="opacity-60 text-xs">Node Name</div>
+                                                <div className="font-mono">{blockchainStatus.hardware.nodeName}</div>
+                                            </div>
+                                            <div>
+                                                <div className="opacity-60 text-xs">Machine Type</div>
+                                                <div className="font-mono">{blockchainStatus.hardware.machineType}</div>
+                                            </div>
+                                            <div>
+                                                <div className="opacity-60 text-xs">IP Address</div>
+                                                <div className="font-mono">{blockchainStatus.hardware.ipAddress}</div>
+                                            </div>
+                                            <div>
+                                                <div className="opacity-60 text-xs">Hardware UUID</div>
+                                                <div className="font-mono text-xs">{blockchainStatus.hardware.hardwareSerial}</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Configuration */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Enable/Disable */}
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">
+                                        <i className="fa-solid fa-power-off w-4"></i> Enable RangerBlock
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={blockchainConfig.enabled}
+                                            onChange={e => setBlockchainConfig({ ...blockchainConfig, enabled: e.target.checked })}
+                                            className="w-5 h-5 accent-current"
+                                        />
+                                        <span className="text-sm">{blockchainConfig.enabled ? 'Enabled' : 'Disabled'}</span>
+                                    </label>
+                                </div>
+
+                                {/* Auto-Start */}
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">
+                                        <i className="fa-solid fa-rocket w-4"></i> Auto-Start on Launch
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={blockchainConfig.autoStart}
+                                            onChange={e => setBlockchainConfig({ ...blockchainConfig, autoStart: e.target.checked })}
+                                            className="w-5 h-5 accent-current"
+                                        />
+                                        <span className="text-sm">{blockchainConfig.autoStart ? 'Enabled' : 'Disabled'}</span>
+                                    </label>
+                                </div>
+
+                                {/* Network Mode */}
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">
+                                        <i className="fa-solid fa-network-wired w-4"></i> Network Mode
+                                    </label>
+                                    <select
+                                        value={blockchainConfig.networkMode}
+                                        onChange={e => setBlockchainConfig({ ...blockchainConfig, networkMode: e.target.value })}
+                                        className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                    >
+                                        <option value="local">Local Only (LAN)</option>
+                                        <option value="local+global">Local + Global</option>
+                                        <option value="global">Global Only</option>
+                                    </select>
+                                    <span className="text-[10px] opacity-60 mt-1 block">
+                                        {blockchainConfig.networkMode === 'local' && '🏠 Only connects to devices on your network'}
+                                        {blockchainConfig.networkMode === 'local+global' && '🌐 Connects locally AND globally via relay'}
+                                        {blockchainConfig.networkMode === 'global' && '🌍 Only global connections (requires relay)'}
+                                    </span>
+                                </div>
+
+                                {/* Port */}
+                                <div>
+                                    <label className="block text-xs font-bold mb-1 opacity-80">
+                                        <i className="fa-solid fa-plug w-4"></i> Node Port
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={blockchainConfig.port}
+                                        onChange={e => setBlockchainConfig({ ...blockchainConfig, port: parseInt(e.target.value) })}
+                                        className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        min="1024"
+                                        max="65535"
+                                    />
+                                    <span className="text-[10px] opacity-60 mt-1 block">Default: 5000</span>
+                                </div>
+
+                                {/* Relay URL */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold mb-1 opacity-80">
+                                        <i className="fa-solid fa-satellite-dish w-4"></i> Relay Server URL
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={blockchainConfig.relayUrl}
+                                        onChange={e => setBlockchainConfig({ ...blockchainConfig, relayUrl: e.target.value })}
+                                        placeholder="ws://YOUR_RELAY_IP:8080"
+                                        className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        disabled={blockchainConfig.networkMode === 'local'}
+                                    />
+                                    <span className="text-[10px] opacity-60 mt-1 block">
+                                        {blockchainConfig.networkMode === 'local' ? '⚠️ Not needed for local-only mode' : 'Required for global connections'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap gap-3">
+                                <button
+                                    onClick={saveBlockchainConfig}
+                                    className="px-6 py-2 rounded font-bold text-sm bg-blue-500 hover:bg-blue-600 text-white shadow transition-all"
+                                >
+                                    <i className="fa-solid fa-save mr-2"></i>
+                                    Save Settings
+                                </button>
+
+                                {blockchainStatus?.isRunning ? (
+                                    <>
+                                        <button
+                                            onClick={stopBlockchain}
+                                            className="px-6 py-2 rounded font-bold text-sm bg-red-500 hover:bg-red-600 text-white shadow transition-all"
+                                        >
+                                            <i className="fa-solid fa-stop mr-2"></i>
+                                            Stop Node
+                                        </button>
+                                        <button
+                                            onClick={restartBlockchain}
+                                            className="px-6 py-2 rounded font-bold text-sm bg-yellow-500 hover:bg-yellow-600 text-white shadow transition-all"
+                                        >
+                                            <i className="fa-solid fa-refresh mr-2"></i>
+                                            Restart Node
+                                        </button>
+                                        <a
+                                            href={`http://localhost:${blockchainConfig.port}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-6 py-2 rounded font-bold text-sm bg-purple-500 hover:bg-purple-600 text-white shadow transition-all"
+                                        >
+                                            <i className="fa-solid fa-external-link mr-2"></i>
+                                            View Dashboard
+                                        </a>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={startBlockchain}
+                                        className="px-6 py-2 rounded font-bold text-sm bg-green-500 hover:bg-green-600 text-white shadow transition-all"
+                                        disabled={!blockchainConfig.enabled}
+                                    >
+                                        <i className="fa-solid fa-play mr-2"></i>
+                                        Start Node
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Info Panel */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-2">ℹ️ About RangerBlock</h4>
+                                <p className="text-xs opacity-70 leading-relaxed">
+                                    RangerBlock is a peer-to-peer blockchain network integrated into RangerPlex.
+                                    Your node is identified by your Mac's hardware UUID for security.
+                                    <br/><br/>
+                                    <strong>Network Modes:</strong><br/>
+                                    • <strong>Local</strong>: Only connects to devices on your WiFi/LAN<br/>
+                                    • <strong>Local+Global</strong>: Connects both locally and globally via relay server<br/>
+                                    • <strong>Global</strong>: Only connects through relay server (for cross-network communication)
+                                    <br/><br/>
+                                    When enabled, your node starts automatically with RangerPlex.
+                                </p>
                             </div>
                         </div>
                     )}
