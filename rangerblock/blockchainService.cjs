@@ -17,7 +17,7 @@ class BlockchainService {
         this.config = {
             enabled: false,
             networkMode: 'local', // 'local' | 'local+global' | 'global'
-            port: 5000,
+            port: 5555, // Changed from 5000 (conflicts with macOS Control Center)
             relayUrl: null,
             autoStart: true
         };
