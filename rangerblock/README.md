@@ -1,146 +1,54 @@
-# 🎖️ RANGERBLOCK!
+# 🎖️ RangerBlock Homework Folder
 
-**P2P Blockchain Network for RangerPlex**
+**Development Reference Materials - GITIGNORED (Local Only)**
 
----
+This folder contains educational blockchain demos, testing documentation, and development guides for RangerBlock.
 
-## 📁 Structure
+## 📚 What's Here
 
-```
-/rangerblock/                      # Production (gitignored)
-├── RangerBlockNode.cjs           # P2P blockchain node
-├── relay-server.cjs              # Discovery server
-├── hardwareDetection.cjs         # Hardware UUID detection (Genesis)
-├── package.json                  # Dependencies
-├── README.md                     # This file
-└── homework/                     # Educational materials (delete before push)
-    ├── SimpleBlockchain.cjs      # Class demo
-    ├── index.html                # Browser demo
-    └── Documentation files       # Learning guides
-```
+### Quick References
+- **QUICK_START.md** - Fast commands to start/test blockchain
+- **TEST_RANGERBLOCK.md** - Complete testing procedures
+- **DEPLOY_RELAY.md** - Deploy relay server to DigitalOcean
 
-**Note:** Delete `homework/` folder before git push (educational materials only)
+### Technical Documentation
+- **RANGERBLOCK_NETWORKING.md** - P2P network architecture, NAT traversal
+- **BLOCKCHAIN_HOMEWORK.md** - Complete learning guide with examples
 
----
+### Demo Applications
+- **SimpleBlockchain.cjs** - Terminal-based educational demo
+- **index.html** - Browser-based interactive demo (Matrix theme!)
+
+## 🎯 Purpose
+
+This folder is for:
+- Learning blockchain concepts
+- Testing network configurations
+- Prototyping new features
+- Development experiments
+
+**NOT included in git repo** - Perfect for messy development work!
 
 ## 🚀 Quick Start
 
-### Install Dependencies
-
 ```bash
-cd /Users/ranger/rangerplex-ai/rangerblock
-npm install
+# Terminal Demo
+node SimpleBlockchain.cjs
+
+# Browser Demo
+open index.html
+
+# Production (from root)
+cd ..
+node RangerBlockNode.cjs --name TestNode --port 5000
 ```
 
-### Test Hardware Detection
+## 🔗 Related Files
 
-```bash
-node hardwareDetection.cjs
-```
+**Production files** (in `/rangerblock/`):
+- RangerBlockNode.cjs - Production P2P node
+- blockchainService.cjs - Node lifecycle manager
+- hardwareDetection.cjs - Mac hardware UUID detection
+- relay-server.cjs - Discovery server
 
-**Output:**
-```
-🔍 Testing Hardware Detection...
-
-Hardware Serial: 12345678-ABCD-1234-EFGH-123456789ABC
-Machine Type: M3
-Computer Name: M3Pro
-Generated Node Name: M3Pro
-Local IP: 192.168.1.100
-Detection Status: ✅ SUCCESS
-
-Binding Hash: a1b2c3d4e5f6g7h8...
-
-🎖️ Hardware detection ready!
-```
-
-### Start Blockchain Node
-
-```bash
-npm start
-# OR
-node RangerBlockNode.cjs --name M3Pro-Genesis --port 5000
-```
-
-### Start Relay Server (Optional - for cross-network)
-
-```bash
-npm run relay
-# OR
-node relay-server.cjs
-```
-
----
-
-## 🔧 Hardware Detection
-
-**Automatically detects:**
-- ✅ Hardware UUID (unique per Mac)
-- ✅ Machine type (M1, M2, M3, M4)
-- ✅ Computer name (M3Pro, M1Air, M4Max)
-- ✅ Local IP address
-- ✅ Auto-generates node name
-
-**Genesis Integration:**
-- Links blockchain account to hardware UUID
-- Creates binding hash for security
-- Prevents account transfer between machines
-- Same system used for wallet security
-
----
-
-## 🌐 Integration Plan (Not Implemented Yet)
-
-### Phase 1: Auto-Start Node
-When RangerPlex starts:
-1. Detect hardware UUID
-2. Generate node name automatically (M3Pro-Genesis, M1Air-Bob, M4Max-Charlie)
-3. Start blockchain node in background
-4. Connect to relay server (if configured)
-
-### Phase 2: Chat UI
-Add to RangerPlex sidebar:
-- 💬 Chat button
-- List of online users (anyone on network for now)
-- Simple message box
-- Send/receive messages via blockchain
-
-### Phase 3: Permissions (Later)
-- Friends list
-- Block users
-- Private channels
-- Group chat
-
----
-
-## 📊 Current Status
-
-### ✅ Ready
-- Hardware detection working
-- Blockchain node complete
-- Relay server complete
-- P2P networking functional
-- Cross-network discovery working
-
-### 🔲 Not Implemented Yet
-- RangerPlex integration
-- Chat UI
-- Auto-start on RangerPlex launch
-- Message storage
-- User permissions
-
----
-
-## 🎯 Next Steps
-
-1. **Test hardware detection** - Run `node hardwareDetection.cjs`
-2. **Test local node** - Run `npm start`
-3. **Integrate into RangerPlex** - When ready
-4. **Add chat UI** - Simple sidebar chat
-5. **Deploy relay** - For cross-network chat
-
----
-
-## 🎖️ Rangers Lead the Way!
-
-This folder is gitignored until we're ready to deploy.
+Rangers lead the way! 🎖️
