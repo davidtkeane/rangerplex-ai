@@ -3302,51 +3302,71 @@ app.post('/api/system/update', async (req, res) => {
     try {
         console.log('🔄 Starting system update...');
 
-        // Run git pull
-        const gitPull = spawn('git', ['pull', 'origin', 'main']);
-        const gitOutput = [];
-        const gitErrors = [];
+        // 2 minute timeout for the whole operation
+        let isTimeout = false;
+        const timeout = setTimeout(() => {
+            isTimeout = true;
+            if (!res.headersSent) {
+                res.status(500).json({
+                    success: false,
+                    error: 'Update timeout (2 minutes)',
+                    details: 'Update took too long'
+                });
+            }
+        }, 120000);
 
-        gitPull.stdout.on('data', (data) => {
-            const output = data.toString();
-            gitOutput.push(output);
-            console.log('Git:', output);
-        });
+        // Run Force Update (Fetch + Reset)
+        // This ensures local changes (like package-lock.json) don't block updates
+        console.log('🔄 Fetching latest changes...');
+        const gitFetch = spawn('git', ['fetch', 'origin', 'main']);
 
-        gitPull.stderr.on('data', (data) => {
-            const error = data.toString();
-            gitErrors.push(error);
-            console.error('Git Error:', error);
-        });
+        gitFetch.on('close', (fetchCode) => {
+            if (isTimeout) return;
 
-        gitPull.on('close', async (code) => {
-            const fullOutput = gitOutput.join('');
-            const fullErrors = gitErrors.join('');
-
-            if (code !== 0) {
-                console.error('❌ Git pull failed:', fullErrors);
+            if (fetchCode !== 0) {
+                clearTimeout(timeout);
+                console.error('❌ Git fetch failed');
                 return res.status(500).json({
                     success: false,
-                    error: 'Git pull failed',
-                    details: fullErrors || 'Unknown error'
+                    error: 'Update failed (Network error)',
+                    details: 'Could not connect to update server'
                 });
             }
 
-            // Check if already up to date
-            if (fullOutput.includes('Already up to date') || fullOutput.includes('Already up-to-date')) {
-                console.log('✅ Already up to date');
-                return res.json({
-                    success: true,
-                    message: 'Already up to date',
-                    needsRestart: false,
-                    output: fullOutput
-                });
-            }
+            console.log('🔄 Resetting to latest version...');
+            const gitReset = spawn('git', ['reset', '--hard', 'origin/main']);
+            const gitOutput = [];
+            const gitErrors = [];
 
-            // Check if npm install is needed (package.json was updated)
-            const needsNpmInstall = fullOutput.includes('package.json') || fullOutput.includes('package-lock.json');
+            gitReset.stdout.on('data', (data) => {
+                const output = data.toString();
+                gitOutput.push(output);
+                console.log('Git:', output);
+            });
 
-            if (needsNpmInstall) {
+            gitReset.stderr.on('data', (data) => {
+                const error = data.toString();
+                gitErrors.push(error);
+                console.error('Git Error:', error);
+            });
+
+            gitReset.on('close', async (code) => {
+                if (isTimeout) return;
+                clearTimeout(timeout);
+
+                const fullOutput = gitOutput.join('');
+                const fullErrors = gitErrors.join('');
+
+                if (code !== 0) {
+                    console.error('❌ Git reset failed:', fullErrors);
+                    return res.status(500).json({
+                        success: false,
+                        error: 'Update failed (File error)',
+                        details: fullErrors || 'Unknown error'
+                    });
+                }
+
+                // Always run npm install after a hard reset to ensure dependencies match
                 console.log('📦 Running npm install...');
                 const npmInstall = spawn('npm', ['install']);
                 const npmOutput = [];
@@ -3361,7 +3381,6 @@ app.post('/api/system/update', async (req, res) => {
                 npmInstall.stderr.on('data', (data) => {
                     const error = data.toString();
                     npmErrors.push(error);
-                    // npm uses stderr for normal output too
                     console.log('NPM:', error);
                 });
 
@@ -3432,79 +3451,17 @@ app.post('/api/system/update', async (req, res) => {
                         });
                     }
                 });
-            } else {
-                console.log('✅ Update complete! Restarting server with PM2...');
-
-                // Attempt PM2 reload for zero-downtime restart
-                try {
-                    const pm2Reload = spawn('pm2', ['reload', 'ecosystem.config.js']);
-                    const pm2Output = [];
-                    const pm2Errors = [];
-
-                    pm2Reload.stdout.on('data', (data) => {
-                        pm2Output.push(data.toString());
-                        console.log('PM2:', data.toString());
-                    });
-
-                    pm2Reload.stderr.on('data', (data) => {
-                        pm2Errors.push(data.toString());
-                        console.error('PM2:', data.toString());
-                    });
-
-                    pm2Reload.on('close', (pm2Code) => {
-                        if (pm2Code === 0) {
-                            console.log('✅ Server restarted automatically!');
-                            return res.json({
-                                success: true,
-                                message: 'Update successful! Server restarted automatically.',
-                                autoRestarted: true,
-                                needsRestart: false,
-                                output: fullOutput,
-                                pm2Output: pm2Output.join('')
-                            });
-                        } else {
-                            // PM2 failed, fall back to manual restart
-                            console.log('⚠️ PM2 reload failed, manual restart needed');
-                            return res.json({
-                                success: true,
-                                message: 'Update successful! Please restart manually.',
-                                needsRestart: true,
-                                autoRestarted: false,
-                                output: fullOutput,
-                                pm2Error: pm2Errors.join('')
-                            });
-                        }
-                    });
-                } catch (pm2Error) {
-                    // PM2 not available, fall back to manual restart
-                    console.log('⚠️ PM2 not available, manual restart needed');
-                    return res.json({
-                        success: true,
-                        message: 'Update successful! Please restart manually.',
-                        needsRestart: true,
-                        autoRestarted: false,
-                        output: fullOutput
-                    });
-                }
-            }
-        });
-
-        // 2 minute timeout for git operations
-        setTimeout(() => {
-            gitPull.kill('SIGTERM');
-            res.status(500).json({
-                success: false,
-                error: 'Update timeout (2 minutes)',
-                details: 'Git pull took too long'
             });
-        }, 120000);
+        });
 
     } catch (error) {
         console.error('❌ Update error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Update failed'
-        });
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                error: error.message || 'Update failed'
+            });
+        }
     }
 });
 

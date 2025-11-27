@@ -518,7 +518,7 @@ check_docker() {
       log "${dim}3. Open Docker from Applications to start${reset}"
       log "${dim}4. Wait for Docker to fully start (whale icon in menu bar)${reset}"
       log
-      open "https://www.docker.com/get-started/" 2>/dev/null || log "Visit: ${cyan}https://www.docker.com/get-started/${reset}"
+      open "https://docs.docker.com/desktop/setup/install/mac-install/" 2>/dev/null || log "Visit: ${cyan}https://docs.docker.com/desktop/setup/install/mac-install/${reset}"
       ;;
     Linux)
       # Check for WSL
@@ -533,7 +533,7 @@ check_docker() {
          log "${dim}  ✓ Docker CLI (works in WSL too!)${reset}"
          log "${dim}  ✓ Docker Compose${reset}"
          log
-         log "${dim}Download: ${cyan}https://www.docker.com/get-started/${reset}"
+         log "${dim}Download: ${cyan}https://docs.docker.com/desktop/setup/install/windows-install/${reset}"
          return 0
       fi
 
@@ -544,13 +544,13 @@ check_docker() {
         sudo usermod -aG docker "$USER"
         log "${dim}You may need to log out and back in for this to take effect.${reset}"
       else
-        warn "Docker installation failed. Visit https://docs.docker.com/engine/install/ for manual install."
+        warn "Docker installation failed. Visit https://docs.docker.com/desktop/setup/install/linux/ for manual install."
       fi
       ;;
     Windows)
       log "${cyan}Windows detected.${reset}"
       log "Please download Docker Desktop for Windows:"
-      log "${bold}${cyan}https://www.docker.com/get-started/${reset}"
+      log "${bold}${cyan}https://docs.docker.com/desktop/setup/install/windows-install/${reset}"
       log
       log "${dim}${bold}Docker Desktop for Windows includes ALL CLI tools:${reset}"
       log "${dim}  ✓ Docker Engine${reset}"
@@ -561,7 +561,7 @@ check_docker() {
       log "${dim}Installation tips:${reset}"
       log "${dim}  • Run the installer and ensure 'Use WSL 2 instead of Hyper-V' is checked${reset}"
       log "${dim}  • Restart after installation if prompted${reset}"
-      if command -v start >/dev/null 2>&1; then start "https://www.docker.com/get-started/"; fi
+      if command -v start >/dev/null 2>&1; then start "https://docs.docker.com/desktop/setup/install/windows-install/"; fi
       ;;
     *)
       log "Visit ${cyan}https://www.docker.com/get-started/${reset} to download Docker."

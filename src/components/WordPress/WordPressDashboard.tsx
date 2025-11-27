@@ -23,6 +23,8 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
     const [showPlayground, setShowPlayground] = useState(false);
     const [hasAutoStarted, setHasAutoStarted] = useState(false);
 
+    const [dockerMissing, setDockerMissing] = useState(false);
+
     // Check if WordPress features are available
     if (!FEATURES.WORDPRESS_INTEGRATION) {
         return (
@@ -102,7 +104,11 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
         if (result.success) {
             await loadData();
         } else {
-            alert(`Failed to start Docker WordPress Site #${siteId}: ${result.error || 'Unknown error'}`);
+            if (result.isDockerMissing) {
+                setDockerMissing(true);
+            } else {
+                alert(`Failed to start Docker WordPress Site #${siteId}: ${result.error || 'Unknown error'}`);
+            }
         }
     };
 
@@ -285,6 +291,34 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
                             ✕
                         </button>
                         <WordPressPlayground />
+                    </div>
+                </div>
+            )}
+
+            {/* Docker Missing Modal */}
+            {dockerMissing && (
+                <div className={styles.modal} onClick={() => setDockerMissing(false)}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <button className={styles.closeButton} onClick={() => setDockerMissing(false)}>✕</button>
+                        <h2>🐳 Docker Not Found</h2>
+                        <p>To run WordPress locally, you need Docker Desktop installed.</p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
+                            <h3>Download Docker Desktop:</h3>
+                            <a href="https://docs.docker.com/desktop/setup/install/mac-install/" target="_blank" rel="noopener noreferrer"
+                                style={{ padding: '10px', background: '#007bff', color: 'white', borderRadius: '5px', textDecoration: 'none', textAlign: 'center' }}>
+                                🍎 macOS (Apple Silicon/Intel)
+                            </a>
+                            <a href="https://docs.docker.com/desktop/setup/install/windows-install/" target="_blank" rel="noopener noreferrer"
+                                style={{ padding: '10px', background: '#007bff', color: 'white', borderRadius: '5px', textDecoration: 'none', textAlign: 'center' }}>
+                                🪟 Windows
+                            </a>
+                            <a href="https://docs.docker.com/desktop/setup/install/linux/" target="_blank" rel="noopener noreferrer"
+                                style={{ padding: '10px', background: '#007bff', color: 'white', borderRadius: '5px', textDecoration: 'none', textAlign: 'center' }}>
+                                🐧 Linux
+                            </a>
+                        </div>
+                        <p className={styles.hint} style={{ marginTop: '20px' }}>After installing, please restart RangerPlex.</p>
                     </div>
                 </div>
             )}

@@ -106,7 +106,7 @@ class WordPressService {
     /**
      * Start Docker WordPress stack
      */
-    async startDockerWordPress(siteId: number = 1): Promise<{ success: boolean; error?: string }> {
+    async startDockerWordPress(siteId: number = 1): Promise<{ success: boolean; error?: string; isDockerMissing?: boolean }> {
         if (!FEATURES.WORDPRESS_DOCKER) {
             return { success: false, error: 'Docker feature disabled' };
         }
@@ -120,7 +120,17 @@ class WordPressService {
 
                 if (result && typeof result === 'object' && 'error' in result) {
                     console.error('Docker error:', result.error);
-                    return { success: false, error: result.error };
+                    const errorMsg = result.error || '';
+                    const isDockerMissing = errorMsg.includes('command not found') ||
+                        errorMsg.includes('is not recognized') ||
+                        errorMsg.includes('docker-compose: not found') ||
+                        errorMsg.includes('docker: command not found');
+
+                    return {
+                        success: false,
+                        error: result.error,
+                        isDockerMissing
+                    };
                 }
 
                 this.dockerSites.set(`rangerplex-wp-${siteId}`, true);
