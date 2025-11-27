@@ -1,5 +1,48 @@
 const { spawn, exec } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+// --- NODE VERSION CHECK ---
+const nodeVersion = process.version; // e.g., 'v25.2.1'
+const majorVersion = parseInt(nodeVersion.replace('v', '').split('.')[0], 10);
+
+if (majorVersion >= 25) {
+    console.error('\n❌ CRITICAL ERROR: Node.js Version Too New!');
+    console.error(`   You are running Node.js ${nodeVersion}, which breaks native modules.`);
+    console.error('   RangerPlex requires Node.js v22 (LTS) or v20 (LTS).\n');
+
+    console.error('👉 HOW TO FIX (Downgrade to v22):');
+
+    if (os.platform() === 'darwin') {
+        console.error('\n🍎 macOS (using nvm):');
+        console.error('   nvm install 22');
+        console.error('   nvm use 22');
+        console.error('   nvm alias default 22');
+        console.error('\n🍎 macOS (using Homebrew):');
+        console.error('   brew unlink node');
+        console.error('   brew install node@22');
+        console.error('   brew link --overwrite node@22');
+    } else if (os.platform() === 'win32') {
+        console.error('\n🪟 Windows (using nvm-windows):');
+        console.error('   nvm install 22');
+        console.error('   nvm use 22');
+        console.error('\n🪟 Windows (Manual):');
+        console.error('   Uninstall Node.js from Control Panel.');
+        console.error('   Download v22 LTS from: https://nodejs.org/');
+    } else {
+        console.error('\n🐧 Linux:');
+        console.error('   nvm install 22');
+        console.error('   nvm use 22');
+    }
+
+    console.error('\n⚠️  AFTER DOWNGRADING, RUN:');
+    console.error('   rm -rf node_modules package-lock.json');
+    console.error('   npm install');
+    console.error('\n');
+    process.exit(1);
+}
+// --------------------------
 
 // Parse arguments
 const args = process.argv.slice(2);
