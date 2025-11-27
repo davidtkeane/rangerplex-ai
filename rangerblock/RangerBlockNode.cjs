@@ -247,6 +247,10 @@ class RangerBlockNode {
         this.relayWs = null;
         this.nodeId = null;
 
+        // Chat system
+        this.chatMessages = [];
+        this.maxChatMessages = 100;
+
         // Express app for HTTP API
         this.app = express();
         this.app.use(express.json());
@@ -554,6 +558,27 @@ class RangerBlockNode {
                 }
                 break;
 
+            case 'chat':
+                // Received chat message from peer
+                const chatMsg = {
+                    id: msg.id || Date.now() + Math.random(),
+                    from: msg.from,
+                    message: msg.message,
+                    timestamp: msg.timestamp || Date.now()
+                };
+
+                // Add to chat history
+                this.chatMessages.push(chatMsg);
+                if (this.chatMessages.length > this.maxChatMessages) {
+                    this.chatMessages.shift(); // Remove oldest
+                }
+
+                console.log(`💬 Chat from ${msg.from}: ${msg.message}`);
+
+                // Broadcast to other peers (flood routing)
+                this.broadcastChat(chatMsg, ws);
+                break;
+
             default:
                 console.log(`⚠️  Unknown message type: ${msg.type}`);
         }
@@ -612,6 +637,42 @@ class RangerBlockNode {
                 peer.ws.send(message);
             }
         }
+    }
+
+    broadcastChat(chatMessage, excludeWs = null) {
+        const message = JSON.stringify({
+            type: 'chat',
+            id: chatMessage.id,
+            from: chatMessage.from,
+            message: chatMessage.message,
+            timestamp: chatMessage.timestamp
+        });
+
+        for (const peer of this.peers.values()) {
+            if (peer.ws !== excludeWs && peer.ws.readyState === WebSocket.OPEN) {
+                peer.ws.send(message);
+            }
+        }
+    }
+
+    sendChatMessage(messageText) {
+        const chatMsg = {
+            id: Date.now() + Math.random(),
+            from: this.name,
+            message: messageText,
+            timestamp: Date.now()
+        };
+
+        // Add to own chat history
+        this.chatMessages.push(chatMsg);
+        if (this.chatMessages.length > this.maxChatMessages) {
+            this.chatMessages.shift();
+        }
+
+        // Broadcast to all peers
+        this.broadcastChat(chatMsg);
+
+        return chatMsg;
     }
 
     // ========================================================================
@@ -730,7 +791,41 @@ class RangerBlockNode {
                 peers: {
                     count: this.peers.size,
                     connected: Array.from(this.peers.values()).map(p => p.address)
+                },
+                chat: {
+                    messageCount: this.chatMessages.length
                 }
+            });
+        });
+
+        // Get chat messages
+        this.app.get('/api/chat', (req, res) => {
+            res.json({
+                success: true,
+                messages: this.chatMessages,
+                count: this.chatMessages.length,
+                peerCount: this.peers.size
+            });
+        });
+
+        // Send chat message
+        this.app.post('/api/chat', (req, res) => {
+            const { message } = req.body;
+
+            if (!message || typeof message !== 'string' || message.trim().length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Message is required'
+                });
+            }
+
+            const chatMsg = this.sendChatMessage(message.trim());
+
+            res.json({
+                success: true,
+                message: 'Message sent',
+                chatMessage: chatMsg,
+                broadcastTo: this.peers.size
             });
         });
 

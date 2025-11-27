@@ -56,17 +56,53 @@ class BlockchainService {
     }
 
     /**
+     * Check if port is already in use
+     */
+    async isPortInUse(port) {
+        return new Promise((resolve) => {
+            const net = require('net');
+            const server = net.createServer();
+
+            server.once('error', (err) => {
+                if (err.code === 'EADDRINUSE') {
+                    resolve(true); // Port in use
+                } else {
+                    resolve(false);
+                }
+            });
+
+            server.once('listening', () => {
+                server.close();
+                resolve(false); // Port available
+            });
+
+            server.listen(port);
+        });
+    }
+
+    /**
      * Start blockchain node
      */
     async start() {
         if (this.isRunning) {
-            console.log('⚠️  RangerBlock already running');
+            console.log('⚠️  RangerBlock already running in this process');
             return { success: false, message: 'Already running' };
         }
 
         if (!this.config.enabled) {
             console.log('⚠️  RangerBlock disabled in settings');
             return { success: false, message: 'RangerBlock disabled' };
+        }
+
+        // Check if another instance is using the port
+        const portInUse = await this.isPortInUse(this.config.port);
+        if (portInUse) {
+            console.log(`⚠️  Port ${this.config.port} already in use (another RangerBlock instance running)`);
+            return {
+                success: false,
+                message: `Port ${this.config.port} already in use`,
+                hint: 'Another RangerBlock node is already running. Stop PM2 or use a different port.'
+            };
         }
 
         try {

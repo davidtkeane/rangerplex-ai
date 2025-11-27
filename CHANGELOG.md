@@ -20,14 +20,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Settings Tab**: Complete RangerBlock configuration in Settings
     - Enable/Disable toggle
     - Network mode selector
-    - Port configuration (default: 5000)
+    - Port configuration (default: 5555)
     - Relay server URL input
     - Auto-start toggle
     - Real-time status panel (running/stopped + hardware info)
   - **Node Management**: Start/Stop/Restart blockchain node from UI
-  - **Dashboard Access**: Direct link to blockchain node dashboard (http://localhost:5000)
+  - **Dashboard Access**: Direct link to blockchain node dashboard (http://localhost:5555)
   - **Secure Identification**: Each node identified by unique hardware UUID
   - **Graceful Shutdown**: Node stops cleanly when RangerPlex closes
+  - **Smart Port Detection**: Prevents multiple instances from conflicting
+  - **💬 Group Chat**: Peer-to-peer messaging between blockchain nodes!
+    - Chat button in sidebar (💬 icon)
+    - Real-time message broadcasting to all connected peers
+    - Message history (last 100 messages)
+    - Auto-refresh every 2 seconds
+    - Shows online peer count
+    - Perfect for testing M3Pro ↔ M4Max communication
+
+### 🔧 Fixed
+- **Port Conflict**: Changed default port from 5000 → 5555 (macOS Control Center uses port 5000)
+- **Dual Instance Prevention**: Added port-in-use detection to prevent crashes when running both PM2 and Electron modes
 
 ### 🔧 Backend
 - **blockchainService.cjs**: Complete node lifecycle management

@@ -25,6 +25,7 @@ interface SidebarProps {
     onOpenStudyClock?: () => void;
     onOpenCanvas?: () => void;
     onOpenWordPress?: () => void;
+    onOpenBlockchainChat?: () => void;
     onOpenEditor?: () => void;
     onOpenBrowser?: () => void;
     onLock: () => void;
@@ -64,6 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onOpenStudyClock,
     onOpenCanvas,
     onOpenWordPress,
+    onOpenBlockchainChat,
     onOpenEditor,
     onOpenBrowser,
     onLock,
@@ -280,6 +282,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                             >
                                 <i className="fa-brands fa-wordpress text-lg mb-1"></i>
                                 <span className="text-[9px] uppercase tracking-wide">WP</span>
+                            </button>
+                        )}
+
+                        {/* Blockchain Chat */}
+                        {onOpenBlockchainChat && (
+                            <button
+                                onClick={onOpenBlockchainChat}
+                                title="RangerBlock Chat"
+                                className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'}`}
+                            >
+                                <i className="fa-solid fa-comments text-lg mb-1"></i>
+                                <span className="text-[9px] uppercase tracking-wide">Chat</span>
                             </button>
                         )}
 

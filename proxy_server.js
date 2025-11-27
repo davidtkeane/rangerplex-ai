@@ -3737,6 +3737,46 @@ app.get('/api/rangerblock/config', (req, res) => {
     }
 });
 
+// Get blockchain chat messages
+app.get('/api/rangerblock/chat', async (req, res) => {
+    try {
+        const config = blockchainService.getConfig();
+        const response = await fetch(`http://localhost:${config.port}/api/chat`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('❌ Blockchain chat get error:', error);
+        res.status(500).json({ success: false, error: error.message, messages: [] });
+    }
+});
+
+// Send blockchain chat message
+app.post('/api/rangerblock/chat', async (req, res) => {
+    try {
+        const { message } = req.body;
+        const config = blockchainService.getConfig();
+
+        if (!blockchainService.isRunning) {
+            return res.status(400).json({
+                success: false,
+                error: 'Blockchain node is not running'
+            });
+        }
+
+        const response = await fetch(`http://localhost:${config.port}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('❌ Blockchain chat send error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // WordPress Publish Note
 app.post('/api/wordpress/publish', async (req, res) => {
     try {

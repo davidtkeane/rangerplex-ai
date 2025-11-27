@@ -29,6 +29,7 @@ import { autoSaveService, queueChatSave, queueSettingSave } from './services/aut
 import { usePetState } from './src/hooks/usePetState';
 import TerminalPopup from './src/components/Browser/TerminalPopup'; // Import TerminalPopup
 import { WordPressDashboard } from './src/components/WordPress/WordPressDashboard'; // Import WordPress Dashboard
+import BlockchainChat from './src/components/BlockchainChat'; // Import Blockchain Chat
 import BrowserLayout from './src/components/Browser/BrowserLayout'; // Import BrowserLayout
 
 const App: React.FC = () => {
@@ -67,6 +68,7 @@ const App: React.FC = () => {
   const [isManualOpen, setIsManualOpen] = useState(false); // Manual overlay
   const [isEditorOpen, setIsEditorOpen] = useState(false); // State for Code Editor visibility
   const [isWordPressOpen, setIsWordPressOpen] = useState(false); // State for WordPress Dashboard visibility
+  const [isBlockchainChatOpen, setIsBlockchainChatOpen] = useState(false); // State for Blockchain Chat visibility
   const [isBrowserOpen, setIsBrowserOpen] = useState(false); // State for Browser visibility
   const [initialBrowserUrl, setInitialBrowserUrl] = useState<string | undefined>(undefined);
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
@@ -758,6 +760,7 @@ const App: React.FC = () => {
           onOpenStudyClock={() => setIsStudyClockOpen(true)}
           onOpenCanvas={openCanvas}
           onOpenWordPress={openWordPress}
+          onOpenBlockchainChat={() => setIsBlockchainChatOpen(true)}
           onOpenEditor={() => setIsEditorOpen(true)}
           onOpenBrowser={() => openBrowser()}
           onLock={() => setIsLocked(true)}
@@ -1082,6 +1085,12 @@ const App: React.FC = () => {
             />
           </div>
         )}
+
+        {/* Blockchain Chat */}
+        <BlockchainChat
+          isOpen={isBlockchainChatOpen}
+          onClose={() => setIsBlockchainChatOpen(false)}
+        />
 
         {/* Manual Viewer */}
         <ManualViewer
