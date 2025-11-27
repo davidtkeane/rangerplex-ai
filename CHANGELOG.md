@@ -46,12 +46,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🔧 Fixed
 - **Port Conflict**: Changed default port from 5000 → 5555 (macOS Control Center uses port 5000)
 - **Dual Instance Prevention**: Added port-in-use detection to prevent crashes when running both PM2 and Electron modes
+- **UDP Broadcast Error (EHOSTUNREACH)**: Fixed macOS network security blocking global broadcast (255.255.255.255) by calculating and using subnet broadcast address (e.g., 192.168.1.255). Discovery now works perfectly on all macOS versions!
 
 ### 🔧 Backend
-- **blockchainService.cjs**: Complete node lifecycle management
+- **blockchainService.cjs**: Complete node lifecycle management with port conflict detection
 - **hardwareDetection.cjs**: Mac hardware UUID detection (M1/M2/M3/M4)
-- **RangerBlockNode.cjs**: Full P2P blockchain node with WebSocket networking
+- **RangerBlockNode.cjs**: Full P2P blockchain node with:
+  - WebSocket networking on port 5555
+  - UDP broadcast discovery on port 5005
+  - Subnet broadcast calculation (`getBroadcastAddress()`)
+  - Chat message flood routing
+  - Automatic peer connection
 - **relay-server.cjs**: Discovery server for cross-network nodes
+- **BlockchainChat.tsx**: React component for P2P group chat UI
 - **API Endpoints**:
   - `GET /api/rangerblock/status` - Node status
   - `POST /api/rangerblock/start` - Start node
@@ -59,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `POST /api/rangerblock/restart` - Restart node
   - `POST /api/rangerblock/config` - Update config
   - `GET /api/rangerblock/config` - Get config
+  - `GET /api/rangerblock/chat` - Get chat messages
+  - `POST /api/rangerblock/chat` - Send chat message
 - **Database Integration**: Settings saved to SQLite database
 
 ### 🎯 Next Steps

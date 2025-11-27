@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.6.4-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.6.5-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -92,6 +92,25 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 *   **Company Intelligence** 🏢: Lookup company registry data using `/company <name|reg_number> [country]`. Returns legal name, status, officers, registered address, and filing history. Defaults to UK Companies House; supports OpenCorporates for international lookups. Requires API key(s).
 *   **Screenshot Capture** 📸: Capture live screenshots of websites using `/screenshot <url>`. High-quality 1920x1080 captures with Puppeteer (headless Chrome) for evidence collection, change detection, and phishing documentation. No API key required.
 *   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
+
+### 🎖️ RangerBlock P2P Blockchain (NEW!)
+*   **Peer-to-Peer Blockchain Network**: Fully integrated local blockchain with automatic peer discovery!
+    *   **🔍 UDP Broadcast Discovery**: Zero-configuration networking - nodes automatically find each other on WiFi/LAN
+    *   **💬 Group Chat**: Real-time P2P messaging between blockchain nodes across different machines
+    *   **🏠 Network Modes**: Local Only, Local + Global (relay), or Global Only for cross-network communication
+    *   **🔒 Hardware Security**: Each node identified by unique Mac hardware UUID (Genesis security system)
+    *   **⚙️ Settings Integration**: Complete blockchain control panel in Settings → RangerBlock
+    *   **📊 Live Dashboard**: Real-time node status, peer count, blockchain height (http://localhost:5555)
+    *   **🚀 Auto-Start**: Optional automatic node startup with RangerPlex
+    *   **🌐 Multi-Machine Testing**: Perfect for testing M3Pro ↔ M4Max communication
+*   **Sidebar Access**: Click the 💬 **Chat** button to open the blockchain group chat
+*   **Technical Details**:
+    *   WebSocket P2P on port 5555
+    *   UDP discovery broadcasts on port 5005
+    *   Subnet-aware broadcasting (e.g., 192.168.1.255)
+    *   Message history (last 100 messages)
+    *   Auto-refresh every 2 seconds
+    *   Graceful shutdown with cleanup
 
 ### 🥋 Fun & Entertainment
 *   **Chuck Norris Facts** 🥋: Get random Chuck Norris jokes using `/chuck`. Hand-curated facts from the legendary Chuck Norris database. No API key required. Includes full source attribution from [api.chucknorris.io](https://api.chucknorris.io/), [GitHub](https://github.com/chucknorris-io/chuck-api), and [Free Public APIs](https://www.freepublicapis.com/chuck-norris-jokes-api). Perfect for lightening the mood during intense OSINT sessions!
