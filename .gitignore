@@ -70,9 +70,8 @@ data/vault/
 PHANTOM_PROTECTION_STATUS.md
 
 # RangerChain blockchain files (keep local)
-# rangerblock/ - NOW INCLUDED IN REPO (v2.6.5+)
-rangerblock/node_modules/
-rangerblock/homework/
+# 🔒 SECURITY: Full rangerblock/ ignored (contains sensitive phantom wallet system)
+rangerblock/
 blockchain/
 
 # Ollama setup files (keep local)
