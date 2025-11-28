@@ -9,6 +9,7 @@ import TrainingPage from './components/TrainingPage';
 import MatrixRain from './components/MatrixRain';
 import RangerVisionMode from './components/RangerVisionMode';
 import RadioPlayer from './components/RadioPlayer';
+import { WorkspaceTabs, WorkspaceTab } from './src/components/Workspace/WorkspaceTabs';
 import RangerTerminal from './components/Terminal/RangerTerminal';
 import SnowOverlay from './components/SnowOverlay';
 import ConfettiOverlay from './components/ConfettiOverlay';
@@ -170,6 +171,7 @@ const App: React.FC = () => {
   }, []);
 
   // Watch cloud sync toggle
+  // Watch cloud sync toggle
   useEffect(() => {
     if (settings.enableCloudSync) {
       console.log('☁️ Cloud sync enabled');
@@ -179,6 +181,68 @@ const App: React.FC = () => {
       syncService.disableSync();
     }
   }, [settings.enableCloudSync]);
+
+  // Tabbed Workspace State
+  const [tabs, setTabs] = useState<WorkspaceTab[]>([
+    { id: 'chat', type: 'chat', title: 'Chat', icon: 'fa-solid fa-comments', isPinned: true }
+  ]);
+  const [activeTabId, setActiveTabId] = useState<string>('chat');
+
+  // Helper to open a feature in a tab
+  const openInTab = useCallback((type: WorkspaceTab['type'], title: string, icon: string, data?: any) => {
+    const existing = tabs.find(t => t.type === type);
+    if (existing) {
+      setActiveTabId(existing.id);
+    } else {
+      const newTab: WorkspaceTab = {
+        id: type,
+        type,
+        title,
+        icon,
+        data
+      };
+      setTabs(prev => [...prev, newTab]);
+      setActiveTabId(type);
+    }
+  }, [tabs]);
+
+  // Close Tab Handler
+  const closeTab = useCallback((id: string) => {
+    const newTabs = tabs.filter(t => t.id !== id);
+    setTabs(newTabs);
+    if (activeTabId === id && newTabs.length > 0) {
+      setActiveTabId(newTabs[newTabs.length - 1].id);
+    } else if (newTabs.length === 0) {
+      setTabs([{ id: 'chat', type: 'chat', title: 'Chat', icon: 'fa-solid fa-comments', isPinned: true }]);
+      setActiveTabId('chat');
+    }
+  }, [tabs, activeTabId]);
+
+  // Modified Open Handlers
+  const openBrowser = useCallback((url?: string) => {
+    if (settings.browserOpenInTab) {
+      openInTab('browser', 'Browser', 'fa-solid fa-globe', { url });
+    } else {
+      setInitialBrowserUrl(url);
+      setIsBrowserOpen(true);
+    }
+  }, [settings.browserOpenInTab, openInTab]);
+
+  const openStudyNotes = useCallback(() => {
+    if (settings.notesOpenInTab) {
+      openInTab('notes', 'Study Notes', 'fa-solid fa-book');
+    } else {
+      setIsStudyNotesOpen(true);
+    }
+  }, [settings.notesOpenInTab, openInTab]);
+
+  const toggleTerminal = useCallback(() => {
+    if (settings.terminalOpenInTab) {
+      openInTab('terminal', 'Terminal', 'fa-solid fa-terminal');
+    } else {
+      setIsTerminalOpen(prev => !prev);
+    }
+  }, [settings.terminalOpenInTab, openInTab]);
 
   // Toggle radio playback (from external controls like screensaver)
   const toggleRadioPlayback = () => {
@@ -467,13 +531,6 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const openStudyNotes = useCallback(() => {
-    setIsStudyNotesOpen(true);
-    setIsTrainingOpen(false);
-    setIsWordPressOpen(false);
-    if (window.innerWidth < 768) setSidebarOpen(false);
-  }, []);
-
   const openTraining = useCallback(() => {
     setIsTrainingOpen(true);
     setIsStudyNotesOpen(false);
@@ -496,19 +553,6 @@ const App: React.FC = () => {
     setIsStudyClockOpen(false);
     setIsManualOpen(false);
     setIsBrowserOpen(false);
-    if (window.innerWidth < 768) setSidebarOpen(false);
-  }, []);
-
-  const openBrowser = useCallback((url?: string) => {
-    if (url) setInitialBrowserUrl(url);
-    setIsBrowserOpen(true);
-    setIsWordPressOpen(false);
-    setIsCanvasOpen(false);
-    setIsTrainingOpen(false);
-    setIsStudyNotesOpen(false);
-    setIsEditorOpen(false);
-    setIsStudyClockOpen(false);
-    setIsManualOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
@@ -770,7 +814,7 @@ const App: React.FC = () => {
             setWasVisionModeAutoActivated(false); // Manual activation - don't auto-close on activity
           }}
           toggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
-          onToggleTerminal={() => setIsTerminalOpen(!isTerminalOpen)}
+          onToggleTerminal={toggleTerminal}
           isTerminalOpen={isTerminalOpen}
           onShowChats={() => {
             setIsTrainingOpen(false);
@@ -783,172 +827,147 @@ const App: React.FC = () => {
           }}
         />
 
+
+
+          // ... inside render ...
+
         <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 md:ml-72 pt-14 md:pt-0 z-10`}>
-          {/* Electron API Warning */}
-          {typeof window !== 'undefined' && !(window as any).electronAPI && (
-            <div className="bg-red-600 text-white px-4 py-1 text-xs text-center font-bold z-50">
-              ⚠️ ELECTRON API MISSING - RESTART REQUIRED
-            </div>
-          )}
-          <div className={`h-14 px-4 hidden md:flex items-center gap-3 border-b ${isTron ? 'border-tron-cyan/40 bg-black/70 backdrop-blur shadow-[0_0_10px_rgba(0,243,255,0.15)]' : 'bg-white/80 dark:bg-zinc-900/80 border-gray-200 dark:border-zinc-800 backdrop-blur-sm'}`}>
-            <img
-              src="/image/rangersmyth-pic.png"
-              alt="logo"
-              className="h-10 w-10 rounded cursor-pointer"
-              title="Toggle scanner mode"
-              onClick={() => setScannerMode(prev => {
-                if (prev === 'tron') return 'teal';
-                if (prev === 'teal') return 'rainbow';
-                if (prev === 'rainbow') return 'red';
-                if (prev === 'red') return 'gold';
-                if (prev === 'gold') return 'matrix';
-                return 'tron';
-              })}
+          {/* ... existing header ... */}
+
+          {/* Workspace Tabs */}
+          {tabs.length > 0 && (
+            <WorkspaceTabs
+              tabs={tabs}
+              activeTabId={activeTabId}
+              onSelect={setActiveTabId}
+              onClose={closeTab}
+              isTron={isTron}
             />
-            <span className={`text-lg font-bold flex-shrink-0 whitespace-nowrap ${isTron ? 'text-tron-cyan' : 'text-gray-800 dark:text-gray-100'}`}>RANGERPLEX</span>
-            <div className="flex-1">
-              {settings.showScannerBeam !== false && (
-                <div className={`relative h-3 w-52 max-w-sm rounded-full overflow-hidden border ${isTron ? 'bg-black/60 border-tron-cyan/40' : 'bg-gray-200 dark:bg-zinc-800 border-white/10'}`}>
-                  <div className={`scanner-bar rounded-full blur-[1px] ${scannerMode === 'rainbow'
-                    ? 'scanner-rainbow shadow-[0_0_14px_rgba(255,255,255,0.5)]'
-                    : scannerMode === 'red'
-                      ? 'bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.7)]'
-                      : scannerMode === 'gold'
-                        ? 'bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.7)]'
-                        : scannerMode === 'matrix'
-                          ? 'bg-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.6)]'
-                          : scannerMode === 'teal'
-                            ? 'bg-teal-400 shadow-[0_0_14px_rgba(45,212,191,0.5)]'
-                            : 'bg-tron-cyan shadow-[0_0_14px_rgba(0,243,255,0.6)]'
-                    }`}></div>
+          )}
+
+          {/* Persistent Tab Content Area */}
+          <div className="flex-1 relative overflow-hidden">
+
+            {/* Chat Tab (Always rendered, hidden if inactive) */}
+            <div className={`absolute inset-0 ${activeTabId === 'chat' ? 'z-10' : 'z-0 invisible'}`}>
+              {currentSession ? (
+                <ChatInterface
+                  onOpenWordPress={openWordPress}
+                  session={currentSession}
+                  currentUser={currentUser}
+                  onUpdateMessages={(msgs) => updateMessages(currentSession.id, msgs)}
+                  onUpdateModel={(model) => updateSession(currentSession.id, { model })}
+                  onAddKnowledge={(chunks) => addToKnowledgeBase(currentSession.id, chunks)}
+                  settings={settings}
+                  onMakeNote={(draft) => openNoteDraft(draft)}
+                  onOpenSettings={() => setIsSettingsOpen(true)}
+                  onToggleHolidayMode={toggleHolidayMode}
+                  onCycleHolidayEffect={cycleHolidayEffect}
+                  showHolidayButtons={settings.showHeaderControls === true}
+                  onPetCommand={handlePetCommand}
+                  onOpenCanvas={openCanvas}
+                  onOpenStudyClock={() => setIsStudyClockOpen(true)}
+                  onOpenManual={() => setIsManualOpen(true)}
+                  saveImageToLocal={saveImageToLocal}
+                  petBridge={petBridge}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                  {/* ... Welcome Screen ... */}
+                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg border ${isTron ? 'border-tron-cyan bg-black shadow-[0_0_20px_#00f3ff]' : 'bg-white dark:bg-zinc-800 border-gray-200'}`}>
+                    <i className={`fa-solid ${isTron ? 'fa-network-wired text-tron-cyan animate-pulse' : 'fa-compass text-teal-500'} text-4xl`}></i>
+                  </div>
+                  <h1 className={`text-4xl font-bold mb-2 tracking-tight ${isTron ? 'text-tron-cyan font-tron' : ''}`}>
+                    {isMatrix ? `WELCOME, ${currentUser?.toUpperCase()}` : isTron ? `GREETINGS, PROGRAM ${currentUser?.toUpperCase()}` : `Welcome back, ${currentUser}`}
+                  </h1>
+                  <div className="flex gap-3 mt-8">
+                    <button onClick={createNewSession} className={`px-8 py-3 rounded-full font-bold uppercase tracking-wider transition-all ${isTron ? 'bg-tron-cyan text-black hover:bg-white hover:shadow-[0_0_20px_#00f3ff]' : 'bg-teal-600 text-white hover:bg-teal-500'}`}>
+                      {isTron ? 'INITIATE' : 'Start'}
+                    </button>
+                    <button onClick={() => setIsSettingsOpen(true)} className={`px-8 py-3 rounded-full font-bold uppercase tracking-wider border transition-all ${isTron ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10' : 'border-gray-300'}`}>
+                      Config
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-          {hydrationSource !== 'none' && (
-            <div className="mx-4 mt-2 text-xs opacity-70">
-              Hydrated from {hydrationSource === 'local' ? 'local storage' : 'server backup'}.
-            </div>
-          )}
-          {needsBackupImport && (
-            <div className="mx-4 mt-3 rounded border border-blue-400 bg-blue-50 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200 p-4 text-sm">
-              <div className="flex items-start gap-3 mb-3">
-                <i className="fa-solid fa-rocket text-2xl text-blue-500"></i>
-                <div className="flex-1">
-                  <h3 className="font-bold text-base mb-1">Welcome to RangerPlex AI! 🎖️</h3>
-                  <p className="opacity-90 text-xs mb-2">
-                    No existing data detected. This looks like a fresh installation or new machine.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="border border-blue-300 dark:border-blue-700 rounded p-3 bg-white/50 dark:bg-black/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <i className="fa-solid fa-play-circle text-green-500"></i>
-                    <h4 className="font-bold text-sm">Start Fresh</h4>
-                  </div>
-                  <p className="text-xs opacity-80 mb-3">
-                    First time here? Create your first user and start exploring RangerPlex features.
-                  </p>
-                  <button
-                    onClick={() => setNeedsBackupImport(false)}
-                    className="w-full px-3 py-2 rounded bg-green-600 text-white text-xs font-bold hover:bg-green-500 transition-colors"
-                  >
-                    <i className="fa-solid fa-rocket mr-2"></i>
-                    Start Fresh
-                  </button>
-                </div>
-                <div className="border border-blue-300 dark:border-blue-700 rounded p-3 bg-white/50 dark:bg-black/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <i className="fa-solid fa-download text-blue-500"></i>
-                    <h4 className="font-bold text-sm">Restore from Backup</h4>
-                  </div>
-                  <p className="text-xs opacity-80 mb-3">
-                    Moving from another machine? Import your backup to restore chats, settings, and data.
-                  </p>
-                  <button
-                    onClick={() => setShowBackupManager(true)}
-                    className="w-full px-3 py-2 rounded bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 transition-colors"
-                  >
-                    <i className="fa-solid fa-file-import mr-2"></i>
-                    Import Backup
-                  </button>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-blue-300 dark:border-blue-700">
-                <p className="text-xs opacity-75">
-                  <i className="fa-solid fa-info-circle mr-1"></i>
-                  <strong>Tip:</strong> You can always access backup/restore in Settings → Data & Tools → Backup & Restore
-                </p>
-              </div>
-            </div>
-          )}
-          {isStudyNotesOpen ? (
-            <StudyNotes currentUser={currentUser} settings={settings} initialDraft={noteDraft || undefined} onOpenSettings={() => setIsSettingsOpen(true)} />
-          ) : isTrainingOpen ? (
-            <TrainingPage sessions={sessions} onClose={() => setIsTrainingOpen(false)} />
-          ) : isWordPressOpen ? (
-            <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-zinc-900 relative">
-              <button
-                onClick={() => setIsWordPressOpen(false)}
-                className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-                title="Close WordPress"
-              >
-                <i className="fa-solid fa-xmark text-gray-600 dark:text-gray-300"></i>
-              </button>
-              <WordPressDashboard onOpenBrowser={openBrowser} autoStart={true} />
-            </div>
-          ) : isBrowserOpen ? (
-            <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-zinc-900 relative h-full">
-              <button
-                onClick={() => setIsBrowserOpen(false)}
-                className="absolute top-2 right-2 z-50 p-1 bg-white dark:bg-zinc-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-                title="Close Browser"
-              >
-                <i className="fa-solid fa-xmark text-gray-600 dark:text-gray-300"></i>
-              </button>
-              <BrowserLayout initialUrl={initialBrowserUrl} />
-            </div>
-          ) : currentSession ? (
-            <ChatInterface
-              onOpenWordPress={openWordPress}
-              session={currentSession}
-              currentUser={currentUser}
-              onUpdateMessages={(msgs) => updateMessages(currentSession.id, msgs)}
-              onUpdateModel={(model) => updateSession(currentSession.id, { model })}
-              onAddKnowledge={(chunks) => addToKnowledgeBase(currentSession.id, chunks)}
-              settings={settings}
-              onMakeNote={(draft) => openNoteDraft(draft)}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-              onToggleHolidayMode={toggleHolidayMode}
-              onCycleHolidayEffect={cycleHolidayEffect}
-              showHolidayButtons={settings.showHeaderControls === true}
-              onPetCommand={handlePetCommand} // Pass the new pet command handler
-              onOpenCanvas={openCanvas} // Pass the canvas opener
-              onOpenStudyClock={() => setIsStudyClockOpen(true)} // Pass the study clock opener
-              onOpenManual={() => setIsManualOpen(true)}
-              saveImageToLocal={saveImageToLocal} // Pass the image saving function
-              petBridge={petBridge}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg border ${isTron ? 'border-tron-cyan bg-black shadow-[0_0_20px_#00f3ff]' : 'bg-white dark:bg-zinc-800 border-gray-200'}`}>
-                <i className={`fa-solid ${isTron ? 'fa-network-wired text-tron-cyan animate-pulse' : 'fa-compass text-teal-500'} text-4xl`}></i>
-              </div>
-              <h1 className={`text-4xl font-bold mb-2 tracking-tight ${isTron ? 'text-tron-cyan font-tron' : ''}`}>
-                {isMatrix ? `WELCOME, ${currentUser?.toUpperCase()}` : isTron ? `GREETINGS, PROGRAM ${currentUser?.toUpperCase()}` : `Welcome back, ${currentUser}`}
-              </h1>
-              <div className="flex gap-3 mt-8">
-                <button onClick={createNewSession} className={`px-8 py-3 rounded-full font-bold uppercase tracking-wider transition-all ${isTron ? 'bg-tron-cyan text-black hover:bg-white hover:shadow-[0_0_20px_#00f3ff]' : 'bg-teal-600 text-white hover:bg-teal-500'}`}>
-                  {isTron ? 'INITIATE' : 'Start'}
-                </button>
-                <button onClick={() => setIsSettingsOpen(true)} className={`px-8 py-3 rounded-full font-bold uppercase tracking-wider border transition-all ${isTron ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10' : 'border-gray-300'}`}>
-                  Config
-                </button>
-              </div>
-            </div>
-          )}
 
+            {/* Terminal Tab */}
+            {tabs.some(t => t.type === 'terminal') && (
+              <div className={`absolute inset-0 bg-black ${activeTabId === 'terminal' ? 'z-10' : 'z-0 invisible'}`}>
+                <RangerTerminal />
+              </div>
+            )}
+
+            {/* Browser Tab */}
+            {tabs.some(t => t.type === 'browser') && (
+              <div className={`absolute inset-0 bg-white dark:bg-zinc-900 ${activeTabId === 'browser' ? 'z-10' : 'z-0 invisible'}`}>
+                <BrowserLayout initialUrl={tabs.find(t => t.type === 'browser')?.data?.url} />
+              </div>
+            )}
+
+            {/* Notes Tab */}
+            {tabs.some(t => t.type === 'notes') && (
+              <div className={`absolute inset-0 bg-white dark:bg-zinc-900 ${activeTabId === 'notes' ? 'z-10' : 'z-0 invisible'}`}>
+                <StudyNotes currentUser={currentUser} settings={settings} onOpenSettings={() => setIsSettingsOpen(true)} />
+              </div>
+            )}
+
+            {/* Legacy Overlays (for when tabs are disabled or for specific modals) */}
+            {/* These render ON TOP of the tab area if active */}
+
+            {isStudyNotesOpen && !settings.notesOpenInTab && (
+              <div className="absolute inset-0 z-20 bg-white dark:bg-zinc-900">
+                <div className="absolute top-4 right-16 z-50 flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSettings(s => ({ ...s, notesOpenInTab: true }));
+                      openInTab('notes', 'Study Notes', 'fa-solid fa-book');
+                    }}
+                    className="p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                    title="Dock to Tab"
+                  >
+                    <i className="fa-solid fa-table-columns text-gray-600 dark:text-gray-300"></i>
+                  </button>
+                </div>
+                <button onClick={() => setIsStudyNotesOpen(false)} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+                <StudyNotes currentUser={currentUser} settings={settings} initialDraft={noteDraft || undefined} onOpenSettings={() => setIsSettingsOpen(true)} />
+              </div>
+            )}
+
+            {isBrowserOpen && !settings.browserOpenInTab && (
+              <div className="absolute inset-0 z-20 bg-white dark:bg-zinc-900">
+                <div className="absolute top-2 right-12 z-50 flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSettings(s => ({ ...s, browserOpenInTab: true }));
+                      openInTab('browser', 'Browser', 'fa-solid fa-globe', { url: initialBrowserUrl });
+                    }}
+                    className="p-1 bg-white dark:bg-zinc-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                    title="Dock to Tab"
+                  >
+                    <i className="fa-solid fa-table-columns text-gray-600 dark:text-gray-300 text-sm"></i>
+                  </button>
+                </div>
+                <button onClick={() => setIsBrowserOpen(false)} className="absolute top-2 right-2 z-50 p-1 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+                <BrowserLayout initialUrl={initialBrowserUrl} />
+              </div>
+            )}
+
+            {isWordPressOpen && (
+              <div className="absolute inset-0 z-20 bg-gray-50 dark:bg-zinc-900">
+                <button onClick={() => { setIsWordPressOpen(false); setIsBrowserOpen(false); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+                <WordPressDashboard onOpenBrowser={openBrowser} autoStart={true} />
+              </div>
+            )}
+
+            {isTrainingOpen && (
+              <div className="absolute inset-0 z-20 bg-white dark:bg-zinc-900">
+                <TrainingPage sessions={sessions} onClose={() => setIsTrainingOpen(false)} />
+              </div>
+            )}
+
+          </div>
         </main>
 
         {isSettingsOpen && (
@@ -1044,7 +1063,7 @@ const App: React.FC = () => {
         )}
 
         {/* Ranger Console (Terminal) - Floating or Minimized */}
-        {isTerminalOpen && !isTerminalMinimized && (
+        {isTerminalOpen && !settings.terminalOpenInTab && !isTerminalMinimized && (
           <div className={`fixed bottom-0 left-0 right-0 h-1/3 min-h-[250px] max-h-[500px] border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-zinc-900'} text-white p-0 font-mono text-sm overflow-hidden z-[9000] shadow-2xl flex flex-col`}>
             <div className={`flex items-center justify-between px-4 py-2 text-xs font-bold uppercase tracking-wider border-b ${isTron ? 'bg-tron-cyan/10 border-tron-cyan/30 text-tron-cyan' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
               <div className="flex items-center gap-2">
@@ -1053,6 +1072,16 @@ const App: React.FC = () => {
                 <span className="px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 text-[10px]">CONNECTED</span>
               </div>
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setSettings(s => ({ ...s, terminalOpenInTab: true }));
+                    openInTab('terminal', 'Terminal', 'fa-solid fa-terminal');
+                  }}
+                  className="hover:text-white transition-colors flex items-center gap-1"
+                  title="Dock to Tab"
+                >
+                  <i className="fa-solid fa-table-columns"></i>
+                </button>
                 <button onClick={() => setIsTerminalMinimized(true)} className="hover:text-white transition-colors" title="Minimize"><i className="fa-solid fa-window-minimize"></i></button>
                 <button className="hover:text-white transition-colors" title="Expand"><i className="fa-solid fa-expand"></i></button>
                 <button onClick={() => setIsTerminalOpen(false)} className="hover:text-white transition-colors" title="Close Console"><i className="fa-solid fa-xmark"></i></button>
@@ -1065,11 +1094,11 @@ const App: React.FC = () => {
         )}
 
         {/* Ranger Console - Minimized Tab (beside Settings) */}
-        {isTerminalOpen && isTerminalMinimized && (
+        {isTerminalOpen && !settings.terminalOpenInTab && isTerminalMinimized && (
           <div
             className={`fixed bottom-4 left-[216px] z-[9999] rounded-lg border-2 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 backdrop-blur-sm ${isTron
-                ? 'bg-tron-dark border-tron-cyan text-tron-cyan shadow-[0_0_20px_rgba(0,243,255,0.2)]'
-                : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border-gray-200 dark:border-zinc-800'
+              ? 'bg-tron-dark border-tron-cyan text-tron-cyan shadow-[0_0_20px_rgba(0,243,255,0.2)]'
+              : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border-gray-200 dark:border-zinc-800'
               }`}
             onClick={() => setIsTerminalMinimized(false)}
           >
@@ -1092,6 +1121,7 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+
 
         {/* Canvas Board */}
         {isCanvasOpen && (

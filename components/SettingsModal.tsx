@@ -969,7 +969,43 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     </label>
                                 </div>
                             </div>
-                            <div className="space-y-3">
+
+
+                            {/* Workspace Settings */}
+                            <div className="mt-6 border-t border-gray-200 dark:border-zinc-700 pt-4">
+                                <h3 className="text-sm font-bold mb-4 uppercase tracking-wider opacity-70">Workspace Behavior</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={localSettings.terminalOpenInTab || false}
+                                            onChange={e => setLocalSettings({ ...localSettings, terminalOpenInTab: e.target.checked })}
+                                            className="accent-teal-500 w-5 h-5"
+                                        />
+                                        Open Terminal in Tab
+                                    </label>
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={localSettings.notesOpenInTab || false}
+                                            onChange={e => setLocalSettings({ ...localSettings, notesOpenInTab: e.target.checked })}
+                                            className="accent-teal-500 w-5 h-5"
+                                        />
+                                        Open Notes in Tab
+                                    </label>
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={localSettings.browserOpenInTab || false}
+                                            onChange={e => setLocalSettings({ ...localSettings, browserOpenInTab: e.target.checked })}
+                                            className="accent-teal-500 w-5 h-5"
+                                        />
+                                        Open Browser in Tab
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 mt-6 border-t border-gray-200 dark:border-zinc-700 pt-4">
                                 <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
                                     <input type="checkbox" checked={localSettings.autoHideModelSelector} onChange={e => setLocalSettings({ ...localSettings, autoHideModelSelector: e.target.checked })} className="accent-teal-500 w-5 h-5" />
                                     Auto-Hide Model Selector
@@ -2945,7 +2981,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     <button onClick={handleSave} className={`px-6 py-2 rounded font-bold uppercase text-xs shadow-lg ${localSettings.theme === 'tron' ? 'bg-tron-cyan text-black hover:bg-white' : 'bg-teal-600 text-white hover:bg-teal-500'}`}>Save Config</button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

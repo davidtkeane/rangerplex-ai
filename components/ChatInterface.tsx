@@ -293,6 +293,184 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             return; // Don't process as normal message
         }
 
+        // ⚙️ SETTINGS: Type "/settings" or "/open settings" to open Settings Modal
+        if (lowerText.trim() === '/settings' || lowerText.trim() === '/open settings') {
+            onOpenSettings();
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '⚙️ **Opening Settings Panel...**\n\nConfigure your API keys, model preferences, theme settings, and more.\n\n*Pro Tip: Settings auto-save to both IndexedDB and the server for persistence!*',
+                    timestamp: Date.now()
+                }
+            ]);
+            return; // Don't process as normal message
+        }
+
+        // 🔄 SERVER RESTART: Type "/restart" or "/restart server"
+        if (lowerText.trim() === '/restart' || lowerText.trim() === '/restart server') {
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '🔄 **Initiating Server Restart...**\n\nRestarting the RangerPlex proxy server. This will take ~5-10 seconds.\n\n*The page will automatically reconnect when the server is back online.*',
+                    timestamp: Date.now()
+                }
+            ]);
+
+            // Send restart command to server
+            fetch('http://localhost:3010/api/server/restart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            }).catch(err => console.log('Server restarting...', err));
+
+            return;
+        }
+
+        // 🔍 CHECK UPDATE: Type "/check update"
+        if (lowerText.trim() === '/check update' || lowerText.trim() === '/update check') {
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '🔍 **Checking for updates...**',
+                    timestamp: Date.now()
+                }
+            ]);
+
+            fetch('http://localhost:3010/api/server/check-update')
+                .then(res => res.json())
+                .then(data => {
+                    let updateMsg = `### 📦 RangerPlex Update Status\n\n`;
+                    updateMsg += `**Current Version:** v${data.currentVersion}\n`;
+                    updateMsg += `**Latest Version:** v${data.latestVersion}\n\n`;
+
+                    if (data.updateAvailable) {
+                        updateMsg += `✨ **Update Available!**\n\n`;
+                        updateMsg += `Run \`/install update\` to upgrade to the latest version.\n\n`;
+                        if (data.changelog) {
+                            updateMsg += `**What's New:**\n${data.changelog}`;
+                        }
+                    } else {
+                        updateMsg += `✅ **You're up to date!** 🎖️`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: updateMsg,
+                        timestamp: Date.now()
+                    }]);
+                })
+                .catch(err => {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: `❌ **Update check failed:**\n${err.message}\n\nMake sure the server is running and you have internet connectivity.`,
+                        timestamp: Date.now()
+                    }]);
+                });
+
+            return;
+        }
+
+        // 📥 INSTALL UPDATE: Type "/install update"
+        if (lowerText.trim() === '/install update' || lowerText.trim() === '/update install') {
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '📥 **Installing RangerPlex Update...**\n\nThis will:\n1. Pull latest code from GitHub\n2. Install dependencies\n3. Restart the server\n\n*Check the terminal for installation progress.*',
+                    timestamp: Date.now()
+                }
+            ]);
+
+            fetch('http://localhost:3010/api/server/install-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    let installMsg = '';
+                    if (data.success) {
+                        installMsg = `✅ **Update Installed Successfully!**\n\nRangerPlex has been updated to v${data.newVersion}.\n\n*The server will restart automatically.*`;
+                    } else {
+                        installMsg = `❌ **Update Installation Failed:**\n${data.error}\n\nCheck the terminal for details.`;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: installMsg,
+                        timestamp: Date.now()
+                    }]);
+                })
+                .catch(err => {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: `❌ **Update failed:**\n${err.message}`,
+                        timestamp: Date.now()
+                    }]);
+                });
+
+            return;
+        }
+
+        // 🔍 WORDPRESS STATUS: Type "/check wordpress" or "/wordpress status"
+        if (lowerText.trim() === '/check wordpress' || lowerText.trim() === '/wordpress status') {
+            onUpdateMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: '🔍 **Checking WordPress Status...**',
+                    timestamp: Date.now()
+                }
+            ]);
+
+            fetch('http://localhost:3010/api/wordpress/status')
+                .then(res => res.json())
+                .then(data => {
+                    let statusMsg = `### 📝 WordPress Status Report\n\n`;
+
+                    if (data.running) {
+                        statusMsg += `✅ **Status:** Online\n`;
+                        statusMsg += `🌐 **URL:** ${data.url}\n`;
+                        statusMsg += `📊 **Posts:** ${data.postCount || 'N/A'}\n`;
+                        statusMsg += `📄 **Pages:** ${data.pageCount || 'N/A'}\n`;
+                        statusMsg += `⚙️ **Version:** ${data.version || 'Unknown'}\n\n`;
+                        statusMsg += `Type \`/wordpress\` to open the dashboard.`;
+                    } else {
+                        statusMsg += `❌ **Status:** Offline\n\n`;
+                        statusMsg += `WordPress is not currently running.\n\n`;
+                        statusMsg += `**Start WordPress:**\n`;
+                        statusMsg += `\`\`\`bash\ncd ~/your-wordpress-path\nphp -S localhost:8080\n\`\`\``;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: statusMsg,
+                        timestamp: Date.now()
+                    }]);
+                })
+                .catch(err => {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: `❌ **WordPress check failed:**\n${err.message}\n\nMake sure WordPress is configured in Settings.`,
+                        timestamp: Date.now()
+                    }]);
+                });
+
+            return;
+        }
+
         const docAttachments = attachments.filter(att => !att.mimeType.startsWith('image/'));
         const imageAttachments = attachments.filter(att => att.mimeType.startsWith('image/'));
 
@@ -445,6 +623,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     helpMsg += `╔════ SYSTEM ══════════════════════════════════╗\n`;
                     helpMsg += `║ 💠  ABOUT       :: /about                   ║\n`;
                     helpMsg += `║ 🕐  STUDY       :: /study                   ║\n`;
+                    helpMsg += `║ ⚙️  SETTINGS    :: /settings                ║\n`;
+                    helpMsg += `║ 🔄  RESTART     :: /restart server          ║\n`;
+                    helpMsg += `║ 🔍  CHECK UPDATE:: /check update            ║\n`;
+                    helpMsg += `║ 📥  UPDATE      :: /install update          ║\n`;
+                    helpMsg += `║ 📝  WP STATUS   :: /check wordpress         ║\n`;
                     helpMsg += `║ 💻  SYSTEM      :: /sys                     ║\n`;
                     helpMsg += `╠════ INTELLIGENCE MODULES ════════════════════╣\n`;
                     helpMsg += `║ 🕵️  PROFILER    :: /profile <domain>        ║\n`;

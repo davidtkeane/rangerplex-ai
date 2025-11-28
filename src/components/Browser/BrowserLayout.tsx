@@ -58,6 +58,23 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
     }
   }, []);
 
+  // Track tabs in ref for cleanup
+  const tabsRef = useRef(tabs);
+  useEffect(() => { tabsRef.current = tabs; }, [tabs]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log('🧹 BrowserLayout unmounting, cleaning up views...');
+      if (window.electronAPI) {
+        tabsRef.current.forEach(t => {
+          console.log(`Closing tab ${t.id}`);
+          window.electronAPI!.closeTab(t.id);
+        });
+      }
+    };
+  }, []);
+
   // Resize Handler for Electron BrowserView
   useEffect(() => {
     if (!window.electronAPI || !contentRef.current) return;

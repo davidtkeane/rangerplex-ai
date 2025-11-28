@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.7.4] - 2025-11-28 👻 PHANTOM EDITOR PERSISTENCE
+## [2.7.6] - 2025-11-28
+### Added
+- **Tabbed Workspace**: Introduced a new tabbed interface for better multitasking.
+  - **Persistent Tabs**: Terminal, Browser, and Notes now stay alive in the background when switching tabs.
+  - **Hybrid Mode**: Choose between classic floating windows or docked tabs via Settings.
+  - **Dock to Tab**: Easily convert floating windows to tabs with a single click.
+- **Settings**: Added "Workspace Behavior" section to control tab preferences.
+### Fixed
+- **Browser/WordPress Cleanup**: Fixed an issue where closing the WordPress dashboard or Browser tab would leave "ghost" web views active, causing visual glitches in the chat interface.
+- **Update Process**: Enhanced the update mechanism to include `npm audit fix` for better security and ensured `npm install` runs reliably.
+- **Settings Modal**: Fixed the "Install Update" button logic to correctly trigger the enhanced update flow.
+
+## [2.7.5] - 2025-11-28 👻 PHANTOM EDITOR PERSISTENCE
 ### 🛡️ Crash-Proof Editor
 - **Instant Save-on-Exit**: Implemented a robust `beforeunload` handler that instantly saves your code when you close the tab, refresh, or navigate away.
 - **Ref-Based State Tracking**: Uses `useRef` to capture the absolute latest keystrokes, ensuring zero data loss even if you type and immediately quit.

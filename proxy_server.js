@@ -3399,66 +3399,83 @@ app.post('/api/system/update', async (req, res) => {
                         });
                     }
 
-                    console.log('✅ Update complete! Restarting server with PM2...');
 
-                    // Attempt PM2 reload for zero-downtime restart
-                    try {
-                        const pm2Reload = spawn('pm2', ['reload', 'ecosystem.config.cjs']);
-                        const pm2Output = [];
-                        const pm2Errors = [];
 
-                        pm2Reload.stdout.on('data', (data) => {
-                            pm2Output.push(data.toString());
-                            console.log('PM2:', data.toString());
-                        });
+                    // Run npm audit fix (safe only) to help keep dependencies secure
+                    console.log('🛡️ Running npm audit fix...');
+                    const npmAudit = spawn('npm', ['audit', 'fix']);
 
-                        pm2Reload.stderr.on('data', (data) => {
-                            pm2Errors.push(data.toString());
-                            console.error('PM2:', data.toString());
-                        });
+                    npmAudit.stdout.on('data', (data) => console.log('AUDIT:', data.toString()));
+                    npmAudit.stderr.on('data', (data) => console.log('AUDIT:', data.toString()));
 
-                        pm2Reload.on('close', (pm2Code) => {
-                            if (pm2Code === 0) {
-                                console.log('✅ Server restarted automatically!');
-                                return res.json({
-                                    success: true,
-                                    message: 'Update successful! Server restarted automatically.',
-                                    autoRestarted: true,
-                                    needsRestart: false,
-                                    output: fullOutput,
-                                    npmOutput: npmOutput.join(''),
-                                    pm2Output: pm2Output.join('')
-                                });
-                            } else {
-                                // PM2 failed, fall back to manual restart
-                                console.log('⚠️ PM2 reload failed, manual restart needed');
-                                return res.json({
-                                    success: true,
-                                    message: 'Update successful! Dependencies installed. Please restart manually.',
-                                    needsRestart: true,
-                                    autoRestarted: false,
-                                    output: fullOutput,
-                                    npmOutput: npmOutput.join(''),
-                                    pm2Error: pm2Errors.join('')
-                                });
-                            }
-                        });
-                    } catch (pm2Error) {
-                        // PM2 not available, fall back to manual restart
-                        console.log('⚠️ PM2 not available, manual restart needed');
-                        return res.json({
-                            success: true,
-                            message: 'Update successful! Dependencies installed. Please restart manually.',
-                            needsRestart: true,
-                            autoRestarted: false,
-                            output: fullOutput,
-                            npmOutput: npmOutput.join('')
-                        });
-                    }
+                    // We don't wait for audit to fail/succeed to block the restart, 
+                    // we just run it and then proceed to restart.
+                    // Actually, better to wait for it to finish so we don't restart mid-process.
+                    npmAudit.on('close', (auditCode) => {
+                        console.log(`✅ Audit complete (Code: ${auditCode})`);
+
+                        console.log('✅ Update complete! Restarting server with PM2...');
+
+                        // Attempt PM2 reload for zero-downtime restart
+                        try {
+                            const pm2Reload = spawn('pm2', ['reload', 'ecosystem.config.cjs']);
+                            const pm2Output = [];
+                            const pm2Errors = [];
+
+                            pm2Reload.stdout.on('data', (data) => {
+                                pm2Output.push(data.toString());
+                                console.log('PM2:', data.toString());
+                            });
+
+                            pm2Reload.stderr.on('data', (data) => {
+                                pm2Errors.push(data.toString());
+                                console.error('PM2:', data.toString());
+                            });
+
+                            pm2Reload.on('close', (pm2Code) => {
+                                if (pm2Code === 0) {
+                                    console.log('✅ Server restarted automatically!');
+                                    return res.json({
+                                        success: true,
+                                        message: 'Update successful! Server restarted automatically.',
+                                        autoRestarted: true,
+                                        needsRestart: false,
+                                        output: fullOutput,
+                                        npmOutput: npmOutput.join(''),
+                                        pm2Output: pm2Output.join('')
+                                    });
+                                } else {
+                                    // PM2 failed, fall back to manual restart
+                                    console.log('⚠️ PM2 reload failed, manual restart needed');
+                                    return res.json({
+                                        success: true,
+                                        message: 'Update successful! Dependencies installed. Please restart manually.',
+                                        needsRestart: true,
+                                        autoRestarted: false,
+                                        output: fullOutput,
+                                        npmOutput: npmOutput.join(''),
+                                        pm2Error: pm2Errors.join('')
+                                    });
+                                }
+                            });
+                        } catch (pm2Error) {
+                            // PM2 not available, fall back to manual restart
+                            console.log('⚠️ PM2 not available, manual restart needed');
+                            return res.json({
+                                success: true,
+                                message: 'Update successful! Dependencies installed. Please restart manually.',
+                                needsRestart: true,
+                                autoRestarted: false,
+                                output: fullOutput,
+                                npmOutput: npmOutput.join(''),
+                                pm2Error: pm2Error.message
+                            });
+                        }
+                    });
                 });
             });
-        });
 
+        });
     } catch (error) {
         console.error('❌ Update error:', error);
         if (!res.headersSent) {
@@ -3828,6 +3845,157 @@ app.post('/api/wordpress/publish', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to publish note',
+            error: error.message
+        });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// 🔧 SERVER MANAGEMENT ENDPOINTS
+// ═══════════════════════════════════════════════════════════
+
+// Server Restart
+app.post('/api/server/restart', (req, res) => {
+    console.log('🔄 Server restart requested...');
+
+    res.json({
+        success: true,
+        message: 'Server restarting...'
+    });
+
+    // Restart after sending response
+    setTimeout(() => {
+        console.log('🔄 Restarting server...');
+        process.exit(0); // PM2 will auto-restart
+    }, 1000);
+});
+
+// Check for updates
+app.get('/api/server/check-update', async (req, res) => {
+    try {
+        console.log('🔍 Checking for RangerPlex updates...');
+
+        // Get current version from package.json
+        const packagePath = path.join(__dirname, 'package.json');
+        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+        const currentVersion = packageJson.version;
+
+        // Fetch latest version from GitHub
+        const response = await fetch('https://api.github.com/repos/davidtkeane/rangerplex-ai/releases/latest');
+        const latestRelease = await response.json();
+        const latestVersion = latestRelease.tag_name.replace('v', '');
+
+        const updateAvailable = latestVersion !== currentVersion;
+
+        res.json({
+            success: true,
+            currentVersion,
+            latestVersion,
+            updateAvailable,
+            changelog: updateAvailable ? latestRelease.body : null,
+            releaseUrl: latestRelease.html_url
+        });
+
+    } catch (error) {
+        console.error('❌ Update check failed:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Install update
+app.post('/api/server/install-update', async (req, res) => {
+    try {
+        console.log('📥 Installing RangerPlex update...');
+
+        // Execute git pull
+        console.log('📦 Pulling latest code...');
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+
+        const { stdout: gitOut } = await execAsync('git pull origin main');
+        console.log(gitOut);
+
+        // Install dependencies
+        console.log('📦 Installing dependencies...');
+        const { stdout: npmOut } = await execAsync('npm install');
+        console.log(npmOut);
+
+        // Get new version
+        const packagePath = path.join(__dirname, 'package.json');
+        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+        const newVersion = packageJson.version;
+
+        res.json({
+            success: true,
+            message: 'Update installed successfully',
+            newVersion,
+            gitOutput: gitOut,
+            npmOutput: npmOut
+        });
+
+        // Restart server after 2 seconds
+        setTimeout(() => {
+            console.log('🔄 Restarting server with new version...');
+            process.exit(0); // PM2 will auto-restart
+        }, 2000);
+
+    } catch (error) {
+        console.error('❌ Update installation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// WordPress Status Check
+app.get('/api/wordpress/status', async (req, res) => {
+    try {
+        console.log('🔍 Checking WordPress status...');
+
+        // Check if WordPress container is running
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+
+        try {
+            const { stdout } = await execAsync('docker ps --filter "name=rangerplex-wordpress" --format "{{.Names}}"');
+            const running = stdout.trim().includes('rangerplex-wordpress');
+
+            if (running) {
+                // WordPress is running - try to get stats
+                const wpUrl = 'http://localhost:8080'; // Default WordPress port
+
+                res.json({
+                    success: true,
+                    running: true,
+                    url: wpUrl,
+                    postCount: 'N/A', // Would need WP-CLI to fetch
+                    pageCount: 'N/A',
+                    version: 'N/A'
+                });
+            } else {
+                res.json({
+                    success: true,
+                    running: false
+                });
+            }
+        } catch (err) {
+            // Docker not running or container not found
+            res.json({
+                success: true,
+                running: false
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ WordPress status check failed:', error);
+        res.status(500).json({
+            success: false,
             error: error.message
         });
     }

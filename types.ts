@@ -308,6 +308,11 @@ export interface AppSettings {
   editorWordWrap: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
   editorMinimap: boolean;
   editorLineNumbers: 'on' | 'off' | 'relative';
+
+  // Workspace Settings
+  terminalOpenInTab: boolean;
+  notesOpenInTab: boolean;
+  browserOpenInTab: boolean;
 }
 
 export const DEFAULT_AGENTS: AgentConfig[] = [
@@ -567,7 +572,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   editorTabSize: 2,
   editorWordWrap: 'on',
   editorMinimap: true,
-  editorLineNumbers: 'on'
+  editorLineNumbers: 'on',
+
+  terminalOpenInTab: false,
+  notesOpenInTab: false,
+  browserOpenInTab: false
 };
 
 export interface TrainingExample {
