@@ -35,6 +35,9 @@ import TerminalPopup from './src/components/Browser/TerminalPopup'; // Import Te
 import { WordPressDashboard } from './src/components/WordPress/WordPressDashboard'; // Import WordPress Dashboard
 import BlockchainChat from './src/components/BlockchainChat'; // Import Blockchain Chat
 import BrowserLayout from './src/components/Browser/BrowserLayout'; // Import BrowserLayout
+import WeatherStation from './components/Weather/WeatherStation'; // Import Weather Station
+import RainNotification from './components/RainNotification'; // Import Rain Notification
+import { weatherService, RainAlert } from './services/weatherService';
 
 const App: React.FC = () => {
   // MINI-OS: Floating Terminal Route
@@ -76,6 +79,8 @@ const App: React.FC = () => {
   const [isBlockchainChatOpen, setIsBlockchainChatOpen] = useState(false); // State for Blockchain Chat visibility
   const [isBrowserOpen, setIsBrowserOpen] = useState(false); // State for Browser visibility
   const [initialBrowserUrl, setInitialBrowserUrl] = useState<string | undefined>(undefined);
+  const [isWeatherOpen, setIsWeatherOpen] = useState(false); // State for Weather Station visibility
+  const [rainAlert, setRainAlert] = useState<RainAlert | null>(null); // State for rain notifications
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
@@ -206,6 +211,52 @@ const App: React.FC = () => {
     const interval = setInterval(checkUpdates, 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Check for rain (Irish weather! ☔🇮🇪)
+  useEffect(() => {
+    if (!settings.rainNotificationsEnabled || !currentUser) return;
+
+    const checkRain = async () => {
+      try {
+        const location = settings.rainNotificationLocation || 'Dublin,IE';
+        const timing = settings.rainNotificationTiming || '3hours';
+
+        // Convert timing to hours
+        const hoursMap: Record<string, number> = {
+          '1hour': 1,
+          '3hours': 3,
+          '12hours': 12,
+          '24hours': 24
+        };
+        const hoursAhead = hoursMap[timing] || 3;
+
+        // Check for rain using Open-Meteo (FREE & unlimited!)
+        const alert = await weatherService.checkForUpcomingRain(location, hoursAhead);
+
+        // Only show notification if rain is detected and we haven't shown it recently
+        if (alert.willRain) {
+          const lastAlert = rainAlert;
+          // Show notification if it's a new alert or if previous alert was > 10 minutes ago
+          const shouldShow = !lastAlert ||
+            (Date.now() - lastAlert.timeDetected) > 10 * 60 * 1000;
+
+          if (shouldShow) {
+            setRainAlert(alert);
+          }
+        }
+      } catch (error) {
+        console.error('Rain check failed:', error);
+      }
+    };
+
+    // Check immediately
+    checkRain();
+
+    // Then check every 30 minutes
+    const interval = setInterval(checkRain, 30 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [settings.rainNotificationsEnabled, settings.rainNotificationTiming, settings.rainNotificationLocation, currentUser]);
 
   const handleInstallUpdate = async () => {
     if (!updateInfo) return;
@@ -613,6 +664,19 @@ const App: React.FC = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
+  const openWeather = useCallback(() => {
+    setIsWeatherOpen(true);
+    setIsWordPressOpen(false);
+    setIsCanvasOpen(false);
+    setIsTrainingOpen(false);
+    setIsStudyNotesOpen(false);
+    setIsEditorOpen(false);
+    setIsStudyClockOpen(false);
+    setIsManualOpen(false);
+    setIsBrowserOpen(false);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, []);
+
   // Listen for "request-open-url" from Main Process (for external links)
   useEffect(() => {
     if (window.electronAPI?.on) {
@@ -865,6 +929,7 @@ const App: React.FC = () => {
           onOpenBlockchainChat={() => setIsBlockchainChatOpen(true)}
           onOpenEditor={() => setIsEditorOpen(true)}
           onOpenBrowser={() => openBrowser()}
+          onOpenWeather={openWeather}
           onLock={() => setIsLocked(true)}
           onOpenVisionMode={() => {
             setIsVisionModeOpen(true);
@@ -1015,6 +1080,13 @@ const App: React.FC = () => {
               <div className="absolute inset-0 z-20 bg-gray-50 dark:bg-zinc-900">
                 <button onClick={() => { setIsWordPressOpen(false); setIsBrowserOpen(false); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
                 <WordPressDashboard onOpenBrowser={openBrowser} autoStart={true} />
+              </div>
+            )}
+
+            {isWeatherOpen && (
+              <div className="absolute inset-0 z-20">
+                <button onClick={() => setIsWeatherOpen(false)} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+                <WeatherStation isDarkMode={settings.theme !== 'light'} isTron={isTron} />
               </div>
             )}
 
@@ -1230,6 +1302,21 @@ const App: React.FC = () => {
             onInstall={handleInstallUpdate}
             onDismiss={() => setUpdateInfo(null)}
             isInstalling={isInstallingUpdate}
+            theme={settings.theme}
+          />
+        )}
+
+        {/* Rain Notification ☔🇮🇪 */}
+        {rainAlert && rainAlert.willRain && (
+          <RainNotification
+            hoursUntilRain={rainAlert.hoursUntilRain}
+            location={rainAlert.location}
+            precipitation={rainAlert.precipitation}
+            onViewWeather={() => {
+              setIsWeatherOpen(true);
+              setRainAlert(null);
+            }}
+            onDismiss={() => setRainAlert(null)}
             theme={settings.theme}
           />
         )}

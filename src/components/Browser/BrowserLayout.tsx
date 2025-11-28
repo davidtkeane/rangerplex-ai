@@ -3,24 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, X, ArrowLeft, ArrowRight, RotateCw, Shield, Ghost, Eye, FileText, Save, Terminal } from 'lucide-react';
 import styles from './BrowserLayout.module.css';
 
-// Type definition for Electron API
-declare global {
-  interface Window {
-    electronAPI?: {
-      createTab: (id: string, url: string) => Promise<void>;
-      switchTab: (id: string) => Promise<void>;
-      resizeView: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>;
-      navigate: (id: string, url: string) => Promise<void>;
-      closeTab: (id: string) => Promise<void>;
-      getPageText: () => Promise<string>;
-      fsReadDir: (path: string) => Promise<any[]>;
-      fsReadFile: (path: string) => Promise<string>;
-      fsWriteFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>;
-      toggleFloatingTerminal: () => Promise<void>;
-    };
-  }
-}
-
 // Type definition for a Browser Tab
 interface Tab {
   id: string;
@@ -319,4 +301,3 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
     </div>
   );
 }
-

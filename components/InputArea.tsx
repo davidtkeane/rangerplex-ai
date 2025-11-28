@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Attachment, CommandState, AppSettings } from '../types';
 import CommandDeck from './CommandDeck';
 import { startListening, stopListening } from '../services/voiceService';
+import { aliasService, type Alias } from '../services/aliasService';
 
 interface InputAreaProps {
     onSend: (text: string, attachments: Attachment[], commandState: CommandState, isPetChat: boolean) => void;
@@ -41,10 +42,15 @@ const InputArea: React.FC<InputAreaProps> = ({
     const [dragOver, setDragOver] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [showPromptMenu, setShowPromptMenu] = useState(false);
+    const [aliasSuggestions, setAliasSuggestions] = useState<Alias[]>([]);
+    const [showAliasSuggestions, setShowAliasSuggestions] = useState(false);
 
     const [commandState, setCommandState] = useState<CommandState>({
         web: false, visual: false, flash: false, deep: false
     });
+    const [activeAliasIndex, setActiveAliasIndex] = useState(0);
+
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -58,13 +64,53 @@ const InputArea: React.FC<InputAreaProps> = ({
         setShowPromptMenu(input.startsWith('/') && filteredPrompts.length > 0);
     }, [input, settings.savedPrompts]);
 
+    // Preload default aliases for suggestions
+    useEffect(() => {
+        aliasService.loadDefaultAliases().catch(() => { /* ignore */ });
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (!containerRef.current) return;
+            if (!containerRef.current.contains(e.target as Node)) {
+                setShowAliasSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const handlePromptSelect = (text: string) => {
         setInput(text);
         setShowPromptMenu(false);
         textareaRef.current?.focus();
     };
 
+    const selectAlias = (alias: Alias) => {
+        setInput(alias.name);
+        setShowAliasSuggestions(false);
+        textareaRef.current?.focus();
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (showAliasSuggestions && aliasSuggestions.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setActiveAliasIndex(prev => (prev + 1) % aliasSuggestions.length);
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setActiveAliasIndex(prev => (prev - 1 + aliasSuggestions.length) % aliasSuggestions.length);
+                return;
+            }
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                selectAlias(aliasSuggestions[activeAliasIndex] || aliasSuggestions[0]);
+                return;
+            }
+        }
+
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             if (showPromptMenu && filteredPrompts.length > 0) {
@@ -99,6 +145,7 @@ const InputArea: React.FC<InputAreaProps> = ({
         setInput('');
         setAttachments([]);
         setCommandState({ web: false, visual: false, flash: false, deep: false }); // Reset flags
+        setShowAliasSuggestions(false);
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
     };
 
@@ -153,10 +200,25 @@ const InputArea: React.FC<InputAreaProps> = ({
         setAttachments(prev => [...prev, ...newAttachments]);
     };
 
-    const adjustHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setInput(e.target.value);
+    const handleInputChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setInput(value);
         e.target.style.height = 'auto';
         e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+
+        if (value.length > 0 && !value.startsWith('/')) {
+            try {
+                const aliases = await aliasService.getAllAliases();
+                const matches = (aliases || []).filter(a => a.name.toLowerCase().startsWith(value.toLowerCase()));
+                setAliasSuggestions(matches);
+                setActiveAliasIndex(0);
+                setShowAliasSuggestions(matches.length > 0);
+            } catch (err) {
+                setShowAliasSuggestions(false);
+            }
+        } else {
+            setShowAliasSuggestions(false);
+        }
     };
 
     const handleCommandToggle = (key: keyof CommandState) => {
@@ -164,7 +226,7 @@ const InputArea: React.FC<InputAreaProps> = ({
     };
 
     return (
-        <div className="relative w-full max-w-3xl mx-auto pb-6">
+        <div className="relative w-full max-w-3xl mx-auto pb-6" ref={containerRef}>
             {/* Prompt Menu */}
             {showPromptMenu && (
                 <div className="absolute bottom-full mb-2 left-2 right-2 sm:left-0 sm:right-auto sm:w-80 max-w-full bg-zinc-900/95 border border-zinc-700 rounded-xl shadow-2xl backdrop-blur overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
@@ -179,6 +241,28 @@ const InputArea: React.FC<InputAreaProps> = ({
                         >
                             <span className="font-mono opacity-50 mr-2">/{p.trigger}</span>
                             {p.text}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {showAliasSuggestions && (
+                <div className="absolute bottom-full mb-2 left-2 right-2 sm:left-0 sm:right-auto sm:w-96 max-w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl max-h-60 overflow-y-auto z-40">
+                    {aliasSuggestions.map((alias, idx) => (
+                        <button
+                            key={alias.name}
+                            onClick={() => {
+                                selectAlias(alias);
+                            }}
+                            onMouseEnter={() => setActiveAliasIndex(idx)}
+                            className={`w-full px-4 py-2 text-left flex items-center gap-3 transition-colors ${activeAliasIndex === idx ? 'bg-zinc-100 dark:bg-zinc-800' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                        >
+                            <span className="text-2xl">{alias.icon || '⚡'}</span>
+                            <div className="flex-1">
+                                <div className="font-semibold">{alias.name}</div>
+                                <div className="text-xs text-zinc-600 dark:text-zinc-400">{alias.description}</div>
+                            </div>
+                            <span className="text-xs text-zinc-500">{alias.category}</span>
                         </button>
                     ))}
                 </div>
@@ -223,7 +307,7 @@ const InputArea: React.FC<InputAreaProps> = ({
                     name="chat-input"
                     ref={textareaRef}
                     value={input}
-                    onChange={adjustHeight}
+                    onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     placeholder={isListening ? "Listening..." : "Ask anything... (Type '/' for prompts)"}
                     rows={1}
@@ -306,7 +390,9 @@ const InputArea: React.FC<InputAreaProps> = ({
                             disabled={!isStreaming && (!input.trim() && attachments.length === 0)}
                             className={`
                     w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200
-                    ${isTron ? 'bg-tron-cyan text-black hover:bg-white hover:shadow-[0_0_10px_#00f3ff]' : isStreaming ? 'bg-red-600 text-white hover:bg-red-500 shadow-lg' : 'bg-teal-600 text-white hover:bg-teal-500 shadow-lg'}
+                    ${isStreaming
+                        ? (isTron ? 'bg-red-600 text-white hover:bg-red-500 shadow-[0_0_12px_rgba(255,0,0,0.6)]' : 'bg-red-600 text-white hover:bg-red-500 shadow-lg')
+                        : (isTron ? 'bg-tron-cyan text-black hover:bg-white hover:shadow-[0_0_10px_#00f3ff]' : 'bg-teal-600 text-white hover:bg-teal-500 shadow-lg')}
                     ${!isStreaming && (!input.trim() && attachments.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
                         >

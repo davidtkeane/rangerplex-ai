@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-2.7.7-cyan?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.11.0-cyan?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -63,7 +63,21 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 *   **Deep Research**: Autonomous agent loop that plans, searches the web, and writes academic-grade reports.
 
 ### 🛠️ The Tools
+*   **Weather Station** 🌦️: Comprehensive weather monitoring with 4-API integration and astronomical sky background:
+    - **Real-Time Weather**: Current conditions, hourly/daily forecasts, air quality, UV index
+    - **4-API Integration**: OpenWeatherMap, Tomorrow.io, Visual Crossing, Open-Meteo (unlimited!)
+    - **API Usage Meters**: Track daily API calls with color-coded progress bars and reset timers
+    - **Dynamic Sky**: Real sun/moon positions based on astronomical calculations (Julian Day, solar altitude/azimuth, lunar phases)
+    - **100 Twinkling Stars**: Animated night sky with realistic celestial mechanics
+    - **Irish Rain Notifications** 🇮🇪: Get alerted 1-24 hours before rain with "Don't forget your brolly!" reminders
+    - **Settings Integration**: Configure rain notifications, location, and timing in Settings → Weather tab
+    - **Glassmorphism UI**: Beautiful backdrop-blur design that works with all themes
 *   **About RangerPlex** 💠: Type `/about` to learn about the platform, the Trinity AI system, and the mission behind RangerPlex.
+*   **VSCode Integration** 💻: Type `/code` to open a full VSCode editor (code-server on port 8080) in tab or new window. Use `/code /path/to/folder` to open specific directories. Perfect for live coding inside RangerPlex!
+*   **WordPress Dual-Mode** 🌐: Type `/wordpress` or `/wp` to launch WordPress. Choose between:
+    - **Docker Mode**: Full WordPress + MySQL + phpMyAdmin container
+    - **PHP Server Mode**: Lightweight standalone from `software/` folder (port 8091)
+    - Modal choice or auto-select via Settings → Workspace Behavior
 *   **Study Clock** 🕐: Type `/study` to open the Pomodoro timer and focus tracker directly from chat. Features 25-minute work sessions, custom timers, keyboard shortcuts, and 3-Tier Persistence.
 *   **Tactical Help System** 📘: Type `/help` to see all available tools, or `/help <command>` (e.g., `/help shodan`) for detailed instructions and pro tips.
 *   **The Profiler** 🕵️: Automated threat intelligence agent. Run `/profile <domain>` to auto-scan Whois, DNS, SSL, and Shodan, then generate a comprehensive AI threat report.
@@ -183,6 +197,7 @@ RangerPlex has **TWO different image features** that work in completely differen
 *   **Smart Streaming**: CORS proxy routes audio through local server for seamless playback.
 *   **Persistent Settings**: Remembers your volume, last station, and player state.
 *   **Theme Integration**: Adapts to Dark, Light, and Tron themes with matching effects.
+*   **🤠 Easter Egg (NEW in v2.10.1)**: The Lone Ranger appears after 5 seconds of inactivity! Hover to reveal controls.
 
 ### 🐾 Ranger Pet (NEW in v2.4.7 - Pet Evolution!)
 *   **Your Evolving Study Companion**: A lovable Cyber Cat that lives in your sidebar, offering positive reinforcement and evolving as you interact with it.

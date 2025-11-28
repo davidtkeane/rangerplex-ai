@@ -28,6 +28,7 @@ interface SidebarProps {
     onOpenBlockchainChat?: () => void;
     onOpenEditor?: () => void;
     onOpenBrowser?: () => void;
+    onOpenWeather?: () => void;
     onLock: () => void;
     onOpenVisionMode: () => void;
     toggleSidebar: () => void;
@@ -68,6 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onOpenBlockchainChat,
     onOpenEditor,
     onOpenBrowser,
+    onOpenWeather,
     onLock,
     onOpenVisionMode,
     toggleSidebar,
@@ -237,7 +239,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       `}>
                 <div className={`flex-shrink-0 p-4 border-b flex items-center justify-between ${isTron ? 'border-tron-cyan/30 text-tron-cyan' : 'border-gray-200 dark:border-zinc-800'}`}>
                     <div className="flex items-center gap-2 font-bold tracking-widest">
-                        <i className={`fa-solid ${isTron ? 'fa-network-wired' : 'fa-layer-group'}`}></i>
+                        <img
+                            src="/image/rangersmyth-pic.png"
+                            alt="RangerPlex"
+                            className="w-6 h-6 rounded-full border border-zinc-700/40 object-cover"
+                        />
                         <span>{isTron ? 'THE GRID' : 'RANGERPLEX'}</span>
                     </div>
                     <button onClick={toggleSidebar} className="md:hidden"><i className="fa-solid fa-xmark"></i></button>
@@ -255,6 +261,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200/30 dark:border-zinc-700/30">
                         <span className={`text-[10px] font-bold uppercase tracking-wider ${isTron ? 'text-tron-cyan/60' : 'text-gray-500 dark:text-zinc-400'}`}>
                             {isCompactMode ? 'Compact' : 'Full View'}
+                        </span>
+                        <span className={`text-[10px] font-mono px-2 py-1 rounded ${isTron ? 'text-tron-orange bg-black/40 border border-tron-orange/30' : 'text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700'}`}>
+                            v2.9.0
                         </span>
                         <button
                             onClick={toggleCompactMode}
@@ -348,6 +357,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                             >
                                 <i className="fa-solid fa-window-maximize text-lg mb-1"></i>
                                 <span className="text-[9px] uppercase tracking-wide">Tab</span>
+                            </button>
+                        )}
+
+                        {/* Weather Station - Hidden in compact mode */}
+                        {!isCompactMode && onOpenWeather && (
+                            <button
+                                onClick={onOpenWeather}
+                                title="Weather Station 🌤️"
+                                className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'}`}
+                            >
+                                <i className="fa-solid fa-cloud-sun text-lg mb-1"></i>
+                                <span className="text-[9px] uppercase tracking-wide">Weather</span>
                             </button>
                         )}
 

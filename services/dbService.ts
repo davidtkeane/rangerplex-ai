@@ -66,12 +66,62 @@ interface RangerPlexDB extends DBSchema {
         };
         indexes: { 'by-userId': string; 'by-startTime': number; 'by-created': number };
     };
+    aliases: {
+        key: string; // alias name
+        value: {
+            name: string;
+            command: string;
+            description: string;
+            cwd?: string;
+            requires_confirmation: boolean;
+            tags?: string[];
+            category: 'fun' | 'utility' | 'system' | 'custom';
+            icon?: string;
+            created: number;
+            lastUsed?: number;
+            useCount: number;
+            outputMode?: 'chat' | 'terminal' | 'both';
+            acceptsParams?: boolean;
+            paramPlaceholder?: string;
+        };
+        indexes: { 'by-category': string; 'by-useCount': number };
+    };
+    execution_logs: {
+        key: string; // log id
+        value: {
+            id: string;
+            command: string;
+            cwd: string;
+            user: string;
+            timestamp: number;
+            exitCode: number;
+            duration: number;
+            source: 'alias' | 'allowlist' | 'manual';
+            stdout?: string;
+            stderr?: string;
+        };
+        indexes: { 'by-timestamp': number };
+    };
+    weather_snapshots: {
+        key: string; // snapshot id
+        value: {
+            id: string;
+            timestamp: number;
+            location: string;
+            current: any; // CurrentWeather object
+            hourly?: any[]; // HourlyForecast array
+            daily?: any[]; // DailyForecast array
+            airQuality?: any; // AirQuality object
+            source: string;
+        };
+        indexes: { 'by-timestamp': number; 'by-location': string };
+    };
 }
 
 class DBService {
     private db: IDBPDatabase<RangerPlexDB> | null = null;
     private dbName = 'rangerplex-db';
-    private version = 5; // Bumped to create study_sessions store
+    private version = 7; // Bumped to create weather_snapshots store
 
     async init() {
         if (this.db) return this.db;
@@ -110,6 +160,29 @@ class DBService {
                     studyStore.createIndex('by-startTime', 'startTime');
                     studyStore.createIndex('by-created', 'created');
                     console.log('✅ Created study_sessions store');
+                }
+
+                // Create aliases store
+                if (!db.objectStoreNames.contains('aliases')) {
+                    const aliasStore = db.createObjectStore('aliases', { keyPath: 'name' });
+                    aliasStore.createIndex('by-category', 'category');
+                    aliasStore.createIndex('by-useCount', 'useCount');
+                    console.log('✅ Created aliases store');
+                }
+
+                // Create execution logs store
+                if (!db.objectStoreNames.contains('execution_logs')) {
+                    const logsStore = db.createObjectStore('execution_logs', { keyPath: 'id' });
+                    logsStore.createIndex('by-timestamp', 'timestamp');
+                    console.log('✅ Created execution_logs store');
+                }
+
+                // Create weather snapshots store
+                if (!db.objectStoreNames.contains('weather_snapshots')) {
+                    const weatherStore = db.createObjectStore('weather_snapshots', { keyPath: 'id' });
+                    weatherStore.createIndex('by-timestamp', 'timestamp');
+                    weatherStore.createIndex('by-location', 'location');
+                    console.log('✅ Created weather_snapshots store');
                 }
             },
         });
@@ -281,7 +354,7 @@ class DBService {
         const localCanvasBoards = localStorage.getItem('rangerplex_canvas_boards');
 
         return {
-            version: '2.7.7',
+            version: '2.9.0',
             exportedAt: Date.now(),
             chats,
             settings,
@@ -344,6 +417,105 @@ class DBService {
     // Expose DB for other services that share the same database
     async getDB() {
         return this.init();
+    }
+
+    // Alias CRUD operations
+    async saveAlias(alias: any) {
+        const db = await this.init();
+        await db.put('aliases', alias);
+        console.log('💾 Alias saved:', alias.name);
+    }
+
+    async getAlias(name: string) {
+        const db = await this.init();
+        return await db.get('aliases', name);
+    }
+
+    async getAllAliases() {
+        const db = await this.init();
+        return await db.getAll('aliases');
+    }
+
+    async deleteAlias(name: string) {
+        const db = await this.init();
+        await db.delete('aliases', name);
+        console.log('🗑️ Alias deleted:', name);
+    }
+
+    async updateAliasStats(name: string) {
+        const db = await this.init();
+        const alias = await db.get('aliases', name);
+        if (alias) {
+            alias.useCount = (alias.useCount || 0) + 1;
+            alias.lastUsed = Date.now();
+            await db.put('aliases', alias);
+            console.log('📊 Alias stats updated:', name, 'useCount:', alias.useCount);
+        }
+    }
+
+    async getAliasesByCategory(category: string) {
+        const db = await this.init();
+        return await db.getAllFromIndex('aliases', 'by-category', category);
+    }
+
+    // Execution Logs operations
+    async saveExecutionLog(log: any) {
+        const db = await this.init();
+        await db.put('execution_logs', log);
+        console.log('📝 Execution log saved:', log.id);
+    }
+
+    async getExecutionLogs(limit: number = 10) {
+        const db = await this.init();
+        const allLogs = await db.getAllFromIndex('execution_logs', 'by-timestamp');
+        // Return most recent logs (reverse order)
+        return allLogs.reverse().slice(0, limit);
+    }
+
+    async clearExecutionLogs() {
+        const db = await this.init();
+        await db.clear('execution_logs');
+        console.log('🗑️ All execution logs cleared');
+    }
+
+    async getExecutionLogById(id: string) {
+        const db = await this.init();
+        return await db.get('execution_logs', id);
+    }
+
+    // Weather Snapshots operations
+    async saveWeatherSnapshot(snapshot: any) {
+        const db = await this.init();
+        await db.put('weather_snapshots', snapshot);
+        console.log('🌤️ Weather snapshot saved:', snapshot.id);
+    }
+
+    async getWeatherHistory(hours: number = 24) {
+        const db = await this.init();
+        const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+        const allSnapshots = await db.getAllFromIndex('weather_snapshots', 'by-timestamp');
+
+        // Filter by time and reverse to get most recent first
+        return allSnapshots
+            .filter(snapshot => snapshot.timestamp >= cutoffTime)
+            .reverse();
+    }
+
+    async getWeatherByLocation(location: string) {
+        const db = await this.init();
+        return await db.getAllFromIndex('weather_snapshots', 'by-location', location);
+    }
+
+    async clearWeatherHistory() {
+        const db = await this.init();
+        await db.clear('weather_snapshots');
+        console.log('🗑️ Weather history cleared');
+    }
+
+    async getLatestWeatherSnapshot() {
+        const db = await this.init();
+        const allSnapshots = await db.getAllFromIndex('weather_snapshots', 'by-timestamp');
+        return allSnapshots.length > 0 ? allSnapshots[allSnapshots.length - 1] : null;
     }
 }
 

@@ -17,6 +17,7 @@ Control RangerPlex, manage updates, and access settings.
 - `/check update` - Check for updates
 - `/install update` - Auto-update from GitHub
 - `/check wordpress` - WordPress status
+- `/sys-info` - System diagnostics
 - `/study` - Study Clock timer
 - `/wordpress` - WordPress dashboard
 - `/manual` - Open manual
@@ -24,6 +25,27 @@ Control RangerPlex, manage updates, and access settings.
 - `/help` - Command help
 
 **[→ View System Commands Documentation](./SYSTEM_COMMANDS.md)**
+
+---
+
+### 🔍 Diagnostics & Monitoring
+**File**: `DIAGNOSTICS_COMMANDS.md`
+
+Monitor system health, track errors, and manage updates.
+
+**Commands:**
+- `/sys-info` - Comprehensive system diagnostics
+- Smart update notifications
+- Automatic error logging
+
+**Features:**
+- Service status monitoring
+- Database health checks
+- Performance metrics
+- Error tracking
+- Update management
+
+**[→ View Diagnostics Documentation](./DIAGNOSTICS_COMMANDS.md)**
 
 ---
 
@@ -235,7 +257,8 @@ Digital sketching and drawing tools.
 **Total Commands**: 70+
 
 **By Category:**
-- System: 10 commands
+- System: 11 commands
+- Diagnostics: 1 command (+ auto features)
 - Reconnaissance: 20 commands
 - Intelligence: 10 commands
 - Forensics: 10 commands

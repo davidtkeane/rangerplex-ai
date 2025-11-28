@@ -31,6 +31,9 @@ import { updateService } from '../services/updateService';
 import pkg from '../package.json';
 import { forensicCommandHandler } from '../src/commands/forensicCommandHandler';
 import { malwareCommandHandler } from '../src/commands/malwareCommandHandler';
+import { aliasService, type Alias } from '../services/aliasService';
+import AliasConfirmationModal from './AliasConfirmationModal';
+import AliasManager from './AliasManager';
 
 interface ChatInterfaceProps {
     session: ChatSession;
@@ -55,6 +58,17 @@ interface ChatInterfaceProps {
         addXP?: (amount: number) => void;
         setMood?: (mood: PetState['mood']) => void;
     };
+}
+
+interface ExecutionResult {
+    success: boolean;
+    stdout: string;
+    stderr: string;
+    exitCode: number;
+    executionTime: number;
+    command: string;
+    cwd: string;
+    timestamp: number;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -93,10 +107,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const [copiedLast, setCopiedLast] = useState(false);
 
     const [isModelLoading, setIsModelLoading] = useState(false);
+    const [confirmationAlias, setConfirmationAlias] = useState<Alias | null>(null);
+    const [showAliasConfirmation, setShowAliasConfirmation] = useState(false);
+    const [showAliasManager, setShowAliasManager] = useState(false);
+    const aliasAbortRef = useRef<AbortController | null>(null);
 
     useEffect(() => { setLocalModel(session.model); }, [session.id, session.model]);
     const scrollToBottom = () => bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(scrollToBottom, [session.messages.length, isStreaming, processingStatus]);
+
+    // Ensure default aliases are loaded for detection/suggestions
+    useEffect(() => {
+        aliasService.loadDefaultAliases().catch(err => console.warn('Alias preload failed:', err));
+    }, []);
 
     useEffect(() => {
         let timer: ReturnType<typeof setTimeout> | null = null;
@@ -171,6 +194,166 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const handleStop = () => {
         setIsStreaming(false);
         setProcessingStatus(null);
+    };
+
+    const formatAliasOutput = (alias: Alias, result: ExecutionResult): string => {
+        let output = `${alias.icon || '⚡'} **${alias.name}**\n\n`;
+
+        const stripAnsi = (text: string) => text
+            .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')
+            .replace(/\[[0-9;]+m/g, '');
+
+        if (result.stdout) {
+            const hasAnsi = /\x1B\[[0-9;]*[A-Za-z]/.test(result.stdout) || /\[[0-9;]+m/.test(result.stdout);
+            let plain = stripAnsi(result.stdout);
+
+            // Remove curl progress noise lines
+            plain = plain
+                .split('\n')
+                .filter(line => !/^\s*%/.test(line) && !/^\s*\d+\s+\d+/.test(line))
+                .join('\n')
+                .trim();
+
+            // Limit very long outputs
+            const maxChars = 4000;
+            if (plain.length > maxChars) {
+                plain = plain.slice(0, maxChars) + '\n...trimmed...';
+            }
+
+            // Prefer clean plain block; include ANSI block only if desired later
+            output += '```text\n' + plain + '\n```\n\n';
+        }
+
+        if (result.stderr) {
+            output += '⚠️ **Errors:**\n```\n' + result.stderr + '\n```\n\n';
+        }
+
+        output += `✅ **Completed** in ${(result.executionTime / 1000).toFixed(2)}s\n`;
+        output += `📊 Exit Code: ${result.exitCode}\n`;
+
+        return output;
+    };
+
+    const executeAlias = async (alias: Alias, originalText?: string) => {
+        setIsStreaming(true);
+        setProcessingStatus(`Executing ${alias.name} (60s timeout)...`);
+        let abortController: AbortController | null = null;
+
+        // Show the user's command in the transcript
+        onUpdateMessages(prev => [
+            ...prev,
+            {
+                id: uuidv4(),
+                sender: Sender.USER,
+                text: originalText || alias.name,
+                timestamp: Date.now(),
+            },
+        ]);
+
+        try {
+            abortController = new AbortController();
+            aliasAbortRef.current = abortController;
+            const response = await fetch('http://localhost:3010/api/alias/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    aliasName: alias.name,
+                    command: alias.command,
+                    cwd: alias.cwd,
+                    timeout: 60000,
+                }),
+                signal: abortController.signal,
+            });
+
+            const body = await response.json();
+            if (!response.ok || !body.success) {
+                throw new Error(body?.error || 'Alias execution failed');
+            }
+
+            const result: ExecutionResult = body.result;
+            onUpdateMessages(prev => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: formatAliasOutput(alias, result),
+                    timestamp: Date.now(),
+                },
+            ]);
+        } catch (err: any) {
+            const aborted = err?.name === 'AbortError';
+            onUpdateMessages(prev => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: aborted ? '⏹️ **Command cancelled by user.**' : `❌ **Alias Execution Failed**\n\n${err?.message || 'Unknown error'}`,
+                    timestamp: Date.now(),
+                },
+            ]);
+        } finally {
+            aliasAbortRef.current = null;
+            setProcessingStatus(null);
+            setShowAliasConfirmation(false);
+            setConfirmationAlias(null);
+            setIsStreaming(false);
+        }
+    };
+
+    const handleConfirmAlias = async () => {
+        if (!confirmationAlias) return;
+        await executeAlias(confirmationAlias, confirmationAlias.name);
+    };
+
+    const handleCancelAlias = () => {
+        setShowAliasConfirmation(false);
+        setConfirmationAlias(null);
+    };
+
+    const handleCancelRunningCommand = () => {
+        if (aliasAbortRef.current) {
+            aliasAbortRef.current.abort();
+        }
+    };
+
+    const handleViewAliasLogs = async () => {
+        setProcessingStatus('Loading alias logs...');
+        try {
+            const res = await fetch('http://localhost:3010/api/alias/logs?limit=10');
+            const body = await res.json();
+            if (!res.ok || !body.success) {
+                throw new Error(body?.error || 'Failed to load logs');
+            }
+
+            const logs = body.logs as Array<{ id: string; command: string; cwd: string; user: string; timestamp: number; exitCode: number; duration: number; source: string; }>;
+            const formatted = logs.map(log => {
+                const date = new Date(log.timestamp).toLocaleString();
+                return `- ${date} [${log.source}] exit ${log.exitCode} (${log.duration}ms)\n  cwd: ${log.cwd}\n  cmd: ${log.command}`;
+            }).join('\n\n');
+
+            const text = `### 📜 Alias Execution Logs (latest ${logs.length})\n\n${formatted || 'No logs yet.'}`;
+            onUpdateMessages(prev => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text,
+                    timestamp: Date.now(),
+                },
+            ]);
+        } catch (err: any) {
+            onUpdateMessages(prev => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    sender: Sender.AI,
+                    text: `❌ **Failed to load alias logs**\n\n${err?.message || 'Unknown error'}`,
+                    timestamp: Date.now(),
+                },
+            ]);
+        } finally {
+            setProcessingStatus(null);
+        }
     };
 
     const lastMessageText = [...session.messages].reverse().find(msg => msg.text)?.text || '';
@@ -269,6 +452,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     timestamp: Date.now()
                 }
             ]);
+            return; // Don't process as normal message
+        }
+
+        // 🔧 SYSTEM INFO: Type "/sys-info" for system diagnostics
+        if (lowerText.trim() === '/sys-info' || lowerText.trim() === '/sysinfo') {
+            setProcessingStatus('Generating system report...');
+
+            try {
+                const { systemInfoService } = await import('../services/systemInfoService');
+                const report = await systemInfoService.generateReport();
+
+                onUpdateMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: report,
+                        timestamp: Date.now()
+                    }
+                ]);
+            } catch (error) {
+                onUpdateMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: `❌ **System Report Failed**\n\nUnable to generate system diagnostics: ${error instanceof Error ? error.message : String(error)}`,
+                        timestamp: Date.now()
+                    }
+                ]);
+            }
+
+            setProcessingStatus(null);
             return; // Don't process as normal message
         }
 
@@ -448,6 +664,41 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 });
 
             return;
+        }
+
+        // 🎯 ALIAS DETECTION (before slash commands continue)
+        const aliasName = lowerText.trim().replace(/^\//, '');
+        if (aliasName) {
+            try {
+                // Try exact name first
+                let aliasMatch = await aliasService.getAlias(aliasName);
+                // Fallback: prefix match on known aliases
+                if (!aliasMatch) {
+                    const all = await aliasService.getAllAliases();
+                    aliasMatch = all.find(a => aliasName.startsWith(a.name)) || null;
+                }
+
+                if (aliasMatch) {
+                    if (aliasMatch.requires_confirmation) {
+                        setConfirmationAlias(aliasMatch);
+                        setShowAliasConfirmation(true);
+                    } else {
+                        await executeAlias(aliasMatch, text);
+                    }
+                    return;
+                }
+            } catch (err) {
+                onUpdateMessages(prev => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: `❌ **Alias lookup failed**\n\n${err instanceof Error ? err.message : String(err)}`,
+                        timestamp: Date.now(),
+                    },
+                ]);
+                return;
+            }
         }
 
         const docAttachments = attachments.filter(att => !att.mimeType.startsWith('image/'));
@@ -3720,23 +3971,58 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
 
             <div className="p-4 z-20">
-                <div className="flex justify-end mb-2">
-                    <button
-                        onClick={handleCopyLastMessage}
-                        disabled={!lastMessageText}
-                        className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${lastMessageText
-                            ? isTron
-                                ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
-                                : settings.matrixMode
-                                    ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
-                                    : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
-                            : 'border-zinc-800 text-zinc-600 cursor-not-allowed'
+                {/* Button controls - aligned with chat input max-width */}
+                <div className="w-full max-w-3xl mx-auto mb-2">
+                    <div className="flex justify-end gap-2 flex-wrap">
+                        <button
+                            onClick={() => setShowAliasManager(true)}
+                            className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${
+                                isTron
+                                    ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
+                                    : settings.matrixMode
+                                        ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
+                                        : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
                             }`}
-                        title="Copy the most recent chat message"
-                    >
-                        <i className={`fa-regular ${copiedLast ? 'fa-check' : 'fa-copy'} mr-2`}></i>
-                        {copiedLast ? 'Copied last message' : 'Copy last message'}
-                    </button>
+                        >
+                            <i className="fa-solid fa-bolt mr-2"></i>Alias Manager
+                        </button>
+                        <button
+                            onClick={handleViewAliasLogs}
+                            className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${
+                                isTron
+                                    ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
+                                    : settings.matrixMode
+                                        ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
+                                        : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
+                            }`}
+                        >
+                            <i className="fa-solid fa-clipboard-list mr-2"></i>View Logs
+                        </button>
+                        {aliasAbortRef.current && (
+                            <button
+                                onClick={handleCancelRunningCommand}
+                                className="text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors border-red-500/60 text-red-400 hover:bg-red-500/10"
+                            >
+                                <i className="fa-solid fa-stop mr-2"></i>Cancel Command
+                            </button>
+                        )}
+                        <button
+                            onClick={handleCopyLastMessage}
+                            disabled={!lastMessageText}
+                            className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${lastMessageText
+                                ? isTron
+                                    ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
+                                    : settings.matrixMode
+                                        ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
+                                        : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
+                                : 'border-zinc-800 text-zinc-600 cursor-not-allowed'
+                                }`}
+                            title="Copy the most recent chat message"
+                        >
+                            <i className={`fa-regular ${copiedLast ? 'fa-check' : 'fa-copy'} mr-2`}></i>
+                            {copiedLast ? 'Copied last message' : 'Copy last message'}
+                        </button>
+                    </div>
                 </div>
                 <InputArea
                     onSend={handleSendMessage}
@@ -3803,6 +4089,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 />
             )}
             {showDeathStarEasterEgg && <DeathStarEasterEgg onClose={() => setShowDeathStarEasterEgg(false)} />}
+            <AliasConfirmationModal
+                isOpen={showAliasConfirmation}
+                alias={confirmationAlias}
+                onConfirm={handleConfirmAlias}
+                onCancel={handleCancelAlias}
+            />
+            {showAliasManager && <AliasManager isOpen={showAliasManager} onClose={() => setShowAliasManager(false)} />}
         </div>
     );
 };

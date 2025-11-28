@@ -216,6 +216,17 @@ export interface AppSettings {
   abstractIpApiKey?: string; // AbstractAPI IP
   googleSafeBrowsingApiKey?: string; // Google Safe Browsing
 
+  // Weather APIs 🌤️
+  openWeatherApiKey?: string; // OpenWeatherMap
+  tomorrowApiKey?: string; // Tomorrow.io
+  visualCrossingApiKey?: string; // Visual Crossing
+  // Open-Meteo: No API key required!
+
+  // Weather Notifications 🌧️
+  rainNotificationsEnabled?: boolean;
+  rainNotificationTiming?: '1hour' | '3hours' | '12hours' | '24hours';
+  rainNotificationLocation?: string; // Location to monitor (e.g., "Dublin,IE")
+
   // Config
   corsProxyUrl?: string;
   ollamaBaseUrl: string;
@@ -544,6 +555,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   saveStatusNotifications: true,
   saveStatusDurationMs: 5000,
   openLinksInApp: false,
+
+  // Rain Notifications 🌧️
+  rainNotificationsEnabled: false,
+  rainNotificationTiming: '3hours',
+  rainNotificationLocation: 'Dublin,IE',
 
   autoBackupEnabled: true,
   autoBackupInterval: 5, // minutes

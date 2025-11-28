@@ -1,6 +1,6 @@
 {
   "name": "rangerplex-ai",
-  "version": "2.7.7",
+  "version": "2.10.1",
   "type": "module",
   "scripts": {
     "start": "concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
@@ -33,6 +33,7 @@
     "mermaid": "^10.9.0",
     "node-fetch": "^3.3.2",
     "node-pty": "^1.0.0",
+    "openmeteo": "^1.2.2",
     "pdfjs-dist": "^4.0.379",
     "puppeteer": "^24.31.0",
     "react": "^18.3.1",

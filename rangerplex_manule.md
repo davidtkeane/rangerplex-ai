@@ -1,16 +1,175 @@
-# RangerPlex Manual (v2.6.4) 🐳
+# RangerPlex Manual (v2.11.0) 💻
 
 > 🚨 **CRITICAL NOTE FOR AI AGENTS**: This file, along with `docs/RangerPlexBrowser/rangerplexOS/RANGERPLEX_BROWSER_ARCHITECTURE.md`, are the **SINGLE SOURCE OF TRUTH**. Do not rely on old documentation scattered in other folders. We are building the **RangerPlex Browser (Project Phantom Wing)**. Stick to the plan here.
 
-**🎉 NEW IN v2.6.4:** Multi-Site WordPress, Native Browser Tabs, and Link Handling!
+**🎉 NEW IN v2.11.0:** Cleaner alias output, new city weather aliases, red stop button while streaming!
+**Also in v2.10.1:** 🤠 The Lone Ranger Easter Egg on Radio Player!
+**Also in v2.10.0:** Weather Station with astronomical sky, API usage meters, and Irish rain notifications!
+**Also in v2.9.0:** Alias Runner, command safety, logs, and manager!
 
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
 
 ## Quick Links
-- [What's New in v2.6.4](#whats-new-in-v264)
+- [What's New in v2.11.0](#whats-new-in-v2110)
+- [What's New in v2.10.1](#whats-new-in-v2101)
+- [What's New in v2.10.0](#whats-new-in-v2100)
+- [What's New in v2.9.0](#whats-new-in-v290)
+- [What's New in v2.8.0](#whats-new-in-v280)
+- [VSCode Integration](#vscode-integration)
 - [WordPress Management](#wordpress-management)
 - [Monaco Code Editor](#monaco-code-editor)
 - [Death Star Easter Egg](#death-star-easter-egg)
+
+## What's New in v2.11.0
+> **Release Date:** 2025-12-02
+
+### 🌙 Alias Output & Weather
+- **Moon/Sun/City Aliases**: `moon`, `sun`, `nycweather`, `dublinweather`, `londonweather`, `parisweather` now use monochrome ASCII with timeouts to avoid spam.
+- **Clean Output**: ANSI stripped, curl progress hidden, long outputs trimmed; plain text shown to keep chat readable.
+- **Stop Button**: Send/stop turns solid red while streaming for quick abort.
+
+## What's New in v2.10.1
+> **Release Date:** 2025-11-28
+
+### 🤠 The Lone Ranger Radio Easter Egg
+- **Legendary Appearance**: After 5 seconds of radio inactivity, the iconic Lone Ranger appears!
+  - Black & white masked face with signature hat
+  - Replaces the play/pause button as a surprise
+  - David's alter ego watching over your music session
+- **Interactive**: Hover over the Lone Ranger's face to reveal play/pause controls
+- **Smart Timer**: Resets on any interaction:
+  - Clicking play/pause
+  - Changing volume
+  - Switching stations
+  - Expanding from minimized view
+- **Non-Intrusive**: Doesn't interfere with radio functionality - just a cool surprise!
+- **Universal**: Works with all themes (Light, Dark, Tron)
+- **Visual Polish**: Image fits perfectly in circular button with smooth transitions
+
+### 🎸 How to See It
+1. Open Ranger Radio (sidebar button or enable in Settings)
+2. Start playing music (any of the 50+ SomaFM stations)
+3. Don't touch anything for 5 seconds
+4. **The Lone Ranger appears!** 🤠
+5. Hover over to bring back the controls
+
+The masked ranger keeping watch while you code to DEF CON Radio or vibe to Groove Salad. A tribute to the legend! 🎖️
+
+---
+
+## What's New in v2.10.0
+> **Release Date:** 2025-11-28
+
+### 🌦️ Weather Station & Astronomical Sky
+- **Weather Station Dashboard**: Complete weather monitoring system accessible from sidebar or Settings.
+  - **4-API Integration**: OpenWeatherMap (1000 calls/day), Tomorrow.io (500 calls/day), Visual Crossing (1000 calls/day), Open-Meteo (unlimited FREE)
+  - **Current Conditions**: Temperature, feels-like, humidity, pressure, wind speed/direction, UV index, visibility, air quality
+  - **Forecasts**: Hourly and daily forecast previews with icons and temperatures
+  - **Air Quality Breakdown**: PM2.5, PM10, NO2, O3, SO2, CO levels with health indicators
+
+### 📊 API Usage Meters
+- **Real-Time Tracking**: Visual progress bars showing API call usage vs daily limits
+- **Color Coding**:
+  - Green (0-50% used) - All good!
+  - Yellow (50-80% used) - Getting close
+  - Red (80%+ used) - Approaching limit
+- **Reset Timers**: Countdown showing hours/minutes until midnight reset
+- **Persistent Storage**: Usage stats saved to IndexedDB, survive page refreshes
+- **Unlimited Badge**: Special meter for Open-Meteo (no limits!)
+
+### 🌌 Dynamic Astronomical Sky Background
+- **Real Celestial Mechanics**: Actual sun/moon positions calculated from your location and time
+- **Astronomical Calculations**:
+  - Julian Day calendar for precise time tracking
+  - Solar position: altitude, azimuth, right ascension, declination
+  - Lunar phase: 8 phases across 29.53-day synodic month
+  - Hour angle and ecliptic coordinates
+  - Sunrise/sunset calculations
+- **Visual Effects**:
+  - **100 Animated Stars**: Twinkling effect at night, fade during day
+  - **Floating Clouds**: 5 clouds with parallax movement
+  - **Time-Based Gradients**: Night (deep blue/purple), Dawn (orange/pink), Day (light blue), Dusk (orange/red)
+  - **Celestial Objects**: Sun (yellow glow) and Moon (correct phase rendering)
+
+### 🌧️ Irish Rain Notifications
+- **Smart Rain Detection**: Checks Open-Meteo hourly forecast for precipitation > 0.5mm
+- **Configurable Timing**: Get notified 1hr, 3hrs, 12hrs, or 24hrs before rain
+- **Location-Based**: Monitor any location (default: Dublin, IE)
+- **Rain Intensity**:
+  - Drizzle (< 2mm)
+  - Light rain (2-5mm)
+  - Moderate rain (5-10mm)
+  - Heavy rain (> 10mm)
+- **Irish Touch**: "Don't forget your brolly! 🇮🇪" message for rain within 3 hours
+- **Notification Control**:
+  - 30-minute check intervals
+  - 10-minute cooldown between notifications
+  - "View Weather" button opens Weather Station
+  - "Dismiss" button closes notification
+- **Settings**: Enable/disable, timing, and location in Settings → Weather tab
+
+### 🎨 UI Design
+- **Glassmorphism**: backdrop-blur-md with semi-transparent backgrounds
+- **Theme-Aware**: Works with Light, Dark, and Tron themes
+- **Sidebar Access**: New "Weather" button for quick access
+- **Professional Cards**: Clean, organized layout with icons and visual hierarchy
+
+### 🔧 Technical Features
+- **Zero Errors**: All TypeScript compiled perfectly on first try
+- **Efficient API Usage**: Smart tracking prevents quota exhaustion
+- **Intelligent Fallback**: Automatically tries all 4 APIs if one fails
+- **Spam Prevention**: Notification cooldown system
+- **Persistent State**: Usage stats and settings saved across sessions
+
+---
+
+## What's New in v2.9.0
+> **Release Date:** 2025-12-01
+
+### 🤖 Alias Runner & Safety
+- **Alias Execution**: Chat can run allowlisted commands/aliases with confirmation modal, timeout (60s), cancel button, and streaming output.
+- **Allowlist + Validation**: Blocks pipes/redirects/subshells; env-prefix safe; blacklist for destructive commands.
+- **Execution Logs**: `/api/alias/logs` surfaced in chat via “View Logs” and inside Alias Manager; audit trail stored in DB.
+- **Cancel/Timeout**: Abort in-flight alias runs with a dedicated Cancel button; backend timeout enforced.
+
+### 🧭 Alias Manager & UX
+- **Alias Manager UI**: Create/edit/delete/import/export aliases; view recent execution logs; tag/category metadata.
+- **Chat Integrations**: Alias detection (supports `/alias` or `alias`), confirmation modal, formatted output, and log viewer.
+- **Autocomplete**: Inline suggestions with arrow/enter selection; click-outside close; defaults preload for `moon`, `nddy`, `gitstatus`, etc.
+
+---
+
+## What's New in v2.8.0
+> **Release Date:** 2025-11-28
+
+### 💻 VSCode Integration (code-server)
+- **Full VSCode Editor**: Type `/code` to open a complete VSCode environment (code-server on port 8080).
+- **Custom Folder Support**: Use `/code /path/to/folder` to open specific directories.
+- **Tab or Window Mode**: Choose to open VSCode in a full-screen tab overlay or new browser window.
+- **Setting Control**: Configure "Open VSCode in Tab" (default: true) in Settings → Workspace Behavior.
+
+### 🌐 WordPress Dual-Mode System
+- **Choice Modal**: Beautiful modal lets you choose between Docker or PHP server WordPress.
+- **Docker Mode**: Full WordPress + MySQL + phpMyAdmin container (existing feature).
+- **PHP Server Mode**: NEW! Lightweight standalone WordPress from `software/` folder (port 8091).
+- **Smart Routing**: Type `/wordpress` or `/wp` - the command routes based on your preference.
+- **Settings Control**:
+  - "WordPress Default Mode": Ask Every Time (shows modal), Always Use Docker, or Always Use PHP Server
+  - "Open WordPress in Tab": Control tab vs window behavior (default: true)
+
+### 🔧 Backend API Endpoints
+- `POST /api/wordpress-php/start` - Start PHP server (port 8091)
+- `POST /api/wordpress-php/stop` - Stop PHP server
+- `GET /api/wordpress-php/status` - Check PHP server status
+- `GET /api/code-server/status` - Check code-server status
+
+### ⚙️ Workspace Behavior Settings
+New settings in **Settings → Workspace Behavior**:
+- ☑ Open VSCode in Tab
+- ☑ Open WordPress in Tab
+- **WordPress Default Mode** dropdown (Ask/Docker/PHP)
+
+---
 
 ## What's New in v2.6.4
 > **Release Date:** 2025-11-27
@@ -59,6 +218,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - [Ranger Console (Terminal)](#ranger-console-terminal)
 - [Canvas Board](#canvas-board)
 - [Radio](#radio)
+- [Weather Station](#weather-station)
 - [Win95 Retro Mode](#win95-retro-mode)
 - [Notes & Sticky Notes](#notes--sticky-notes)
 - [Backups, Sync, Export](#backups-sync-export)
@@ -124,24 +284,68 @@ The Manual Viewer now includes quick navigation buttons in the top header:
 - **Main Area**: Returns to the main chat interface.
 - **Close**: Exits the manual viewer.
 
+## VSCode Integration
+> **New in v2.8.0:** Full VSCode editor integrated into RangerPlex!
+
+- **Access**:
+  - Type `/code` in the chat to open VSCode with the default project folder.
+  - Type `/code /path/to/folder` to open VSCode with a specific directory.
+- **Features**:
+  - **Full code-server**: Complete VSCode experience running on port 8080.
+  - **Tab Mode**: Opens in a full-screen overlay tab within RangerPlex (default).
+  - **Window Mode**: Opens in a new browser window for multi-monitor setups.
+  - **Close Button**: Easy X button in the top-right corner to close the editor.
+  - **Professional Coding**: Full syntax highlighting, IntelliSense, extensions, and terminal access.
+- **Requirements**:
+  - code-server must be installed and running on port 8080.
+  - Install with: `brew install code-server` (macOS) or follow code-server installation guide.
+  - Auto-start via LaunchAgent (recommended) or start manually: `code-server --bind-addr 127.0.0.1:8080`.
+- **Settings**:
+  - **Settings → Workspace Behavior → Open VSCode in Tab**: Toggle between tab and window mode.
+  - **Default**: Opens in tab (true).
+- **Use Cases**:
+  - Edit RangerPlex source code while chatting with AI about it.
+  - Live coding with AI assistance.
+  - Multi-project development without leaving RangerPlex.
+  - Perfect for developers who want everything in one interface.
+
 ## WordPress Management
-> **New in v2.6.1:** Full local WordPress control via Docker.
+> **Updated in v2.8.0:** Now with Dual-Mode System (Docker + PHP Server)!
 
 - **Access**:
   - Click the **WP** button in the sidebar.
-  - Type `/wordpress` in the chat.
-- **Features**:
+  - Type `/wordpress` or `/wp` in the chat.
+- **NEW: Choice Modal** (v2.8.0):
+  - Beautiful modal appears asking you to choose between:
+    - **🐳 Docker WordPress**: Full container with MySQL + phpMyAdmin
+    - **💻 PHP Server WordPress**: Lightweight standalone from `software/` folder
+  - Modal can be bypassed by setting a default mode in Settings.
+- **Docker Mode Features**:
   - **Dashboard**: View status of Local by Flywheel sites and the internal Docker instances.
   - **Multi-Site Support**: Run up to **3 independent WordPress sites** simultaneously.
   - **Docker Control**: Start, Stop, and **Delete/Reinstall** each site individually.
   - **Auto-Start**: The dashboard automatically ensures Site #1 is running when opened (configurable).
   - **Native Tabs**: Clicking "Open Admin" opens the WP Admin panel directly in a RangerPlex browser tab.
-- **Technical Details**:
-  - **Site 1**: Port **8081** (`http://localhost:8081`)
-  - **Site 2**: Port **8082** (`http://localhost:8082`)
-  - **Site 3**: Port **8083** (`http://localhost:8083`)
-  - Uses `docker-compose` profiles (`site1`, `site2`, `site3`) with persistent volumes in `./wordpress-data/siteX`.
-  - **Delete / Reinstall**: The button wipes the database and files for that specific site, giving you a fresh start.
+  - **Technical Details**:
+    - **Site 1**: Port **8081** (`http://localhost:8081`)
+    - **Site 2**: Port **8082** (`http://localhost:8082`)
+    - **Site 3**: Port **8083** (`http://localhost:8083`)
+    - Uses `docker-compose` profiles (`site1`, `site2`, `site3`) with persistent volumes in `./wordpress-data/siteX`.
+    - **Delete / Reinstall**: The button wipes the database and files for that specific site, giving you a fresh start.
+- **PHP Server Mode** (NEW in v2.8.0):
+  - **Lightweight**: Runs WordPress from `software/wordpress/public_html/` folder.
+  - **Port 8091**: Accessed at `http://localhost:8091`.
+  - **Auto-Start**: PHP server starts automatically when you select this mode.
+  - **No Docker**: Perfect for quick WordPress editing without containers.
+  - **Process Management**: Backend tracks PHP server PID for clean shutdown.
+  - **Requirements**: PHP must be installed (`php -v` to check).
+- **Settings** (v2.8.0):
+  - **Settings → Workspace Behavior → WordPress Default Mode**:
+    - "Ask Every Time" (default) - Shows choice modal
+    - "Always Use Docker" - Skips modal, opens Docker WordPress
+    - "Always Use PHP Server" - Skips modal, opens PHP WordPress
+  - **Settings → Workspace Behavior → Open WordPress in Tab**:
+    - Toggle between tab overlay and new window (default: true/tab)
 
 ## Browser Mode (New)
 > **Project Phantom Wing**: RangerPlex is now a standalone browser.
@@ -235,10 +439,119 @@ The Manual Viewer now includes quick navigation buttons in the top header:
 - **Sync:** Local IndexedDB; optional cloud sync broadcast.
 
 ## Radio
-- **Player:** Bottom/side widget when enabled.  
-- **Controls:** Play/pause, station list (e.g., Soma DEFCON), volume, minimize.  
+- **Player:** Bottom/side widget when enabled.
+- **Controls:** Play/pause, station list (e.g., Soma DEFCON), volume, minimize.
 - **Settings:** `radioEnabled`, `radioAutoPlay` (may be restricted by browsers), `radioVolume`, last station, theme-aware UI.
 - **Tips:** If auto-play is blocked, click to start; minimized mode keeps playback with small controls.
+- **🤠 Easter Egg (NEW in v2.10.1):** The Lone Ranger appears after 5 seconds of inactivity!
+  - After 5 seconds with no radio interaction, the legendary Lone Ranger (black & white masked face with hat) appears in the play/pause button
+  - Hover over the Lone Ranger to instantly reveal play/pause controls
+  - Any interaction (play, pause, volume, station change) resets the timer
+  - David's alter ego watching over your music - a tribute to the legend! 🎖️
+
+## Weather Station
+> **New in v2.10.0:** Complete weather monitoring with astronomical sky background!
+
+### Access
+- **Sidebar Button**: Click the "Weather" button (cloud-sun icon) in the sidebar
+- **Settings**: Weather tab in Settings modal
+
+### Features
+
+#### 🌤️ Real-Time Weather Data
+- **Current Conditions**: Temperature, feels-like, humidity, pressure, wind speed/direction
+- **Additional Metrics**: UV index, visibility, dew point, cloud cover
+- **Air Quality**: Complete AQI breakdown (PM2.5, PM10, NO2, O3, SO2, CO)
+- **Forecasts**: Hourly (next 24 hours) and daily (next 7 days) previews
+
+#### 📊 API Usage Meters
+- **4-API Integration**:
+  - **OpenWeatherMap**: 1000 calls/day (green → yellow → red indicators)
+  - **Tomorrow.io**: 500 calls/day
+  - **Visual Crossing**: 1000 calls/day
+  - **Open-Meteo**: Unlimited FREE (special ∞ badge)
+- **Visual Tracking**:
+  - Progress bars with percentage
+  - Color coding based on usage (green/yellow/red)
+  - Countdown timers until midnight reset
+  - Call count display (e.g., "243 / 1000 calls")
+- **Smart Fallback**: Automatically switches to Open-Meteo if paid APIs exceed limits
+
+#### 🌌 Dynamic Astronomical Sky
+- **Real Celestial Mechanics**:
+  - Sun and Moon positioned based on actual astronomical calculations
+  - Julian Day calendar for precise time tracking
+  - Solar altitude, azimuth, right ascension, declination
+  - Lunar phase calculation (29.53-day cycle)
+- **Visual Effects**:
+  - **100 Twinkling Stars**: Visible at night, fade during day
+  - **5 Floating Clouds**: Parallax movement across sky
+  - **Time-Based Gradients**:
+    - Night: Deep blue/purple (stars visible)
+    - Dawn: Orange/pink transition
+    - Day: Light blue sky
+    - Dusk: Orange/red sunset
+  - **Celestial Objects**:
+    - Sun: Yellow glow with correct position
+    - Moon: Correct phase (new/crescent/quarter/gibbous/full)
+
+#### 🌧️ Irish Rain Notifications
+- **Smart Detection**: Monitors upcoming precipitation using Open-Meteo hourly forecast
+- **Configurable Timing**: Choose notification window in Settings
+  - 1 hour before rain
+  - 3 hours before rain (default)
+  - 12 hours before rain
+  - 24 hours before rain
+- **Rain Intensity Display**:
+  - Drizzle: < 2mm
+  - Light rain: 2-5mm
+  - Moderate rain: 5-10mm
+  - Heavy rain: > 10mm
+- **Location-Based**: Set your location (default: Dublin, IE)
+- **Irish Touch**: Special "Don't forget your brolly! 🇮🇪" message within 3 hours
+- **Notification Features**:
+  - Shows time until rain (minutes or hours)
+  - Displays expected precipitation (mm)
+  - "View Weather" button opens Weather Station
+  - "Dismiss" button closes notification
+  - 10-minute cooldown prevents spam
+
+### Settings Configuration
+
+#### Weather Tab (Settings → Weather)
+- **Rain Notifications Section** (blue-themed with ☔ icons):
+  - **Enable Toggle**: Turn rain notifications on/off
+  - **Timing Selector**: Choose notification window (1hr/3hrs/12hrs/24hrs)
+  - **Location Input**: Set monitoring location (e.g., "Dublin,IE", "London,UK", "New York,US")
+
+### Technical Details
+- **API Tracking**: All 9 weather service methods tracked
+- **Persistent Storage**: Usage stats saved to IndexedDB
+- **Daily Reset**: Counters reset at midnight automatically
+- **30-Minute Checks**: Rain detection runs every 30 minutes
+- **Glassmorphism UI**: backdrop-blur-md for professional look
+- **Theme Support**: Works with Light, Dark, and Tron themes
+
+### Tips
+- **API Efficiency**: Use Open-Meteo (unlimited) when possible to preserve paid API quotas
+- **Multiple Locations**: Change location in settings to monitor different areas
+- **Rain Alerts**: Enable longer notification windows (12-24hrs) for planning outdoor activities
+- **Astronomical Background**: Watch the sun/moon move in real-time throughout the day
+- **Stars**: Best visible at night with dark theme enabled
+
+### Use Cases
+- **Daily Weather Checks**: Quick glance at current conditions
+- **API Quota Management**: Monitor usage to avoid hitting limits
+- **Rain Planning**: Get advance notice for Irish weather (notoriously unpredictable!)
+- **Educational**: Learn astronomy with real celestial positions
+- **Beautiful Ambiance**: Enjoy animated sky background while working
+
+### Troubleshooting
+- **No rain notifications**: Check Settings → Weather → Enable toggle is ON
+- **Wrong location**: Update location in Settings → Weather tab
+- **API meters not updating**: Refresh page to reload usage stats
+- **Stars not visible**: Stars only appear at night (when sun altitude is negative)
+- **Sky not changing**: Sky updates based on current time and solar position
 
 ## Win95 Retro Mode
 - **What:** Retro-themed state (“Windows 95” flavor) persisted in IndexedDB; syncable.  

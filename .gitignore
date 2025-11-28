@@ -91,3 +91,6 @@ wordpress-data/
 # Software applications copied from RangerOS
 # (Large binaries and apps - keep local)
 software/
+
+# Contracts (keep local only)
+contracts/

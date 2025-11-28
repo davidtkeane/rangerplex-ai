@@ -1,0 +1,334 @@
+[
+  {
+    "name": "moon",
+    "command": "curl -sS --max-time 6 https://wttr.in/Moon?Q",
+    "description": "Show moon phase (ASCII art, monochrome)",
+    "requires_confirmation": false,
+    "category": "fun",
+    "tags": [
+      "weather",
+      "ascii"
+    ],
+    "icon": "🌙",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  },
+  {
+    "name": "sun",
+    "command": "curl -sS --max-time 6 https://wttr.in/Sun?Q",
+    "description": "Sunrise/sunset summary (ASCII art, monochrome)",
+    "requires_confirmation": false,
+    "category": "fun",
+    "tags": [
+      "weather",
+      "ascii",
+      "sun"
+    ],
+    "icon": "☀️",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  },
+  {
+    "name": "nycweather",
+    "command": "curl -sS --max-time 6 https://wttr.in/New_York?Q",
+    "description": "NYC weather snapshot (ASCII, monochrome)",
+    "requires_confirmation": false,
+    "category": "fun",
+    "tags": [
+      "weather",
+      "ascii",
+      "nyc"
+    ],
+    "icon": "🗽",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  },
+  {
+    "name": "weather",
+    "command": "curl wttr.in",
+    "description": "Weather report",
+    "requires_confirmation": false,
+    "category": "fun",
+    "tags": [
+      "weather"
+    ],
+    "icon": "🌤️",
+    "created": 1732752000000,
+    "useCount": 0
+  },
+  {
+    "name": "nddy",
+    "command": "date +\"%d %b %Y %T %z\"",
+    "description": "Human-friendly timestamp",
+    "requires_confirmation": false,
+    "category": "utility",
+    "tags": [
+      "time"
+    ],
+    "icon": "📅",
+    "created": 1732752000000,
+    "useCount": 0
+  },
+  {
+    "name": "ny",
+    "command": "TZ='America/New_York' tty-clock -sct -f \"%a, %d %b %Y %T %z\"",
+    "description": "Live New York clock",
+    "requires_confirmation": false,
+    "category": "utility",
+    "tags": [
+      "time",
+      "clock",
+      "ny"
+    ],
+    "icon": "🗽",
+    "created": 1732752000000,
+    "useCount": 0
+  },
+  {
+    "name": "myip",
+    "command": "curl https://ipinfo.io/ip",
+    "description": "Show public IP",
+    "requires_confirmation": false,
+    "category": "system",
+    "tags": [
+      "network",
+      "ip"
+    ],
+    "icon": "📡",
+    "created": 1732752000000,
+    "useCount": 0
+  },
+  {
+    "name": "rangerbot",
+    "command": "python3 chat_with_rangerbot.py --model RangerSmyth/rangerbot-8b:v2 --database",
+    "description": "Open Rangerbot chat",
+    "cwd": "/Users/ranger/scripts/Rangers_Stuff/Projects_2025/Virtual_Assistant/Virtual-AI-App/tools",
+    "requires_confirmation": true,
+    "category": "custom",
+    "tags": [
+      "bot",
+      "python"
+    ],
+    "icon": "🤖",
+    "created": 1732752000000,
+    "useCount": 0
+  },
+  {
+    "name": "gitstatus",
+    "command": "git status",
+    "description": "Git status (clean read-only)",
+    "requires_confirmation": false,
+    "category": "system",
+    "tags": [
+      "git"
+    ],
+    "icon": "📂",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  },
+  {
+    "name": "gitlog",
+    "command": "git log -n 5 --oneline",
+    "description": "Recent commits",
+    "requires_confirmation": false,
+    "category": "system",
+    "tags": [
+      "git",
+      "log"
+    ],
+    "icon": "🧭",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  },
+  {
+    "name": "diskfree",
+    "command": "df -h",
+    "description": "Disk usage",
+    "requires_confirmation": false,
+    "category": "system",
+    "tags": [
+      "disk",
+      "storage"
+    ],
+    "icon": "💾",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin"
+    ]
+  },
+  {
+    "name": "sysuptime",
+    "command": "uptime",
+    "description": "System uptime",
+    "requires_confirmation": false,
+    "category": "system",
+    "tags": [
+      "system",
+      "uptime"
+    ],
+    "icon": "⏱️",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin"
+    ]
+  },
+  {
+    "name": "findjs",
+    "command": "find . -name \"*.js\"",
+    "description": "Find JavaScript files",
+    "requires_confirmation": false,
+    "category": "utility",
+    "tags": [
+      "search",
+      "files"
+    ],
+    "icon": "🔍",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin"
+    ]
+  },
+  {
+    "name": "windir",
+    "command": "dir",
+    "description": "List directory (Windows)",
+    "requires_confirmation": false,
+    "category": "utility",
+    "tags": [
+      "files",
+      "windows"
+    ],
+    "icon": "🪟",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "windows"
+    ]
+  },
+  {
+    "name": "winps-dir",
+    "command": "powershell -Command Get-ChildItem",
+    "description": "List directory via PowerShell",
+    "requires_confirmation": false,
+    "category": "utility",
+    "tags": [
+      "files",
+      "windows",
+      "powershell"
+    ],
+    "icon": "🪟",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "windows"
+    ]
+  },
+  {
+    "name": "windisk",
+    "command": "powershell -Command Get-PSDrive",
+    "description": "Disk/drive info (Windows)",
+    "requires_confirmation": false,
+    "category": "system",
+    "tags": [
+      "disk",
+      "windows"
+    ],
+    "icon": "🪟",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "windows"
+    ]
+  },
+  {
+    "name": "dublinweather",
+    "command": "curl -sS --max-time 6 https://wttr.in/Dublin?Q",
+    "description": "Dublin weather snapshot (ASCII, monochrome)",
+    "requires_confirmation": false,
+    "category": "fun",
+    "tags": [
+      "weather",
+      "ascii",
+      "dublin"
+    ],
+    "icon": "🍀",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  },
+  {
+    "name": "londonweather",
+    "command": "curl -sS --max-time 6 https://wttr.in/London?Q",
+    "description": "London weather snapshot (ASCII, monochrome)",
+    "requires_confirmation": false,
+    "category": "fun",
+    "tags": [
+      "weather",
+      "ascii",
+      "london"
+    ],
+    "icon": "🎡",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  },
+  {
+    "name": "parisweather",
+    "command": "curl -sS --max-time 6 https://wttr.in/Paris?Q",
+    "description": "Paris weather snapshot (ASCII, monochrome)",
+    "requires_confirmation": false,
+    "category": "fun",
+    "tags": [
+      "weather",
+      "ascii",
+      "paris"
+    ],
+    "icon": "🗼",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  }
+]

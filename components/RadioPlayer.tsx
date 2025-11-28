@@ -362,11 +362,39 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
   const [nowPlaying, setNowPlaying] = useState<string>('');
   const [nowPlayingTimer, setNowPlayingTimer] = useState<NodeJS.Timeout | null>(null);
 
+  // 🎸 Ranger Easter Egg - Show rangersmyth-pic.png after 5s of inactivity
+  const [showRangerPic, setShowRangerPic] = useState(false);
+  const [isHoveringButton, setIsHoveringButton] = useState(false);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Helper function to get proxied stream URL (bypass CORS)
   const getProxiedUrl = (originalUrl: string) => {
     const proxyBaseUrl = settings.corsProxyUrl || 'http://localhost:3010';
     return `${proxyBaseUrl}/api/radio/stream?url=${encodeURIComponent(originalUrl)}`;
   };
+
+  // 🎸 Reset inactivity timer (called on any user interaction)
+  const resetInactivityTimer = () => {
+    setShowRangerPic(false);
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = setTimeout(() => {
+      setShowRangerPic(true);
+    }, 5000); // 5 seconds
+  };
+
+  // 🎸 Setup and cleanup inactivity timer
+  useEffect(() => {
+    if (!isMinimized) {
+      resetInactivityTimer();
+    }
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [isMinimized]);
 
 
 
@@ -408,6 +436,7 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
   const handlePlay = async () => {
     if (!audioRef.current) return;
 
+    resetInactivityTimer(); // 🎸 Reset timer on interaction
     setIsLoading(true);
     setError(null);
 
@@ -446,17 +475,20 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
   const handlePause = () => {
     if (audioRef.current) {
+      resetInactivityTimer(); // 🎸 Reset timer on interaction
       audioRef.current.pause();
       setIsPlaying(false);
     }
   };
 
   const handleVolumeChange = (newVolume: number) => {
+    resetInactivityTimer(); // 🎸 Reset timer on interaction
     setVolume(newVolume);
     onSettingsChange({ radioVolume: newVolume });
   };
 
   const handleStationChange = (stationId: string) => {
+    resetInactivityTimer(); // 🎸 Reset timer on interaction
     const station = RADIO_STATIONS.find(s => s.id === stationId);
     if (station) {
       const wasPlaying = isPlaying;
@@ -586,16 +618,23 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-3 relative">
-
-
               <button
                 onClick={isPlaying ? handlePause : handlePlay}
+                onMouseEnter={() => setIsHoveringButton(true)}
+                onMouseLeave={() => setIsHoveringButton(false)}
                 disabled={isLoading}
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${buttonClass} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all overflow-hidden ${buttonClass} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 title={isPlaying ? 'Pause' : 'Play'}
               >
-                {isLoading ? (
+                {/* 🎸 Show Ranger's picture after 5s of inactivity, hide on hover */}
+                {showRangerPic && !isHoveringButton ? (
+                  <img
+                    src="/image/rangersmyth-pic.png"
+                    alt="Ranger"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : isLoading ? (
                   <i className="fa-solid fa-circle-notch fa-spin text-lg"></i>
                 ) : isPlaying ? (
                   <i className="fa-solid fa-pause text-lg"></i>

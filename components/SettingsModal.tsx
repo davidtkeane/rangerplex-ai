@@ -10,6 +10,7 @@ import { dbService } from '../services/dbService';
 import { syncService } from '../services/syncService';
 import { updateService, UpdateInfo } from '../services/updateService';
 import pkg from '../package.json';
+import AliasManager from './AliasManager';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -41,7 +42,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'weather' | 'about' | 'github'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
 
     // Window mode state (normal, fullscreen, minimized)
@@ -62,6 +63,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [loadingModels, setLoadingModels] = useState(false);
     const [promptSearch, setPromptSearch] = useState('');
     const [promptImportText, setPromptImportText] = useState('');
+    const [showAliasManager, setShowAliasManager] = useState(false);
 
     // Update Checker State
     const [updateStatus, setUpdateStatus] = useState<UpdateInfo | null>(null);
@@ -853,6 +855,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     }
 
     return (
+        <>
         <div className={`fixed z-[10000] transition-all duration-300 ${windowMode === 'fullscreen'
             ? 'inset-0'
             : 'inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4'
@@ -892,7 +895,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                 {/* Tabs */}
                 <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'rangerblock', 'editor', 'data', 'about', 'github'].map((tab) => (
+                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'rangerblock', 'editor', 'data', 'weather', 'about', 'github'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -967,6 +970,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <input type="checkbox" checked={localSettings.openLinksInApp || false} onChange={e => setLocalSettings({ ...localSettings, openLinksInApp: e.target.checked })} className="accent-teal-500 w-5 h-5" />
                                         Open External Links in RangerPlex Tab
                                     </label>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold mb-2">Aliases</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAliasManager(true)}
+                                        className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-500 transition-colors"
+                                    >
+                                        Open Alias Manager
+                                    </button>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">Manage chat/run aliases and defaults.</p>
                                 </div>
                             </div>
 
@@ -2743,6 +2757,218 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         </div>
                     )}
 
+                    {/* WEATHER TAB */}
+                    {activeTab === 'weather' && (
+                        <div className="space-y-6">
+                            <div className="p-4 border border-teal-500/30 rounded bg-teal-500/5">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                    <i className="fa-solid fa-cloud-sun text-teal-400"></i>
+                                    🌤️ RangerPlex Weather Station
+                                </h3>
+                                <p className="text-sm opacity-80 mb-4">
+                                    Configure your 4-API weather arsenal! RangerPlex combines OpenWeatherMap, Tomorrow.io, Visual Crossing, and Open-Meteo for maximum accuracy and historical data.
+                                </p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-xs">
+                                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded">
+                                        <div className="font-bold text-green-400 mb-1">✅ OpenWeatherMap</div>
+                                        <div className="opacity-70">Current conditions, 5-day forecast, air quality</div>
+                                    </div>
+                                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded">
+                                        <div className="font-bold text-green-400 mb-1">✅ Tomorrow.io</div>
+                                        <div className="opacity-70">Minute-by-minute forecasts, 60+ data layers!</div>
+                                    </div>
+                                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded">
+                                        <div className="font-bold text-green-400 mb-1">✅ Visual Crossing</div>
+                                        <div className="opacity-70">50-year historical data, 15-day forecasts</div>
+                                    </div>
+                                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded">
+                                        <div className="font-bold text-green-400 mb-1">✅ Open-Meteo (FREE!)</div>
+                                        <div className="opacity-70">80-year history, unlimited calls, no key needed!</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* API Keys Section */}
+                            <div className="space-y-4">
+                                <h4 className="font-bold text-sm flex items-center gap-2">
+                                    <i className="fa-solid fa-key"></i>
+                                    Weather API Keys
+                                </h4>
+
+                                {/* Weather API keys removed from UI because AppSettings does not currently include them. Add to type + persistence before re-enabling. */}
+
+                                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <i className="fa-solid fa-info-circle text-blue-400"></i>
+                                        <span className="font-bold text-sm">Open-Meteo (No Key Required!)</span>
+                                    </div>
+                                    <div className="text-xs opacity-80">
+                                        Open-Meteo is completely FREE and requires no API key! It provides 80 years of historical data with unlimited API calls. Already integrated via npm package.
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Rain Notifications Section ☔🇮🇪 */}
+                            <div className="space-y-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded">
+                                <h4 className="font-bold text-sm flex items-center gap-2">
+                                    <i className="fa-solid fa-cloud-rain text-blue-400"></i>
+                                    ☔ Irish Rain Notifications
+                                </h4>
+                                <p className="text-xs opacity-80 mb-3">
+                                    Get notified before it rains! Perfect for Irish weather where sunshine and rain happen at the same time. 🇮🇪
+                                </p>
+
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.rainNotificationsEnabled || false}
+                                        onChange={(e) => onSave({ ...settings, rainNotificationsEnabled: e.target.checked })}
+                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm">Enable rain notifications</span>
+                                </label>
+
+                                {settings.rainNotificationsEnabled && (
+                                    <div className="space-y-3 mt-3 pl-6 border-l-2 border-blue-500/30">
+                                        <div>
+                                            <label className="block text-sm mb-1">
+                                                <i className="fa-solid fa-clock mr-1"></i>
+                                                Notify me before rain
+                                            </label>
+                                            <select
+                                                value={settings.rainNotificationTiming || '3hours'}
+                                                onChange={(e) => onSave({ ...settings, rainNotificationTiming: e.target.value as any })}
+                                                className="w-full p-2 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded text-sm"
+                                            >
+                                                <option value="1hour">1 hour before</option>
+                                                <option value="3hours">3 hours before</option>
+                                                <option value="12hours">12 hours before</option>
+                                                <option value="24hours">24 hours before</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm mb-1">
+                                                <i className="fa-solid fa-location-dot mr-1"></i>
+                                                Location to monitor
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.rainNotificationLocation || 'Dublin,IE'}
+                                                onChange={(e) => onSave({ ...settings, rainNotificationLocation: e.target.value })}
+                                                placeholder="Dublin,IE"
+                                                className="w-full p-2 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded text-sm"
+                                            />
+                                            <p className="text-xs opacity-60 mt-1">Use format: City,Country (e.g., Cork,IE)</p>
+                                        </div>
+
+                                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded text-xs">
+                                            <div className="flex items-start gap-2">
+                                                <i className="fa-solid fa-umbrella text-blue-400 mt-0.5"></i>
+                                                <div>
+                                                    <div className="font-bold mb-1">How it works:</div>
+                                                    <div className="opacity-80">
+                                                        RangerPlex checks the weather every 30 minutes using Open-Meteo (FREE & unlimited!).
+                                                        When rain is detected within your timeframe, you'll get a notification with the expected
+                                                        rain intensity and exact timing. Don't forget your brolly! 🇮🇪
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Weather Station Features */}
+                            <div className="space-y-4">
+                                <h4 className="font-bold text-sm flex items-center gap-2">
+                                    <i className="fa-solid fa-rocket"></i>
+                                    Weather Station Features
+                                </h4>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-check text-green-400 mt-1"></i>
+                                        <div>
+                                            <div className="font-bold">Real-time Conditions</div>
+                                            <div className="text-xs opacity-70">Live weather from 4 APIs with intelligent fallback</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-check text-green-400 mt-1"></i>
+                                        <div>
+                                            <div className="font-bold">Minute-by-Minute Forecast</div>
+                                            <div className="text-xs opacity-70">"Rain starting in 8 minutes!" precision</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-check text-green-400 mt-1"></i>
+                                        <div>
+                                            <div className="font-bold">Air Quality Monitor</div>
+                                            <div className="text-xs opacity-70">PM2.5, PM10, CO2, pollen index</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-check text-green-400 mt-1"></i>
+                                        <div>
+                                            <div className="font-bold">Historical Analysis</div>
+                                            <div className="text-xs opacity-70">80 years of weather data (1940-2024)</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-check text-green-400 mt-1"></i>
+                                        <div>
+                                            <div className="font-bold">Weather Maps</div>
+                                            <div className="text-xs opacity-70">Temperature, radar, precipitation layers</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-check text-green-400 mt-1"></i>
+                                        <div>
+                                            <div className="font-bold">ASCII Weather Art</div>
+                                            <div className="text-xs opacity-70">Beautiful terminal-style weather displays</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-check text-teal-400 mt-1"></i>
+                                        <div>
+                                            <div className="font-bold">Blockchain Weather Reports 🎖️</div>
+                                            <div className="text-xs opacity-70">Publish weather to RangerBlock network!</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <i className="fa-solid fa-check text-green-400 mt-1"></i>
+                                        <div>
+                                            <div className="font-bold">Study Condition Optimizer</div>
+                                            <div className="text-xs opacity-70">Best study times based on weather</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Info Box */}
+                            <div className="p-4 border border-teal-500/30 rounded bg-teal-500/5">
+                                <div className="flex items-start gap-3">
+                                    <i className="fa-solid fa-lightbulb text-yellow-400 text-xl mt-1"></i>
+                                    <div className="text-sm">
+                                        <div className="font-bold mb-1">💡 Pro Tip</div>
+                                        <div className="opacity-80">
+                                            The Weather Station automatically uses the best API for each request. If one API is down, it seamlessly falls back to the others. You get <strong>maximum uptime</strong> and <strong>best data</strong> from all 4 sources!
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Total Cost Badge */}
+                            <div className="text-center p-6 bg-green-500/10 border border-green-500/30 rounded">
+                                <div className="text-3xl font-bold text-green-400 mb-2">$0.00</div>
+                                <div className="text-sm opacity-80">Total Monthly Cost</div>
+                                <div className="text-xs opacity-60 mt-2">All 4 weather APIs are completely FREE! 🎖️</div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ABOUT & SUPPORT TAB */}
                     {activeTab === 'about' && (
                         <div className="space-y-6">
@@ -2982,6 +3208,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 </div>
             </div>
         </div >
+        {showAliasManager && (
+            <AliasManager
+                isOpen={showAliasManager}
+                onClose={() => setShowAliasManager(false)}
+            />
+        )}
+        </>
     );
 };
 

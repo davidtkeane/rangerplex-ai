@@ -17,6 +17,10 @@ import net from 'net';
 import puppeteer from 'puppeteer';
 import pty from 'node-pty';
 import { createRequire } from 'module';
+import { allowlistValidator } from './services/allowlistValidator.js';
+import { commandExecutor } from './services/commandExecutor.js';
+import { executionLogger } from './services/executionLogger.js';
+import { aliasService } from './services/aliasService.node.js';
 
 // Import blockchain service (CommonJS)
 const require = createRequire(import.meta.url);
@@ -73,9 +77,23 @@ db.exec(`
     password TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS execution_logs (
+    id TEXT PRIMARY KEY,
+    command TEXT NOT NULL,
+    cwd TEXT NOT NULL,
+    user TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    exit_code INTEGER NOT NULL,
+    duration INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    stdout TEXT,
+    stderr TEXT
+  );
 `);
 
 console.log('✅ Database initialized at:', dbPath);
+executionLogger.setDb(db);
 
 // REST API Endpoints
 
@@ -249,6 +267,133 @@ app.delete('/api/clear', (req, res) => {
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', database: 'connected' });
+});
+
+// Execute allowlisted command or alias
+app.post('/api/alias/execute', async (req, res) => {
+    const { aliasName, command, cwd, timeout } = req.body || {};
+
+    if (!command || typeof command !== 'string') {
+        return res.status(400).json({ success: false, error: 'Command is required' });
+    }
+
+    const validation = allowlistValidator.validateCommand(command);
+    if (!validation.valid) {
+        return res.status(403).json({
+            success: false,
+            error: validation.reason,
+        });
+    }
+
+    const workingDir = typeof cwd === 'string' && cwd.trim().length ? cwd : process.cwd();
+    const timeoutMs = typeof timeout === 'number' ? timeout : 60000;
+
+    try {
+        const result = await commandExecutor.execute(command, workingDir, timeoutMs);
+
+        await executionLogger.log({
+            command,
+            cwd: workingDir,
+            user: 'current-user',
+            timestamp: result.timestamp,
+            exitCode: result.exitCode,
+            duration: result.executionTime,
+            source: aliasName ? 'alias' : 'allowlist',
+            stdout: result.stdout,
+            stderr: result.stderr,
+        });
+
+        res.json({ success: true, result });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get execution logs
+app.get('/api/alias/logs', async (req, res) => {
+    const limit = Number(req.query.limit) || 10;
+    try {
+        const logs = await executionLogger.getRecentLogs(limit);
+        res.json({ success: true, logs });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ========================================
+// ALIAS MANAGEMENT ENDPOINTS (Phase 3)
+// ========================================
+
+// Get all aliases
+app.get('/api/alias/list', async (req, res) => {
+    try {
+        const aliases = await aliasService.getAllAliases();
+        res.json({ success: true, aliases });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Create alias
+app.post('/api/alias/create', async (req, res) => {
+    try {
+        await aliasService.createAlias(req.body);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
+
+// Update alias
+app.put('/api/alias/update/:name', async (req, res) => {
+    try {
+        await aliasService.updateAlias(req.params.name, req.body);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
+
+// Delete alias
+app.delete('/api/alias/delete/:name', async (req, res) => {
+    try {
+        await aliasService.deleteAlias(req.params.name);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
+
+// Export aliases
+app.get('/api/alias/export', async (req, res) => {
+    try {
+        const json = await aliasService.exportAliases();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=aliases.json');
+        res.send(json);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Import aliases
+app.post('/api/alias/import', async (req, res) => {
+    try {
+        const count = await aliasService.importAliases(req.body.json);
+        res.json({ success: true, importedCount: count });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
+
+// Install pre-built pack
+app.post('/api/alias/install-pack', async (req, res) => {
+    try {
+        await aliasService.installPack(req.body.packName);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
+    }
 });
 
 // Brave Search proxy (avoids browser CORS)
@@ -4022,7 +4167,7 @@ server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎖️  RANGERPLEX AI SERVER v2.7.5                        ║
+║   🎖️  RANGERPLEX AI SERVER v2.11.0                       ║
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║

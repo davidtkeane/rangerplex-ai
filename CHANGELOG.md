@@ -5,6 +5,246 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.1] - 2025-11-28 🤠 THE LONE RANGER RADIO EASTER EGG
+
+### 🎸 Ranger Radio Easter Egg
+- **Lone Ranger Appears!**: After 5 seconds of inactivity on the radio player, the legendary Lone Ranger (black & white masked face with hat) appears in the play/pause button
+- **Hover Interaction**: Move your mouse over the Ranger's face to instantly reveal the play/pause controls
+- **Smart Timer**: Resets on any interaction (play/pause, volume change, station change, expanding from minimized)
+- **Visual Polish**: Image fits perfectly in circular button with smooth transitions
+- **Theme Support**: Works seamlessly with Light, Dark, and Tron themes
+- **Non-Intrusive**: Easter egg doesn't interfere with functionality - just a cool surprise for users vibing to the music!
+
+### 🎯 Technical Details
+- **File**: RadioPlayer.tsx
+- **Image**: `/image/rangersmyth-pic.png` (The iconic Lone Ranger mask and hat)
+- **Timer**: 5-second inactivity countdown with proper cleanup
+- **State Management**: `showRangerPic`, `isHoveringButton`, `inactivityTimerRef`
+- **Interaction Tracking**: All user actions reset the timer (play, pause, volume, station, minimize)
+
+### 🎭 The Lone Ranger Lives!
+David's alter ego is now watching over the radio - the masked ranger keeping guard while you code to DEF CON Radio or chill to Groove Salad. A perfect tribute to the legend! 🎖️
+
+---
+
+## [2.11.0] - 2025-12-02 🌙 Alias Outputs & City Weather
+### 🎯 Highlights
+- Clean alias output formatting: ANSI stripped, curl progress hidden, and truncation for long outputs.
+- Moon/Sun/City weather aliases (Dublin/London/Paris/NYC) with monochrome ASCII snapshots and 6s timeout.
+- Alias runner state fix to prevent duplicate executions; stop button clearly red while streaming.
+
+### 🧭 Notes
+- Default aliases now include OS metadata (Windows/POSIX) and timeouts on curl requests.
+- Startup banner, system reports, and badges updated to v2.11.0.
+
+---
+
+## [2.10.0] - 2025-11-28 🌦️ WEATHER STATION & ASTRONOMICAL SKY
+
+### 🌤️ Major Features
+- **Weather Station Dashboard**: Complete weather monitoring system with real-time data from 4 APIs
+  - OpenWeatherMap (1000 calls/day)
+  - Tomorrow.io (500 calls/day)
+  - Visual Crossing (1000 calls/day)
+  - Open-Meteo (unlimited, FREE)
+- **API Usage Meters**: Real-time tracking with visual progress bars
+  - Color-coded indicators (green/yellow/red based on usage)
+  - Countdown timers showing time until daily reset
+  - Persistent tracking via IndexedDB
+  - Special "unlimited" meter for Open-Meteo
+- **Dynamic Astronomical Sky Background**: Real sun/moon positioning with animations
+  - Julian Day calendar calculations for precise time
+  - Solar position (altitude, azimuth, right ascension, declination)
+  - Lunar phase determination (8 phases across 29.53-day synodic month)
+  - 100 animated twinkling stars at night
+  - 5 floating clouds with parallax effect
+  - 4 time-based sky gradients (night/dawn/day/dusk)
+  - Sunrise/sunset calculations
+- **Irish Rain Notifications** 🇮🇪: Smart rain alerts with Irish charm
+  - Configurable timing (1hr, 3hrs, 12hrs, 24hrs ahead)
+  - Rain intensity calculator (Drizzle/Light/Moderate/Heavy)
+  - Location-based monitoring (default: Dublin, IE)
+  - 30-minute check intervals
+  - Irish-specific messaging ("Don't forget your brolly! 🇮🇪")
+  - Opens Weather Station on click
+  - 10-minute cooldown between notifications
+
+### 🎨 UI Components
+- **WeatherStation.tsx**: Enhanced weather display with comprehensive metrics
+  - Current conditions with all available data
+  - Hourly and daily forecast previews
+  - Air quality breakdown
+  - UV index, visibility, pressure trends
+  - Wind speed and direction
+  - Glassmorphism design (backdrop-blur-md)
+- **DynamicSky.tsx** (NEW): Realistic astronomical background
+  - Real-time celestial object positioning
+  - Hour angle and ecliptic coordinate calculations
+  - Adaptive sky colors based on solar altitude
+  - Star field generation with twinkling animation
+  - Cloud movement with CSS animations
+- **RainNotification.tsx** (NEW): Blue-themed notification component
+  - Matches UpdateNotification design pattern
+  - Time formatting (hours/minutes until rain)
+  - Precipitation amount display (mm)
+  - Theme-aware (Light/Dark/Tron)
+
+### 🔧 Backend Services
+- **weatherService.ts**: Enhanced with tracking and rain detection
+  - API call tracking across all 9 methods
+  - Persistent usage stats with midnight reset
+  - `checkForUpcomingRain()` method using Open-Meteo hourly data
+  - `getAPIUsageStats()` for meter display
+  - Intelligent fallback system across 4 APIs
+
+### ⚙️ Settings Integration
+- **Rain Notification Settings** (Settings → Weather tab):
+  - Enable/disable toggle
+  - Timing selector (1hr, 3hrs, 12hrs, 24hrs)
+  - Location input (e.g., "Dublin,IE")
+  - Blue-themed section with ☔ icons
+
+### 📊 Type Definitions
+- `APIUsageStats` interface for tracking
+- `RainAlert` interface for notifications
+- `rainNotificationsEnabled: boolean`
+- `rainNotificationTiming: '1hour' | '3hours' | '12hours' | '24hours'`
+- `rainNotificationLocation: string`
+
+### 🎯 Technical Achievements
+- **Zero TypeScript Errors**: All features compiled perfectly on first try
+- **Astronomical Accuracy**: Real celestial mechanics calculations
+- **API Efficiency**: Smart usage tracking prevents quota exhaustion
+- **Notification Intelligence**: Spam prevention with cooldown system
+- **Irish Weather Ready**: Perfect for unpredictable Irish climate
+
+### 🌍 Use Cases
+- Weather monitoring with API usage awareness
+- Rain preparedness for Irish weather
+- Educational astronomy (real sun/moon positions)
+- Multi-API fallback for reliability
+- Beautiful ambient background during work
+
+---
+
+## [2.9.0] - 2025-12-01 ⚡ Alias Runner & Command Safety
+### 🎯 Major Features
+- **Alias Runner**: Chat detects aliases (with `/alias` support), shows confirmation modal, enforces allowlist/blacklist validation, and streams output.
+- **Cancel/Timeout**: 60s default timeout with user-facing Cancel button to abort in-flight commands.
+- **Default Alias Pack**: Preloaded aliases (moon, nddy, gitstatus, etc.) for instant use and autocomplete.
+
+### 🛠️ Backend
+- Added `services/aliasService.node.js` for server-side alias CRUD and packs; execution logging persisted and exposed via `/api/alias/logs`.
+- Startup banner now reflects v2.9.0.
+
+### 🖥️ UI/UX
+- Alias Manager launchers in chat controls and Settings; in-manager log viewer.
+- Chat controls include “View Logs” + “Cancel Command” while running.
+- Autocomplete supports arrow/enter selection and click-outside close; default aliases preloaded.
+- Sidebar shows current app version badge (v2.9.0).
+
+### 🧹 Fixes
+- Null safety for Open-Meteo parsing in weather service.
+- Removed unsupported weather API key inputs from Settings to match `AppSettings` shape.
+
+---
+
+## [2.8.0] - 2025-11-28 💻 VSCODE & WORDPRESS DUAL-MODE INTEGRATION
+### 🎯 Major Features
+- **VSCode Integration (code-server)**:
+  - `/code` command opens VSCode in tab or new window
+  - `/code /path/to/folder` opens VSCode with custom folder path
+  - Full code-server integration (port 8080)
+  - Tab mode: Full-screen overlay with close button
+  - Window mode: Opens in new browser window
+  - Setting: "Open VSCode in Tab" (default: true)
+
+- **WordPress Dual-Mode System**:
+  - **Choice Modal**: Beautiful modal for selecting WordPress mode
+  - **Docker Mode**: Full WordPress + MySQL + phpMyAdmin (existing)
+  - **PHP Server Mode**: Lightweight standalone from `software/` folder (NEW!)
+  - `/wordpress` or `/wp` command with smart routing
+  - Setting: "WordPress Default Mode" (Ask/Docker/PHP)
+  - Setting: "Open WordPress in Tab" (default: true)
+
+### 🔧 Backend API Endpoints
+- `POST /api/wordpress-php/start` - Start PHP server (port 8091)
+- `POST /api/wordpress-php/stop` - Stop PHP server
+- `GET /api/wordpress-php/status` - Check PHP server status
+- `GET /api/code-server/status` - Check VSCode status
+- `POST /api/server/restart` - Restart RangerPlex server
+- `GET /api/server/check-update` - Check for updates
+- `POST /api/server/install-update` - Install updates
+- `GET /api/wordpress/status` - WordPress container status
+
+### 🔍 System Diagnostics (NEW!)
+- **`/sys-info` Command**: Comprehensive system health report
+  - RangerPlex version and uptime
+  - Service status monitoring (Proxy, Vite, WordPress)
+  - Database connection and statistics
+  - Recent error logs (last 10)
+  - Performance metrics (memory usage)
+- **Error Logging Service**: Automatic error capture and tracking
+  - Categorized by service
+  - Severity levels (error, warning, info)
+  - Stack trace preservation
+  - Limited to last 100 errors
+
+### 🔔 Enhanced Update System
+- **Smart Update Notifications**: Non-intrusive popup when updates available
+  - One-click install from notification
+  - Auto-save protection (saves all chats and settings before update)
+  - Theme-aware design (Light/Dark/Tron)
+- **Improved Version Comparison**: Proper semver comparison logic
+- **Cache-Busting**: Ensures latest version info is always fetched
+- **Update moved from ChatInterface to App**: Global update checking
+
+### 🎨 UI Components
+- **AppChoiceModal**: Reusable modal for app choices
+  - Clean design with icons and descriptions
+  - Click outside to close
+  - Keyboard accessible
+  - Hint about setting defaults in Settings
+
+### ⚙️ Settings Panel
+**Workspace Behavior Section**:
+- ☑ Open VSCode in Tab
+- ☑ Open WordPress in Tab
+- **WordPress Default Mode** dropdown:
+  - "Ask Every Time" (shows choice modal)
+  - "Always Use Docker" (skips modal)
+  - "Always Use PHP Server" (skips modal)
+
+### 📋 Type Definitions
+- `vscodeOpenInTab: boolean`
+- `wordpressOpenInTab: boolean`
+- `wordpressDefaultMode: 'docker' | 'php' | 'ask'`
+
+### 🎖️ User Experience
+- **Smart Routing**: WordPress command routes based on user preference
+- **Persistent Settings**: All preferences saved across reloads
+- **Consistent Behavior**: VSCode and WordPress follow same tab pattern as Terminal, Notes, Browser
+- **Professional UI**: Smooth overlays, clean modals, intuitive controls
+
+### 🔨 Technical Implementation
+- State management: `isVSCodeOpen`, `isWordPressChoiceOpen`
+- Handler functions: `openVSCode()`, `openWordPress()`, `openWordPressDocker()`, `openWordPressPHP()`
+- PHP server: `php -S localhost:8091 -t public_html`
+- Process tracking: Map-based PID storage
+- Iframe overlays: Full-screen with close buttons
+- Settings persistence: IndexedDB + server sync
+
+### 📊 Progress
+**100% Complete**:
+- ✅ Backend endpoints
+- ✅ Type definitions
+- ✅ Choice modal component
+- ✅ App.tsx state & handlers
+- ✅ ChatInterface commands
+- ✅ Settings UI
+- ✅ Render components
+- ✅ Compilation testing
+
 ---
 
 ## [2.7.7] - 2025-11-28

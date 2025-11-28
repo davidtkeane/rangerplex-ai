@@ -1,0 +1,10 @@
+# Antigravity Ignore Exceptions
+# These paths are gitignored but should be readable by Antigravity
+
+# Allow reading docs folder (gitignored, but needed for AI assistance)
+!docs/
+!docs/**
+
+# Allow reading software folder (gitignored, but needed for AI assistance)
+!software/
+!software/**

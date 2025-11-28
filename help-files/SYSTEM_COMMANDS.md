@@ -191,10 +191,50 @@ Typing certain names triggers easter eggs:
 
 ## 📊 System Information
 
-### `/sys`
-Displays system information (coming soon).
-- **Shows**: CPU, memory, uptime, version info
-- **Example**: `/sys`
+### `/sys-info`
+Displays comprehensive system diagnostics and health report.
+- **Aliases**: `/sysinfo`
+- **Shows**: 
+  - RangerPlex version and uptime
+  - Service status (Proxy, Vite, WordPress)
+  - Database connection and stats
+  - Recent errors (last 10)
+  - Performance metrics (memory usage)
+- **Example**: `/sys-info`
+
+**Sample Output:**
+```markdown
+# 🎖️ RangerPlex System Report
+
+**Version**: 2.7.7
+**Uptime**: 2h 15m
+
+## 🔧 Services
+
+✅ **Proxy Server** (Port 3010) - RUNNING
+✅ **Vite Dev Server** (Port 5173) - RUNNING
+⏸️ **WordPress** (Port 8080) - STOPPED
+
+## 💾 Database
+
+- **Status**: ✅ Connected
+- **Chat Sessions**: 42
+
+## ✅ No Recent Errors
+
+System is running smoothly!
+
+## 📊 Performance
+
+- **Memory Usage**: 125.45 MB
+```
+
+**Use Cases:**
+- Quick health check
+- Troubleshooting issues
+- Monitoring system performance
+- Checking service status
+- Reviewing recent errors
 
 ---
 
@@ -273,6 +313,7 @@ Displays system information (coming soon).
 | `/check update` | Check for updates | `/check update` |
 | `/install update` | Install update | `/install update` |
 | `/check wordpress` | WordPress status | `/check wordpress` |
+| `/sys-info` | System diagnostics | `/sys-info` |
 | `/study` | Open study timer | `/study` |
 | `/wordpress` | Open WordPress | `/wordpress` |
 | `/manual` | Open manual | `/manual` |

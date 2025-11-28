@@ -10,8 +10,9 @@ export interface UpdateInfo {
 export const updateService = {
   async checkForUpdates(currentVersion: string = '0.0.0'): Promise<UpdateInfo> {
     try {
-      // 1. Fetch package.json to get the latest version number
-      const pkgResponse = await fetch('https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/package.json');
+      // 1. Fetch package.json to get the latest version number (with cache-busting)
+      const cacheBuster = `?t=${Date.now()}`;
+      const pkgResponse = await fetch(`https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/package.json${cacheBuster}`);
       if (!pkgResponse.ok) {
         throw new Error(`GitHub API Error: ${pkgResponse.statusText}`);
       }
@@ -27,13 +28,12 @@ export const updateService = {
       const date = new Date(commitData.commit.author.date).toLocaleDateString();
       const htmlUrl = commitData.html_url;
 
-      // 3. Compare versions
-      // Simple string comparison for now, assuming standard semver increases
-      const hasUpdate = remoteVersion !== currentVersion;
+      // 3. Compare versions using semver logic
+      const hasUpdate = this.isNewerVersion(remoteVersion, currentVersion);
 
       return {
         hasUpdate,
-        latestVersion: remoteVersion, // Use semver as the primary version identifier
+        latestVersion: remoteVersion,
         latestDate: date,
         latestMessage: message,
         htmlUrl: htmlUrl
@@ -49,5 +49,22 @@ export const updateService = {
         error: error instanceof Error ? error.message : String(error)
       };
     }
+  },
+
+  // Helper function to compare semver versions
+  isNewerVersion(remote: string, local: string): boolean {
+    const parseVersion = (v: string) => {
+      const cleaned = v.replace(/^v/, '');
+      return cleaned.split('.').map(n => parseInt(n) || 0);
+    };
+
+    const [rMajor, rMinor, rPatch] = parseVersion(remote);
+    const [lMajor, lMinor, lPatch] = parseVersion(local);
+
+    if (rMajor > lMajor) return true;
+    if (rMajor < lMajor) return false;
+    if (rMinor > lMinor) return true;
+    if (rMinor < lMinor) return false;
+    return rPatch > lPatch;
   }
 };
