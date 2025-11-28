@@ -567,6 +567,49 @@ RangerPlex includes a comprehensive OSINT (Open Source Intelligence) arsenal wit
 - **Rate Limits:** Free tier limits apply to most APIs. Paid plans available for higher volume.
 - **Audit Guides:** See `help-files/BROWSER_AUDIT_README.md` for storage cleanup and key safety best practices.
 
+## Digital Forensics Module
+> **New in v2.7.0:** A complete suite for file analysis, chain of custody, and timeline reconstruction.
+
+- **Hashing & Integrity:**
+  - `/hash <file>`: Calculate MD5, SHA1, SHA256 hashes.
+  - `/hash-verify <file> <hash>`: Verify a file against a known hash.
+  - `/hash-dir <directory>`: Recursively hash an entire directory.
+- **Metadata Analysis:**
+  - `/metadata <file>`: Extract file system metadata (permissions, dates, ownership).
+  - `/exif <file>`: Extract EXIF data from images (GPS, camera info).
+- **Timeline Analysis:**
+  - `/timeline <directory>`: Generate a chronological timeline of file modifications (MAC times).
+- **String Search:**
+  - `/strings <file>`: Extract printable strings from binaries.
+  - `/grep <pattern> <file>`: Search for patterns within files.
+- **Chain of Custody:**
+  - `/custody-start <case_id>`: Initialize a new chain of custody log.
+  - `/custody-log <action> <file>`: Log an action (e.g., "collected", "analyzed") for a file.
+  - `/custody-export`: Export the chain of custody log to JSON.
+
+## Malware Analysis Module
+> **New in v2.7.3:** Advanced tools for static analysis, containment, and VM operations.
+
+- **Core Analysis:**
+  - `/malware-hash <file>`: Multi-hash fingerprinting.
+  - `/malware-fileinfo <file>`: Deep file type detection (Magic Bytes).
+  - `/malware-strings <file>`: Advanced string extraction with filters (`--urls`, `--ips`, `--emails`).
+  - `/malware-entropy <file>`: Detect packed/encrypted malware via Shannon entropy.
+  - `/malware-hexdump <file>`: View canonical hex dumps.
+  - `/malware-pe <file>`: Analyze Windows PE headers (Imports, Sections).
+  - `/malware-elf <file>`: Analyze Linux ELF headers.
+  - `/ioc-extract <file>`: Auto-extract IPs, URLs, and Domains.
+- **Containment:**
+  - `/malware-quarantine <file>`: Securely isolate and lock suspicious files.
+  - `/malware-restore <hash>`: Restore files from quarantine.
+- **Testing & Training:**
+  - `/malware-test-deploy`: Deploy safe test malware ("General Grievous").
+  - `/malware-test-run`: Run test malware to generate artifacts.
+- **Advanced Ops (VM & Metasploit):**
+  - `/vm-list`, `/vm-start`, `/vm-stop`: Control UTM/VirtualBox VMs.
+  - `/msfconsole <cmd>`: Run Metasploit commands on Kali via SSH.
+  - `/msfvenom <opts>`: Generate payloads remotely.
+
 ## Model Training & Data Tools
 - **Location:** Settings → Data & Tools tab.  
 - **Training:** Launch model training from this tab (moved off sidebar).  

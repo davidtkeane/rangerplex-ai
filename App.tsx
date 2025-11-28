@@ -45,6 +45,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTerminalOpen, setIsTerminalOpen] = useState(false); // Ranger Console State
+  const [isTerminalMinimized, setIsTerminalMinimized] = useState(false); // Ranger Console Minimize State
   const [isTrainingOpen, setIsTrainingOpen] = useState(false);
   const [isStudyNotesOpen, setIsStudyNotesOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState<{ title?: string; content?: string; imageUrl?: string; savedImagePath?: string } | null>(null);
@@ -948,25 +949,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Ranger Console (Terminal) Panel */}
-          {isTerminalOpen && (
-            <div className={`h-1/3 min-h-[250px] border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-zinc-900'} text-white p-0 font-mono text-sm overflow-hidden relative z-40 shadow-2xl flex flex-col`}>
-              <div className={`flex items-center justify-between px-4 py-2 text-xs font-bold uppercase tracking-wider border-b ${isTron ? 'bg-tron-cyan/10 border-tron-cyan/30 text-tron-cyan' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
-                <div className="flex items-center gap-2">
-                  <i className="fa-solid fa-terminal"></i>
-                  <span>Ranger Console</span>
-                  <span className="px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 text-[10px]">CONNECTED</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button className="hover:text-white transition-colors"><i className="fa-solid fa-expand"></i></button>
-                  <button onClick={() => setIsTerminalOpen(false)} className="hover:text-white transition-colors"><i className="fa-solid fa-xmark"></i></button>
-                </div>
-              </div>
-              <div className="flex-1 bg-black p-1 font-mono overflow-hidden">
-                <RangerTerminal />
-              </div>
-            </div>
-          )}
         </main>
 
         {isSettingsOpen && (
@@ -1059,6 +1041,57 @@ const App: React.FC = () => {
             onSessionComplete={handlePetSessionCelebrate}
             onClose={() => setIsStudyClockOpen(false)}
           />
+        )}
+
+        {/* Ranger Console (Terminal) - Floating or Minimized */}
+        {isTerminalOpen && !isTerminalMinimized && (
+          <div className={`fixed bottom-0 left-0 right-0 h-1/3 min-h-[250px] max-h-[500px] border-t ${isTron ? 'border-tron-cyan/30 bg-black' : 'border-gray-200 dark:border-zinc-800 bg-zinc-900'} text-white p-0 font-mono text-sm overflow-hidden z-[9000] shadow-2xl flex flex-col`}>
+            <div className={`flex items-center justify-between px-4 py-2 text-xs font-bold uppercase tracking-wider border-b ${isTron ? 'bg-tron-cyan/10 border-tron-cyan/30 text-tron-cyan' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-terminal"></i>
+                <span>Ranger Console</span>
+                <span className="px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 text-[10px]">CONNECTED</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setIsTerminalMinimized(true)} className="hover:text-white transition-colors" title="Minimize"><i className="fa-solid fa-window-minimize"></i></button>
+                <button className="hover:text-white transition-colors" title="Expand"><i className="fa-solid fa-expand"></i></button>
+                <button onClick={() => setIsTerminalOpen(false)} className="hover:text-white transition-colors" title="Close Console"><i className="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+            <div className="flex-1 bg-black p-1 font-mono overflow-hidden">
+              <RangerTerminal />
+            </div>
+          </div>
+        )}
+
+        {/* Ranger Console - Minimized Tab (beside Settings) */}
+        {isTerminalOpen && isTerminalMinimized && (
+          <div
+            className={`fixed bottom-4 left-[216px] z-[9999] rounded-lg border-2 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 backdrop-blur-sm ${
+              isTron
+                ? 'bg-tron-dark border-tron-cyan text-tron-cyan shadow-[0_0_20px_rgba(0,243,255,0.2)]'
+                : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border-gray-200 dark:border-zinc-800'
+            }`}
+            onClick={() => setIsTerminalMinimized(false)}
+          >
+            <div className="flex items-center justify-between px-4 py-2 gap-3 min-w-[200px]">
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-terminal text-base"></i>
+                <span className="font-bold uppercase tracking-wide text-xs">Console</span>
+                <span className="px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 text-[9px]">ON</span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsTerminalMinimized(false);
+                }}
+                className="opacity-70 hover:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-white/10"
+                title="Restore"
+              >
+                <i className="fa-solid fa-window-restore text-xs"></i>
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Canvas Board */}

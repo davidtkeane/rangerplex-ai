@@ -44,6 +44,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'data' | 'about' | 'github'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
 
+    // Window mode state (normal, fullscreen, minimized)
+    const [windowMode, setWindowMode] = useState<'normal' | 'fullscreen' | 'minimized'>(() => {
+        const saved = localStorage.getItem('settings_window_mode');
+        return (saved === 'fullscreen' || saved === 'minimized' || saved === 'normal') ? saved : 'normal';
+    });
+
     // RangerBlock state
     const [blockchainStatus, setBlockchainStatus] = useState<any>(null);
     const [blockchainConfig, setBlockchainConfig] = useState<any>({
@@ -800,18 +806,90 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         ? 'bg-black border border-tron-cyan/50 text-tron-cyan focus:shadow-[0_0_10px_#00f3ff] placeholder-tron-cyan/30'
         : 'bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-white';
 
+    // Window mode toggle functions
+    const toggleFullscreen = () => {
+        const newMode = windowMode === 'fullscreen' ? 'normal' : 'fullscreen';
+        setWindowMode(newMode);
+        localStorage.setItem('settings_window_mode', newMode);
+    };
+
+    const minimizeWindow = () => {
+        setWindowMode('minimized');
+        localStorage.setItem('settings_window_mode', 'minimized');
+    };
+
+    const restoreWindow = () => {
+        setWindowMode('normal');
+        localStorage.setItem('settings_window_mode', 'normal');
+    };
+
     if (!isOpen) return null;
 
+    // Minimized bar (floating bottom-left, horizontal tab style)
+    if (windowMode === 'minimized') {
+        return (
+            <div
+                className={`fixed bottom-4 left-4 z-[9999] rounded-lg border-2 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 backdrop-blur-sm ${themeClass}`}
+                onClick={restoreWindow}
+            >
+                <div className="flex items-center justify-between px-4 py-2 gap-3 min-w-[200px]">
+                    <div className="flex items-center gap-2">
+                        <i className="fa-solid fa-gear text-base"></i>
+                        <span className="font-bold uppercase tracking-wide text-xs">Settings</span>
+                    </div>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            restoreWindow();
+                        }}
+                        className="opacity-70 hover:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-white/10"
+                        title="Restore"
+                    >
+                        <i className="fa-solid fa-window-restore text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-            <div className={`w-full max-w-4xl rounded-2xl border shadow-2xl overflow-hidden flex flex-col max-h-[90vh] min-h-[70vh] transition-all duration-300 ${themeClass}`}>
+        <div className={`fixed z-[10000] transition-all duration-300 ${
+            windowMode === 'fullscreen'
+                ? 'inset-0'
+                : 'inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4'
+        } animate-fade-in`}>
+            <div className={`w-full rounded-2xl border shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${
+                windowMode === 'fullscreen'
+                    ? 'h-full max-w-none rounded-none'
+                    : 'max-w-4xl max-h-[95vh] min-h-[75vh]'
+            } ${themeClass}`}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-inherit">
                     <h2 className="text-xl font-bold uppercase tracking-wider">Settings</h2>
-                    <button onClick={onClose} className="opacity-70 hover:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-white/10">
-                        <i className="fa-solid fa-xmark text-xl"></i>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={minimizeWindow}
+                            className="opacity-70 hover:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-white/10"
+                            title="Minimize"
+                        >
+                            <i className="fa-solid fa-window-minimize"></i>
+                        </button>
+                        <button
+                            onClick={toggleFullscreen}
+                            className="opacity-70 hover:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-white/10"
+                            title={windowMode === 'fullscreen' ? 'Exit Fullscreen' : 'Fullscreen'}
+                        >
+                            <i className={`fa-solid ${windowMode === 'fullscreen' ? 'fa-compress' : 'fa-expand'}`}></i>
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="opacity-70 hover:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-white/10"
+                            title="Close"
+                        >
+                            <i className="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Tabs */}
@@ -827,7 +905,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     ))}
                 </div>
 
-                <div className={`flex-1 overflow-y-auto p-6 scrollbar-thin min-h-[60vh] ${localSettings.theme === 'tron' ? 'scrollbar-thumb-tron-cyan scrollbar-track-black' : ''}`}>
+                <div className={`flex-1 overflow-y-auto p-6 scrollbar-thin min-h-[65vh] ${localSettings.theme === 'tron' ? 'scrollbar-thumb-tron-cyan scrollbar-track-black' : ''}`}>
 
                     {/* GENERAL TAB */}
                     {activeTab === 'general' && (
@@ -934,6 +1012,182 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     <input type="checkbox" checked={localSettings.useStudyNotesInChat ?? true} onChange={e => setLocalSettings({ ...localSettings, useStudyNotesInChat: e.target.checked })} className="accent-teal-500 w-5 h-5" />
                                     Include Study Notes in Chat Context
                                 </label>
+                            </div>
+
+                            {/* Server Management Section */}
+                            <div className={`mt-6 p-4 rounded-lg border ${localSettings.theme === 'tron' ? 'bg-tron-cyan/5 border-tron-cyan/30' : 'bg-gray-800/30 border-gray-700/50'}`}>
+                                <h3 className="font-bold mb-4 pb-2 border-b border-inherit flex items-center gap-2">
+                                    <i className="fa-solid fa-server"></i>
+                                    Server Management
+                                </h3>
+
+                                {/* Check for Updates */}
+                                <div className="mb-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-sm mb-1 flex items-center gap-2">
+                                                <i className="fa-brands fa-github"></i>
+                                                System Updates
+                                            </h4>
+                                            <div className="text-xs opacity-70">
+                                                Check for the latest version of RangerPlex AI from GitHub
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleCheckUpdate}
+                                            disabled={checkingUpdate}
+                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${
+                                                localSettings.theme === 'tron'
+                                                    ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black disabled:opacity-50'
+                                                    : 'bg-gray-700 hover:bg-gray-600 text-white disabled:opacity-50'
+                                            }`}
+                                        >
+                                            {checkingUpdate ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-rotate"></i>}
+                                            Check Updates
+                                        </button>
+                                    </div>
+                                    {updateStatus && (
+                                        <div className={`mt-3 p-3 rounded text-xs border ${updateStatus.error ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+                                            {updateStatus.error ? (
+                                                <div className="text-red-400">Error: {updateStatus.error}</div>
+                                            ) : (
+                                                <div>
+                                                    <div className="font-bold text-green-400 mb-1">
+                                                        <i className="fa-solid fa-rocket mr-2"></i>
+                                                        Latest Version: {updateStatus.latestVersion} ({updateStatus.latestDate})
+                                                    </div>
+                                                    <div className="opacity-80 mb-2">"{updateStatus.latestMessage}"</div>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <a
+                                                            href={updateStatus.htmlUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-400 hover:underline flex items-center gap-1"
+                                                        >
+                                                            View on GitHub <i className="fa-solid fa-external-link-alt text-[10px]"></i>
+                                                        </a>
+                                                        <button
+                                                            onClick={handleInstallUpdate}
+                                                            disabled={installingUpdate}
+                                                            className="ml-auto px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:opacity-50 rounded text-white font-bold flex items-center gap-2"
+                                                        >
+                                                            {installingUpdate ? (
+                                                                <>
+                                                                    <i className="fa-solid fa-circle-notch fa-spin"></i>
+                                                                    Installing...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <i className="fa-solid fa-download"></i>
+                                                                    Install Update
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {updateResult && (
+                                        <div className={`mt-3 p-3 rounded text-xs border ${updateResult.success ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                                            <div className={`font-bold mb-1 ${updateResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                                                <i className={`fa-solid ${updateResult.success ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2`}></i>
+                                                {updateResult.success ? 'Update Complete!' : 'Update Failed'}
+                                            </div>
+                                            <div className="opacity-80">{updateResult.message}</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Reload Server */}
+                                <div className="mb-4 pt-4 border-t border-gray-700/50">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-sm mb-1 flex items-center gap-2">
+                                                <i className="fa-solid fa-rotate-right"></i>
+                                                Reload Server
+                                            </h4>
+                                            <div className="text-xs opacity-70">
+                                                Restart server without updating code (useful after changes)
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleReloadServer}
+                                            disabled={reloadingServer}
+                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${
+                                                localSettings.theme === 'tron'
+                                                    ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black disabled:opacity-50'
+                                                    : 'bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50'
+                                            }`}
+                                        >
+                                            {reloadingServer ? (
+                                                <>
+                                                    <i className="fa-solid fa-circle-notch fa-spin"></i>
+                                                    Reloading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fa-solid fa-rotate-right"></i>
+                                                    Reload Server
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                    {reloadResult && (
+                                        <div className={`mt-3 p-3 rounded text-xs border ${reloadResult.success ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                                            <div className={`font-bold mb-1 ${reloadResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                                                <i className={`fa-solid ${reloadResult.success ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2`}></i>
+                                                {reloadResult.success ? 'Reload Complete!' : 'Reload Failed'}
+                                            </div>
+                                            <div className="opacity-80">{reloadResult.message}</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Stop Server */}
+                                <div className="pt-4 border-t border-gray-700/50">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-sm mb-1 flex items-center gap-2">
+                                                <i className="fa-solid fa-stop"></i>
+                                                Stop Server
+                                            </h4>
+                                            <div className="text-xs opacity-70">
+                                                Stop PM2 servers (use npm run pm2:start to restart)
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleStopServer}
+                                            disabled={stoppingServer}
+                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${
+                                                localSettings.theme === 'tron'
+                                                    ? 'bg-red-900/30 border border-red-500/50 text-red-400 hover:bg-red-900/50 disabled:opacity-50'
+                                                    : 'bg-red-600 hover:bg-red-500 text-white disabled:opacity-50'
+                                            }`}
+                                        >
+                                            {stoppingServer ? (
+                                                <>
+                                                    <i className="fa-solid fa-circle-notch fa-spin"></i>
+                                                    Stopping...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fa-solid fa-stop"></i>
+                                                    Stop Server
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                    {stopResult && (
+                                        <div className={`mt-3 p-3 rounded text-xs border ${stopResult.success ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                                            <div className={`font-bold mb-1 ${stopResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                                                <i className={`fa-solid ${stopResult.success ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2`}></i>
+                                                {stopResult.success ? 'Server Stopped!' : 'Stop Failed'}
+                                            </div>
+                                            <div className="opacity-80">{stopResult.message}</div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}

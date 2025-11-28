@@ -7,6 +7,131 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.4] - 2025-11-28 👻 PHANTOM EDITOR PERSISTENCE
+### 🛡️ Crash-Proof Editor
+- **Instant Save-on-Exit**: Implemented a robust `beforeunload` handler that instantly saves your code when you close the tab, refresh, or navigate away.
+- **Ref-Based State Tracking**: Uses `useRef` to capture the absolute latest keystrokes, ensuring zero data loss even if you type and immediately quit.
+- **Faster Auto-Save**: Reduced auto-save delay from 2s to **1s** for near-real-time persistence.
+- **Fixed File Creation**: "New File" button now actually creates the file in the database immediately, preventing "missing file" issues.
+- **Full File Operations**: Implemented functional **Delete** and **Rename** handlers for the file tree.
+- **UUID Generation**: Switched to `uuid` library for reliable, cross-browser ID generation.
+
+### 🔧 Technical
+- **useRef Implementation**: Solved React state closure staleness in event listeners.
+- **Fire-and-Forget Saving**: Optimized save calls during unmount to ensure execution without blocking UI.
+
+---
+
+## [2.7.3] - 2025-11-27 🦠 MALWARE ANALYSIS & WINDOW MANAGEMENT
+### 🦠 Malware Analysis Module (New)
+- **Core Analysis Tools**:
+  - `/malware-hash <file>`: Multi-hash calculation (MD5, SHA1, SHA256).
+  - `/malware-fileinfo <file>`: Deep file type and metadata analysis.
+  - `/malware-strings <file>`: Extract strings with filters (`--urls`, `--ips`, `--emails`).
+  - `/malware-entropy <file>`: Calculate Shannon entropy to detect packing/encryption.
+  - `/malware-hexdump <file>`: Canonical hex + ASCII dump.
+  - `/malware-pe <file>`: Windows PE header analysis (Imports, Sections).
+  - `/malware-elf <file>`: Linux ELF header analysis.
+  - `/ioc-extract <file>`: Automated extraction of IPs, URLs, Emails, and Domains.
+- **Containment & Testing**:
+  - `/malware-quarantine <file>`: Securely isolate files and strip permissions.
+  - `/malware-restore <hash>`: Restore files from quarantine.
+  - `/malware-test-deploy`: Deploy "General Grievous" safe test malware.
+  - `/malware-test-run`: Execute test malware for behavioral analysis.
+- **Advanced Operations**:
+  - `/vm-list`, `/vm-start`, `/vm-stop`: Control UTM/VirtualBox VMs.
+  - `/msfconsole <cmd>`: Execute Metasploit commands on Kali VM via SSH.
+  - `/msfvenom <opts>`: Generate payloads remotely.
+
+### 🪟 Window Management System
+  - **Normal Mode**: Traditional centered modal (max-width 4xl, 95vh)
+  - **Fullscreen Mode**: Entire viewport takeover (100vh x 100vw, edge-to-edge)
+  - **Minimized Mode**: Floating bar at bottom-left, positioned above Ranger Radio
+  - **Quick Access**: Settings stays accessible while you work in the main app
+- **🎮 Window Control Buttons**: Professional desktop app experience
+  - **Minimize Button** (`−`): Shrink to floating bar (220px wide)
+  - **Fullscreen Toggle** (`⛶`/`⊟`): Expand/compress between normal and fullscreen
+  - **Close Button** (`✕`): Traditional close functionality
+  - **Smart Icons**: Icons change based on current state (expand ↔ compress)
+- **📍 Strategic Positioning**: Minimized bar floats at bottom-left
+  - **Above Radio Player**: `bottom: 80px` (5rem) - perfect spacing!
+  - **Gap from Radio**: ~12px visual separation
+  - **Same Aesthetic**: Matches Ranger Radio player design
+  - **Hover Effect**: Scale animation (1.05x) on hover
+- **💾 State Persistence**: Remember your preferences
+  - **localStorage Key**: `settings_window_mode`
+  - **Auto-restore**: Opens in last used mode on next launch
+  - **Seamless UX**: Never lose your preferred window configuration
+
+### 🎨 UI/UX Enhancements
+- **Smooth Transitions**: All mode changes animated with `transition-all duration-300`
+- **Tron Theme Support**: Cyan glow effects on minimized bar and buttons
+- **Hover States**: All buttons have opacity transitions and tooltips
+- **Click-to-Restore**: Click anywhere on minimized bar to restore window
+- **Backdrop Handling**: Blur backdrop only in normal mode, removed in fullscreen
+- **Responsive Design**: Adapts perfectly to all screen sizes
+
+### 🎯 Benefits
+- **Multitasking**: Adjust settings while seeing real-time app changes
+- **Desktop-Class UX**: Professional window management like native apps
+- **Screen Optimization**: Fullscreen for complex configuration, minimize when done
+- **M3 Pro Friendly**: Perfect for smaller laptop displays
+- **Zero Interference**: Minimized mode stays out of your way
+
+### 🔧 Technical Details
+- Window modes: `'normal' | 'fullscreen' | 'minimized'`
+- Minimized bar: Fixed positioning, z-index 9999
+- Fullscreen: Removes max-width, rounds corners, and padding
+- Header buttons: Icon-based with tooltips for clarity
+
+---
+
+## [2.7.2] - 2025-11-27 ⚙️ SETTINGS ENHANCEMENT
+
+### ✨ Added
+- **⚙️ Server Management in General Settings**: Consolidated server controls in General tab for easier access!
+  - **Check for Updates**: GitHub integration to check latest RangerPlex version directly from General tab
+  - **Install Update**: One-click update installation with progress feedback
+  - **Reload Server**: Quick server restart without updating code (perfect for development)
+  - **Stop Server**: PM2 server shutdown control with clear instructions for restart
+  - **Beautiful UI Design**: Theme-aware styling with Tron mode support
+  - **Loading States**: Spinning icons and disabled states during operations
+  - **Success/Error Feedback**: Color-coded messages (green for success, red for errors)
+  - **Icon Headers**: Font Awesome icons for visual clarity (GitHub, reload, stop)
+  - **Responsive Layout**: Description on left, action buttons on right
+
+### 🎯 Improvements
+- **Increased Modal Height**: Settings modal now 95vh (was 90vh) for better content visibility
+- **Better Organization**: All server controls accessible from General tab (no need to switch to GitHub tab)
+- **Enhanced UX**: Consistent button styling across all server management actions
+- **Small Screen Friendly**: Works perfectly on MacBook displays with new height adjustments
+
+### 🎨 UI Enhancements
+- Tron theme buttons with cyan glow effects
+- Separated sections with border dividers
+- Color-coded buttons: Gray (check), Blue (reload), Red (stop)
+- Smooth transitions on all interactive elements
+
+---
+
+## [2.7.1] - 2025-11-27 🐾 PET WIDGET OPTIMIZATION
+
+### ✨ Added
+- **🐾 Ranger Pet Widget - Minimize/Collapse Feature**: Sidebar space optimization for smaller screens!
+  - **Collapse Button**: Click chevron icon to minimize pet widget (saves ~150px of sidebar space)
+  - **Collapsed View**: Compact display showing mini pet avatar (8x8), name, level, mood emoji, XP%, and quick action buttons (Feed 🍎 & Play 🎾)
+  - **Persistent State**: localStorage saves your collapsed/expanded preference between sessions
+  - **Smooth Animations**: Clean transitions with duration-300 ease
+  - **Small Screen Optimization**: Perfect for M3 Pro MacBooks and other devices with limited vertical space
+  - **More Chat Logs Visible**: Maximizes space for viewing recent chat history in sidebar
+
+### 🎯 Improvements
+- Enhanced sidebar usability on smaller displays
+- Better mobile and laptop screen compatibility
+- User preference persistence across sessions
+
+---
+
 ## [2.7.0] - 2025-11-27 🕵️ FORENSICS MODULE DEPLOYED
 
 ### ✨ Added
@@ -22,13 +147,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.6.5] - 2025-11-27 🎖️ RANGERBLOCK BLOCKCHAIN INTEGRATION
 
 ### ✨ Added
-- **🐾 Ranger Pet Widget - Minimize/Collapse Feature**: Sidebar space optimization for smaller screens!
-  - **Collapse Button**: Click chevron icon to minimize pet widget (saves ~150px of sidebar space)
-  - **Collapsed View**: Compact display showing mini pet avatar (8x8), name, level, mood emoji, XP%, and quick action buttons (Feed 🍎 & Play 🎾)
-  - **Persistent State**: localStorage saves your collapsed/expanded preference between sessions
-  - **Smooth Animations**: Clean transitions with duration-300 ease
-  - **Small Screen Optimization**: Perfect for M3 Pro MacBooks and other devices with limited vertical space
-  - **More Chat Logs Visible**: Maximizes space for viewing recent chat history in sidebar
 - **🎖️ RangerBlock P2P Blockchain**: Fully integrated peer-to-peer blockchain network!
   - **Auto-Start**: Blockchain node starts automatically with RangerPlex (when enabled)
   - **Hardware Detection**: Automatically identifies node by Mac hardware UUID (Genesis security system)

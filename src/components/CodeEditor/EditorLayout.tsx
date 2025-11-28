@@ -5,6 +5,7 @@ import EditorTabs from './EditorTabs';
 import EditorToolbar from './EditorToolbar';
 import { EditorFile, EditorFolder, detectLanguageFromFilename, SupportedLanguage } from '../../types/editor';
 import { editorFileService } from '../../services/editorFileService';
+import { v4 as uuidv4 } from 'uuid';
 import styles from './EditorLayout.module.css';
 
 const EDITOR_STATE_KEY = 'rangerplex_editor_state';
@@ -170,6 +171,16 @@ export default function EditorLayout() {
         }
     }, [openFiles, activeFileId, isInitialized, saveEditorState]);
 
+    // Refs for auto-save on unmount/reload
+    const currentCodeRef = useRef(currentCode);
+    const activeFileIdRef = useRef(activeFileId);
+
+    // Update refs whenever state changes
+    useEffect(() => {
+        currentCodeRef.current = currentCode;
+        activeFileIdRef.current = activeFileId;
+    }, [currentCode, activeFileId]);
+
     // Auto-save debounced
     useEffect(() => {
         if (!activeFileId || !isInitialized) return;
@@ -182,7 +193,7 @@ export default function EditorLayout() {
         // Set new timer for auto-save
         autoSaveTimer.current = setTimeout(async () => {
             await handleSave(false); // false = silent save (no alert)
-        }, AUTO_SAVE_DELAY);
+        }, 1000); // Auto-save every 1 second
 
         return () => {
             if (autoSaveTimer.current) {
@@ -190,6 +201,25 @@ export default function EditorLayout() {
             }
         };
     }, [currentCode, activeFileId, isInitialized]);
+
+    // Save on unmount / page hide
+    useEffect(() => {
+        const saveOnExit = () => {
+            const id = activeFileIdRef.current;
+            const code = currentCodeRef.current;
+            if (id && code !== undefined) {
+                // Fire-and-forget save
+                editorFileService.updateFileContent(id, code).catch(console.error);
+            }
+        };
+
+        window.addEventListener('beforeunload', saveOnExit);
+
+        return () => {
+            window.removeEventListener('beforeunload', saveOnExit);
+            saveOnExit(); // Also save on component unmount (SPA navigation)
+        };
+    }, []);
 
     const handleFileSelect = async (file: EditorFile) => {
         // Load fresh version from IndexedDB
@@ -244,6 +274,77 @@ export default function EditorLayout() {
         alert('Terminal integration coming soon! (GPT mission)');
     };
 
+    const handleFileCreate = async (parentPath: string, name: string) => {
+        try {
+            const newFile: EditorFile = {
+                id: uuidv4(),
+                name,
+                path: `${parentPath === '/' ? '' : parentPath}/${name}`,
+                language: detectLanguageFromFilename(name),
+                content: '// ' + name,
+                lastModified: Date.now()
+            };
+            await editorFileService.saveFile(newFile);
+            await buildFileTree();
+            handleFileSelect(newFile);
+        } catch (error) {
+            console.error('Failed to create file:', error);
+            alert('Failed to create file');
+        }
+    };
+
+    const handleFileDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this file?')) return;
+        try {
+            await editorFileService.deleteFile(id);
+            if (openFiles.find(f => f.id === id)) {
+                const newOpenFiles = openFiles.filter(f => f.id !== id);
+                setOpenFiles(newOpenFiles);
+                if (activeFileId === id) {
+                    if (newOpenFiles.length > 0) {
+                        const last = newOpenFiles[newOpenFiles.length - 1];
+                        setActiveFileId(last.id);
+                        setCurrentCode(last.content);
+                        setCurrentLanguage(detectLanguageFromFilename(last.name));
+                    } else {
+                        setActiveFileId(null);
+                        setCurrentCode('');
+                    }
+                }
+            }
+            await buildFileTree();
+        } catch (error) {
+            console.error('Failed to delete file:', error);
+        }
+    };
+
+    const handleFileRename = async (id: string, newName: string) => {
+        try {
+            const file = await editorFileService.getFile(id);
+            if (file) {
+                const oldPath = file.path;
+                const pathParts = oldPath.split('/');
+                pathParts.pop();
+                const newPath = `${pathParts.join('/')}/${newName}`;
+
+                await editorFileService.saveFile({
+                    ...file,
+                    name: newName,
+                    path: newPath,
+                    language: detectLanguageFromFilename(newName)
+                });
+                await buildFileTree();
+
+                // Update open files if needed
+                setOpenFiles(prev => prev.map(f =>
+                    f.id === id ? { ...f, name: newName, path: newPath, language: detectLanguageFromFilename(newName) } : f
+                ));
+            }
+        } catch (error) {
+            console.error('Failed to rename file:', error);
+        }
+    };
+
     const activeFile = openFiles.find(f => f.id === activeFileId);
 
     if (!isInitialized || !fileTree) {
@@ -256,9 +357,9 @@ export default function EditorLayout() {
                 rootFolder={fileTree}
                 activeFileId={activeFileId}
                 onFileSelect={handleFileSelect}
-                onFileCreate={(path, name) => console.log('Create file:', path, name)}
-                onFileDelete={(id) => console.log('Delete file:', id)}
-                onFileRename={(id, name) => console.log('Rename file:', id, name)}
+                onFileCreate={handleFileCreate}
+                onFileDelete={handleFileDelete}
+                onFileRename={handleFileRename}
                 onFolderCreate={(path, name) => console.log('Create folder:', path, name)}
             />
 

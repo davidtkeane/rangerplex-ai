@@ -30,6 +30,7 @@ import { dbService } from '../services/dbService';
 import { updateService } from '../services/updateService';
 import pkg from '../package.json';
 import { forensicCommandHandler } from '../src/commands/forensicCommandHandler';
+import { malwareCommandHandler } from '../src/commands/malwareCommandHandler';
 
 interface ChatInterfaceProps {
     session: ChatSession;
@@ -337,10 +338,48 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/hash') || text.startsWith('/metadata') || text.startsWith('/exif') || text.startsWith('/timeline') || text.startsWith('/strings') || text.startsWith('/grep') || text.startsWith('/custody')) {
                 const handled = await forensicCommandHandler.handleCommand(text);
                 if (handled) {
+                    let msg = '⚡ Command executed in terminal.';
+                    if (text.startsWith('/hash')) msg = '🧬 Calculating hash... Check terminal for result.';
+                    else if (text.startsWith('/metadata')) msg = '📄 Fetching metadata... Check terminal.';
+                    else if (text.startsWith('/exif')) msg = '📸 Extracting EXIF data... Check terminal.';
+                    else if (text.startsWith('/timeline')) msg = '⏳ Generating timeline... Check terminal.';
+                    else if (text.startsWith('/strings') || text.startsWith('/grep')) msg = '🔤 Analyzing strings... Check terminal.';
+                    else if (text.startsWith('/custody')) msg = '🔐 Chain of Custody updated. Check terminal.';
+
                     onUpdateMessages(prev => [...prev, {
                         id: uuidv4(),
                         sender: Sender.AI,
-                        text: '⚡ Command executed in terminal.',
+                        text: msg,
+                        timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+            }
+
+            // Malware Commands
+            if (text.startsWith('/malware-hash') || text.startsWith('/malware-fileinfo') || text.startsWith('/fileinfo') || text.startsWith('/malware-strings') || text.startsWith('/malware-entropy') || text.startsWith('/malware-hexdump') || text.startsWith('/hexdump') || text.startsWith('/ioc-extract') || text.startsWith('/malware-quarantine') || text.startsWith('/malware-restore') || text.startsWith('/malware-test') || text.startsWith('/malware-pe') || text.startsWith('/malware-elf') || text.startsWith('/vm-') || text.startsWith('/msf')) {
+                const handled = await malwareCommandHandler.handleCommand(text);
+                if (handled) {
+                    let msg = '🦠 Malware analysis command executed.';
+                    if (text.startsWith('/malware-hash')) msg = '🧬 Generating multi-hash report... Check terminal.';
+                    else if (text.startsWith('/malware-fileinfo') || text.startsWith('/fileinfo')) msg = '📄 Analyzing file structure... Check terminal.';
+                    else if (text.startsWith('/malware-strings')) msg = '🔤 Extracting strings & IOCs... Check terminal.';
+                    else if (text.startsWith('/malware-entropy')) msg = '🎲 Calculating entropy... Check terminal.';
+                    else if (text.startsWith('/malware-hexdump') || text.startsWith('/hexdump')) msg = '🔢 Generating hex dump... Check terminal.';
+                    else if (text.startsWith('/ioc-extract')) msg = '🛡️ Extracting Indicators of Compromise... Check terminal.';
+                    else if (text.startsWith('/malware-quarantine')) msg = '🔒 Quarantining file... Check terminal.';
+                    else if (text.startsWith('/malware-restore')) msg = '🔓 Restoring file... Check terminal.';
+                    else if (text.startsWith('/malware-test')) msg = '🧪 Test malware operation... Check terminal.';
+                    else if (text.startsWith('/malware-pe')) msg = '👾 Analyzing PE headers... Check terminal.';
+                    else if (text.startsWith('/malware-elf')) msg = '🐧 Analyzing ELF headers... Check terminal.';
+                    else if (text.startsWith('/vm-')) msg = '🖥️ VM Management command sent... Check terminal.';
+                    else if (text.startsWith('/msf')) msg = '🦁 Metasploit command sent to Kali... Check terminal.';
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: msg,
                         timestamp: Date.now()
                     }]);
                     setIsStreaming(false);
