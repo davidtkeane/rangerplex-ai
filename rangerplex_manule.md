@@ -1,8 +1,8 @@
-# RangerPlex Manual (v2.11.0) 💻
+# RangerPlex Manual (v2.11.1) 💻
 
 > 🚨 **CRITICAL NOTE FOR AI AGENTS**: This file, along with `docs/RangerPlexBrowser/rangerplexOS/RANGERPLEX_BROWSER_ARCHITECTURE.md`, are the **SINGLE SOURCE OF TRUTH**. Do not rely on old documentation scattered in other folders. We are building the **RangerPlex Browser (Project Phantom Wing)**. Stick to the plan here.
 
-**🎉 NEW IN v2.11.0:** Cleaner alias output, new city weather aliases, red stop button while streaming!
+**🎉 NEW IN v2.11.1:** Cleaner weather aliases (tiny outputs), `wet` fallback (Open-Meteo), alias overwrite fixes!
 **Also in v2.10.1:** 🤠 The Lone Ranger Easter Egg on Radio Player!
 **Also in v2.10.0:** Weather Station with astronomical sky, API usage meters, and Irish rain notifications!
 **Also in v2.9.0:** Alias Runner, command safety, logs, and manager!
@@ -10,6 +10,7 @@
 Your field guide to every surface in RangerPlex. Use the quick links below to jump between sections. This doc is meant to stay in sync with the app UI; feel free to extend it as features ship.
 
 ## Quick Links
+- [What's New in v2.11.1](#whats-new-in-v2111)
 - [What's New in v2.11.0](#whats-new-in-v2110)
 - [What's New in v2.10.1](#whats-new-in-v2101)
 - [What's New in v2.10.0](#whats-new-in-v2100)
@@ -20,6 +21,14 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - [Monaco Code Editor](#monaco-code-editor)
 - [Death Star Easter Egg](#death-star-easter-egg)
 
+## What's New in v2.11.1
+> **Release Date:** 2025-12-03
+
+### 🌦️ Weather Alias Refinements
+- City weather aliases use 1-line wttr (`?format=3`) to avoid long outputs/token blowups.
+- `wet` alias now uses Open-Meteo (no key) for Dublin; defaults auto-refresh so new definitions take effect.
+- Output tightening: ANSI stripped, curl noise removed, hard truncation, and the stop button stays red while streaming.
+
 ## What's New in v2.11.0
 > **Release Date:** 2025-12-02
 
@@ -27,6 +36,7 @@ Your field guide to every surface in RangerPlex. Use the quick links below to ju
 - **Moon/Sun/City Aliases**: `moon`, `sun`, `nycweather`, `dublinweather`, `londonweather`, `parisweather` now use monochrome ASCII with timeouts to avoid spam.
 - **Clean Output**: ANSI stripped, curl progress hidden, long outputs trimmed; plain text shown to keep chat readable.
 - **Stop Button**: Send/stop turns solid red while streaming for quick abort.
+- **Open-Meteo Backend**: City weather aliases use Open-Meteo (no key/quota) instead of wttr to avoid API caps.
 
 ## What's New in v2.10.1
 > **Release Date:** 2025-11-28

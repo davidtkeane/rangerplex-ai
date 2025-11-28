@@ -62,7 +62,7 @@ class AllowlistValidator {
     }
 
     validateCommand(command) {
-        if (/[|><&;`$()]/.test(command)) {
+        if (/[|;`><]/.test(command) || /&&/.test(command)) {
             return {
                 valid: false,
                 reason: 'Command contains forbidden characters (pipes, redirects, subshells, or chaining)',

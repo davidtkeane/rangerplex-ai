@@ -38,6 +38,13 @@ class AliasService {
                 const existing = await dbService.getAlias(alias.name);
                 if (!existing) {
                     await dbService.saveAlias(alias);
+                } else {
+                    // Overwrite defaults if the definition changed
+                    const differs = JSON.stringify({ ...existing, created: undefined, useCount: undefined }) !== JSON.stringify({ ...alias, created: undefined, useCount: undefined });
+                    if (differs) {
+                        await dbService.saveAlias({ ...existing, ...alias, useCount: existing.useCount ?? 0, created: existing.created ?? Date.now() });
+                        console.log(`🔄 Refreshed default alias: ${alias.name}`);
+                    }
                 }
             }
             console.log(`✅ Loaded ${aliases.length} default aliases`);

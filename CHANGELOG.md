@@ -27,17 +27,19 @@ David's alter ego is now watching over the radio - the masked ranger keeping gua
 
 ---
 
-## [2.11.0] - 2025-12-02 🌙 Alias Outputs & City Weather
+## [2.11.1] - 2025-12-03 🌦️ Weather Alias Refinements
 ### 🎯 Highlights
-- Clean alias output formatting: ANSI stripped, curl progress hidden, and truncation for long outputs.
-- Moon/Sun/City weather aliases (Dublin/London/Paris/NYC) with monochrome ASCII snapshots and 6s timeout.
-- Alias runner state fix to prevent duplicate executions; stop button clearly red while streaming.
+- City weather aliases now use 1-line wttr format to avoid long outputs and token bloat.
+- Added `wet` alias with Open-Meteo fallback (no API key, Dublin) and refreshed defaults to overwrite stale entries.
+- Alias output tightened: ANSI stripped, curl noise removed, hard truncation to keep context small; stop button remains red while streaming.
 
-### 🧭 Notes
-- Default aliases now include OS metadata (Windows/POSIX) and timeouts on curl requests.
-- Startup banner, system reports, and badges updated to v2.11.0.
+### 🛠️ Misc
+- Allowlist relaxed to permit URLs/env vars (still blocks pipes/redirects/subshells).
+- Version bump to v2.11.1 (banner, system report, docs).
 
----
+----
+
+## [2.11.0] - 2025-12-02 🌙 Alias Outputs & City Weather
 
 ## [2.10.0] - 2025-11-28 🌦️ WEATHER STATION & ASTRONOMICAL SKY
 

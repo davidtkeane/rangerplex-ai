@@ -214,14 +214,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 .join('\n')
                 .trim();
 
-            // Limit very long outputs
-            const maxChars = 4000;
+            // Limit very long outputs hard
+            const maxChars = 1200;
             if (plain.length > maxChars) {
                 plain = plain.slice(0, maxChars) + '\n...trimmed...';
             }
 
-            // Prefer clean plain block; include ANSI block only if desired later
-            output += '```text\n' + plain + '\n```\n\n';
+            if (!hasAnsi && plain.length < 200) {
+                output += '`' + plain + '`\n\n';
+            } else {
+                output += '```text\n' + plain + '\n```\n\n';
+            }
         }
 
         if (result.stderr) {

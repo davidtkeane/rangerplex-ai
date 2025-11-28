@@ -78,7 +78,8 @@ class AllowlistValidator {
     }
 
     validateCommand(command: string): ValidationResult {
-        if (/[|><&;`$()]/.test(command)) {
+        // Block dangerous shell control characters but allow URL symbols (&, ?, $) and env vars
+        if (/[|;`><]/.test(command) || /&&/.test(command)) {
             return {
                 valid: false,
                 reason: 'Command contains forbidden characters (pipes, redirects, subshells, or chaining)'

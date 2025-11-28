@@ -40,13 +40,12 @@
   },
   {
     "name": "nycweather",
-    "command": "curl -sS --max-time 6 https://wttr.in/New_York?Q",
-    "description": "NYC weather snapshot (ASCII, monochrome)",
+    "command": "curl -sS --max-time 6 'https://wttr.in/New_York?format=3'",
+    "description": "NYC weather snapshot (1-line wttr)",
     "requires_confirmation": false,
     "category": "fun",
     "tags": [
       "weather",
-      "ascii",
       "nyc"
     ],
     "icon": "🗽",
@@ -273,13 +272,12 @@
   },
   {
     "name": "dublinweather",
-    "command": "curl -sS --max-time 6 https://wttr.in/Dublin?Q",
-    "description": "Dublin weather snapshot (ASCII, monochrome)",
+    "command": "curl -sS --max-time 6 'https://wttr.in/Dublin?format=3'",
+    "description": "Dublin weather snapshot (1-line wttr)",
     "requires_confirmation": false,
     "category": "fun",
     "tags": [
       "weather",
-      "ascii",
       "dublin"
     ],
     "icon": "🍀",
@@ -293,13 +291,12 @@
   },
   {
     "name": "londonweather",
-    "command": "curl -sS --max-time 6 https://wttr.in/London?Q",
-    "description": "London weather snapshot (ASCII, monochrome)",
+    "command": "curl -sS --max-time 6 'https://wttr.in/London?format=3'",
+    "description": "London weather snapshot (1-line wttr)",
     "requires_confirmation": false,
     "category": "fun",
     "tags": [
       "weather",
-      "ascii",
       "london"
     ],
     "icon": "🎡",
@@ -313,16 +310,34 @@
   },
   {
     "name": "parisweather",
-    "command": "curl -sS --max-time 6 https://wttr.in/Paris?Q",
-    "description": "Paris weather snapshot (ASCII, monochrome)",
+    "command": "curl -sS --max-time 6 'https://wttr.in/Paris?format=3'",
+    "description": "Paris weather snapshot (1-line wttr)",
     "requires_confirmation": false,
     "category": "fun",
     "tags": [
       "weather",
-      "ascii",
       "paris"
     ],
     "icon": "🗼",
+    "created": 1732752000000,
+    "useCount": 0,
+    "os": [
+      "linux",
+      "darwin",
+      "windows"
+    ]
+  },
+  {
+    "name": "wet",
+    "command": "curl -sS --max-time 6 'https://api.open-meteo.com/v1/forecast?latitude=53.3501&longitude=-6.2661&current=temperature_2m,wind_speed_10m,weathercode,is_day&timezone=auto'",
+    "description": "Open-Meteo weather snapshot for Dublin (no key)",
+    "requires_confirmation": false,
+    "category": "fun",
+    "tags": [
+      "weather",
+      "open-meteo"
+    ],
+    "icon": "☔",
     "created": 1732752000000,
     "useCount": 0,
     "os": [

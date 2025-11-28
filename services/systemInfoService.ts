@@ -154,7 +154,7 @@ class SystemInfoService {
         };
 
         return {
-            version: '2.11.0',
+            version: '2.11.1',
             uptime: Date.now() - this.startTime,
             services,
             errors: this.getRecentErrors(10),
