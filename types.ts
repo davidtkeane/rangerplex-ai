@@ -303,6 +303,11 @@ export interface AppSettings {
 
   // Editor
   editorAutoOpenTerminal: boolean;
+  editorFontSize: number;
+  editorTabSize: number;
+  editorWordWrap: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
+  editorMinimap: boolean;
+  editorLineNumbers: 'on' | 'off' | 'relative';
 }
 
 export const DEFAULT_AGENTS: AgentConfig[] = [
@@ -557,7 +562,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   abstractIpApiKey: import.meta.env.VITE_ABSTRACT_IP_API_KEY || '',
 
   defaultCanvasColor: 'white',
-  editorAutoOpenTerminal: false
+  editorAutoOpenTerminal: false,
+  editorFontSize: 14,
+  editorTabSize: 2,
+  editorWordWrap: 'on',
+  editorMinimap: true,
+  editorLineNumbers: 'on'
 };
 
 export interface TrainingExample {

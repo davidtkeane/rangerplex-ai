@@ -1067,11 +1067,10 @@ const App: React.FC = () => {
         {/* Ranger Console - Minimized Tab (beside Settings) */}
         {isTerminalOpen && isTerminalMinimized && (
           <div
-            className={`fixed bottom-4 left-[216px] z-[9999] rounded-lg border-2 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 backdrop-blur-sm ${
-              isTron
+            className={`fixed bottom-4 left-[216px] z-[9999] rounded-lg border-2 shadow-2xl cursor-pointer transition-all duration-300 hover:scale-105 backdrop-blur-sm ${isTron
                 ? 'bg-tron-dark border-tron-cyan text-tron-cyan shadow-[0_0_20px_rgba(0,243,255,0.2)]'
                 : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border-gray-200 dark:border-zinc-800'
-            }`}
+              }`}
             onClick={() => setIsTerminalMinimized(false)}
           >
             <div className="flex items-center justify-between px-4 py-2 gap-3 min-w-[200px]">
@@ -1115,6 +1114,11 @@ const App: React.FC = () => {
               onClose={() => setIsEditorOpen(false)}
               onOpenSettings={() => setIsSettingsOpen(true)}
               autoOpenTerminal={settings.editorAutoOpenTerminal}
+              fontSize={settings.editorFontSize}
+              tabSize={settings.editorTabSize}
+              wordWrap={settings.editorWordWrap}
+              minimap={settings.editorMinimap}
+              lineNumbers={settings.editorLineNumbers}
             />
           </div>
         )}

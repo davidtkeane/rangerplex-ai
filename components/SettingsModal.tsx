@@ -41,7 +41,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, status, inputClass }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'data' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'about' | 'github'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
 
     // Window mode state (normal, fullscreen, minimized)
@@ -853,16 +853,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     }
 
     return (
-        <div className={`fixed z-[10000] transition-all duration-300 ${
-            windowMode === 'fullscreen'
-                ? 'inset-0'
-                : 'inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4'
-        } animate-fade-in`}>
-            <div className={`w-full rounded-2xl border shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${
-                windowMode === 'fullscreen'
-                    ? 'h-full max-w-none rounded-none'
-                    : 'max-w-4xl max-h-[95vh] min-h-[75vh]'
-            } ${themeClass}`}>
+        <div className={`fixed z-[10000] transition-all duration-300 ${windowMode === 'fullscreen'
+            ? 'inset-0'
+            : 'inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4'
+            } animate-fade-in`}>
+            <div className={`w-full rounded-2xl border shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${windowMode === 'fullscreen'
+                ? 'h-full max-w-none rounded-none'
+                : 'max-w-4xl max-h-[95vh] min-h-[75vh]'
+                } ${themeClass}`}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-inherit">
@@ -894,7 +892,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                 {/* Tabs */}
                 <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'rangerblock', 'data', 'about', 'github'].map((tab) => (
+                    {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'rangerblock', 'editor', 'data', 'about', 'github'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -1036,11 +1034,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <button
                                             onClick={handleCheckUpdate}
                                             disabled={checkingUpdate}
-                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${
-                                                localSettings.theme === 'tron'
-                                                    ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black disabled:opacity-50'
-                                                    : 'bg-gray-700 hover:bg-gray-600 text-white disabled:opacity-50'
-                                            }`}
+                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${localSettings.theme === 'tron'
+                                                ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black disabled:opacity-50'
+                                                : 'bg-gray-700 hover:bg-gray-600 text-white disabled:opacity-50'
+                                                }`}
                                         >
                                             {checkingUpdate ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-rotate"></i>}
                                             Check Updates
@@ -1114,11 +1111,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <button
                                             onClick={handleReloadServer}
                                             disabled={reloadingServer}
-                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${
-                                                localSettings.theme === 'tron'
-                                                    ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black disabled:opacity-50'
-                                                    : 'bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50'
-                                            }`}
+                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${localSettings.theme === 'tron'
+                                                ? 'bg-tron-cyan/10 border border-tron-cyan/50 text-tron-cyan hover:bg-tron-cyan hover:text-black disabled:opacity-50'
+                                                : 'bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50'
+                                                }`}
                                         >
                                             {reloadingServer ? (
                                                 <>
@@ -1159,11 +1155,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <button
                                             onClick={handleStopServer}
                                             disabled={stoppingServer}
-                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${
-                                                localSettings.theme === 'tron'
-                                                    ? 'bg-red-900/30 border border-red-500/50 text-red-400 hover:bg-red-900/50 disabled:opacity-50'
-                                                    : 'bg-red-600 hover:bg-red-500 text-white disabled:opacity-50'
-                                            }`}
+                                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 text-xs transition-all ${localSettings.theme === 'tron'
+                                                ? 'bg-red-900/30 border border-red-500/50 text-red-400 hover:bg-red-900/50 disabled:opacity-50'
+                                                : 'bg-red-600 hover:bg-red-500 text-white disabled:opacity-50'
+                                                }`}
                                         >
                                             {stoppingServer ? (
                                                 <>
@@ -2184,14 +2179,115 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 <p className="text-xs opacity-70 leading-relaxed">
                                     RangerBlock is a peer-to-peer blockchain network integrated into RangerPlex.
                                     Your node is identified by your Mac's hardware UUID for security.
-                                    <br/><br/>
-                                    <strong>Network Modes:</strong><br/>
-                                    • <strong>Local</strong>: Only connects to devices on your WiFi/LAN<br/>
-                                    • <strong>Local+Global</strong>: Connects both locally and globally via relay server<br/>
+                                    <br /><br />
+                                    <strong>Network Modes:</strong><br />
+                                    • <strong>Local</strong>: Only connects to devices on your WiFi/LAN<br />
+                                    • <strong>Local+Global</strong>: Connects both locally and globally via relay server<br />
                                     • <strong>Global</strong>: Only connects through relay server (for cross-network communication)
-                                    <br/><br/>
+                                    <br /><br />
                                     When enabled, your node starts automatically with RangerPlex.
                                 </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* EDITOR TAB */}
+                    {activeTab === 'editor' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold mb-4 border-b border-inherit pb-2">Code Editor</h3>
+
+                            {/* Terminal Settings */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                    <i className="fa-solid fa-terminal"></i>
+                                    Terminal Integration
+                                </h4>
+                                <div className="space-y-4">
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={localSettings.editorAutoOpenTerminal}
+                                            onChange={e => setLocalSettings({ ...localSettings, editorAutoOpenTerminal: e.target.checked })}
+                                            className="accent-teal-500 w-5 h-5"
+                                        />
+                                        Auto-Open Terminal
+                                    </label>
+                                    <p className="text-xs opacity-60 ml-8">
+                                        Automatically open the integrated terminal when the editor launches.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Editor Appearance */}
+                            <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                    <i className="fa-solid fa-code"></i>
+                                    Editor Appearance
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">
+                                            <i className="fa-solid fa-text-height w-4"></i> Font Size
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={localSettings.editorFontSize}
+                                            onChange={e => setLocalSettings({ ...localSettings, editorFontSize: parseInt(e.target.value) || 14 })}
+                                            className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">
+                                            <i className="fa-solid fa-indent w-4"></i> Tab Size
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={localSettings.editorTabSize}
+                                            onChange={e => setLocalSettings({ ...localSettings, editorTabSize: parseInt(e.target.value) || 4 })}
+                                            className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">
+                                            <i className="fa-solid fa-align-left w-4"></i> Word Wrap
+                                        </label>
+                                        <select
+                                            value={localSettings.editorWordWrap}
+                                            onChange={e => setLocalSettings({ ...localSettings, editorWordWrap: e.target.value as any })}
+                                            className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
+                                        >
+                                            <option value="off">Off</option>
+                                            <option value="on">On</option>
+                                            <option value="wordWrapColumn">Word Wrap Column</option>
+                                            <option value="bounded">Bounded</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">
+                                            <i className="fa-solid fa-list-ol w-4"></i> Line Numbers
+                                        </label>
+                                        <select
+                                            value={localSettings.editorLineNumbers}
+                                            onChange={e => setLocalSettings({ ...localSettings, editorLineNumbers: e.target.value as any })}
+                                            className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
+                                        >
+                                            <option value="on">On</option>
+                                            <option value="off">Off</option>
+                                            <option value="relative">Relative</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="mt-4">
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={localSettings.editorMinimap}
+                                            onChange={e => setLocalSettings({ ...localSettings, editorMinimap: e.target.checked })}
+                                            className="accent-teal-500 w-5 h-5"
+                                        />
+                                        Show Minimap
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     )}

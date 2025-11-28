@@ -79,6 +79,19 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState<string>('');
     const [burst, setBurst] = useState<{ id: string, visible: boolean }>({ id: '', visible: false });
+
+    // Compact mode state with localStorage persistence
+    const [isCompactMode, setIsCompactMode] = useState<boolean>(() => {
+        const saved = localStorage.getItem('sidebar_compact_mode');
+        return saved === 'true';
+    });
+
+    const toggleCompactMode = () => {
+        const newMode = !isCompactMode;
+        setIsCompactMode(newMode);
+        localStorage.setItem('sidebar_compact_mode', String(newMode));
+    };
+
     const isTron = settings.theme === 'tron';
     const isMatrix = settings.matrixMode;
 
@@ -238,8 +251,26 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Compact Icon Grid for Quick Actions */}
                 <div className={`flex-shrink-0 px-3 py-2 border-b ${isTron ? 'border-tron-cyan/30' : 'border-gray-200 dark:border-zinc-800'}`}>
+                    {/* Compact Mode Toggle */}
+                    <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200/30 dark:border-zinc-700/30">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isTron ? 'text-tron-cyan/60' : 'text-gray-500 dark:text-zinc-400'}`}>
+                            {isCompactMode ? 'Compact' : 'Full View'}
+                        </span>
+                        <button
+                            onClick={toggleCompactMode}
+                            title={isCompactMode ? 'Show All Tools' : 'Compact View (Notes, Study, Canvas only)'}
+                            className={`px-2 py-1 rounded text-xs transition-all ${
+                                isTron
+                                    ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan'
+                                    : 'hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-600 dark:text-zinc-400'
+                            }`}
+                        >
+                            <i className={`fa-solid ${isCompactMode ? 'fa-expand' : 'fa-compress'} text-sm`}></i>
+                        </button>
+                    </div>
+
                     <div className="grid grid-cols-3 gap-2">
-                        {/* Study Notes */}
+                        {/* Study Notes - Always visible */}
                         <button
                             onClick={onOpenStudyNotes}
                             title="Study Notes"
@@ -249,7 +280,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <span className="text-[9px] uppercase tracking-wide">Notes</span>
                         </button>
 
-                        {/* Study Clock */}
+                        {/* Study Clock - Always visible */}
                         {onOpenStudyClock && (
                             <button
                                 onClick={onOpenStudyClock}
@@ -261,7 +292,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Canvas Board */}
+                        {/* Canvas Board - Always visible */}
                         {onOpenCanvas && (
                             <button
                                 onClick={onOpenCanvas}
@@ -273,8 +304,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* WordPress */}
-                        {onOpenWordPress && (
+                        {/* WordPress - Hidden in compact mode */}
+                        {!isCompactMode && onOpenWordPress && (
                             <button
                                 onClick={onOpenWordPress}
                                 title="WordPress Dashboard"
@@ -285,8 +316,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Blockchain Chat */}
-                        {onOpenBlockchainChat && (
+                        {/* Blockchain Chat - Hidden in compact mode */}
+                        {!isCompactMode && onOpenBlockchainChat && (
                             <button
                                 onClick={onOpenBlockchainChat}
                                 title="RangerBlock Chat"
@@ -297,8 +328,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Code Editor */}
-                        {onOpenEditor && (
+                        {/* Code Editor - Hidden in compact mode */}
+                        {!isCompactMode && onOpenEditor && (
                             <button
                                 onClick={onOpenEditor}
                                 title="Code Editor"
@@ -309,8 +340,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Browser Tab */}
-                        {onOpenBrowser && (
+                        {/* Browser Tab - Hidden in compact mode */}
+                        {!isCompactMode && onOpenBrowser && (
                             <button
                                 onClick={onOpenBrowser}
                                 title="Open Browser Tab"
@@ -321,8 +352,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Terminal */}
-                        {onToggleTerminal && (
+                        {/* Terminal - Hidden in compact mode */}
+                        {!isCompactMode && onToggleTerminal && (
                             <button
                                 onClick={onToggleTerminal}
                                 title="Ranger Console"
@@ -333,8 +364,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Recent Logs */}
-                        {onShowChats && (
+                        {/* Recent Logs - Hidden in compact mode */}
+                        {!isCompactMode && onShowChats && (
                             <button
                                 onClick={onShowChats}
                                 title="View Recent Logs"
@@ -398,7 +429,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     )}
                     <div className={`text-[10px] flex items-center justify-center gap-2 ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>
-                        <span>v2.7.4 // PHANTOM EDITOR 👻</span>
+                        <span>v2.7.5 // PHANTOM EDITOR 👻</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText('bc1q3jvxvhqt7u7qnnjjv5jtkh7wsgg9nrgk3hgsce');

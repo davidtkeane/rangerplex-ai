@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Full File Operations**: Implemented functional **Delete** and **Rename** handlers for the file tree.
 - **UUID Generation**: Switched to `uuid` library for reliable, cross-browser ID generation.
 
+### ⚙️ Editor Settings
+- **Terminal Auto-Open**: New setting to control if the terminal opens automatically on launch.
+- **Customization**: Added settings for Font Size, Tab Size, Word Wrap, Minimap, and Line Numbers.
+- **Settings UI**: Dedicated 'Editor' tab in the Settings Modal.
+
 ### 🔧 Technical
 - **useRef Implementation**: Solved React state closure staleness in event listeners.
 - **Fire-and-Forget Saving**: Optimized save calls during unmount to ensure execution without blocking UI.

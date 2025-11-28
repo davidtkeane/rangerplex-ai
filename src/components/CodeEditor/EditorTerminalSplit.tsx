@@ -12,6 +12,11 @@ type EditorTerminalSplitProps = {
   onClose?: () => void;
   onOpenSettings?: () => void;
   autoOpenTerminal?: boolean;
+  fontSize?: number;
+  tabSize?: number;
+  wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
+  minimap?: boolean;
+  lineNumbers?: 'on' | 'off' | 'relative';
 };
 
 const DEFAULT_SNIPPET = `// Welcome to RangerPlex Monaco Editor
@@ -37,7 +42,12 @@ export default function EditorTerminalSplit({
   onSendToChat,
   onClose,
   onOpenSettings,
-  autoOpenTerminal = false
+  autoOpenTerminal = false,
+  fontSize = 14,
+  tabSize = 2,
+  wordWrap = 'on',
+  minimap = true,
+  lineNumbers = 'on'
 }: EditorTerminalSplitProps) {
   const [code, setCode] = useState(DEFAULT_SNIPPET);
   const [filename, setFilename] = useState('app.js');
@@ -320,14 +330,14 @@ export default function EditorTerminalSplit({
           theme="vs-dark"
           onMount={onEditorMount}
           options={{
-            minimap: { enabled: true },
-            fontSize: 14,
-            lineNumbers: 'on',
+            minimap: { enabled: minimap },
+            fontSize: fontSize,
+            lineNumbers: lineNumbers,
             roundedSelection: false,
             scrollBeyondLastLine: false,
             automaticLayout: true,
-            tabSize: 2,
-            wordWrap: 'on',
+            tabSize: tabSize,
+            wordWrap: wordWrap,
             formatOnPaste: true,
             formatOnType: true,
             suggestOnTriggerCharacters: true,
