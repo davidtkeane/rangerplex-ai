@@ -281,7 +281,7 @@ class DBService {
         const localCanvasBoards = localStorage.getItem('rangerplex_canvas_boards');
 
         return {
-            version: '2.7.6',
+            version: '2.7.7',
             exportedAt: Date.now(),
             chats,
             settings,

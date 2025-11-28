@@ -260,8 +260,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             onClick={toggleCompactMode}
                             title={isCompactMode ? 'Show All Tools' : 'Compact View (Notes, Study, Canvas only)'}
                             className={`px-2 py-1 rounded text-xs transition-all ${isTron
-                                    ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan'
-                                    : 'hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-600 dark:text-zinc-400'
+                                ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan'
+                                : 'hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-600 dark:text-zinc-400'
                                 }`}
                         >
                             <i className={`fa-solid ${isCompactMode ? 'fa-expand' : 'fa-compress'} text-sm`}></i>
@@ -428,7 +428,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     )}
                     <div className={`text-[10px] flex items-center justify-center gap-2 ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>
-                        <span>v2.7.6 // PHANTOM EDITOR 👻</span>
+                        <span>v2.7.7 // PHANTOM EDITOR 👻</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText('bc1q3jvxvhqt7u7qnnjjv5jtkh7wsgg9nrgk3hgsce');

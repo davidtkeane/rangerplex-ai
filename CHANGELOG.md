@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.7.6] - 2025-11-28
+## [2.7.7] - 2025-11-28
 ### Added
+- **Smart Update Notification**: A new, non-intrusive popup alerts you when a new version is available.
+  - **One-Click Install**: Update directly from the notification with a single click.
+  - **Auto-Save Protection**: The system now automatically saves all chats, settings, and syncs data before applying an update to prevent data loss.
 - **Tabbed Workspace**: Introduced a new tabbed interface for better multitasking.
   - **Persistent Tabs**: Terminal, Browser, and Notes now stay alive in the background when switching tabs.
   - **Hybrid Mode**: Choose between classic floating windows or docked tabs via Settings.

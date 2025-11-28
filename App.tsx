@@ -11,6 +11,9 @@ import RangerVisionMode from './components/RangerVisionMode';
 import RadioPlayer from './components/RadioPlayer';
 import { WorkspaceTabs, WorkspaceTab } from './src/components/Workspace/WorkspaceTabs';
 import RangerTerminal from './components/Terminal/RangerTerminal';
+import UpdateNotification from './components/UpdateNotification';
+import { updateService, UpdateInfo } from './services/updateService';
+import pkg from './package.json';
 import SnowOverlay from './components/SnowOverlay';
 import ConfettiOverlay from './components/ConfettiOverlay';
 import SparkleOverlay from './components/SparkleOverlay';
@@ -187,6 +190,60 @@ const App: React.FC = () => {
     { id: 'chat', type: 'chat', title: 'Chat', icon: 'fa-solid fa-comments', isPinned: true }
   ]);
   const [activeTabId, setActiveTabId] = useState<string>('chat');
+
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
+
+  // Check for updates on mount
+  useEffect(() => {
+    const checkUpdates = async () => {
+      const info = await updateService.checkForUpdates(pkg.version);
+      if (info.hasUpdate) {
+        setUpdateInfo(info);
+      }
+    };
+    checkUpdates();
+    const interval = setInterval(checkUpdates, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleInstallUpdate = async () => {
+    if (!updateInfo) return;
+    setIsInstallingUpdate(true);
+    try {
+      console.log('💾 Saving all data before update...');
+      const chats = await dbService.getAllChats();
+      if (settings.enableCloudSync) {
+        for (const chat of chats) {
+          await syncService.syncChat(chat);
+        }
+      }
+
+      // Save all settings keys
+      for (const [key, value] of Object.entries(settings)) {
+        await dbService.saveSetting(key, value);
+      }
+
+      const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+      const response = await fetch(`${proxyUrl}/api/system/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        alert('✅ Update installed successfully! The app will now reload.');
+        window.location.reload();
+      } else {
+        alert(`❌ Update failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Update failed:', error);
+      alert('❌ Update failed. Check console for details.');
+    } finally {
+      setIsInstallingUpdate(false);
+    }
+  };
 
   // Helper to open a feature in a tab
   const openInTab = useCallback((type: WorkspaceTab['type'], title: string, icon: string, data?: any) => {
@@ -1159,6 +1216,24 @@ const App: React.FC = () => {
           onClose={() => setIsBlockchainChatOpen(false)}
         />
 
+        {/* Save Status Indicator */}
+        <SaveStatusIndicator
+          enabled={settings.saveStatusNotifications}
+          displayMs={settings.saveStatusDurationMs}
+        />
+
+        {/* Update Notification */}
+        {updateInfo && (
+          <UpdateNotification
+            version={updateInfo.latestVersion}
+            message={updateInfo.latestMessage}
+            onInstall={handleInstallUpdate}
+            onDismiss={() => setUpdateInfo(null)}
+            isInstalling={isInstallingUpdate}
+            theme={settings.theme}
+          />
+        )}
+
         {/* Manual Viewer */}
         <ManualViewer
           open={isManualOpen}
@@ -1178,15 +1253,12 @@ const App: React.FC = () => {
           <BackupManager theme={settings.theme} onClose={() => setShowBackupManager(false)} />
         )}
 
-        {/* Save Status Indicator */}
-        <SaveStatusIndicator
-          enabled={settings.saveStatusNotifications}
-          displayMs={settings.saveStatusDurationMs}
-        />
-
       </div>
     </div>
   );
 };
 
 export default App;
+
+
+
