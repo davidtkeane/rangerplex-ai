@@ -1,15 +1,16 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useCanvas, DrawingTool } from '../hooks/useCanvas';
 import { useCanvasHistory } from '../hooks/useCanvasHistory';
-import { useCanvasStorage } from '../hooks/useCanvasStorage';
 import { useCanvasBackground, BackgroundType } from '../hooks/useCanvasBackground';
-import { useCanvasBoards } from '../hooks/useCanvasBoards';
+import { useCanvasBoards, CanvasBoard as CanvasBoardType } from '../hooks/useCanvasBoards';
 import { useBackgroundLock } from '../hooks/useBackgroundLock';
 import { CanvasToolbar } from './CanvasToolbar';
 import { CanvasBackgroundPicker } from './CanvasBackgroundPicker';
 import { BoardCreationModal } from './BoardCreationModal';
 import { BoardSwitcher } from './BoardSwitcher';
 import { WarningDialog } from './WarningDialog';
+import { canvasDbService } from '../../services/canvasDbService';
+import { queueCanvasBoardSave } from '../../services/autoSaveService';
 import '../styles/canvas.css';
 
 interface CanvasBoardProps {
@@ -22,16 +23,34 @@ interface CanvasBoardProps {
   onOpenSettings?: () => void;
 }
 
-export const CanvasBoard: React.FC<CanvasBoardProps> = ({
-  isOpen,
-  onClose,
+// --- CanvasEditor Component ---
+// Responsible for a SINGLE board's lifecycle: Load -> Draw -> Save
+interface CanvasEditorProps {
+  board: CanvasBoardType;
+  theme: 'dark' | 'light' | 'tron';
+  onClose: () => void;
+  onOpenSettings?: () => void;
+  onUpdateMetadata: (id: string, updates: Partial<CanvasBoardType>) => void;
+  boards: CanvasBoardType[];
+  onSwitchBoard: (id: string) => void;
+  onDeleteBoard: (id: string) => void;
+  onCreateBoard: () => void;
+  canCreateBoard: boolean;
+}
+
+const CanvasEditor: React.FC<CanvasEditorProps> = ({
+  board,
   theme,
-  defaultColor = 'white',
-  width = window.innerWidth,
-  height = window.innerHeight - 220,
-  onOpenSettings
+  onClose,
+  onOpenSettings,
+  onUpdateMetadata,
+  boards,
+  onSwitchBoard,
+  onDeleteBoard,
+  onCreateBoard,
+  canCreateBoard
 }) => {
-  // State
+  const [isLoading, setIsLoading] = useState(true);
   const [currentTool, setCurrentTool] = useState<DrawingTool>({
     type: 'pen',
     color: '#000000',
@@ -40,37 +59,14 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     lineCap: 'round',
     lineJoin: 'round'
   });
-  const [backgroundType, setBackgroundType] = useState<BackgroundType>('blank');
 
-  // Modal state
-  const [showBoardModal, setShowBoardModal] = useState(false);
-  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
-  const [showClearWarning, setShowClearWarning] = useState(false);
-  const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
+  // Local state for background to allow immediate UI updates before DB sync
+  const [localBackground, setLocalBackground] = useState<BackgroundType>(board.background);
 
-  // Hooks
+  const containerRef = useRef<HTMLDivElement>(null);
+  const bgCanvasRef = useRef<HTMLCanvasElement>(null);
   const {
-    boards,
-    currentBoardId,
-    currentBoard,
-    createBoard,
-    switchBoard,
-    updateBoardImage,
-    updateBoardBackground,
-    deleteBoard,
-    canCreateBoard,
-    boardCount,
-    isLoaded,
-    isLoadingImage
-  } = useCanvasBoards();
-
-  const { isLocked: isBackgroundLocked, markAsDrawn } = useBackgroundLock();
-
-  // Canvas Refs
-  const bgCanvasRef = useRef<HTMLCanvasElement>(null); // Bottom layer (Background)
-
-  const {
-    canvasRef: drawingCanvasRef, // Use the ref from the hook!
+    canvasRef: drawingCanvasRef,
     isDrawing,
     startDrawing,
     draw,
@@ -89,333 +85,181 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     canRedo
   } = useCanvasHistory(50);
 
-  const {
-    saveToLocalStorage,
-    clearSaved
-  } = useCanvasStorage(drawingCanvasRef, true); // Auto-save drawing layer only
-
   const { drawBackground } = useCanvasBackground();
-
-  // Create first board if none exists
-  useEffect(() => {
-    if (boards.length === 0) {
-      createBoard('blank', undefined, defaultColor); // Use default color
-    }
-  }, []); // Run once on mount (or when boards is empty, but dependency array is empty to mimic mount)
-
-  // Sync picker state with current board
-  useEffect(() => {
-    if (currentBoard) {
-      setBackgroundType(currentBoard.background);
-    }
-  }, [currentBoard?.id, currentBoard?.background]);
-
-  // Container Ref for dynamic resizing
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { isLocked: isBackgroundLocked, markAsDrawn } = useBackgroundLock();
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  // 1. Load Image Data on Mount
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const imageData = await canvasDbService.loadBoardImage(board.id);
+        if (isMounted && imageData && drawingCanvasRef.current) {
+          const img = new Image();
+          img.onload = () => {
+            if (drawingCanvasRef.current) {
+              const ctx = drawingCanvasRef.current.getContext('2d');
+              ctx?.drawImage(img, 0, 0);
+            }
+            setIsLoading(false);
+          };
+          img.src = imageData;
+        } else {
+          setIsLoading(false);
+        }
+      } catch (e) {
+        console.error("Failed to load board image", e);
+        setIsLoading(false);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, [board.id]); // Only run on mount (key change handles the rest)
+
+  // 2. Save Logic
+  const saveBoard = useCallback((force = false) => {
+    if (!drawingCanvasRef.current) return;
+    const imageData = drawingCanvasRef.current.toDataURL('image/jpeg', 0.7);
+
+    // Queue save
+    queueCanvasBoardSave({
+      ...board,
+      imageData,
+      modified: Date.now()
+    }, true); // Enable cloud sync
+  }, [board]);
+
+  // Save on Unmount
+  useEffect(() => {
+    return () => saveBoard(true);
+  }, [saveBoard]);
 
   // Resize Observer
   useEffect(() => {
     if (!containerRef.current) return;
-
     const updateDimensions = () => {
       if (containerRef.current) {
         const { clientWidth, clientHeight } = containerRef.current;
         setDimensions({ width: clientWidth, height: clientHeight });
       }
     };
-
-    // Initial measure
     updateDimensions();
-
-    const resizeObserver = new ResizeObserver(() => {
-      updateDimensions();
-    });
-
+    const resizeObserver = new ResizeObserver(updateDimensions);
     resizeObserver.observe(containerRef.current);
-
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Initialize canvas sizes based on container dimensions
+  // Update Canvas Size & Redraw Background
   useEffect(() => {
     if (drawingCanvasRef.current && bgCanvasRef.current) {
+      // Save current content before resize
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = drawingCanvasRef.current.width;
+      tempCanvas.height = drawingCanvasRef.current.height;
+      tempCtx?.drawImage(drawingCanvasRef.current, 0, 0);
+
+      // Resize
       drawingCanvasRef.current.width = dimensions.width;
       drawingCanvasRef.current.height = dimensions.height;
       bgCanvasRef.current.width = dimensions.width;
       bgCanvasRef.current.height = dimensions.height;
 
-      // Redraw background on resize
-      if (currentBoard) {
-        drawBackground(bgCanvasRef.current, currentBoard.background, theme, currentBoard.color);
+      // Restore content
+      const ctx = drawingCanvasRef.current.getContext('2d');
+      ctx?.drawImage(tempCanvas, 0, 0);
+
+      // Redraw background
+      drawBackground(bgCanvasRef.current, localBackground, theme, board.color);
+    }
+  }, [dimensions, theme, localBackground, board.color]);
+
+  // Sync local background when prop changes (e.g. from other tabs)
+  useEffect(() => {
+    setLocalBackground(board.background);
+  }, [board.background]);
+
+  // Input Handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const rect = drawingCanvasRef.current?.getBoundingClientRect();
+    if (rect) startDrawing({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDrawing) return;
+    const rect = drawingCanvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      markAsDrawn();
+      draw({ x: e.clientX - rect.left, y: e.clientY - rect.top }, currentTool);
+    }
+  };
+  const handleMouseUp = () => {
+    if (isDrawing) {
+      const data = stopDrawing();
+      if (data) {
+        saveToHistory(data);
+        saveBoard(); // Auto-save
       }
     }
-  }, [dimensions.width, dimensions.height, theme, currentBoard?.background, currentBoard?.color]);
+  };
 
-  // Hydrate saved board image onto drawing layer when board or size changes
+  // Keyboard Shortcuts
   useEffect(() => {
-    if (!drawingCanvasRef.current || !currentBoard) return;
-    const canvas = drawingCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z') { e.preventDefault(); undo(drawingCanvasRef.current!); }
+        if (e.key === 'y') { e.preventDefault(); redo(drawingCanvasRef.current!); }
+        if (e.key === 's') { e.preventDefault(); saveBoard(); }
+      } else if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [undo, redo, saveBoard, onClose]);
 
-    // Clear before painting
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (currentBoard.imageData) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
-      img.onerror = () => console.warn('⚠️ Failed to hydrate canvas image for board:', currentBoard.id);
-      img.src = currentBoard.imageData;
-    }
-  }, [currentBoard?.id, currentBoard?.imageData, dimensions.width, dimensions.height]);
-
-  // Determine container background color to match board
   const getContainerBackground = () => {
-    if (!currentBoard) return theme === 'dark' ? '#1a1a1a' : theme === 'tron' ? '#000' : '#fff';
-    if (currentBoard.color === 'black') return '#000000';
-    if (currentBoard.color === 'gray') return '#808080';
+    if (board.color === 'black') return '#000000';
+    if (board.color === 'gray') return '#808080';
     return '#ffffff';
   };
 
-  // Composite Download Function
-  const handleDownload = (format: 'png' | 'jpeg') => {
-    if (!drawingCanvasRef.current || !bgCanvasRef.current) return;
-
-    // Create temp canvas to merge layers
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = dimensions.width;
-    tempCanvas.height = dimensions.height;
-    const ctx = tempCanvas.getContext('2d');
-    if (!ctx) return;
-
-    // Draw background
-    ctx.drawImage(bgCanvasRef.current, 0, 0);
-    // Draw drawing
-    ctx.drawImage(drawingCanvasRef.current, 0, 0);
-
-    // Download
-    const link = document.createElement('a');
-    link.download = `rangerplex-board-${Date.now()}.${format}`;
-    link.href = tempCanvas.toDataURL(`image/${format}`, format === 'jpeg' ? 0.9 : undefined);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Event Handlers
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = drawingCanvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    startDrawing({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-    const rect = drawingCanvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    markAsDrawn();
-    draw({ x: e.clientX - rect.left, y: e.clientY - rect.top }, currentTool);
-  };
-
-  const handleMouseUp = () => {
-    if (isDrawing) {
-      const imageData = stopDrawing();
-      if (imageData) {
-        saveToHistory(imageData);
-        // Auto-save on stroke end
-        if (drawingCanvasRef.current) {
-          updateBoardImage(drawingCanvasRef.current);
-        }
-      }
-    }
-  };
-
-  // Touch Handlers
-  const onTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    handleTouchStart(e.nativeEvent, currentTool);
-  };
-  const onTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e.nativeEvent, currentTool);
-  const onTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    const imageData = handleTouchEnd(e.nativeEvent);
-    if (imageData) {
-      saveToHistory(imageData);
-      // Auto-save on stroke end
-      if (drawingCanvasRef.current) {
-        updateBoardImage(drawingCanvasRef.current);
-      }
-    }
-  };
-
-  // Handle Close with Save
-  const handleClose = () => {
-    if (drawingCanvasRef.current) {
-      updateBoardImage(drawingCanvasRef.current);
-    }
-    if (onClose) onClose();
-  };
-
-  // Persist latest drawing when component unmounts
-  useEffect(() => {
-    return () => {
-      if (drawingCanvasRef.current) {
-        updateBoardImage(drawingCanvasRef.current);
-      }
-    };
-  }, [updateBoardImage]);
-
-  // Toolbar Handlers
-  const handleToolChange = (changes: Partial<DrawingTool>) => setCurrentTool(prev => ({ ...prev, ...changes }));
-
-  const handleUndo = () => {
-    if (drawingCanvasRef.current) {
-      const imageData = undo(drawingCanvasRef.current);
-      if (imageData) {
-        const ctx = drawingCanvasRef.current.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, dimensions.width, dimensions.height); // Clear first
-          ctx.putImageData(imageData, 0, 0);
-        }
-      }
-    }
-  };
-
-  const handleRedo = () => {
-    if (drawingCanvasRef.current) {
-      const imageData = redo(drawingCanvasRef.current);
-      if (imageData) {
-        const ctx = drawingCanvasRef.current.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, dimensions.width, dimensions.height);
-          ctx.putImageData(imageData, 0, 0);
-        }
-      }
-    }
-  };
-
-  const handleClear = () => {
-    setShowClearWarning(true);
-  };
-
-  const confirmClear = () => {
-    if (drawingCanvasRef.current) {
-      const ctx = drawingCanvasRef.current.getContext('2d');
-      ctx?.clearRect(0, 0, dimensions.width, dimensions.height);
-      clearHistory();
-      clearSaved();
-    }
-    setShowClearWarning(false);
-  };
-
-  // Board Ops
-  const handleCreateBoard = async (bg: BackgroundType, name?: string, color: 'black' | 'gray' | 'white' = 'white') => {
-    const id = await createBoard(bg, name, color);
-    if (id) setShowBoardModal(false);
-  };
-
-  const handleDeleteBoard = (id: string) => {
-    setBoardToDelete(id);
-    setShowDeleteWarning(true);
-  };
-
-  const handleSwitchBoard = (boardId: string) => {
-    if (drawingCanvasRef.current && currentBoardId) {
-      updateBoardImage(drawingCanvasRef.current);
-    }
-    switchBoard(boardId);
-  };
-
-  const confirmDeleteBoard = async () => {
-    if (boardToDelete) {
-      await deleteBoard(boardToDelete);
-      setBoardToDelete(null);
-    }
-    setShowDeleteWarning(false);
-  };
-
-  // Keyboard
-  useEffect(() => {
-    const handleKeyboard = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'z') { e.preventDefault(); handleUndo(); }
-        else if (e.key === 'y') { e.preventDefault(); handleRedo(); }
-        else if (e.key === 's') { e.preventDefault(); handleDownload('png'); }
-      } else if (e.key === 'p') setCurrentTool(p => ({ ...p, type: 'pen', opacity: 1.0, size: 3 }));
-      else if (e.key === 'e') setCurrentTool(p => ({ ...p, type: 'eraser', size: 20 }));
-      else if (e.key === 'h') setCurrentTool(p => ({ ...p, type: 'highlighter', opacity: 0.3, size: 20 }));
-      else if (e.key === 'Escape') handleClose();
-    };
-    window.addEventListener('keydown', handleKeyboard);
-    return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [canUndo, canRedo, onClose]);
-
   return (
-    <div className={`canvas-board canvas-board-${theme}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div className={`canvas-board canvas-board-${theme}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      {/* Header */}
       <div className={`canvas-header canvas-header-${theme}`} style={{ flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button onClick={handleClose} className="close-btn" title="Back to Chat (Esc)">← Back</button>
-          <h2>🎨 Canvas Board</h2>
+          <button onClick={onClose} className="close-btn">← Back</button>
+          <h2>🎨 {board.name}</h2>
         </div>
         <div className="canvas-controls" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {boards.length >= 2 && (
-            <BoardSwitcher
-              boards={boards}
-              currentBoardId={currentBoardId || ''}
-              onSwitchBoard={handleSwitchBoard}
-              onDeleteBoard={handleDeleteBoard}
-              theme={theme}
-            />
-          )}
+          <BoardSwitcher
+            boards={boards}
+            currentBoardId={board.id}
+            onSwitchBoard={onSwitchBoard}
+            onDeleteBoard={onDeleteBoard}
+            theme={theme}
+          />
           <CanvasBackgroundPicker
-            currentBackground={backgroundType}
+            currentBackground={localBackground}
             onChange={(bg) => {
-              setBackgroundType(bg);
-              if (bgCanvasRef.current) drawBackground(bgCanvasRef.current, bg, theme, currentBoard?.color);
-              if (currentBoardId) {
-                updateBoardBackground(currentBoardId, bg, currentBoard?.color);
-              }
+              setLocalBackground(bg);
+              onUpdateMetadata(board.id, { background: bg });
             }}
             theme={theme}
             disabled={isBackgroundLocked}
           />
           {canCreateBoard && (
-            <button onClick={() => setShowBoardModal(true)} className={`action-btn`} style={{ fontWeight: 'bold' }}>➕ New Board</button>
+            <button onClick={onCreateBoard} className="action-btn" style={{ fontWeight: 'bold' }}>➕ New Board</button>
           )}
           {onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              className={`action-btn`}
-              title="Open Settings"
-              style={{ fontWeight: 'bold' }}
-            >
-              <i className="fa-solid fa-gear"></i>
-            </button>
+            <button onClick={onOpenSettings} className="action-btn" title="Settings"><i className="fa-solid fa-gear"></i></button>
           )}
         </div>
       </div>
 
-      <div
-        ref={containerRef}
-        style={{
-          flex: 1,
-          position: 'relative',
-          overflow: 'hidden',
-          background: getContainerBackground(),
-          transition: 'background-color 0.3s ease'
-        }}
-      >
-        {/* Background Layer */}
-        <canvas
-          ref={bgCanvasRef}
-          width={dimensions.width}
-          height={dimensions.height}
-          style={{ position: 'absolute', top: 0, left: 0, zIndex: 0, pointerEvents: 'none' }}
-        />
-        {/* Drawing Layer */}
+      {/* Canvas Area */}
+      <div ref={containerRef} style={{ flex: 1, position: 'relative', overflow: 'hidden', background: getContainerBackground() }}>
+        <canvas ref={bgCanvasRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 0, pointerEvents: 'none' }} />
         <canvas
           ref={drawingCanvasRef}
           className={`canvas canvas-${theme}`}
@@ -423,86 +267,122 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
           style={{
             position: 'absolute', top: 0, left: 0, zIndex: 1,
-            cursor: currentTool.type === 'pen' ? 'crosshair' : currentTool.type === 'eraser' ? 'cell' : 'default',
-            background: 'transparent' // Important!
+            cursor: currentTool.type === 'pen' ? 'crosshair' : 'default',
+            background: 'transparent'
           }}
         />
-        {(!isLoaded || isLoadingImage) && (
+        {isLoading && (
           <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: theme === 'dark' ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-            backdropFilter: 'blur(4px)'
+            position: 'absolute', inset: 0, zIndex: 100,
+            background: theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
-            <div style={{ textAlign: 'center' }}>
-              <i className="fa-solid fa-circle-notch fa-spin fa-3x" style={{ color: theme === 'tron' ? '#0ff' : '#666' }}></i>
-              <p style={{ marginTop: '1rem', fontWeight: 'bold' }}>
-                {!isLoaded ? 'Loading Boards...' : 'Loading Canvas...'}
-              </p>
-            </div>
+            <i className="fa-solid fa-circle-notch fa-spin fa-3x"></i>
           </div>
         )}
       </div>
 
-      <div style={{ flexShrink: 0 }}>
-        <CanvasToolbar
-          currentTool={currentTool}
-          onToolChange={handleToolChange}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onClear={handleClear}
-          onSavePNG={() => handleDownload('png')}
-          onSaveJPG={() => handleDownload('jpeg')}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          theme={theme}
-        />
-      </div>
+      {/* Toolbar */}
+      <CanvasToolbar
+        currentTool={currentTool}
+        onToolChange={(t) => setCurrentTool(p => ({ ...p, ...t }))}
+        onUndo={() => {
+          const data = undo(drawingCanvasRef.current!);
+          if (data) {
+            const ctx = drawingCanvasRef.current!.getContext('2d');
+            ctx?.clearRect(0, 0, dimensions.width, dimensions.height);
+            ctx?.putImageData(data, 0, 0);
+            saveBoard();
+          }
+        }}
+        onRedo={() => {
+          const data = redo(drawingCanvasRef.current!);
+          if (data) {
+            const ctx = drawingCanvasRef.current!.getContext('2d');
+            ctx?.clearRect(0, 0, dimensions.width, dimensions.height);
+            ctx?.putImageData(data, 0, 0);
+            saveBoard();
+          }
+        }}
+        onClear={() => {
+          if (confirm('Clear canvas?')) {
+            const ctx = drawingCanvasRef.current?.getContext('2d');
+            ctx?.clearRect(0, 0, dimensions.width, dimensions.height);
+            clearHistory();
+            saveBoard();
+          }
+        }}
+        onSavePNG={() => {
+          const link = document.createElement('a');
+          link.download = `board-${Date.now()}.png`;
+          link.href = drawingCanvasRef.current!.toDataURL();
+          link.click();
+        }}
+        onSaveJPG={() => { }}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        theme={theme}
+      />
+    </div>
+  );
+};
+
+// --- Main Container ---
+export const CanvasBoard: React.FC<CanvasBoardProps> = (props) => {
+  const {
+    boards,
+    currentBoardId,
+    currentBoard,
+    createBoard,
+    switchBoard,
+    updateBoardMetadata,
+    deleteBoard,
+    canCreateBoard,
+    isLoaded
+  } = useCanvasBoards();
+
+  const [showBoardModal, setShowBoardModal] = useState(false);
+
+  // Create first board if none
+  useEffect(() => {
+    if (isLoaded && boards.length === 0) {
+      createBoard('blank', undefined, props.defaultColor || 'white');
+    }
+  }, [isLoaded, boards.length, createBoard, props.defaultColor]);
+
+  if (!isLoaded) return <div className="p-10 text-center">Loading Canvas System...</div>;
+  if (!currentBoard) return <div className="p-10 text-center">Creating Board...</div>;
+
+  return (
+    <>
+      {/* KEY PROP IS CRITICAL: Forces remount on board switch */}
+      <CanvasEditor
+        key={currentBoard.id}
+        board={currentBoard}
+        boards={boards}
+        theme={props.theme}
+        onClose={props.onClose}
+        onOpenSettings={props.onOpenSettings}
+        onUpdateMetadata={updateBoardMetadata}
+        onSwitchBoard={switchBoard}
+        onDeleteBoard={deleteBoard}
+        onCreateBoard={() => setShowBoardModal(true)}
+        canCreateBoard={canCreateBoard}
+      />
 
       <BoardCreationModal
         isOpen={showBoardModal}
         onClose={() => setShowBoardModal(false)}
-        onCreateBoard={handleCreateBoard}
-        theme={theme}
+        onCreateBoard={async (bg, name, color) => {
+          await createBoard(bg, name, color);
+          setShowBoardModal(false);
+        }}
+        theme={props.theme}
         maxBoardsReached={!canCreateBoard}
-        currentBoardCount={boardCount}
+        currentBoardCount={boards.length}
       />
-
-      <WarningDialog
-        isOpen={showDeleteWarning}
-        onClose={() => setShowDeleteWarning(false)}
-        onConfirm={confirmDeleteBoard}
-        title="Delete Board?"
-        message={`This will permanently delete "${boards.find(b => b.id === boardToDelete)?.name}" and cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Keep It"
-        theme={theme}
-        isDangerous={true}
-      />
-
-      <WarningDialog
-        isOpen={showClearWarning}
-        onClose={() => setShowClearWarning(false)}
-        onConfirm={confirmClear}
-        title="Clear Canvas?"
-        message="Are you sure you want to clear the entire canvas? This action cannot be undone."
-        confirmText="Clear Canvas"
-        cancelText="Cancel"
-        theme={theme}
-        isDangerous={true}
-      />
-    </div>
+    </>
   );
 };

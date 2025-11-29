@@ -1,42 +1,44 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { BackgroundType } from './useCanvasBackground';
 import { canvasDbService, CanvasBoardRecord } from '../../services/canvasDbService';
-import { queueCanvasBoardSave } from '../../services/autoSaveService';
 
 export interface CanvasBoard {
   id: string;
   name: string;
   background: BackgroundType;
   color: 'black' | 'gray' | 'white';
-  imageData: string; // Base64 encoded canvas data
   created: number;
   modified: number;
 }
 
 const MAX_BOARDS = 10;
-const ENABLE_CLOUD_SYNC = true;
 
 export const useCanvasBoards = () => {
-  const [boards, setBoards] = useState<CanvasBoard[]>([]); // These will mostly be headers (empty imageData)
+  const [boards, setBoards] = useState<CanvasBoard[]>([]);
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
-  const [activeBoardImageData, setActiveBoardImageData] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoadingImage, setIsLoadingImage] = useState(false);
 
   // 1. Initial Load (Headers Only)
   useEffect(() => {
     const loadHeaders = async () => {
       try {
-        // Try to migrate if needed (this handles the legacy localStorage -> IDB move)
+        // Try to migrate if needed
         await canvasDbService.migrateFromLocalStorage();
 
         // Load lightweight headers
         const headers = await canvasDbService.loadBoardHeaders();
 
-        // Convert to CanvasBoard type (imageData is empty string)
-        const loadedBoards = headers.map(h => ({ ...h, imageData: h.imageData || '' })) as CanvasBoard[];
+        // Convert to CanvasBoard type (excluding imageData)
+        const loadedBoards = headers.map(h => ({
+          id: h.id,
+          name: h.name,
+          background: h.background as BackgroundType,
+          color: h.color || 'white',
+          created: h.created,
+          modified: h.modified
+        }));
 
-        setBoards(loadedBoards);
+        setBoards(loadedBoards as CanvasBoard[]);
         if (loadedBoards.length > 0) {
           setCurrentBoardId(loadedBoards[0].id);
         }
@@ -49,42 +51,10 @@ export const useCanvasBoards = () => {
     loadHeaders();
   }, []);
 
-  // 2. Lazy Load Image Data when Current Board Changes
-  useEffect(() => {
-    const loadActiveImage = async () => {
-      if (!currentBoardId) {
-        setActiveBoardImageData('');
-        return;
-      }
-
-      // If we already have the data in the boards array (e.g. from creation), use it
-      const existing = boards.find(b => b.id === currentBoardId);
-      if (existing && existing.imageData && existing.imageData.length > 100) {
-        setActiveBoardImageData(existing.imageData);
-        return;
-      }
-
-      setIsLoadingImage(true);
-      try {
-        const imageData = await canvasDbService.loadBoardImage(currentBoardId);
-        setActiveBoardImageData(imageData || '');
-      } catch (error) {
-        console.error('❌ Failed to load board image:', error);
-        setActiveBoardImageData('');
-      } finally {
-        setIsLoadingImage(false);
-      }
-    };
-
-    loadActiveImage();
-  }, [currentBoardId]); // Only re-run if ID changes
-
-  // Construct the full current board object
+  // Construct the current board object (Metadata only)
   const currentBoard = useMemo((): CanvasBoard | null => {
-    const board = boards.find(b => b.id === currentBoardId);
-    if (!board) return null;
-    return { ...board, imageData: activeBoardImageData };
-  }, [boards, currentBoardId, activeBoardImageData]);
+    return boards.find(b => b.id === currentBoardId) || null;
+  }, [boards, currentBoardId]);
 
   // Generate auto-name
   const generateBoardName = useCallback((background: BackgroundType): string => {
@@ -111,7 +81,6 @@ export const useCanvasBoards = () => {
       name: customName || generateBoardName(background),
       background,
       color,
-      imageData: '',
       created: Date.now(),
       modified: Date.now()
     };
@@ -119,11 +88,10 @@ export const useCanvasBoards = () => {
     // Optimistic update
     setBoards(prev => [newBoard, ...prev]);
     setCurrentBoardId(newBoard.id);
-    setActiveBoardImageData(''); // Start empty
 
-    // Save to DB
+    // Save to DB (Initial save with empty image)
     try {
-      await canvasDbService.saveBoard(newBoard);
+      await canvasDbService.saveBoard({ ...newBoard, imageData: '' });
     } catch (error) {
       console.error('Failed to save new board:', error);
     }
@@ -138,60 +106,20 @@ export const useCanvasBoards = () => {
     }
   }, [boards]);
 
-  // Update Image (Granular Save)
-  const updateBoardImage = useCallback((canvas: HTMLCanvasElement) => {
-    if (!currentBoardId) return;
-
-    try {
-      const imageData = canvas.toDataURL('image/jpeg', 0.7);
-      setActiveBoardImageData(imageData);
-
-      // Update modified timestamp in list
-      setBoards(prev => prev.map(b => b.id === currentBoardId ? { ...b, modified: Date.now() } : b));
-
-      // Queue Save (Granular)
-      const boardToSave = boards.find(b => b.id === currentBoardId);
-      if (boardToSave) {
-        queueCanvasBoardSave(
-          { ...boardToSave, imageData, modified: Date.now() },
-          ENABLE_CLOUD_SYNC
-        );
-      }
-    } catch (error) {
-      console.error('Failed to update board image:', error);
-    }
-  }, [currentBoardId, boards]);
-
   // Update Background (Metadata Only)
-  const updateBoardBackground = useCallback(async (boardId: string, background: BackgroundType, color?: 'black' | 'gray' | 'white') => {
+  const updateBoardMetadata = useCallback(async (boardId: string, updates: Partial<CanvasBoard>) => {
     // Optimistic
     setBoards(prev => prev.map(b =>
       b.id === boardId
-        ? { ...b, background, color: color ?? b.color, modified: Date.now() }
+        ? { ...b, ...updates, modified: Date.now() }
         : b
     ));
 
     // DB Update
     try {
-      await canvasDbService.updateBoardMetadata(boardId, { background, color, modified: Date.now() });
+      await canvasDbService.updateBoardMetadata(boardId, { ...updates, modified: Date.now() });
     } catch (error) {
-      console.error('Failed to update board background:', error);
-    }
-  }, []);
-
-  // Rename (Metadata Only)
-  const renameBoard = useCallback(async (boardId: string, newName: string): Promise<boolean> => {
-    const name = newName.trim();
-    if (!name) return false;
-
-    setBoards(prev => prev.map(b => b.id === boardId ? { ...b, name } : b));
-
-    try {
-      await canvasDbService.updateBoardMetadata(boardId, { name });
-      return true;
-    } catch (error) {
-      console.error('Failed to rename board:', error);
-      return false;
+      console.error('Failed to update board metadata:', error);
     }
   }, []);
 
@@ -227,7 +155,6 @@ export const useCanvasBoards = () => {
   const clearAllBoards = useCallback(async () => {
     setBoards([]);
     setCurrentBoardId(null);
-    setActiveBoardImageData('');
     try {
       await canvasDbService.clearAllBoards();
     } catch (error) {
@@ -241,15 +168,12 @@ export const useCanvasBoards = () => {
     currentBoard,
     createBoard,
     switchBoard,
-    updateBoardImage,
-    updateBoardBackground,
+    updateBoardMetadata,
     deleteBoard,
-    renameBoard,
     clearAllBoards,
     canCreateBoard: boards.length < MAX_BOARDS,
     maxBoards: MAX_BOARDS,
     boardCount: boards.length,
-    isLoaded,
-    isLoadingImage
+    isLoaded
   };
 };

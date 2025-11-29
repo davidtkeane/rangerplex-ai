@@ -5,6 +5,14 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.5] - 2025-12-02 🎨 CANVAS ARCHITECTURE REBUILD
+
+### 🎨 Canvas Re-Architecture
+- **Container/Editor Pattern**: Completely rebuilt `CanvasBoard` to separate the "Manager" (list/modals) from the "Editor" (drawing logic).
+- **Key-Based Remounting**: Implemented `key={boardId}` on the editor to force a complete component reset when switching boards. This guarantees zero state leakage between boards and eliminates race conditions.
+- **Isolated Data Fetching**: The Editor now fetches its own image data on mount, ensuring the canvas always displays the correct source of truth from IndexedDB.
+- **Visual Stability**: Added local loading states within the editor to prevent "black flash" or interaction before the image is ready.
+
 ## [2.12.4] - 2025-12-02 🧠 MEMORY MANAGEMENT & CANVAS FIXES
 
 ### 🧠 Memory Management
