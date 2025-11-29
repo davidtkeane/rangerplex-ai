@@ -506,6 +506,22 @@ function setupMenu() {
                     { role: 'close' }
                 ])
             ]
+        },
+        // { role: 'helpMenu' } - Developer Tools
+        {
+            label: 'Developer',
+            submenu: [
+                { role: 'toggleDevTools', label: 'Toggle Developer Tools (Console)' },
+                { role: 'reload' },
+                { role: 'forceReload' },
+                { type: 'separator' },
+                {
+                    label: 'Inspect Element',
+                    click: () => {
+                        if (mainWindow) mainWindow.webContents.inspectElement(0, 0);
+                    }
+                }
+            ]
         }
     ];
 

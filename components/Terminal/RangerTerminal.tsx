@@ -83,8 +83,18 @@ const RangerTerminal = forwardRef<RangerTerminalHandle, RangerTerminalProps>(
       onSocketReady?.(socket);
 
       const resizeAndNotify = () => {
-        if (!fitAddonRef.current || !terminalRef.current) return;
-        fitAddonRef.current.fit();
+        if (!fitAddonRef.current || !terminalRef.current || !containerRef.current) return;
+
+        // Safety check: Don't try to fit if container is hidden or has no size
+        if (containerRef.current.clientWidth === 0 || containerRef.current.clientHeight === 0) return;
+
+        try {
+          fitAddonRef.current.fit();
+        } catch (e) {
+          console.warn('XTerm fit failed:', e);
+          return;
+        }
+
         const cols = terminalRef.current.cols;
         const rows = terminalRef.current.rows;
         if (!cols || !rows) return;
@@ -134,11 +144,15 @@ const RangerTerminal = forwardRef<RangerTerminalHandle, RangerTerminalProps>(
         term.writeln('\r\n\x1b[1;31m[connection error]\x1b[0m');
       });
 
-      const observer = new ResizeObserver(() => resizeAndNotify());
+      const observer = new ResizeObserver(() => {
+        // Debounce resize
+        requestAnimationFrame(resizeAndNotify);
+      });
       if (container) {
         observer.observe(container);
       }
-      requestAnimationFrame(resizeAndNotify);
+      // Delay initial fit to allow layout to settle
+      setTimeout(resizeAndNotify, 100);
 
       return () => {
         dataDisposable.dispose();

@@ -24,6 +24,10 @@ export default function WeatherStation({ isDarkMode, isTron, initialTab = 'dashb
     const [activeTab, setActiveTab] = useState<'dashboard' | 'radar' | 'forecast' | 'minutely' | 'history' | 'alerts'>(initialTab);
 
     useEffect(() => {
+        setActiveTab(initialTab);
+    }, [initialTab]);
+
+    useEffect(() => {
         loadWeather();
     }, []);
 
@@ -84,14 +88,14 @@ export default function WeatherStation({ isDarkMode, isTron, initialTab = 'dashb
 
     // Load data on tab change (Lazy Loading)
     useEffect(() => {
-        if (activeTab === 'minutely' && minutelyData.length === 0) {
+        if (activeTab === 'minutely' && minutelyData.length === 0 && currentWeather) {
             loadMinutely();
         } else if (activeTab === 'history' && !historyData) {
             loadHistory();
         } else if (activeTab === 'alerts' && alerts.length === 0) {
             loadAlerts();
         }
-    }, [activeTab]);
+    }, [activeTab, currentWeather]);
 
     const loadMinutely = async () => {
         if (!currentWeather) return;
@@ -590,7 +594,10 @@ export default function WeatherStation({ isDarkMode, isTron, initialTab = 'dashb
                                         className={`px-4 py-2 rounded border ${cardClasses}`}
                                     />
                                     <button
-                                        onClick={loadHistory}
+                                        onClick={async () => {
+                                            setHistoryData(null); // Clear previous data
+                                            await loadHistory();
+                                        }}
                                         className={`px-4 py-2 rounded border ${isTron ? 'border-tron-cyan hover:bg-tron-cyan/10' : 'border-teal-500 hover:bg-teal-500/10'}`}
                                     >
                                         Load Data
@@ -598,7 +605,7 @@ export default function WeatherStation({ isDarkMode, isTron, initialTab = 'dashb
                                 </div>
 
                                 {historyData ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
                                         <div className="flex items-center gap-6">
                                             <i className={`fa-solid ${historyData.icon} fa-4x ${accentColor}`}></i>
                                             <div>

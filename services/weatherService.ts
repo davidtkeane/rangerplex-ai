@@ -104,6 +104,11 @@ class WeatherService {
         this.tomorrowKey = import.meta.env.TOMORROW_API_KEY || '';
         this.visualCrossingKey = import.meta.env.VISUAL_CROSSING_API_KEY || '';
 
+        console.log('🌤️ Weather Service Initialized');
+        console.log(`🔑 OpenWeather: ${this.openWeatherKey ? '✅ Loaded' : '❌ Missing'}`);
+        console.log(`🔑 Tomorrow.io: ${this.tomorrowKey ? '✅ Loaded' : '❌ Missing'}`);
+        console.log(`🔑 Visual Crossing: ${this.visualCrossingKey ? '✅ Loaded' : '❌ Missing'}`);
+
         // Initialize usage stats
         this.usageStats = {
             openweather: { calls: 0, limit: 1000, resetTime: this.getNextMidnight() },
@@ -330,16 +335,33 @@ class WeatherService {
     }
 
     async getTomorrowMinutely(lat: number = 53.3498, lon: number = -6.2603): Promise<MinutelyForecast[]> {
-        if (!this.tomorrowKey) return [];
+        if (!this.tomorrowKey) {
+            console.warn('⚠️ Tomorrow.io key missing for minutely data');
+            return [];
+        }
 
         try {
             const url = `https://api.tomorrow.io/v4/weather/forecast?location=${lat},${lon}&apikey=${this.tomorrowKey}`;
+            console.log('🔍 Fetching Tomorrow.io minutely:', url.replace(this.tomorrowKey, '***'));
+
             const response = await fetch(url);
 
-            if (!response.ok) return [];
+            if (!response.ok) {
+                console.error('❌ Tomorrow.io minutely error:', response.status, response.statusText);
+                const text = await response.text();
+                console.error('Response body:', text);
+                return [];
+            }
 
             const data = await response.json();
-            const minutely = data.timelines?.minutely || [];
+
+            if (!data.timelines || !data.timelines.minutely) {
+                console.warn('⚠️ Tomorrow.io response missing minutely data:', data);
+                return [];
+            }
+
+            const minutely = data.timelines.minutely;
+            console.log(`✅ Got ${minutely.length} minutely data points`);
 
             // Track API call
             await this.trackAPICall('tomorrow');
@@ -351,7 +373,7 @@ class WeatherService {
                 cloudCover: item.values.cloudCover
             }));
         } catch (error) {
-            console.error('Tomorrow.io minutely error:', error);
+            console.error('❌ Tomorrow.io minutely exception:', error);
             return [];
         }
     }
@@ -731,17 +753,34 @@ class WeatherService {
     // ========================================
 
     async getVisualCrossingHistory(location: string = 'Dublin,Ireland', date: Date): Promise<CurrentWeather | null> {
-        if (!this.visualCrossingKey || this.visualCrossingKey === 'your_visual_crossing_key_here') return null;
+        if (!this.visualCrossingKey || this.visualCrossingKey === 'your_visual_crossing_key_here') {
+            console.warn('⚠️ Visual Crossing key missing for history data');
+            return null;
+        }
 
         try {
             const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
             const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}/${dateStr}/${dateStr}?key=${this.visualCrossingKey}&unitGroup=metric&include=days`;
+            console.log('🔍 Fetching Visual Crossing history:', url.replace(this.visualCrossingKey, '***'));
+
             const response = await fetch(url);
 
-            if (!response.ok) return null;
+            if (!response.ok) {
+                console.error('❌ Visual Crossing history error:', response.status, response.statusText);
+                const text = await response.text();
+                console.error('Response body:', text);
+                return null;
+            }
 
             const data = await response.json();
+
+            if (!data.days || data.days.length === 0) {
+                console.warn('⚠️ Visual Crossing response missing history data:', data);
+                return null;
+            }
+
             const day = data.days[0];
+            console.log('✅ Got history data for:', dateStr);
 
             // Track API call
             await this.trackAPICall('visualcrossing');
@@ -766,7 +805,7 @@ class WeatherService {
                 source: 'visualcrossing'
             };
         } catch (error) {
-            console.error('Visual Crossing history error:', error);
+            console.error('❌ Visual Crossing history exception:', error);
             return null;
         }
     }

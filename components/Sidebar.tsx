@@ -372,8 +372,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Terminal - Hidden in compact mode */}
-                        {!isCompactMode && onToggleTerminal && (
+                        {/* Terminal - Always visible */}
+                        {onToggleTerminal && (
                             <button
                                 onClick={onToggleTerminal}
                                 title="Ranger Console"
