@@ -1195,9 +1195,66 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         {/* PROVIDERS TAB */}
                         {activeTab === 'providers' && (
                             <div className="space-y-6">
-                                <InputGroup label="Gemini API Key" value={localSettings.geminiApiKey} onChange={(v: any) => setLocalSettings({ ...localSettings, geminiApiKey: v })} icon="fa-brands fa-google" onTest={() => testConnection('gemini')} status={connectionStatus['gemini']} inputClass={inputClass} />
-                                <InputGroup label="OpenAI API Key" value={localSettings.openaiApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, openaiApiKey: v })} icon="fa-solid fa-bolt" onTest={() => testConnection('openai')} status={connectionStatus['openai']} inputClass={inputClass} />
-                                <InputGroup label="Anthropic API Key" value={localSettings.anthropicApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, anthropicApiKey: v })} icon="fa-solid fa-brain" onTest={() => testConnection('anthropic')} status={connectionStatus['anthropic']} inputClass={inputClass} />
+                                <InputGroup
+                                    label="Gemini API Key"
+                                    value={localSettings.geminiApiKey}
+                                    onChange={(v: string) => setLocalSettings({ ...localSettings, geminiApiKey: v })}
+                                    icon="fa-brands fa-google"
+                                    inputClass={inputClass}
+                                    onTest={() => testConnection('gemini', localSettings.geminiApiKey)}
+                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Google Gemini', testType: 'llm', apiKey: localSettings.geminiApiKey, provider: 'gemini', defaultModel: 'gemini-pro' })}
+                                    status={connectionStatus['gemini']}
+                                />
+                                <InputGroup
+                                    label="OpenAI API Key"
+                                    value={localSettings.openaiApiKey || ''}
+                                    onChange={(v: string) => setLocalSettings({ ...localSettings, openaiApiKey: v })}
+                                    icon="fa-solid fa-bolt"
+                                    inputClass={inputClass}
+                                    onTest={() => testConnection('openai', localSettings.openaiApiKey)}
+                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'OpenAI', testType: 'llm', apiKey: localSettings.openaiApiKey, provider: 'openai', defaultModel: 'gpt-3.5-turbo' })}
+                                    status={connectionStatus['openai']}
+                                />
+                                <InputGroup
+                                    label="Anthropic API Key"
+                                    value={localSettings.anthropicApiKey || ''}
+                                    onChange={(v: string) => setLocalSettings({ ...localSettings, anthropicApiKey: v })}
+                                    icon="fa-solid fa-brain"
+                                    inputClass={inputClass}
+                                    onTest={() => testConnection('anthropic', localSettings.anthropicApiKey)}
+                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Anthropic', testType: 'llm', apiKey: localSettings.anthropicApiKey, provider: 'anthropic', defaultModel: 'claude-3-haiku-20240307' })}
+                                    status={connectionStatus['anthropic']}
+                                />
+                                <InputGroup
+                                    label="DeepSeek API Key"
+                                    value={localSettings.deepseekApiKey || ''}
+                                    onChange={(v: string) => setLocalSettings({ ...localSettings, deepseekApiKey: v })}
+                                    icon="fa-solid fa-code"
+                                    inputClass={inputClass}
+                                    onTest={() => testConnection('deepseek', localSettings.deepseekApiKey)}
+                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'DeepSeek', testType: 'llm', apiKey: localSettings.deepseekApiKey, provider: 'deepseek', defaultModel: 'deepseek-chat' })}
+                                    status={connectionStatus['deepseek']}
+                                />
+                                <InputGroup
+                                    label="Groq API Key"
+                                    value={localSettings.groqApiKey || ''}
+                                    onChange={(v: string) => setLocalSettings({ ...localSettings, groqApiKey: v })}
+                                    icon="fa-solid fa-bolt"
+                                    inputClass={inputClass}
+                                    onTest={() => testConnection('groq', localSettings.groqApiKey)}
+                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Groq', testType: 'llm', apiKey: localSettings.groqApiKey, provider: 'groq', defaultModel: 'llama3-8b-8192' })}
+                                    status={connectionStatus['groq']}
+                                />
+                                <InputGroup
+                                    label="OpenRouter API Key"
+                                    value={localSettings.openRouterApiKey || ''}
+                                    onChange={(v: string) => setLocalSettings({ ...localSettings, openRouterApiKey: v })}
+                                    icon="fa-solid fa-network-wired"
+                                    inputClass={inputClass}
+                                    onTest={() => testConnection('openrouter', localSettings.openRouterApiKey)}
+                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'OpenRouter', testType: 'llm', apiKey: localSettings.openRouterApiKey, provider: 'openrouter', defaultModel: 'openai/gpt-3.5-turbo' })}
+                                    status={connectionStatus['openrouter']}
+                                />
                                 <InputGroup label="Proxy URL" value={localSettings.corsProxyUrl || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, corsProxyUrl: v })} icon="fa-solid fa-server" onTest={checkProxyStatus} status={proxyStatus === 'connected' ? 'success' : 'error'} inputClass={inputClass} />
 
                                 <h4 className="font-bold opacity-70 mt-4 border-t border-inherit pt-4">New Frontier Models</h4>
@@ -2957,71 +3014,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         onAdvanced={() => setWeatherTester({ isOpen: true, provider: 'visualcrossing', apiKey: localSettings.visualCrossingApiKey || '' })}
                                         status={connectionStatus.visualcrossing}
                                     />
-                                    <InputGroup
-                                        label="OpenAI API Key"
-                                        value={localSettings.openaiApiKey || ''}
-                                        onChange={(v: string) => setLocalSettings({ ...localSettings, openaiApiKey: v })}
-                                        icon="fa-solid fa-robot"
-                                        inputClass="bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-700"
-                                        onTest={() => testConnection('openai', localSettings.openaiApiKey)}
-                                        onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'OpenAI', testType: 'llm', apiKey: localSettings.openaiApiKey, provider: 'openai', defaultModel: 'gpt-3.5-turbo' })}
-                                        status={connectionStatus.openai}
-                                    />
 
-                                    <InputGroup
-                                        label="Anthropic API Key"
-                                        value={localSettings.anthropicApiKey || ''}
-                                        onChange={(v: string) => setLocalSettings({ ...localSettings, anthropicApiKey: v })}
-                                        icon="fa-solid fa-brain"
-                                        inputClass="bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-700"
-                                        onTest={() => testConnection('anthropic', localSettings.anthropicApiKey)}
-                                        onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Anthropic', testType: 'llm', apiKey: localSettings.anthropicApiKey, provider: 'anthropic', defaultModel: 'claude-3-haiku-20240307' })}
-                                        status={connectionStatus.anthropic}
-                                    />
-
-                                    <InputGroup
-                                        label="Gemini API Key"
-                                        value={localSettings.geminiApiKey || ''}
-                                        onChange={(v: string) => setLocalSettings({ ...localSettings, geminiApiKey: v })}
-                                        icon="fa-solid fa-gem"
-                                        inputClass="bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-700"
-                                        onTest={() => testConnection('gemini', localSettings.geminiApiKey)}
-                                        onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Google Gemini', testType: 'llm', apiKey: localSettings.geminiApiKey, provider: 'gemini', defaultModel: 'gemini-pro' })}
-                                        status={connectionStatus.gemini}
-                                    />
-
-                                    <InputGroup
-                                        label="DeepSeek API Key"
-                                        value={localSettings.deepseekApiKey || ''}
-                                        onChange={(v: string) => setLocalSettings({ ...localSettings, deepseekApiKey: v })}
-                                        icon="fa-solid fa-code"
-                                        inputClass="bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-700"
-                                        onTest={() => testConnection('deepseek', localSettings.deepseekApiKey)}
-                                        onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'DeepSeek', testType: 'llm', apiKey: localSettings.deepseekApiKey, provider: 'deepseek', defaultModel: 'deepseek-chat' })}
-                                        status={connectionStatus.deepseek}
-                                    />
-
-                                    <InputGroup
-                                        label="Groq API Key"
-                                        value={localSettings.groqApiKey || ''}
-                                        onChange={(v: string) => setLocalSettings({ ...localSettings, groqApiKey: v })}
-                                        icon="fa-solid fa-bolt"
-                                        inputClass="bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-700"
-                                        onTest={() => testConnection('groq', localSettings.groqApiKey)}
-                                        onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Groq', testType: 'llm', apiKey: localSettings.groqApiKey, provider: 'groq', defaultModel: 'llama3-8b-8192' })}
-                                        status={connectionStatus.groq}
-                                    />
-
-                                    <InputGroup
-                                        label="OpenRouter API Key"
-                                        value={localSettings.openRouterApiKey || ''}
-                                        onChange={(v: string) => setLocalSettings({ ...localSettings, openRouterApiKey: v })}
-                                        icon="fa-solid fa-network-wired"
-                                        inputClass="bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-700"
-                                        onTest={() => testConnection('openrouter', localSettings.openRouterApiKey)}
-                                        onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'OpenRouter', testType: 'llm', apiKey: localSettings.openRouterApiKey, provider: 'openrouter', defaultModel: 'openai/gpt-3.5-turbo' })}
-                                        status={connectionStatus.openrouter}
-                                    />
                                 </div>
 
                                 <div className="space-y-4 pt-4 border-t border-inherit">
