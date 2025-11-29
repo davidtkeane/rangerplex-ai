@@ -179,6 +179,83 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
             }
             break;
 
+        case 'relayMessage':
+            // Route message from one node to another (node-to-node comms!)
+            const targetNodeId = msg.targetNodeId;
+            const targetAddress = msg.targetAddress;
+
+            // Find target by nodeId or address
+            let targetNode = null;
+            if (targetNodeId && nodes.has(targetNodeId)) {
+                targetNode = nodes.get(targetNodeId);
+            } else if (targetAddress) {
+                for (const [id, node] of nodes) {
+                    if (node.address === targetAddress) {
+                        targetNode = node;
+                        break;
+                    }
+                }
+            }
+
+            if (targetNode && targetNode.ws.readyState === WebSocket.OPEN) {
+                const senderNode = nodes.get(nodeId);
+                const relayedMsg = {
+                    type: 'nodeMessage',
+                    from: senderNode ? senderNode.address : nodeId,
+                    fromNodeId: nodeId,
+                    payload: msg.payload,
+                    timestamp: Date.now()
+                };
+                targetNode.ws.send(JSON.stringify(relayedMsg));
+
+                console.log(`📨 Relayed message: ${senderNode?.address || nodeId} → ${targetNode.address}`);
+                console.log(`   Type: ${msg.payload?.type || 'unknown'}`);
+
+                ws.send(JSON.stringify({
+                    type: 'relaySuccess',
+                    targetAddress: targetNode.address,
+                    timestamp: Date.now()
+                }));
+            } else {
+                console.log(`❌ Relay failed: Target not found (${targetAddress || targetNodeId})`);
+                ws.send(JSON.stringify({
+                    type: 'relayFailed',
+                    reason: 'Target node not found or disconnected',
+                    targetAddress: targetAddress,
+                    targetNodeId: targetNodeId
+                }));
+            }
+            break;
+
+        case 'broadcast':
+            // Broadcast message to ALL connected nodes
+            const sender = nodes.get(nodeId);
+            const broadcastMsg = {
+                type: 'nodeMessage',
+                from: sender ? sender.address : nodeId,
+                fromNodeId: nodeId,
+                payload: msg.payload,
+                broadcast: true,
+                timestamp: Date.now()
+            };
+
+            let sentCount = 0;
+            for (const [id, node] of nodes) {
+                if (id !== nodeId && node.ws.readyState === WebSocket.OPEN) {
+                    node.ws.send(JSON.stringify(broadcastMsg));
+                    sentCount++;
+                }
+            }
+
+            console.log(`📢 Broadcast from ${sender?.address || nodeId} to ${sentCount} nodes`);
+
+            ws.send(JSON.stringify({
+                type: 'broadcastSent',
+                recipients: sentCount,
+                timestamp: Date.now()
+            }));
+            break;
+
         default:
             console.log(`⚠️  Unknown message type: ${msg.type}`);
             ws.send(JSON.stringify({
