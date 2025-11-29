@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.13.11-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-4.0.7-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -107,23 +107,35 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 *   **Screenshot Capture** 📸: Capture live screenshots of websites using `/screenshot <url>`. High-quality 1920x1080 captures with Puppeteer (headless Chrome) for evidence collection, change detection, and phishing documentation. No API key required.
 *   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
 
-### 🎖️ RangerBlock P2P Blockchain (NEW!)
+### 🎖️ RangerBlock P2P Blockchain (v4.0.7!)
 *   **Peer-to-Peer Blockchain Network**: Fully integrated local blockchain with automatic peer discovery!
+    *   **🌐 GUI Chat (NEW!)**: Real-time WebSocket chat directly in RangerPlex browser UI
+    *   **💬 Terminal Chat**: Run `npm run blockchain:chat` for CLI-based P2P messaging
+    *   **🏓 Blockchain Ping**: Test node connectivity with `npm run blockchain:ping`
     *   **🔍 UDP Broadcast Discovery**: Zero-configuration networking - nodes automatically find each other on WiFi/LAN
-    *   **💬 Group Chat**: Real-time P2P messaging between blockchain nodes across different machines
     *   **🏠 Network Modes**: Local Only, Local + Global (relay), or Global Only for cross-network communication
     *   **🔒 Hardware Security**: Each node identified by unique Mac hardware UUID (Genesis security system)
     *   **⚙️ Settings Integration**: Complete blockchain control panel in Settings → RangerBlock
-    *   **📊 Live Dashboard**: Real-time node status, peer count, blockchain height (http://localhost:5555)
-    *   **🚀 Auto-Start**: Optional automatic node startup with RangerPlex
-    *   **🌐 Multi-Machine Testing**: Perfect for testing M3Pro ↔ M4Max communication
+    *   **📊 Live Dashboard**: Real-time node status, peer count, blockchain height (http://localhost:5556)
+    *   **🚀 Auto-Start**: Blockchain auto-starts with RangerPlex server
+    *   **🌐 Multi-Machine Tested**: M3Pro ↔ M1Air communication **VERIFIED WORKING!**
 *   **Sidebar Access**: Click the 💬 **Chat** button to open the blockchain group chat
+*   **npm Commands**:
+    ```bash
+    npm run blockchain:relay      # Start relay server (Genesis node)
+    npm run blockchain:chat       # Terminal P2P chat client
+    npm run blockchain:ping       # Test P2P connectivity
+    npm run blockchain:install    # Interactive installer
+    npm run blockchain:status     # Check blockchain status
+    npm run browser -- --skip-docker  # Skip Docker on startup
+    ```
 *   **Technical Details**:
-    *   WebSocket P2P on port 5555
+    *   WebSocket relay on port 5555 (M3Pro Genesis)
+    *   HTTP dashboard on port 5556
     *   UDP discovery broadcasts on port 5005
     *   Subnet-aware broadcasting (e.g., 192.168.1.255)
+    *   IRC-style channels (#rangers, #general, #admin)
     *   Message history (last 100 messages)
-    *   Auto-refresh every 2 seconds
     *   Graceful shutdown with cleanup
 
 ### 🥋 Fun & Entertainment

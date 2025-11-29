@@ -5,6 +5,38 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.7] - 2025-11-29 🌐 RANGERPLEX GUI CHAT - FULL P2P NETWORK!
+
+### 🌐 RangerPlex GUI Blockchain Chat
+- **Added**: Real-time WebSocket chat in RangerPlex browser UI
+- **Added**: `BlockchainChat.tsx` updated with WebSocket connection
+- **Added**: Auto-connects to M3Pro relay server (192.168.1.35:5555)
+- **Added**: Live peer join/leave notifications in GUI
+- **Added**: IRC-style chat with channels (#rangers, #general, #admin)
+- **Tested**: M3Pro ↔ M1Air GUI chat: **WORKING!**
+
+### 🐳 Skip Docker Flag
+- **Added**: `--skip-docker` or `-sd` flag for `npm run browser`
+- **Added**: Skips Docker Desktop check for machines without Docker
+- **Usage**: `npm run browser -- --skip-docker`
+
+### 🔧 Bug Fixes
+- **Fixed**: M1Air connecting to wrong relay (localhost instead of M3Pro)
+- **Fixed**: Relay server port conflict (EADDRINUSE on 5555)
+- **Fixed**: Node identity detection for multiple naming patterns
+
+### 📦 npm Commands Summary
+```bash
+npm run blockchain:relay      # Start relay server (M3Pro only)
+npm run blockchain:chat       # Terminal chat client
+npm run blockchain:ping       # Test P2P connectivity
+npm run blockchain:install    # Interactive installer
+npm run blockchain:status     # Check status
+npm run browser -- --skip-docker  # Skip Docker on startup
+```
+
+---
+
 ## [4.0.5] - 2025-11-29 💬 BLOCKCHAIN CHAT & P2P PING
 
 ### 💬 Blockchain Chat - P2P Messaging!
