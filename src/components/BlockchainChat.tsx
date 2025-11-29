@@ -528,7 +528,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
 
     if (showNodeSelector) {
         return (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]">
                 <div className="bg-[#1a1a2e] border-2 border-blue-500/50 rounded-lg shadow-2xl w-full max-w-md">
                     {/* Header */}
                     <div className="p-4 border-b border-blue-500/30 bg-gradient-to-r from-blue-900/30 to-transparent">
@@ -592,7 +592,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
     const currentChannelInfo = channels.find(c => c.name === currentChannel);
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-[#0d0d1a] border border-blue-500/30 rounded-lg shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden">
 
                 {/* ===== TITLE BAR ===== */}
