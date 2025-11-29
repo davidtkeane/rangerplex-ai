@@ -19,8 +19,8 @@ const WebSocket = require('ws');
 const crypto = require('crypto');
 
 // Configuration
-const HTTP_PORT = 3000;  // For status dashboard
-const WS_PORT = 8080;    // For WebSocket connections
+const HTTP_PORT = 5556;  // For status dashboard (5555+1)
+const WS_PORT = 5555;    // For WebSocket connections
 
 const app = express();
 

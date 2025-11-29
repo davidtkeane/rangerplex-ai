@@ -1,6 +1,6 @@
 {
   "name": "rangerplex-ai",
-  "version": "2.13.11",
+  "version": "4.0.0",
   "type": "module",
   "scripts": {
     "start": "npm run stop 2>/dev/null; concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
@@ -17,7 +17,11 @@
     "preview": "vite preview",
     "proxy": "node proxy_server.js",
     "server": "node proxy_server.js",
-    "browser": "npm run stop 2>/dev/null; node scripts/launch_browser.cjs"
+    "browser": "npm run stop 2>/dev/null; node scripts/launch_browser.cjs",
+    "blockchain:install": "node rangerblock/install-rangerplexblock.cjs",
+    "blockchain:setup": "node rangerblock/core/setup_new_user.cjs",
+    "blockchain:relay": "node rangerblock/core/relay-server.cjs",
+    "blockchain:status": "node -e \"const s=require('./rangerblock/blockchainService.cjs');console.log(JSON.stringify(s.getStatus(),null,2))\""
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

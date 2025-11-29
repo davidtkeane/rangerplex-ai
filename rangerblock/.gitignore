@@ -45,3 +45,4 @@ files/**/*.avi
 # Templates are OK to commit (they're blank)
 !templates/*.template
 !templates/security_questions.json
+*.zip

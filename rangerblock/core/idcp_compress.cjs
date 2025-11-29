@@ -49,15 +49,15 @@ function compressH265(inputVideo, crfValue = 32.5) {
     console.log(`   Input: ${path.basename(inputPath)}`);
     console.log(`   Original: ${(origSize / (1024 * 1024)).toFixed(2)} MB\n`);
 
-    // FFmpeg command
+    // FFmpeg command - quote paths to handle spaces in filenames
     const cmd = [
         'ffmpeg', '-y',
-        '-i', inputPath,
+        '-i', `"${inputPath}"`,
         '-c:v', 'libx265',
         '-crf', String(crfValue),
         '-preset', 'ultrafast',
         '-c:a', 'copy',
-        outputFile
+        `"${outputFile}"`
     ].join(' ');
 
     console.log(`   Encoding with H.265 CRF ${crfValue}...`);

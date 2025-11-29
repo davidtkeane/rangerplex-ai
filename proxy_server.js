@@ -52,7 +52,7 @@ const rssParser = new Parser({
         },
     },
 });
-const VERSION = '2.13.12';
+const VERSION = '4.0.0';
 const PORT = 3000;
 const startDockerDesktop = async () => {
     const platform = process.platform;

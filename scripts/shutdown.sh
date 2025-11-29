@@ -25,6 +25,7 @@ done
 # Also kill any lingering node processes related to rangerplex
 pkill -f "proxy_server.js" 2>/dev/null
 pkill -f "vite.*rangerplex" 2>/dev/null
+pkill -f "relay-server.cjs" 2>/dev/null
 
 # Kill PM2 processes if running
 if command -v pm2 &> /dev/null; then

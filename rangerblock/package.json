@@ -1,6 +1,6 @@
 {
   "name": "rangerblock",
-  "version": "1.0.0",
+  "version": "4.0.0",
   "description": "RangerBlock P2P Blockchain Network for RangerPlex",
   "type": "commonjs",
   "main": "RangerBlockNode.cjs",

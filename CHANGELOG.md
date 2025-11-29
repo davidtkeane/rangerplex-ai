@@ -5,6 +5,62 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2025-11-29 🔗 RANGERPLEXBLOCK BLOCKCHAIN INTEGRATION
+
+### 🔗 RangerPlexBlock - Full Blockchain Integration
+This is a **MAJOR RELEASE** marking the complete integration of the RangerBlock P2P blockchain into RangerPlex.
+
+### 🚀 Blockchain Auto-Start
+- **Added**: RangerPlexBlock auto-starts with RangerPlex server
+- **Added**: Graceful shutdown - blockchain stops when RangerPlex closes
+- **Added**: `blockchainService.cjs` - Service manager for relay server lifecycle
+- **Added**: Smart identity detection (supports multiple naming conventions)
+
+### 📦 New npm Commands
+- `npm run blockchain:install` - Interactive installer for new users
+- `npm run blockchain:setup` - Setup node identity with security questions
+- `npm run blockchain:relay` - Start relay server manually
+- `npm run blockchain:status` - Check blockchain status
+
+### 🎥 IDCP Compression System (JavaScript)
+- **Added**: `idcp_compress.cjs` - H.265 CRF 32.5 + LZMA compression
+- **Added**: `idcp_decompress.cjs` - Perfect restoration with SHA256 verification
+- **Fixed**: Filename spaces handling (quoted paths for ffmpeg)
+- **Tested**: Thunder.mp4: 76MB → 20MB (73.8% reduction!) with perfect restoration
+
+### 🔐 Security Features
+- RSA-2048 keypairs (node, chat, roaming keys)
+- SHA-256 hashed security questions for recovery
+- AES-256-GCM encrypted identity bundles
+- Hardware UUID binding prevents key theft
+
+### 🌐 Network Architecture
+- **WebSocket Relay**: Port 5555 for P2P communication
+- **HTTP Dashboard**: Port 5556 for status monitoring
+- **Genesis Node**: M3Pro registered as network founder
+- **Peer Nodes**: M1Air, Kali VM registered in blockchain
+
+### 📁 New Files
+- `rangerblock/blockchainService.cjs` - Service lifecycle manager
+- `rangerblock/install-rangerplexblock.cjs` - Interactive installer
+- `rangerblock/core/idcp_compress.cjs` - Video compression
+- `rangerblock/core/idcp_decompress.cjs` - Video decompression
+- `rangerblock/core/setup_new_user.cjs` - Node identity setup
+- `rangerblock/core/identity_manager.cjs` - Import/export identities
+- `rangerblock/core/relay-server.cjs` - WebSocket relay (ports fixed)
+
+### 🛠️ Port Configuration Fixed
+- Relay server moved from 8080 → 5555 (WebSocket)
+- Dashboard moved from 3000 → 5556 (HTTP)
+- No more port conflicts with main RangerPlex server
+
+### 📋 Mission Statement
+- Primary: Transform disabilities into superpowers through blockchain technology
+- Education: 10% of transactions fund disability schools
+- Philosophy: "One foot in front of the other" - David Keane
+
+---
+
 ## [2.13.14] - 2025-11-29 🎙️ PODCAST FIX & RADIO OPTIMIZATION
 
 ### 🎙️ Podcast Feed Fix
