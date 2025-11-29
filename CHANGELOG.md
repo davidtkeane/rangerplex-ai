@@ -5,24 +5,27 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.12.3] - 2025-12-02 🛠️ WORDPRESS COMMAND CENTER UX
+## [2.12.3] - 2025-12-02 🌦️ WEATHER STATION 2.0
 
-### 🎨 UI/UX
-- WordPress Command Center buttons restyled to match the sidebar (neutral dark surfaces, FA icons), with cards aligned to sidebar visuals.
-- Header shortcuts for WP Login, Admin, and Settings pick the best available site automatically.
+### 🌦️ Weather Station 2.0
+- **Major Upgrade**: Weather Station completely overhauled with a new tabbed interface and 4-API fusion engine.
+- **New Tabs**:
+  - **📊 Dashboard**: Classic view with current conditions, API usage meters, and dynamic sky.
+  - **📅 Forecast**: 15-day extended outlook powered by Visual Crossing.
+  - **⏱️ Minutely**: "NowCast" precision rain intensity gauge powered by Tomorrow.io.
+  - **📡 Radar**: Live Windy.com embed with rain, wind, and cloud layers.
+  - **🕰️ History**: "Time Machine" to lookup past weather for any date (Visual Crossing).
+  - **⚠️ Alerts**: Severe weather warnings and safety info (The "Guardian").
+- **Smart Features**:
+  - **Lazy Loading**: Tabs only fetch data when opened to save API calls.
+  - **API Fusion**: Combines best-in-class data from OpenWeatherMap, Tomorrow.io, Visual Crossing, and Open-Meteo.
 
-### 🏎️ Behavior
-- Browser overlay now reuses an existing tab when opening WordPress pages to prevent duplicates.
-- Single-click guardrails on WordPress header buttons to avoid accidental double opens.
-
-### 🔒 Guardrails
-- Added small safety checks around WP actions to reduce accidental navigation and double submissions.
+### 🛠️ Fixes & Improvements
+- **Radar Button**: Fixed "Radar" button in rain notifications to correctly open the Weather Station's new Radar tab.
+- **State Management**: Improved state handling for weather data to support the new multi-tab architecture.
 
 ### 📦 Version
 - Synced version across badge, package files, server banner, sidebar, and DB metadata to **2.12.3**.
-
-### 🧹 Housekeeping
-- Version synced across app (badge, package files, server banner, sidebar, db metadata).
 
 ## [2.12.2] - 2025-12-01 🛡️ CONTEXT GUARDRAILS
 

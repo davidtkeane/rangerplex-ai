@@ -1151,8 +1151,7 @@ rangerplex-ai/
 │   └── RangerPlex_*.json      # Auto-exported backups (every 5 min)
 ├── services/
 │   ├── dbService.ts           # IndexedDB wrapper
-│   ├── syncService.ts         # WebSocket sync client
-│   └── ...                    # Other services
+│   ├── syncService.ts         # WebSocket║   🎖️  RANGERPLEX AI SERVER v2.12.3                       ║Other services
 ├── rangerplex_server.js       # Backend server (SQLite + WebSocket)
 ├── .env                       # API keys (gitignored)
 ├── vite-env.d.ts              # TypeScript env definitions

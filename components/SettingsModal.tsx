@@ -2987,6 +2987,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         Get notified before it rains! Perfect for Irish weather where sunshine and rain happen at the same time. 🇮🇪
                                     </p>
 
+                                    {settings.rainNotificationSnoozeUntil && settings.rainNotificationSnoozeUntil > Date.now() && (
+                                        <div className="flex items-center justify-between p-3 bg-blue-500/20 rounded border border-blue-500/30 mb-3">
+                                            <div className="text-xs">
+                                                <div className="font-bold text-blue-300">💤 Snoozed until {new Date(settings.rainNotificationSnoozeUntil).toLocaleTimeString()}</div>
+                                                <div className="opacity-70">Notifications are temporarily paused.</div>
+                                            </div>
+                                            <button
+                                                onClick={() => onSave({ ...settings, rainNotificationSnoozeUntil: undefined })}
+                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold"
+                                            >
+                                                Wake Up
+                                            </button>
+                                        </div>
+                                    )}
+
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"

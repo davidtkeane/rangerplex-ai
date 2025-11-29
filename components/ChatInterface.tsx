@@ -380,6 +380,95 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
     };
 
+    // Shared quick hint footer for slash usage
+    const buildSlashQuickHints = () => {
+        // if (settings.showSlashHints === false) return ''; // Setting removed
+
+        return `
+**Quick commands:**
+- /mcp-tools — list MCP tools
+- /mcp-commands — MCP cheat sheet
+- /weather <city> — weather snapshot
+- /nmap <target> [flags] — port scan
+- /trace <host> — traceroute
+- /shodan <ip> — Shodan lookup
+- /help — manuals
+`;
+    };
+
+    // Lightweight help catalog (expandable without extra deps)
+    const helpCatalog = [
+        { name: 'start', command: '/help', usage: '/help', summary: 'Show the main help menu and how to ask for anything.', examples: ['/help mcp', '/help nmap'], tags: ['help', 'beginner', 'menu'] },
+        { name: 'settings', command: '/settings', usage: '/settings', summary: 'Open Settings. Configure keys, models, MCP, and UI.', examples: ['/settings'], tags: ['config', 'keys', 'api', 'setup'] },
+        { name: 'mcp', command: '/mcp-<tool> [input]', usage: '/mcp-brave_web_search query', summary: 'Call a Docker MCP tool via the gateway.', examples: ['/mcp-tools', '/mcp-commands', '/mcp-brave_web_search site:news.ycombinator.com ai'], tags: ['mcp', 'docker', 'tools', 'search'] },
+        { name: 'mcp-tools', command: '/mcp-tools', usage: '/mcp-tools', summary: 'List available MCP tools from the gateway.', examples: ['/mcp-tools'], tags: ['mcp', 'list', 'tools'] },
+        { name: 'mcp-commands', command: '/mcp-commands', usage: '/mcp-commands', summary: 'MCP cheat sheet with usage and examples.', examples: ['/mcp-commands'], tags: ['mcp', 'help', 'cheatsheet'] },
+        { name: 'whois', command: '/whois <domain>', usage: '/whois example.com', summary: 'Whois lookup for a domain.', examples: ['/whois example.com'], tags: ['domain', 'recon'] },
+        { name: 'dns', command: '/dns <domain>', usage: '/dns example.com', summary: 'DNS records lookup.', examples: ['/dns example.com'], tags: ['dns', 'records'] },
+        { name: 'ssl', command: '/ssl <domain>', usage: '/ssl example.com', summary: 'SSL/TLS certificate check.', examples: ['/ssl example.com'], tags: ['ssl', 'cert'] },
+        { name: 'reputation', command: '/reputation <domain>', usage: '/reputation example.com', summary: 'Google Safe Browsing reputation check.', examples: ['/reputation example.com'], tags: ['safety', 'web'] },
+        { name: 'wayback', command: '/wayback <url>', usage: '/wayback https://example.com', summary: 'Wayback Machine snapshots.', examples: ['/wayback https://example.com'], tags: ['history', 'archive'] },
+        { name: 'weather', command: '/weather [city]', usage: '/weather Dublin', summary: 'Quick weather for a city or auto-detect.', examples: ['/weather', '/weather London'], tags: ['weather', 'forecast'] },
+        { name: 'nmap', command: '/nmap <target> [flags]', usage: '/nmap 10.10.10.50 -sV -sC', summary: 'Port scan with whitelist flags.', examples: ['/nmap 10.10.10.50', '/nmap 10.10.10.50 -A'], tags: ['scan', 'ports', 'network'] },
+        { name: 'trace', command: '/trace <domain_or_ip>', usage: '/trace example.com', summary: 'Traceroute to a host.', examples: ['/trace 1.1.1.1'], tags: ['network', 'path'] },
+        { name: 'shodan', command: '/shodan <ip>', usage: '/shodan 8.8.8.8', summary: 'Look up IP exposure on Shodan (needs API key).', examples: ['/shodan 1.1.1.1'], tags: ['security', 'ip', 'api'] },
+        { name: 'geoip', command: '/geoip <ip>', usage: '/geoip 8.8.8.8', summary: 'Geolocate an IP.', examples: ['/geoip 8.8.8.8'], tags: ['ip', 'geo'] },
+        { name: 'ipinfo', command: '/ipinfo <ip>', usage: '/ipinfo 8.8.8.8', summary: 'IP intelligence via IPInfo/ip-api.', examples: ['/ipinfo 8.8.8.8'], tags: ['ip', 'intel'] },
+        { name: 'ports', command: '/ports <ip> [ports]', usage: '/ports 1.1.1.1 22,80,443', summary: 'Fast TCP port scan common ports.', examples: ['/ports 1.1.1.1'], tags: ['scan', 'ports'] },
+        { name: 'profile', command: '/profile <domain>', usage: '/profile example.com', summary: 'Whois + DNS + SSL + Shodan report with AI summary.', examples: ['/profile example.com'], tags: ['intel', 'domain'] },
+        { name: 'wp', command: '/wordpress', usage: '/wordpress', summary: 'Open the WordPress Command Center (local).', examples: ['/wordpress', '/check wordpress'], tags: ['wordpress', 'cms'] },
+        { name: 'study', command: '/study', usage: '/study', summary: 'Open Study Clock (Pomodoro).', examples: ['/study'], tags: ['focus', 'timer'] },
+        { name: 'imagine', command: '/imagine <prompt>', usage: '/imagine cyberpunk fox', summary: 'Generate images.', examples: ['/imagine sunset over Dublin'], tags: ['image', 'creative'] },
+        { name: 'fun', command: '/joke', usage: '/joke', summary: 'Random joke.', examples: ['/chuck'], tags: ['fun'] },
+    ];
+
+    const levenshtein = (a: string, b: string) => {
+        if (Math.abs(a.length - b.length) > 2) return 99;
+        const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+        for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+        for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+        for (let i = 1; i <= a.length; i++) {
+            for (let j = 1; j <= b.length; j++) {
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + cost
+                );
+            }
+        }
+        return dp[a.length][b.length];
+    };
+
+    const searchHelp = (query: string) => {
+        const q = query.toLowerCase();
+        const scored = helpCatalog
+            .map(entry => {
+                let score = 0;
+                const cmdNoSlash = entry.command.replace('/', '').toLowerCase();
+                const distName = levenshtein(entry.name, q);
+                const distCmd = levenshtein(cmdNoSlash, q);
+                if (entry.name === q || entry.command === q) score += 5;
+                if (entry.name.startsWith(q) || entry.command.includes(q)) score += 3;
+                if (distName <= 2 || distCmd <= 2) score += 3; // fuzzy typos (e.g., sodan -> shodan)
+                if (entry.summary.toLowerCase().includes(q)) score += 2;
+                if (entry.tags?.some(t => t.includes(q))) score += 2;
+                if (entry.examples?.some(e => e.toLowerCase().includes(q))) score += 1;
+                return { entry, score };
+            })
+            .filter(s => s.score > 0)
+            .sort((a, b) => b.score - a.score);
+        return scored.slice(0, 6).map(s => s.entry);
+    };
+
+    const formatHelpEntries = (entries: typeof helpCatalog) => {
+        if (!entries.length) return 'No help found.';
+        return entries.map(e => {
+            const examples = e.examples?.length ? `Examples: ${e.examples.join(' · ')}` : '';
+            return `**${e.command}** — ${e.summary}\nUsage: ${e.usage}\n${examples}`;
+        }).join('\n\n');
+    };
+
     const lastMessageText = [...session.messages].reverse().find(msg => msg.text)?.text || '';
     const handleCopyLastMessage = () => {
         if (!lastMessageText) return;
@@ -872,489 +961,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
             // 1. Help System (/help)
             if (text.startsWith('/help')) {
-                const cmd = text.replace('/help', '').trim().toLowerCase();
+                const query = text.replace('/help', '').trim();
 
-                let helpMsg = "";
+                const starterEntries = helpCatalog.filter(h => ['settings', 'mcp', 'mcp-tools', 'weather', 'nmap', 'profile', 'wp'].includes(h.name));
 
-                if (!cmd) {
-                    // Main Help Menu - Futuristic Dashboard
-                    helpMsg = `### 💠 RANGERPLEX OS // TACTICAL MENU\n`;
-                    helpMsg += `\`\`\`text\n`;
-                    helpMsg += `╔════ SYSTEM ══════════════════════════════════╗\n`;
-                    helpMsg += `║ 💠  ABOUT       :: /about                   ║\n`;
-                    helpMsg += `║ 🕐  STUDY       :: /study                   ║\n`;
-                    helpMsg += `║ ⚙️  SETTINGS    :: /settings                ║\n`;
-                    helpMsg += `║ 🔄  RESTART     :: /restart server          ║\n`;
-                    helpMsg += `║ 🔍  CHECK UPDATE:: /check update            ║\n`;
-                    helpMsg += `║ 📥  UPDATE      :: /install update          ║\n`;
-                    helpMsg += `║ 📝  WP STATUS   :: /check wordpress         ║\n`;
-                    helpMsg += `║ 💻  SYSTEM      :: /sys                     ║\n`;
-                    helpMsg += `╠════ INTELLIGENCE MODULES ════════════════════╣\n`;
-                    helpMsg += `║ 🕵️  PROFILER    :: /profile <domain>        ║\n`;
-                    helpMsg += `║ 👁️  SHODAN      :: /shodan <ip>             ║\n`;
-                    helpMsg += `║ 🛡️  BREACH      :: /breach <email>          ║\n`;
-                    helpMsg += `║ 🔎  SHERLOCK    :: /sherlock <user>         ║\n`;
-                    helpMsg += `║ 💰  CRYPTO      :: /crypto <coin>           ║\n`;
-                    helpMsg += `║ 🏦  WALLET      :: /wallet <btc_addr>       ║\n`;
-                    helpMsg += `║ 📸  EXIF        :: /exif <url>              ║\n`;
-                    helpMsg += `║ 🦠  VIRUS_SCAN  :: /scan <url>              ║\n`;
-                    helpMsg += `║ 🕰️  WAYBACK     :: /wayback <url>           ║\n`;
-                    helpMsg += `║ 📸  SCREENSHOT  :: /screenshot <url>        ║\n`;
-                    helpMsg += `╠════ RECONNAISSANCE ══════════════════════════╣\n`;
-                    helpMsg += `║ 📡  WHOIS       :: /whois <domain>          ║\n`;
-                    helpMsg += `║ 🌍  GEOIP       :: /geoip <ip>              ║\n`;
-                    helpMsg += `║ 🔍  MYIP        :: /myip                    ║\n`;
-                    helpMsg += `║ 🌐  IPINFO      :: /ipinfo <ip>             ║\n`;
-                    helpMsg += `║ 🛡️  IPRECON     :: /iprecon <ip>            ║\n`;
-                    helpMsg += `║ 📟  MAC_LOOKUP  :: /mac <address>           ║\n`;
-                    helpMsg += `║ 📱  PHONE       :: /phone <number>          ║\n`;
-                    helpMsg += `║ 📧  EMAIL       :: /email <address>         ║\n`;
-                    helpMsg += `║ 🏢  COMPANY     :: /company <name|reg>      ║\n`;
-                    helpMsg += `║ 🔍  PRIVACY     :: /privacy                 ║\n`;
-                    helpMsg += `║ 🌐  DNS_LOOKUP  :: /dns <domain>            ║\n`;
-                    helpMsg += `║ 🔍  SUBDOMAINS  :: /subdomains <domain>     ║\n`;
-                    helpMsg += `║ 🔄  REVERSE_DNS :: /reverse <ip>            ║\n`;
-                    helpMsg += `║ 🛰️  TRACE       :: /trace <host>            ║\n`;
-                    helpMsg += `║ 🔌  PORT_SCAN   :: /ports <ip>              ║\n`;
-                    helpMsg += `║ 🎯  NMAP        :: /nmap <target> [flags]   ║\n`;
-                    helpMsg += `║ 📜  CERTS       :: /certs <domain>          ║\n`;
-                    helpMsg += `║ 🧬  HASH LOOKUP :: /hash <hash>             ║\n`;
-                    helpMsg += `║ 🛡️  REPUTATION  :: /reputation <domain>     ║\n`;
-                    helpMsg += `║ 🔒  SSL_CHECK   :: /ssl <domain>            ║\n`;
-                    helpMsg += `║ 🛡️  HEADERS     :: /headers <url>           ║\n`;
-                    helpMsg += `╠════ FUN & ENTERTAINMENT ═════════════════════╣\n`;
-                    helpMsg += `║ 🥋  CHUCK       :: /chuck                   ║\n`;
-                    helpMsg += `║ 😂  JOKE        :: /joke                    ║\n`;
-                    helpMsg += `║ 📖  BIBLE       :: /bible                   ║\n`;
-                    helpMsg += `╠════ CREATIVE SUITE ══════════════════════════╣\n`;
-                    helpMsg += `║ 🎨  IMAGINE     :: /imagine <prompt>        ║\n`;
-                    helpMsg += `║ ♾️   CANVAS      :: canvas                   ║\n`;
-                    helpMsg += `╠════ FORENSICS MODULE ════════════════════════╣\n`;
-                    helpMsg += `║ 🧬  HASH        :: /hash <file>             ║\n`;
-                    helpMsg += `║ 📄  METADATA    :: /metadata <file>         ║\n`;
-                    helpMsg += `║ 📸  EXIF        :: /exif <image>            ║\n`;
-                    helpMsg += `║ ⏳  TIMELINE    :: /timeline <dir>          ║\n`;
-                    helpMsg += `║ 🔤  STRINGS     :: /strings <file>          ║\n`;
-                    helpMsg += `║ 🔐  CUSTODY     :: /custody-create ...      ║\n`;
-                    helpMsg += `╚══════════════════════════════════════════════╝\n`;
-                    helpMsg += `\`\`\`\n`;
-                    helpMsg += `*SYSTEM READY. Awaiting command input...*\n`;
-                    helpMsg += `*Type \`/help <command>\` for detailed specs (e.g. \`/help shodan\`)*`;
+                let helpMsg = '';
+                if (!query) {
+                    helpMsg = `### 💡 Help & Quick Start\n\n` +
+                        `Ask in plain language: \`/help how do I scan ports?\` or \`/help mcp tools\`.\n\n` +
+                        `**Starter commands:**\n${formatHelpEntries(starterEntries)}\n\n` +
+                        `**Tips:**\n- Use \`/mcp-tools\` to see gateway tools (Docker MCP).\n- Use \`/help <topic>\` to jump to a tool (e.g., \`/help shodan\`, \`/help wordpress\`).\n- Not sure what to type? Just describe the task (check a domain for risks) and I’ll suggest a command.\n`;
+                } else {
+                    const matches = searchHelp(query);
+                    if (matches.length) {
+                        const tryCmd = matches[0].examples?.[0] || matches[0].command;
+                        helpMsg = `### 🔍 Help results for: \"${query}\"\n\n${formatHelpEntries(matches)}\n\nTry running: \`${tryCmd}\``;
+                    } else {
+                        helpMsg = `### ❓ I couldn’t find a direct match for \"${query}\".\n\n` +
+                            `Here are popular commands:\n${formatHelpEntries(helpCatalog.slice(0, 6))}\n\n` +
+                            `Tip: use keywords like \"ports\", \"weather\", \"mcp\", \"wordpress\", \"scan\", \"trace\", \"search\".`;
+                    }
                 }
-                else if (cmd === 'forensics' || cmd === 'hash' || cmd === 'metadata' || cmd === 'exif' || cmd === 'timeline' || cmd === 'strings' || cmd === 'custody') {
-                    helpMsg = `### 🕵️ Forensics Module\n\n`;
-                    helpMsg += `**Commands:**\n`;
-                    helpMsg += `- \`/hash <file> [algo] [--copy]\` - Calculate file hash\n`;
-                    helpMsg += `- \`/hash-verify <file> <hash>\` - Verify file integrity\n`;
-                    helpMsg += `- \`/hash-dir <dir>\` - Hash all files in directory\n`;
-                    helpMsg += `- \`/metadata <file>\` - View file system metadata\n`;
-                    helpMsg += `- \`/exif <image>\` - Extract EXIF data\n`;
-                    helpMsg += `- \`/timeline <dir>\` - Generate file timeline\n`;
-                    helpMsg += `- \`/strings <file> [min_len]\` - Extract strings\n`;
-                    helpMsg += `- \`/grep <file> <pattern>\` - Search file content\n`;
-                    helpMsg += `- \`/custody-create <id> <file> <desc>\` - Start chain of custody\n`;
-                    helpMsg += `- \`/custody-update <id> <action> <notes>\` - Update chain\n`;
-                    helpMsg += `- \`/custody-verify <id> [file]\` - Verify chain integrity\n\n`;
-                    helpMsg += `*See \`help-files/forensics/COMMAND_REFERENCE.md\` for full details.*`;
-                }
-                else if (cmd === 'about') {
-                    helpMsg = `### 💠 Command: /about\n\n`;
-                    helpMsg += `**Usage:** \`/about\`\n`;
-                    helpMsg += `**Purpose:** Learn about RangerPlex, the Trinity AI system, and the mission behind the platform.\n\n`;
-                    helpMsg += `**Discover:**\n`;
-                    helpMsg += `- The three AI Rangers that power RangerPlex\n`;
-                    helpMsg += `- David T. Keane's vision for transforming disabilities into superpowers\n`;
-                    helpMsg += `- The mission to help 1.3 billion people worldwide\n\n`;
-                    helpMsg += `*Perfect for new users who want to understand what makes RangerPlex special!*`;
-                }
-                else if (cmd === 'study') {
-                    helpMsg = `### 🕐 Command: /study\n\n`;
-                    helpMsg += `**Usage:** \`/study\`\n`;
-                    helpMsg += `**Purpose:** Opens the Study Clock - a Pomodoro timer designed to help you focus and track your study sessions.\n\n`;
-                    helpMsg += `**Features:**\n`;
-                    helpMsg += `- 🍅 **Pomodoro Mode**: 25-minute work sessions with 5-minute breaks\n`;
-                    helpMsg += `- ⚙️ **Custom Timers**: Set any duration you need\n`;
-                    helpMsg += `- ⌨️ **Keyboard Shortcuts**: Space (Play/Pause), R (Reset), M (Minimize)\n`;
-                    helpMsg += `- 📊 **Today's Stats**: Track total study time and pomodoros completed\n`;
-                    helpMsg += `- 🔔 **Notifications**: Desktop alerts when sessions complete\n\n`;
-                    helpMsg += `*Pro Tip: The Study Clock uses 3-Tier Persistence - your progress is never lost!*`;
-                }
-                else if (cmd === 'wordpress') {
-                    helpMsg = `### 📝 Command: /wordpress\n\n`;
-                    helpMsg += `**Usage:** \`/wordpress\`\n`;
-                    helpMsg += `**Purpose:** Opens the WordPress Dashboard to manage your local WordPress instance.\n\n`;
-                    helpMsg += `**Features:**\n`;
-                    helpMsg += `- 🚀 **One-Click Start**: Automatically starts Docker containers\n`;
-                    helpMsg += `- ✍️ **Publisher**: Write and publish posts with Markdown\n`;
-                    helpMsg += `- 🔌 **Playground**: Test plugins and themes in a disposable sandbox\n`;
-                    helpMsg += `- 📊 **Management**: View site status and health\n\n`;
-                    helpMsg += `*Pro Tip: Use the Publisher to draft content offline and sync when ready!*`;
-                }
-                else if (cmd === 'sherlock') {
-                    helpMsg = `### 🔎 Command: /sherlock\n\n`;
-                    helpMsg += `**Usage:** \`/sherlock <username>\`\n`;
-                    helpMsg += `**Purpose:** Hunts for a username across 12+ major social platforms (GitHub, Reddit, Twitch, Steam, etc.) to identify digital footprints.\n\n`;
-                    helpMsg += `**Pro Tip:** Use this to find if a target uses the same handle across different sites.\n\n`;
-                    helpMsg += `[Ask AI about OSINT?](Ask AI: How do investigators use username reuse for OSINT?)`;
-                }
-                else if (cmd === 'shodan') {
-                    helpMsg = `### 👁️ Command: /shodan\n\n`;
-                    helpMsg += `**Usage:** \`/shodan <ip_address>\`\n`;
-                    helpMsg += `**Purpose:** Scans an IP address using the Shodan search engine to find open ports, running services, and potential vulnerabilities.\n\n`;
-                    helpMsg += `**Requires:** Shodan API Key (Free) in Settings.\n`;
-                    helpMsg += `**Pro Tip:** Use this to check your own server's exposure or analyze suspicious IPs found in logs.\n\n`;
-                    helpMsg += `[Ask AI to explain Shodan further?](Ask AI: What is Shodan and how do hackers use it?)`;
-                }
-                else if (cmd === 'wallet') {
-                    helpMsg = `### 🏦 Command: /wallet\n\n`;
-                    helpMsg += `**Usage:** \`/wallet <btc_address>\`\n`;
-                    helpMsg += `**Purpose:** Inspects a *single* Bitcoin address for balance and history.\n\n`;
-                    helpMsg += `**⚠️ Note on HD Wallets (Sparrow/Electrum):**\n`;
-                    helpMsg += `Modern wallets generate a new address for every transaction. This tool only scans the **specific address** you provide, not your entire wallet (xPub). If you see 0 BTC, your funds might be in a different address or a "change address" within your wallet.\n\n`;
-                    helpMsg += `[Ask AI about HD Wallets?](Ask AI: How do HD Wallets and xPub keys work?)`;
-                }
-                else if (cmd === 'exif') {
-                    helpMsg = `### 📸 Command: /exif\n\n`;
-                    helpMsg += `**Usage:** \`/exif <url>\`\n`;
-                    helpMsg += `**Purpose:** Extracts hidden metadata (EXIF) from images, including GPS coordinates, camera model, software used, and timestamps.\n\n`;
-                    helpMsg += `**Pro Tip:** Use this on photos from social media or suspicious websites to find the original source location.\n\n`;
-                    helpMsg += `[Ask AI about Digital Forensics?](Ask AI: How does EXIF data help in investigations?)`;
-                }
-                else if (cmd === 'geoip') {
-                    helpMsg = `### 🌍 Command: /geoip\n\n`;
-                    helpMsg += `**Usage:** \`/geoip <ip_address>\`\n`;
-                    helpMsg += `**Purpose:** Pinpoints the physical location of an IP address, including City, Country, ISP, and Organization.\n\n`;
-                    helpMsg += `**Pro Tip:** Use this to trace the origin of suspicious login attempts or server attacks.\n\n`;
-                    helpMsg += `[Ask AI about IP Tracking?](Ask AI: How accurate is IP geolocation?)`;
-                }
-                else if (cmd === 'mac') {
-                    helpMsg = `### 📟 Command: /mac\n\n`;
-                    helpMsg += `**Usage:** \`/mac <address>\`\n`;
-                    helpMsg += `**Purpose:** Identifies the manufacturer of a network device based on its MAC address OUI (Organizationally Unique Identifier).\n\n`;
-                    helpMsg += `**Pro Tip:** Use this during network scans to identify unknown devices (e.g., "Is this strange IP an Apple TV or a security camera?").\n\n`;
-                    helpMsg += `[Ask AI about MAC Addresses?](Ask AI: Can MAC addresses be spoofed?)`;
-                }
-                else if (cmd === 'myip') {
-                    helpMsg = `### 🔍 Command: /myip\n\n`;
-                    helpMsg += `**Usage:** \`/myip\`\n`;
-                    helpMsg += `**Purpose:** Reveals your public IP address and automatically geolocates it to show your ISP, City, and Coordinates.\n\n`;
-                    helpMsg += `**Pro Tip:** Use this to verify if your VPN is working or to see what information websites can see about you.\n\n`;
-                    helpMsg += `[Ask AI about IP Privacy?](Ask AI: How can I hide my IP address?)`;
-                }
-                else if (cmd === 'ipinfo') {
-                    helpMsg = `### 🌐 Command: /ipinfo\n\n`;
-                    helpMsg += `**Usage:** \`/ipinfo <ip_address>\`\n`;
-                    helpMsg += `**Purpose:** Enhanced IP intelligence using dual-source data (IPInfo API + ip-api fallback). Shows Location, ISP, Hostname, and more.\n\n`;
-                    helpMsg += `**Requires:** IPInfo Token (optional, in Settings) for premium data. Falls back to free ip-api if not configured.\n\n`;
-                    helpMsg += `**Pro Tip:** Add your IPInfo token in Settings → Providers for richer data. For threat detection, use \`/iprecon\`.\n\n`;
-                    helpMsg += `[Ask AI about IP Intelligence?](Ask AI: What can you learn from an IP address?)`;
-                }
-                else if (cmd === 'phone') {
-                    helpMsg = `### 📱 Command: /phone\n\n`;
-                    helpMsg += `**Usage:** \`/phone <number>\`\n`;
-                    helpMsg += `**Purpose:** Validates phone numbers and reveals Carrier, Line Type (Mobile/Landline/VoIP), Location, and Country.\n\n`;
-                    helpMsg += `**Requires:** NumVerify API Key (free tier: 100 requests/month) in Settings → Providers.\n\n`;
-                    helpMsg += `**Pro Tip:** The command shows your monthly usage counter (X/100). Resets automatically on the 1st of each month.\n\n`;
-                    helpMsg += `[Ask AI about Phone Intelligence?](Ask AI: What can you learn from a phone number?)`;
-                }
-                else if (cmd === 'iprecon') {
-                    helpMsg = `### 🛡️ Command: /iprecon\n\n`;
-                    helpMsg += `**Usage:** \`/iprecon <ip_address>\`\n`;
-                    helpMsg += `**Purpose:** Advanced IP threat intelligence - detects VPNs, Proxies, Tor nodes, Datacenters, and calculates Abuse Score.\n\n`;
-                    helpMsg += `**Requires:** AbstractAPI IP Key (separate from Email key) in Settings → Providers.\n\n`;
-                    helpMsg += `**Pro Tip:** Use this to identify suspicious IPs during login attempts or to verify if traffic is coming from anonymizing services.\n\n`;
-                    helpMsg += `[Ask AI about IP Threats?](Ask AI: How do VPNs and proxies affect security?)`;
-                }
-                else if (cmd === 'email') {
-                    helpMsg = `### 📧 Command: /email\n\n`;
-                    helpMsg += `**Usage:** \`/email <address>\`\n`;
-                    helpMsg += `**Purpose:** Validates email addresses and detects Deliverability, Disposable Emails, Role Accounts (info@, admin@), and SMTP validity.\n\n`;
-                    helpMsg += `**Requires:** AbstractAPI Email Key (free tier: 100 requests/month) in Settings → Providers.\n\n`;
-                    helpMsg += `**Pro Tip:** Use this to verify email addresses before sending campaigns or to detect fake/temporary emails during registration.\n\n`;
-                    helpMsg += `[Ask AI about Email Validation?](Ask AI: How does email validation work?)`;
-                }
-                else if (cmd === 'sys') {
-                    helpMsg = `### 💻 Command: /sys\n\n`;
-                    helpMsg += `**Usage:** \`/sys\`\n`;
-                    helpMsg += `**Purpose:** Performs deep reconnaissance on the current system, revealing Browser Fingerprints, OS Details, Hardware Specs (CPU/RAM), and Network Identity (IPs & MAC Address).\n\n`;
-                    helpMsg += `**Pro Tip:** Use this to see exactly what information your browser and machine are leaking to the web.\n\n`;
-                    helpMsg += `[Ask AI about Browser Fingerprinting?](Ask AI: What is browser fingerprinting?)`;
-                }
-                else if (cmd === 'profile') {
-                    helpMsg = `### 🕵️ Command: /profile\n\n`;
-                    helpMsg += `**Usage:** \`/profile <domain>\`\n`;
-                    helpMsg += `**Purpose:** Launches an automated agent that runs Whois, DNS, SSL, and Shodan scans in sequence, then uses AI to generate a comprehensive **Threat Intelligence Report**.\n\n`;
-                    helpMsg += `**Best For:** rapid situational awareness on a target domain.\n\n`;
-                    helpMsg += `[Ask AI about Threat Intel Reports?](Ask AI: How do I read a Threat Intelligence Report?)`;
-                }
-                else if (cmd === 'breach') {
-                    helpMsg = `### 🕵️ Command: /breach\n\n`;
-                    helpMsg += `**Usage:** \`/breach <email>\`\n`;
-                    helpMsg += `**Purpose:** Checks the *Have I Been Pwned* database to see if an email address has appeared in known data leaks.\n\n`;
-                    helpMsg += `**Requires:** HIBP API Key (Free) in Settings.\n\n`;
-                    helpMsg += `[Ask AI about Data Privacy?](Ask AI: What should I do if my email is pwned?)`;
-                }
-                else if (cmd === 'scan') {
-                    helpMsg = `### 🛡️ Command: /scan\n\n`;
-                    helpMsg += `**Usage:** \`/scan <url>\`\n`;
-                    helpMsg += `**Purpose:** Submits a URL to VirusTotal to check for malware, phishing, and suspicious activity across 70+ security vendors.\n\n`;
-                    helpMsg += `**Requires:** VirusTotal API Key (Free) in Settings.\n\n`;
-                    helpMsg += `[Ask AI about Phishing?](Ask AI: How does VirusTotal work?)`;
-                }
-                else if (cmd === 'wayback') {
-                    helpMsg = `### 🕰️ Command: /wayback\n\n`;
-                    helpMsg += `**Usage:** \`/wayback <url>\`\n`;
-                    helpMsg += `**Purpose:** Queries the Internet Archive's Wayback Machine to find historical snapshots of any website.\n\n`;
-                    helpMsg += `**Features:**\n`;
-                    helpMsg += `- 📸 **Latest Snapshot**: View the most recent archived version\n`;
-                    helpMsg += `- 📊 **Archive Statistics**: Total snapshots and years archived\n`;
-                    helpMsg += `- 📅 **Calendar View**: Browse all snapshots by date\n`;
-                    helpMsg += `- 💾 **Save Page**: Submit current URL for archiving\n\n`;
-                    helpMsg += `**Pro Tip:** Use this to recover deleted content, track website changes over time, or find evidence of past claims.\n\n`;
-                    helpMsg += `[Ask AI about Digital Forensics?](Ask AI: How do investigators use the Wayback Machine?)`;
-                }
-                else if (cmd === 'subdomains') {
-                    helpMsg = `### 🔍 Command: /subdomains\n\n`;
-                    helpMsg += `**Usage:** \`/subdomains <domain>\`\n`;
-                    helpMsg += `**Purpose:** Discovers subdomains of a target domain using Certificate Transparency logs.\n\n`;
-                    helpMsg += `**How it works:**\n`;
-                    helpMsg += `- Queries Certificate Transparency logs (crt.sh) for SSL certificates\n`;
-                    helpMsg += `- Extracts all domain names from certificates\n`;
-                    helpMsg += `- Identifies both regular subdomains and wildcard certificates\n`;
-                    helpMsg += `- Returns sorted, unique results\n\n`;
-                    helpMsg += `**Why it's valuable:**\n`;
-                    helpMsg += `- Discover hidden infrastructure (api.example.com, admin.example.com)\n`;
-                    helpMsg += `- Map attack surface for security assessments\n`;
-                    helpMsg += `- Find forgotten or legacy subdomains\n`;
-                    helpMsg += `- Identify cloud services and third-party integrations\n\n`;
-                    helpMsg += `**Pro Tip:** Combine with other tools: Run \`/shodan <ip>\` on discovered IPs, check \`/ssl <subdomain>\` for certificate validity, or use \`/headers <subdomain>\` to audit security headers.\n\n`;
-                    helpMsg += `[Ask AI about Attack Surface?](Ask AI: What is attack surface mapping in cybersecurity?)`;
-                }
-                else if (cmd === 'company') {
-                    helpMsg = `### 🏢 Command: /company\n\n`;
-                    helpMsg += `**Usage:** \`/company <name|reg_number> [country]\`\n`;
-                    helpMsg += `**Purpose:** Looks up company registry records (status, officers, PSCs, address, filings).\n\n`;
-                    helpMsg += `**Sources:** Companies House (UK) as primary; OpenCorporates as fallback for other jurisdictions.\n`;
-                    helpMsg += `**Requires:** Companies House API Key (UK) or OpenCorporates API Token (global) in Settings → Providers.\n\n`;
-                    helpMsg += `**Outputs:** Legal name, registration number, status (active/dissolved), incorporation date, registered address, SIC/industry codes, active officers, people with significant control, and recent filings.\n\n`;
-                    helpMsg += `**Country Codes:** \`uk\`/ \`gb\` for UK; US states as \`us-de\`, \`us-ca\`; Ireland \`ie\`; Germany \`de\`; etc.\n`;
-                    helpMsg += `**Examples:**\n`;
-                    helpMsg += `- \`/company "Acme Widgets Ltd" uk\`\n`;
-                    helpMsg += `- \`/company 01234567\`\n`;
-                    helpMsg += `- \`/company Stripe us-de\`\n\n`;
-                    helpMsg += `**Pro Tip:** Pair with \`/reputation <domain>\` for web safety and \`/wayback <url>\` to see historical site changes for the company.`;
-                }
-                else if (cmd === 'privacy') {
-                    helpMsg = `### 🔍 Command: /privacy\n\n`;
-                    helpMsg += `**Usage:** \`/privacy\`\n`;
-                    helpMsg += `**Purpose:** Shows what a site can see about you on first load: public IP, ISP/ASN, coarse geolocation, timezone, and browser headers (UA, language, DNT, referer, client hints).\n\n`;
-                    helpMsg += `**How it works:** Queries ipify + ip-api for IP/ISP/geo and echoes the request headers your browser sent to the proxy.\n\n`;
-                    helpMsg += `**Outputs:** Public IP, ISP/Org/ASN, country/region/city/timezone, and the request headers (User-Agent, Accept-Language, DNT, Referer, sec-ch-ua, etc.). Flags header gaps (no DNT) or mismatches (X-Forwarded-For vs public IP).\n\n`;
-                    helpMsg += `**Tip:** Compare this with a VPN on/off to see how much changes.`;
-                }
-                else if (cmd === 'reputation') {
-                    helpMsg = `### 🛡️ Command: /reputation\n\n`;
-                    helpMsg += `**Usage:** \`/reputation <domain>\`\n`;
-                    helpMsg += `**Purpose:** Checks a domain against Google Safe Browsing's threat database to identify malicious or compromised websites.\n\n`;
-                    helpMsg += `**Requires:** Google Safe Browsing API Key (Free) in Settings.\n\n`;
-                    helpMsg += `**What it checks:**\n`;
-                    helpMsg += `- 🦠 **Malware** - Sites that host malicious software\n`;
-                    helpMsg += `- 🎣 **Phishing** - Social engineering/credential theft attempts\n`;
-                    helpMsg += `- ⚠️ **Unwanted Software** - Deceptive software distribution\n`;
-                    helpMsg += `- 📱 **Harmful Apps** - Potentially dangerous applications\n\n`;
-                    helpMsg += `**Why it's critical:**\n`;
-                    helpMsg += `- Google Safe Browsing protects 5+ billion devices worldwide\n`;
-                    helpMsg += `- Database updated constantly with new threat intelligence\n`;
-                    helpMsg += `- Free tier provides 10,000 lookups per day\n`;
-                    helpMsg += `- Essential for vetting suspicious links before visiting\n\n`;
-                    helpMsg += `**Pro Tip:** Always check domains before clicking links in emails, messages, or unfamiliar sources. Combine with \`/ssl <domain>\` and \`/headers <url>\` for comprehensive security assessment.\n\n`;
-                    helpMsg += `[Ask AI about Web Threats?](Ask AI: How do phishing sites work and how can I spot them?)`;
-                }
-                else if (cmd === 'screenshot') {
-                    helpMsg = `### 📸 Command: /screenshot\n\n`;
-                    helpMsg += `**Usage:** \`/screenshot <url>\`\n`;
-                    helpMsg += `**Purpose:** Captures live screenshots of websites for documentation, evidence collection, and visual reconnaissance.\n\n`;
-                    helpMsg += `**No API Key Required!** Uses local Puppeteer (headless Chrome).\n\n`;
-                    helpMsg += `**Features:**\n`;
-                    helpMsg += `- 🖼️ **High Quality** - 1920x1080 resolution by default\n`;
-                    helpMsg += `- 📄 **Full Page** - Capture entire page or just viewport\n`;
-                    helpMsg += `- 🎭 **Stealth Mode** - Real browser user agent to avoid bot detection\n`;
-                    helpMsg += `- 📊 **Page Info** - Extracts title, dimensions, and final URL\n\n`;
-                    helpMsg += `**Use cases:**\n`;
-                    helpMsg += `- Evidence collection for investigations\n`;
-                    helpMsg += `- Website change detection and monitoring\n`;
-                    helpMsg += `- Phishing site documentation\n`;
-                    helpMsg += `- Web design/layout review\n`;
-                    helpMsg += `- Social media profile archiving\n\n`;
-                    helpMsg += `**Pro Tip:** Combine with \`/wayback <url>\` to compare current sites with archived versions, or use \`/reputation <domain>\` first to check if a site is safe before capturing.\n\n`;
-                    helpMsg += `[Ask AI about Digital Evidence?](Ask AI: What are best practices for digital evidence collection?)`;
-                }
-                else if (cmd === 'reverse') {
-                    helpMsg = `### 🔄 Command: /reverse\n\n`;
-                    helpMsg += `**Usage:** \`/reverse <ip>\`\n`;
-                    helpMsg += `**Purpose:** Performs reverse DNS lookup to find all domains hosted on a specific IP address.\n\n`;
-                    helpMsg += `**No API Key Required!** Uses HackerTarget's free API.\n\n`;
-                    helpMsg += `**What you discover:**\n`;
-                    helpMsg += `- All domains pointing to the target IP\n`;
-                    helpMsg += `- Shared vs dedicated hosting insights\n`;
-                    helpMsg += `- Related websites on same infrastructure\n`;
-                    helpMsg += `- Alphabetically sorted domain lists\n\n`;
-                    helpMsg += `**Why it's valuable:**\n`;
-                    helpMsg += `- **Find Related Sites**: Discover other domains owned by same entity\n`;
-                    helpMsg += `- **Shared Hosting Detection**: See if target shares IP with other sites\n`;
-                    helpMsg += `- **Infrastructure Mapping**: Understand hosting setup (dedicated/VPS/shared)\n`;
-                    helpMsg += `- **Security Research**: Identify neighbors on same server\n\n`;
-                    helpMsg += `**Example Results:**\n`;
-                    helpMsg += `- 1 domain = Dedicated IP (likely dedicated server)\n`;
-                    helpMsg += `- 2-10 domains = VPS or small shared hosting\n`;
-                    helpMsg += `- 10-100 domains = Medium shared hosting\n`;
-                    helpMsg += `- 100+ domains = Large hosting provider or CDN\n\n`;
-                    helpMsg += `**Pro Tip:** Combine with other tools: Use \`/geoip <ip>\` to see location/ISP, \`/shodan <ip>\` to scan ports, or run \`/reputation <domain>\` on discovered domains to check for threats.\n\n`;
-                    helpMsg += `[Ask AI about Reverse DNS?](Ask AI: How does reverse DNS lookup work in OSINT?)`;
-                }
-                else if (cmd === 'asn') {
-                    helpMsg = `### 🌐 Command: /asn\n\n`;
-                    helpMsg += `**Usage:** \`/asn <asn_number or ip>\`\n`;
-                    helpMsg += `**Purpose:** Lookup Autonomous System Number (ASN) information to find IP ranges owned by organizations.\n\n`;
-                    helpMsg += `**No API Key Required!** Uses HackerTarget's free API.\n\n`;
-                    helpMsg += `**What you discover:**\n`;
-                    helpMsg += `- Organization name and ASN number\n`;
-                    helpMsg += `- All IP ranges (CIDR blocks) owned by the ASN\n`;
-                    helpMsg += `- Country and registry information (ARIN, RIPE, APNIC)\n`;
-                    helpMsg += `- Allocation dates for IP ranges\n\n`;
-                    helpMsg += `**Input Formats:**\n`;
-                    helpMsg += `- **ASN Number**: \`/asn AS15169\` or \`/asn 15169\` (Google)\n`;
-                    helpMsg += `- **IP Address**: \`/asn 8.8.8.8\` (finds the ASN for that IP)\n\n`;
-                    helpMsg += `**Why it's valuable:**\n`;
-                    helpMsg += `- **Infrastructure Mapping**: See all IP ranges owned by a company\n`;
-                    helpMsg += `- **Network Research**: Understand an organization's internet presence\n`;
-                    helpMsg += `- **Security Audits**: Identify all network assets for a target\n`;
-                    helpMsg += `- **Threat Intelligence**: Track malicious ASNs and their IP ranges\n\n`;
-                    helpMsg += `**About ASN:**\n`;
-                    helpMsg += `An **Autonomous System Number (ASN)** is a unique identifier for a collection of IP networks operated by one or more network operators. `;
-                    helpMsg += `Large organizations like Google (AS15169), Amazon (AS16509), and Cloudflare (AS13335) have their own ASNs. `;
-                    helpMsg += `Universities, ISPs, and hosting providers also typically have dedicated ASNs.\n\n`;
-                    helpMsg += `**Example ASNs:**\n`;
-                    helpMsg += `- AS15169 = Google LLC\n`;
-                    helpMsg += `- AS16509 = Amazon.com, Inc.\n`;
-                    helpMsg += `- AS13335 = Cloudflare, Inc.\n`;
-                    helpMsg += `- AS32934 = Facebook, Inc.\n\n`;
-                    helpMsg += `**Pro Tip:** Once you have IP ranges from an ASN, use \`/geoip <ip>\` to check locations, \`/shodan <ip>\` to scan for services, \`/reverse <ip>\` to find hosted domains, or \`/ports <ip>\` to scan ports (requires authorization).\n\n`;
-                    helpMsg += `[Ask AI about ASN?](Ask AI: What is an Autonomous System Number and how is it used in networking?)`;
-                }
-                else if (cmd === 'ports') {
-                    helpMsg = `### 🔌 Command: /ports\n\n`;
-                    helpMsg += `**Usage:** \`/ports <ip_or_host> [ports]\`\n`;
-                    helpMsg += `**Purpose:** Performs a fast TCP port scan on the target to find open services.\n\n`;
-                    helpMsg += `**Defaults:** Scans ~40 of the most common service ports (22, 80, 443, 3389, etc.).\n`;
-                    helpMsg += `**Custom Ports:** Add a comma-separated list to override (e.g., \`/ports 1.1.1.1 22,80,443\`). Limited to 100 ports per scan.\n\n`;
-                    helpMsg += `**Safety Notice:** Only scan systems you are authorized to test. Unauthorized port scanning can violate laws and ToS.\n\n`;
-                    helpMsg += `**Insights:**\n`;
-                    helpMsg += `- Detect exposed services (SSH, RDP, DBs)\n`;
-                    helpMsg += `- Validate firewall rules and hardening\n`;
-                    helpMsg += `- Prioritize follow-up checks (e.g., run \`/shodan <ip>\` or audit SSL/headers on web ports)\n\n`;
-                    helpMsg += `[Ask AI about port scanning legality?](Ask AI: When is port scanning allowed?)`;
-                }
-                else if (cmd === 'trace') {
-                    helpMsg = `### 🛰️ Command: /trace\n\n`;
-                    helpMsg += `**Usage:** \`/trace <domain_or_ip>\`\n`;
-                    helpMsg += `**Purpose:** Runs a traceroute to map the network path (hops) from you to the target.\n\n`;
-                    helpMsg += `**What you see:** Hop number, host/IP (when resolvable), and latency.\n`;
-                    helpMsg += `**Limits:** Max 20 hops, 1 probe per hop, ~20s timeout.\n\n`;
-                    helpMsg += `**Tips:**\n`;
-                    helpMsg += `- Use alongside \`/geoip <ip>\` on interesting hops\n`;
-                    helpMsg += `- Compare with \`/shodan <ip>\` on final endpoints\n`;
-                    helpMsg += `- Hops with * are timeouts or filtered\n`;
-                    helpMsg += `- Results depend on your network path and ISP\n\n`;
-                    helpMsg += `**Note:** Some networks rate-limit ICMP/UDP probes, so mid-path hops may show timeouts while the route still succeeds.`;
-                }
-                else if (cmd === 'certs') {
-                    helpMsg = `### 📜 Command: /certs\n\n`;
-                    helpMsg += `**Usage:** \`/certs <domain>\`\n`;
-                    helpMsg += `**Purpose:** Pulls Certificate Transparency logs to find all certificates issued for a domain.\n\n`;
-                    helpMsg += `**What you get:**\n`;
-                    helpMsg += `- Total certificates, first/last seen timestamps\n`;
-                    helpMsg += `- Unique hostnames (including wildcards)\n`;
-                    helpMsg += `- Top issuers and recent certificate details\n\n`;
-                    helpMsg += `**Value:** Discover hidden subdomains, track issuance history, spot suspicious certs.\n\n`;
-                    helpMsg += `**Pro Tip:** Pair with \`/subdomains\` and then run \`/ssl <hostname>\` to audit specific hosts.`;
-                }
-                else if (cmd === 'hash') {
-                    helpMsg = `### 🧬 Command: /hash\n\n`;
-                    helpMsg += `**Usage:** \`/hash <md5|sha1|sha256|sha512>\`\n`;
-                    helpMsg += `**Purpose:** Checks a file hash against VirusTotal to see if it’s malicious.\n\n`;
-                    helpMsg += `**Requires:** VirusTotal API key (same as /scan) in Settings → Providers.\n\n`;
-                    helpMsg += `**Outputs:** Detection stats (malicious/suspicious/harmless), file type, size, first/last submission times, and known filenames.\n\n`;
-                    helpMsg += `**Pro Tip:** Submit the sample separately if not found, or try another hash variant (MD5 vs SHA256).`;
-                }
-                else if (cmd === 'chuck') {
-                    helpMsg = `### 🥋 Command: /chuck\n\n`;
-                    helpMsg += `**Usage:** \`/chuck\`\n`;
-                    helpMsg += `**Purpose:** Fetches a random Chuck Norris fact from the legendary database of Chuck Norris jokes.\n\n`;
-                    helpMsg += `**Features:**\n`;
-                    helpMsg += `- Hand-curated Chuck Norris facts\n`;
-                    helpMsg += `- Free API (no key required)\n`;
-                    helpMsg += `- Categories included when available\n`;
-                    helpMsg += `- Full source attribution\n\n`;
-                    helpMsg += `**Sources:**\n`;
-                    helpMsg += `- [Chuck Norris Jokes API](https://api.chucknorris.io/)\n`;
-                    helpMsg += `- [GitHub - chucknorris-io](https://github.com/chucknorris-io/chuck-api)\n`;
-                    helpMsg += `- [Free Public APIs](https://www.freepublicapis.com/chuck-norris-jokes-api)\n\n`;
-                    helpMsg += `**Pro Tip:** Need a laugh during intense OSINT sessions? Chuck's got your back! 💪`;
-                }
-                else if (cmd === 'joke') {
-                    helpMsg = `### 😂 Command: /joke\n\n`;
-                    helpMsg += `**Usage:** \`/joke\`\n`;
-                    helpMsg += `**Purpose:** Fetches a random joke from multiple curated joke databases. Includes programming jokes, dad jokes, and general humor.\n\n`;
-                    helpMsg += `**Features:**\n`;
-                    helpMsg += `- Setup/punchline format for classic joke delivery\n`;
-                    helpMsg += `- Multiple joke categories (programming, general, etc.)\n`;
-                    helpMsg += `- Free API (no key required)\n`;
-                    helpMsg += `- Full source attribution\n\n`;
-                    helpMsg += `**Sources:**\n`;
-                    helpMsg += `- [Official Joke API](https://official-joke-api.appspot.com/)\n`;
-                    helpMsg += `- [GitHub - Official Joke API](https://github.com/15Dkatz/official_joke_api)\n`;
-                    helpMsg += `- [icanhazdadjoke API](https://icanhazdadjoke.com/api)\n\n`;
-                    helpMsg += `**Pro Tip:** Perfect for lightening the mood during long coding sessions! 😄`;
-                }
-                else if (cmd === 'bible') {
-                    helpMsg = `### 📖 Command: /bible\n\n`;
-                    helpMsg += `**Usage:** \`/bible\`\n`;
-                    helpMsg += `**Purpose:** Fetches a random Bible verse from the World English Bible (Public Domain translation).\n\n`;
-                    helpMsg += `**Features:**\n`;
-                    helpMsg += `- Random verses from the entire Bible\n`;
-                    helpMsg += `- Reference included (Book, Chapter:Verse)\n`;
-                    helpMsg += `- World English Bible translation (Public Domain)\n`;
-                    helpMsg += `- Free API (no key required)\n`;
-                    helpMsg += `- Full source attribution\n\n`;
-                    helpMsg += `**Sources:**\n`;
-                    helpMsg += `- [Bible API](https://bible-api.com/)\n`;
-                    helpMsg += `- [GitHub - Bible API](https://github.com/wldeh/bible-api)\n`;
-                    helpMsg += `- [NET Bible Web Service](https://labs.bible.org/api_web_service)\n\n`;
-                    helpMsg += `**Pro Tip:** Great for daily inspiration, reflection, or spiritual guidance! 📖`;
-                }
-                else if (cmd === 'weather') {
-                    helpMsg = `### 🌦️ Command: /weather\n\n`;
-                    helpMsg += `**Usage:** \`/weather [location]\`\n`;
-                    helpMsg += `**Purpose:** Get real-time weather information for your current location or a specific city.\n\n`;
-                    helpMsg += `**Features:**\n`;
-                    helpMsg += `- 🌍 **Auto-Location**: Uses your IP address if no location is specified\n`;
-                    helpMsg += `- 🌡️ **Detailed Info**: Temperature, wind, humidity, and visibility\n`;
-                    helpMsg += `- 🌅 **Forecast**: 3-day weather outlook\n`;
-                    helpMsg += `- 🆓 **Free API**: Powered by wttr.in (no key required)\n\n`;
-                    helpMsg += `**Examples:**\n`;
-                    helpMsg += `- \`/weather\` (Auto-detect location)\n`;
-                    helpMsg += `- \`/weather London\`\n`;
-                    helpMsg += `- \`/weather New York\`\n\n`;
-                    helpMsg += `**Pro Tip:** Great for checking conditions before heading out! ☂️`;
-                }
-                else {
-                    // Generic fallback for other commands or unknown inputs
-                    helpMsg = `### ❓ Unknown Command: ${cmd}\n\n`;
-                    helpMsg += `I don't have a specific manual page for that yet.\n`;
-                    helpMsg += `Try \`/help\` to see the full list of tools.\n\n`;
-                    helpMsg += `*Want to learn more? Ask me directly!*`;
-                }
+
+                helpMsg += buildSlashQuickHints();
 
                 onUpdateMessages(prev => [...prev, {
                     id: uuidv4(), sender: Sender.AI, text: helpMsg, timestamp: Date.now()
@@ -1363,6 +992,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 setIsStreaming(false);
                 return;
             }
+
 
             // 10. The Profiler (/profile)
             if (text.startsWith('/profile')) {
@@ -4006,25 +3636,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     <div className="flex justify-end gap-2 flex-wrap">
                         <button
                             onClick={() => setShowAliasManager(true)}
-                            className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${
-                                isTron
+                            className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${isTron
                                     ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
                                     : settings.matrixMode
                                         ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
                                         : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
-                            }`}
+                                }`}
                         >
                             <i className="fa-solid fa-bolt mr-2"></i>Alias Manager
                         </button>
                         <button
                             onClick={handleViewAliasLogs}
-                            className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${
-                                isTron
+                            className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${isTron
                                     ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
                                     : settings.matrixMode
                                         ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
                                         : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
-                            }`}
+                                }`}
                         >
                             <i className="fa-solid fa-clipboard-list mr-2"></i>View Logs
                         </button>

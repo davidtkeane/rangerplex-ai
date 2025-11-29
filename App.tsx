@@ -83,6 +83,7 @@ const App: React.FC = () => {
   const [activeSurface, setActiveSurface] = useState<'chat' | 'browser' | 'notes' | 'training' | 'canvas' | 'wordpress' | 'weather' | 'terminal' | 'editor' | 'blockchain' | 'manual'>('chat');
   const [isWeatherOpen, setIsWeatherOpen] = useState(false); // State for Weather Station visibility
   const [rainAlert, setRainAlert] = useState<RainAlert | null>(null); // State for rain notifications
+  const [initialWeatherTab, setInitialWeatherTab] = useState<'dashboard' | 'radar'>('dashboard'); // State for initial weather tab
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
 
   useEffect(() => {
@@ -243,8 +244,9 @@ const App: React.FC = () => {
         if (alert.willRain) {
           const lastAlert = rainAlert;
           // Show notification if it's a new alert or if previous alert was > 10 minutes ago
-          const shouldShow = !lastAlert ||
-            (Date.now() - lastAlert.timeDetected) > 10 * 60 * 1000;
+          // AND we are not snoozed
+          const isSnoozed = settings.rainNotificationSnoozeUntil && Date.now() < settings.rainNotificationSnoozeUntil;
+          const shouldShow = !isSnoozed && (!lastAlert || (Date.now() - lastAlert.timeDetected) > 10 * 60 * 1000);
 
           if (shouldShow) {
             setRainAlert(alert);
@@ -329,7 +331,7 @@ const App: React.FC = () => {
       if (activeTabId === id && newTabs.length > 0) {
         setActiveTabId(newTabs[newTabs.length - 1].id);
       } else if (newTabs.length === 0) {
-        const fallback = [{ id: 'chat', type: 'chat', title: 'Chat', icon: 'fa-solid fa-comments', isPinned: true }];
+        const fallback: WorkspaceTab[] = [{ id: 'chat', type: 'chat', title: 'Chat', icon: 'fa-solid fa-comments', isPinned: true }];
         setActiveTabId('chat');
         return fallback;
       }
@@ -696,7 +698,7 @@ const App: React.FC = () => {
     setIsEditorOpen(false);
     setIsStudyClockOpen(false);
     setIsManualOpen(false);
-    setIsBrowserOpen(false);
+    setIsManualOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
@@ -869,7 +871,6 @@ const App: React.FC = () => {
       // Switch to the session and open sidebar
       setCurrentSessionId(targetSessionId);
       setActiveTabId('chat');
-      setIsBrowserOpen(false);
       setSidebarOpen(true);
       setIsEditorOpen(false);
     },
@@ -1074,7 +1075,7 @@ const App: React.FC = () => {
             {activeSurface === 'weather' && (
               <div className="absolute inset-0 z-20">
                 <button onClick={() => { setIsWeatherOpen(false); setActiveSurface('chat'); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
-                <WeatherStation isDarkMode={settings.theme !== 'light'} isTron={isTron} />
+                <WeatherStation isDarkMode={settings.theme !== 'light'} isTron={isTron} initialTab={initialWeatherTab} />
               </div>
             )}
 
@@ -1301,10 +1302,19 @@ const App: React.FC = () => {
             location={rainAlert.location}
             precipitation={rainAlert.precipitation}
             onViewWeather={() => {
+              setInitialWeatherTab('radar');
               setIsWeatherOpen(true);
               setRainAlert(null);
             }}
             onDismiss={() => setRainAlert(null)}
+            onSnooze={(until) => {
+              setSettings(prev => ({ ...prev, rainNotificationSnoozeUntil: until }));
+              setRainAlert(null);
+            }}
+            onDisable={() => {
+              setSettings(prev => ({ ...prev, rainNotificationsEnabled: false }));
+              setRainAlert(null);
+            }}
             theme={settings.theme}
           />
         )}

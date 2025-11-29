@@ -70,11 +70,11 @@ class EditorFileService {
   }
 
   async getFile(id: string): Promise<EditorFile | null> {
-    return await dbService.getEditorFile(id);
+    return await dbService.getEditorFile(id) || null;
   }
 
   async getFileByPath(path: string): Promise<EditorFile | null> {
-    return await dbService.getEditorFileByPath(path);
+    return await dbService.getEditorFileByPath(path) || null;
   }
 
   async getAllFiles(): Promise<EditorFile[]> {
@@ -102,7 +102,7 @@ class EditorFileService {
   }
 
   async getFolder(id: string): Promise<EditorFolder | null> {
-    return await dbService.getEditorFolder(id);
+    return await dbService.getEditorFolder(id) || null;
   }
 
   async getAllFolders(): Promise<EditorFolder[]> {

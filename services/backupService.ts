@@ -231,7 +231,7 @@ const importFromFile = async (file: File, options?: ImportOptions): Promise<Impo
   if (!validation.valid) {
     return {
       success: false,
-      imported: { chats: 0, settings: 0, canvasBoards: 0 },
+      imported: { chats: 0, settings: 0, canvasBoards: 0, editorFiles: 0, editorFolders: 0 },
       errors: validation.errors,
       warnings: [],
     };

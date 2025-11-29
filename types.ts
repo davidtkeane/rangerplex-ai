@@ -226,6 +226,7 @@ export interface AppSettings {
   rainNotificationsEnabled?: boolean;
   rainNotificationTiming?: '1hour' | '3hours' | '12hours' | '24hours';
   rainNotificationLocation?: string; // Location to monitor (e.g., "Dublin,IE")
+  rainNotificationSnoozeUntil?: number; // Timestamp to snooze until
 
   // Config
   corsProxyUrl?: string;

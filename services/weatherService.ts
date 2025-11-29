@@ -725,6 +725,79 @@ class WeatherService {
             };
         }
     }
+
+    // ========================================
+    // HISTORICAL DATA (The "Historian")
+    // ========================================
+
+    async getVisualCrossingHistory(location: string = 'Dublin,Ireland', date: Date): Promise<CurrentWeather | null> {
+        if (!this.visualCrossingKey || this.visualCrossingKey === 'your_visual_crossing_key_here') return null;
+
+        try {
+            const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+            const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}/${dateStr}/${dateStr}?key=${this.visualCrossingKey}&unitGroup=metric&include=days`;
+            const response = await fetch(url);
+
+            if (!response.ok) return null;
+
+            const data = await response.json();
+            const day = data.days[0];
+
+            // Track API call
+            await this.trackAPICall('visualcrossing');
+
+            return {
+                location: data.resolvedAddress,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                temperature: day.temp,
+                feelsLike: day.feelslike,
+                humidity: day.humidity,
+                pressure: day.pressure,
+                windSpeed: day.windspeed,
+                windDirection: day.winddir,
+                windGust: day.windgust,
+                cloudCover: day.cloudcover,
+                visibility: day.visibility,
+                uvIndex: day.uvindex,
+                conditions: day.conditions,
+                icon: day.icon,
+                timestamp: new Date(day.datetime).getTime(),
+                source: 'visualcrossing'
+            };
+        } catch (error) {
+            console.error('Visual Crossing history error:', error);
+            return null;
+        }
+    }
+
+    // ========================================
+    // ALERTS (The "Guardian")
+    // ========================================
+
+    async getWeatherAlerts(location: string = 'Dublin,Ireland'): Promise<string[]> {
+        if (!this.visualCrossingKey || this.visualCrossingKey === 'your_visual_crossing_key_here') return [];
+
+        try {
+            const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}?key=${this.visualCrossingKey}&unitGroup=metric&include=alerts`;
+            const response = await fetch(url);
+
+            if (!response.ok) return [];
+
+            const data = await response.json();
+
+            // Track API call
+            await this.trackAPICall('visualcrossing');
+
+            if (data.alerts && data.alerts.length > 0) {
+                return data.alerts.map((alert: any) => `${alert.event}: ${alert.headline}`);
+            }
+            return [];
+        } catch (error) {
+            console.error('Visual Crossing alerts error:', error);
+            return [];
+        }
+    }
 }
 
 export const weatherService = new WeatherService();

@@ -1,62 +1,13 @@
 #!/usr/bin/env bash
 
-# RangerPlex AI Installer (v2.5.32)
+# RangerPlex AI Installer (v2.5.33)
 # One-command setup for macOS/Linux/WSL. Installs Node.js 22, PM2, npm deps, and guides API key setup.
 # Safe defaults: prompts before package installs; writes .env only when you confirm.
 #
-# IMPROVEMENTS (v2.5.32):
-# ✅ IMPROVED: Docker installation now uses https://www.docker.com/get-started/
-# ✅ ADDED: Clear documentation that Docker Desktop includes ALL CLI tools
-# ✅ ADDED: Docker Desktop to API Dashboard Links section (🐳 Development Tools)
-# ✅ IMPROVED: Better instructions for Mac (M1/M2/M3/M4 mention), Windows, and WSL
-# ✅ IMPROVED: Emphasized Docker is HIGHLY RECOMMENDED for WordPress hosting
-#
-# PREVIOUS (v2.5.31):
-# ✅ FIXED: Unbound variable error in shell detection (ZSH_VERSION, BASH_VERSION)
-# ✅ IMPROVED: Safe variable checking using ${VAR:-} syntax
-#
-# PREVIOUS (v2.5.30):
-# ✅ ADDED: API key confirmation with masked preview (prevents paste mistakes!)
-# ✅ ADDED: Option to re-enter API key if pasted incorrectly (Y/n/r prompt)
-# ✅ IMPROVED: Shows preview of key (first 8 chars...last 4 chars) before saving
-# ✅ IMPROVED: User can discard incorrect key without saving
-#
-# PREVIOUS (v2.5.29):
-# ✅ FIXED: Changed npm ci → npm install (fixes lock file mismatch errors)
-# ✅ FIXED: Added nvm environment verification after installation
-# ✅ FIXED: Added Node.js version verification after nvm install
-# ✅ FIXED: Added 'nvm alias default 22' to persist Node version across sessions
-# ✅ IMPROVED: Better error handling for npm install with helpful diagnostics
-# ✅ ADDED: Beautiful colorful ASCII banner with RANGERPLEX branding
-# ✅ ADDED: Welcome message thanking users for downloading
-# ✅ ADDED: Documentation references (/manual command, rangerplex_manual.md)
-# ✅ ADDED: Shell alias setup (auto-detects zsh/bash, adds "rangerplex" alias)
-# ✅ ADDED: Interactive "Start now?" prompt with auto-start option
-# ✅ ADDED: Organized API dashboard links (16 services in 4 categories)
-# ✅ IMPROVED: Comprehensive UX - from welcome to running in one flow
-#
-# PREVIOUS (v2.5.27+):
-# ✅ ADDED: PM2 process manager installation (enables zero-downtime auto-restart)
-# ✅ ADDED: PM2 command instructions (pm2:start, pm2:status, pm2:logs, etc.)
-# ✅ IMPROVED: Recommended start command now uses PM2 for production-ready deployment
-#
-# PREVIOUS (v2.5.26):
-# ✅ ADDED: Node.js v25+ detection with mandatory downgrade requirement
-# ✅ ADDED: Automatic native module rebuild when Node version changes
-# ✅ ADDED: Node version tracking (.node_version file in node_modules)
-# ✅ IMPROVED: Full npm rebuild (all native modules, not just better-sqlite3)
-# ✅ IMPROVED: Clear error messages for incompatible Node versions
-#
-# PREVIOUS (v2.4.2):
-# ✅ FIXED: Added VITE_ prefix to ALL environment variables (CRITICAL - was broken!)
-# ✅ FIXED: Corrected variable names to match app expectations
-# ✅ ADDED: Gemini API key collection (was missing!)
-# ✅ ADDED: better-sqlite3 rebuild after npm ci
-# ✅ ADDED: Port availability check (3010, 5173)
-# ✅ ADDED: Verification that at least one AI provider is configured
-# ✅ ADDED: ESSENTIAL vs OPTIONAL provider labels
-# ✅ IMPROVED: Better final output with clear next steps
-# ✅ IMPROVED: Key sanitization (removes quotes and whitespace)
+# IMPROVEMENTS (v2.5.33):
+# ✅ NEW: Early preflight prompt to download core apps before continuing (Docker Desktop, Ollama, LM Studio) with OS-specific links.
+# ✅ NEW: Friendly RangerPlex banner refreshed for Windows install flow.
+# ✅ KEPT: Existing install flow (Node, PM2, deps, key prompts, service checks) unchanged after preflight.
 #
 # Variable name mappings (app expects these exact names):
 #   VITE_GEMINI_API_KEY          - Gemini (Google AI)
@@ -69,6 +20,7 @@
 #   VITE_ELEVENLABS_API_KEY      - ElevenLabs (voice synthesis)
 
 set -euo pipefail
+preflight_downloads
 
 ###############
 # UI Helpers  #
@@ -199,6 +151,22 @@ ask_redo() {
         return 0 # True, redo it
     fi
     return 1 # False, don't redo
+}
+
+# Early preflight: offer to download core apps (Docker, Ollama, LM Studio) before continuing
+preflight_downloads() {
+    log "${bold}${cyan}Preflight Downloads (optional)${reset}"
+    log "If you want, download/install these now, then re-run this script:"
+    printf "  ${cyan}•${reset} Docker Desktop (Windows/macOS): ${green}https://www.docker.com/get-started${reset}\n"
+    printf "    Windows direct: ${green}https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe${reset}\n"
+    printf "  ${cyan}•${reset} Ollama: ${green}https://ollama.com/download${reset}\n"
+    printf "  ${cyan}•${reset} LM Studio: ${green}https://lmstudio.ai/download${reset}\n\n"
+    printf "${yellow}Do you want to exit now to install these and rerun the script? (y/N): ${reset}"
+    read -r ans
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+        log "${dim}Okay! Download/install the apps above, then re-run install-me-now.sh${reset}"
+        exit 0
+    fi
 }
 
 ################
