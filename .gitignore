@@ -61,6 +61,8 @@ Thumbs.db
 
 # Internal development files (keep private)
 docs/
+docs
+!docs/memory-system.md
 
 # 🛡️ PHANTOM PERSISTENCE - PRO FEATURE (KEEP PRIVATE!)
 # This is proprietary technology for RangerPlexOS PRO

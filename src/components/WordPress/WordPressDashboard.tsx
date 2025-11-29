@@ -40,18 +40,23 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
         loadData();
     }, []);
 
+    // Helper to cap slow Electron calls so UI unblocks quickly
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
+        return Promise.race([
+            promise,
+            new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+        ]) as Promise<T>;
+    };
+
     const loadData = async () => {
         setLoading(true);
         try {
-            // Scan for Local Sites
-            const foundSites = await wordPressService.scanLocalSites();
-            setSites(foundSites);
+            const [foundSites, statuses] = await Promise.all([
+                withTimeout(wordPressService.scanLocalSites(), 3000, []),
+                withTimeout(wordPressService.getDockerStatuses([1, 2, 3]), 3000, { 1: 'unknown', 2: 'unknown', 3: 'unknown' }),
+            ]);
 
-            // Check Docker status for all 3 sites
-            const statuses: any = {};
-            for (let i = 1; i <= 3; i++) {
-                statuses[i] = await wordPressService.getDockerStatus(i);
-            }
+            setSites(foundSites);
             setDockerStatuses(statuses);
 
             // Auto-start site 1 if requested
@@ -69,7 +74,7 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
     const handleScanSites = async () => {
         setScanning(true);
         try {
-            const foundSites = await wordPressService.scanLocalSites();
+            const foundSites = await withTimeout(wordPressService.scanLocalSites(), 3000, sites);
             setSites(foundSites);
         } finally {
             setScanning(false);
@@ -128,20 +133,20 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
         }
     };
 
-    if (loading) {
-        return (
-            <div className={styles.loading}>
-                <div className={styles.spinner}></div>
-                <p>Loading WordPress sites...</p>
-            </div>
-        );
-    }
-
     return (
         <div className={styles.dashboard}>
             <header className={styles.header}>
-                <h1>📝 WordPress Command Center</h1>
+                <h1 className={styles.titleRow}>
+                    <img src="/image/rangersmyth-pic.png" alt="RangerPlex" className={styles.titleIcon} />
+                    WordPress Command Center
+                </h1>
                 <p>Project PRESS FORGE</p>
+                {loading && (
+                    <div className={styles.inlineLoader}>
+                        <div className={styles.smallSpinner}></div>
+                        <span>Loading WordPress data…</span>
+                    </div>
+                )}
                 <button
                     onClick={() => onOpenBrowser && onOpenBrowser('https://google.com')}
                     className={styles.newTabButton}
@@ -217,7 +222,7 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
 
                     <div className={styles.siteGrid}>
                         {[1, 2, 3].map(siteId => (
-                            <div key={siteId} className={styles.siteCard} style={{ border: '1px solid #333' }}>
+                            <div key={siteId} className={`${styles.siteCard} ${styles.dockerSiteCard}`}>
                                 <div className={styles.siteHeader}>
                                     <h3>Site #{siteId}</h3>
                                     <span className={`${styles.status} ${styles[dockerStatuses[siteId] || 'unknown']}`}>
@@ -246,7 +251,6 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
                                             <button
                                                 onClick={() => handleUninstallDocker(siteId)}
                                                 className={styles.dangerBtn}
-                                                style={{ backgroundColor: '#dc2626', color: 'white', fontSize: '0.9em' }}
                                             >
                                                 🗑️ Delete / Reinstall
                                             </button>

@@ -56,6 +56,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     createBoard,
     switchBoard,
     updateBoardImage,
+    updateBoardBackground,
     deleteBoard,
     canCreateBoard,
     boardCount
@@ -100,6 +101,13 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     }
   }, []); // Run once on mount (or when boards is empty, but dependency array is empty to mimic mount)
 
+  // Sync picker state with current board
+  useEffect(() => {
+    if (currentBoard) {
+      setBackgroundType(currentBoard.background);
+    }
+  }, [currentBoard?.id, currentBoard?.background]);
+
   // Container Ref for dynamic resizing
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -142,7 +150,26 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     }
   }, [dimensions.width, dimensions.height, theme, currentBoard?.background, currentBoard?.color]);
 
-  // ... (Load Board Content effect remains similar, but depends on dimensions) ...
+  // Hydrate saved board image onto drawing layer when board or size changes
+  useEffect(() => {
+    if (!drawingCanvasRef.current || !currentBoard) return;
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear before painting
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (currentBoard.imageData) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+      img.onerror = () => console.warn('⚠️ Failed to hydrate canvas image for board:', currentBoard.id);
+      img.src = currentBoard.imageData;
+    }
+  }, [currentBoard?.id, currentBoard?.imageData, dimensions.width, dimensions.height]);
 
   // Determine container background color to match board
   const getContainerBackground = () => {
@@ -229,6 +256,15 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     if (onClose) onClose();
   };
 
+  // Persist latest drawing when component unmounts
+  useEffect(() => {
+    return () => {
+      if (drawingCanvasRef.current) {
+        updateBoardImage(drawingCanvasRef.current);
+      }
+    };
+  }, [updateBoardImage]);
+
   // Toolbar Handlers
   const handleToolChange = (changes: Partial<DrawingTool>) => setCurrentTool(prev => ({ ...prev, ...changes }));
 
@@ -283,6 +319,13 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     setShowDeleteWarning(true);
   };
 
+  const handleSwitchBoard = (boardId: string) => {
+    if (drawingCanvasRef.current && currentBoardId) {
+      updateBoardImage(drawingCanvasRef.current);
+    }
+    switchBoard(boardId);
+  };
+
   const confirmDeleteBoard = async () => {
     if (boardToDelete) {
       await deleteBoard(boardToDelete);
@@ -320,7 +363,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
             <BoardSwitcher
               boards={boards}
               currentBoardId={currentBoardId || ''}
-              onSwitchBoard={switchBoard}
+              onSwitchBoard={handleSwitchBoard}
               onDeleteBoard={handleDeleteBoard}
               theme={theme}
             />
@@ -330,10 +373,9 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
             onChange={(bg) => {
               setBackgroundType(bg);
               if (bgCanvasRef.current) drawBackground(bgCanvasRef.current, bg, theme, currentBoard?.color);
-              // Update board model? Ideally yes, but useCanvasBoards doesn't expose updateBackground yet.
-              // For now it's visual only until saved? 
-              // Actually useCanvasBoards updates on save. We should probably update the board object too.
-              // But let's stick to visual for now.
+              if (currentBoardId) {
+                updateBoardBackground(currentBoardId, bg, currentBoard?.color);
+              }
             }}
             theme={theme}
             disabled={isBackgroundLocked}

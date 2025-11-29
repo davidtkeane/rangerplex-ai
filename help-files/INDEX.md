@@ -225,6 +225,34 @@ Digital sketching and drawing tools.
 
 ---
 
+### 🐳 Docker MCP Integration
+**File**: `DOCKER_MCP_MANUAL.md`
+
+Complete guide to Docker Model Context Protocol (MCP) integration.
+
+**Features:**
+- 310+ containerized MCP servers
+- AI assistant integration
+- WordPress connectivity
+- Gateway HTTP API access
+
+**Current Status:**
+- ✅ 6 servers enabled (brave, dice, duckduckgo, fetch, obsidian, youtube_transcript)
+- ✅ 30 tools available
+- ✅ Auto-start on `npm run browser`
+
+**Quick Commands:**
+```bash
+docker mcp server list        # List enabled servers
+docker mcp catalog show        # Browse 310+ servers
+docker mcp tools list          # View available tools
+docker mcp gateway run         # Start HTTP gateway
+```
+
+**[→ View Docker MCP Manual](./DOCKER_MCP_MANUAL.md)**
+
+---
+
 ## 🚀 Quick Start Guide
 
 ### For New Users

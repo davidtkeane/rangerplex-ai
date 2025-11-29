@@ -202,15 +202,24 @@ export default function EditorLayout() {
         };
     }, [currentCode, activeFileId, isInitialized]);
 
-    // Save on unmount / page hide
+    // Save on unmount / page hide - persist all open files (active uses current buffer)
     useEffect(() => {
         const saveOnExit = () => {
-            const id = activeFileIdRef.current;
-            const code = currentCodeRef.current;
-            if (id && code !== undefined) {
-                // Fire-and-forget save
-                editorFileService.updateFileContent(id, code).catch(console.error);
-            }
+            const activeId = activeFileIdRef.current;
+            const activeCode = currentCodeRef.current;
+            const files = openFiles;
+
+            files.forEach(file => {
+                const codeToSave = file.id === activeId ? activeCode : file.content;
+                if (codeToSave !== undefined) {
+                    editorFileService.saveFile({
+                        ...file,
+                        content: codeToSave,
+                        isUnsaved: false,
+                        lastModified: Date.now(),
+                    }).catch(console.error);
+                }
+            });
         };
 
         window.addEventListener('beforeunload', saveOnExit);
@@ -219,9 +228,30 @@ export default function EditorLayout() {
             window.removeEventListener('beforeunload', saveOnExit);
             saveOnExit(); // Also save on component unmount (SPA navigation)
         };
-    }, []);
+    }, [openFiles]);
+
+    const persistActiveFile = useCallback(async () => {
+        if (!activeFileId) return;
+        const activeFile = openFiles.find(f => f.id === activeFileId);
+        const codeToSave = currentCodeRef.current;
+        if (!activeFile || codeToSave === undefined) return;
+        try {
+            await editorFileService.saveFile({
+                ...activeFile,
+                content: codeToSave,
+                isUnsaved: false,
+            });
+            setOpenFiles(prev => prev.map(f =>
+                f.id === activeFileId ? { ...f, isUnsaved: false, content: codeToSave } : f
+            ));
+        } catch (error) {
+            console.error('Failed to persist active file:', error);
+        }
+    }, [activeFileId, openFiles]);
 
     const handleFileSelect = async (file: EditorFile) => {
+        await persistActiveFile();
+
         // Load fresh version from IndexedDB
         const freshFile = await editorFileService.getFile(file.id);
         const fileToOpen = freshFile || file;
@@ -378,12 +408,15 @@ export default function EditorLayout() {
                     files={openFiles}
                     activeFileId={activeFileId}
                     onTabClick={(id) => {
-                        const file = openFiles.find(f => f.id === id);
-                        if (file) {
-                            setActiveFileId(id);
-                            setCurrentCode(file.content);
-                            setCurrentLanguage(detectLanguageFromFilename(file.name));
-                        }
+                        void (async () => {
+                            await persistActiveFile();
+                            const file = openFiles.find(f => f.id === id);
+                            if (file) {
+                                setActiveFileId(id);
+                                setCurrentCode(file.content);
+                                setCurrentLanguage(detectLanguageFromFilename(file.name));
+                            }
+                        })();
                     }}
                     onTabClose={(id) => {
                         const newOpenFiles = openFiles.filter(f => f.id !== id);

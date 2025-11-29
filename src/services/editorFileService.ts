@@ -1,303 +1,141 @@
-// Editor File Service - Handles file persistence using IndexedDB
-// Phase 1: Foundation Service
+// Editor File Service - now backed by the shared dbService (3-tier friendly)
 
 import type { EditorFile, EditorFolder } from '../types/editor';
+import { dbService } from '../../services/dbService';
+import { queueEditorFileSave } from '../../services/autoSaveService';
 
-const DB_NAME = 'rangerplex-editor';
-const DB_VERSION = 1;
-const FILES_STORE = 'files';
-const FOLDERS_STORE = 'folders';
+const LEGACY_DB_NAME = 'rangerplex-editor';
+const LEGACY_FILES_STORE = 'files';
+const LEGACY_FOLDERS_STORE = 'folders';
+const MIGRATION_FLAG = 'rangerplex_editor_migrated';
+const ENABLE_EDITOR_SYNC = true;
 
 class EditorFileService {
-  private db: IDBDatabase | null = null;
-
   /**
-   * Initialize the IndexedDB database
+   * Initialize storage and migrate legacy standalone DB into the shared DB.
    */
   async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => {
-        reject(new Error('Failed to open IndexedDB'));
-      };
-
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-
-        // Create files store
-        if (!db.objectStoreNames.contains(FILES_STORE)) {
-          const filesStore = db.createObjectStore(FILES_STORE, { keyPath: 'id' });
-          filesStore.createIndex('path', 'path', { unique: true });
-          filesStore.createIndex('lastModified', 'lastModified', { unique: false });
-        }
-
-        // Create folders store
-        if (!db.objectStoreNames.contains(FOLDERS_STORE)) {
-          const foldersStore = db.createObjectStore(FOLDERS_STORE, { keyPath: 'id' });
-          foldersStore.createIndex('path', 'path', { unique: true });
-        }
-      };
-    });
+    await dbService.init();
+    await this.migrateLegacyDB();
   }
 
-  /**
-   * Ensure database is initialized
-   */
-  private async ensureDB(): Promise<IDBDatabase> {
-    if (!this.db) {
-      await this.init();
-    }
-    if (!this.db) {
-      throw new Error('Database not initialized');
-    }
-    return this.db;
-  }
+  private async migrateLegacyDB() {
+    if (typeof indexedDB === 'undefined') return;
+    if (typeof window !== 'undefined' && window.localStorage.getItem(MIGRATION_FLAG)) return;
 
-  /**
-   * Save a file to IndexedDB
-   */
-  async saveFile(file: EditorFile): Promise<void> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FILES_STORE], 'readwrite');
-      const store = transaction.objectStore(FILES_STORE);
-
-      const request = store.put({
-        ...file,
-        lastModified: Date.now()
+    try {
+      const legacyDb: IDBDatabase = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(LEGACY_DB_NAME);
+        req.onerror = () => reject(new Error('Failed to open legacy editor DB'));
+        req.onsuccess = () => resolve(req.result);
       });
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to save file'));
-    });
+      const readStore = async (storeName: string) => {
+        return await new Promise<any[]>((resolve, reject) => {
+          const tx = legacyDb.transaction([storeName], 'readonly');
+          const store = tx.objectStore(storeName);
+          const getAllReq = store.getAll();
+          getAllReq.onsuccess = () => resolve(getAllReq.result || []);
+          getAllReq.onerror = () => reject(new Error(`Failed to read legacy store ${storeName}`));
+        });
+      };
+
+      const [files, folders] = await Promise.all([
+        legacyDb.objectStoreNames.contains(LEGACY_FILES_STORE) ? readStore(LEGACY_FILES_STORE) : [],
+        legacyDb.objectStoreNames.contains(LEGACY_FOLDERS_STORE) ? readStore(LEGACY_FOLDERS_STORE) : [],
+      ]);
+
+      if ((files && files.length) || (folders && folders.length)) {
+        for (const folder of folders || []) {
+          await dbService.saveEditorFolder(folder as EditorFolder);
+        }
+        for (const file of files || []) {
+          await dbService.saveEditorFile(file as EditorFile);
+        }
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(MIGRATION_FLAG, 'true');
+        }
+        console.log(`✅ Migrated legacy editor data (${files.length} files, ${folders.length} folders)`);
+      } else if (typeof window !== 'undefined') {
+        window.localStorage.setItem(MIGRATION_FLAG, 'true');
+      }
+    } catch (error) {
+      console.warn('Legacy editor DB migration skipped:', error);
+    }
   }
 
-  /**
-   * Get a file by ID
-   */
+  async saveFile(file: EditorFile): Promise<void> {
+    const payload = { ...file, lastModified: Date.now() };
+    queueEditorFileSave(payload, ENABLE_EDITOR_SYNC);
+  }
+
   async getFile(id: string): Promise<EditorFile | null> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FILES_STORE], 'readonly');
-      const store = transaction.objectStore(FILES_STORE);
-      const request = store.get(id);
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-      request.onerror = () => reject(new Error('Failed to get file'));
-    });
+    return await dbService.getEditorFile(id);
   }
 
-  /**
-   * Get a file by path
-   */
   async getFileByPath(path: string): Promise<EditorFile | null> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FILES_STORE], 'readonly');
-      const store = transaction.objectStore(FILES_STORE);
-      const index = store.index('path');
-      const request = index.get(path);
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-      request.onerror = () => reject(new Error('Failed to get file by path'));
-    });
+    return await dbService.getEditorFileByPath(path);
   }
 
-  /**
-   * Get all files
-   */
   async getAllFiles(): Promise<EditorFile[]> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FILES_STORE], 'readonly');
-      const store = transaction.objectStore(FILES_STORE);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        resolve(request.result || []);
-      };
-      request.onerror = () => reject(new Error('Failed to get all files'));
-    });
+    return await dbService.getAllEditorFiles();
   }
 
-  /**
-   * Delete a file by ID
-   */
   async deleteFile(id: string): Promise<void> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FILES_STORE], 'readwrite');
-      const store = transaction.objectStore(FILES_STORE);
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to delete file'));
-    });
+    await dbService.deleteEditorFile(id);
   }
 
-  /**
-   * Update file content
-   */
   async updateFileContent(id: string, content: string): Promise<void> {
     const file = await this.getFile(id);
     if (!file) {
       throw new Error('File not found');
     }
-
     await this.saveFile({
       ...file,
       content,
-      lastModified: Date.now(),
-      isUnsaved: false
+      isUnsaved: false,
     });
   }
 
-  /**
-   * Save a folder structure to IndexedDB
-   */
   async saveFolder(folder: EditorFolder): Promise<void> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FOLDERS_STORE], 'readwrite');
-      const store = transaction.objectStore(FOLDERS_STORE);
-      const request = store.put(folder);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to save folder'));
-    });
+    await dbService.saveEditorFolder(folder);
   }
 
-  /**
-   * Get a folder by ID
-   */
   async getFolder(id: string): Promise<EditorFolder | null> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FOLDERS_STORE], 'readonly');
-      const store = transaction.objectStore(FOLDERS_STORE);
-      const request = store.get(id);
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-      request.onerror = () => reject(new Error('Failed to get folder'));
-    });
+    return await dbService.getEditorFolder(id);
   }
 
-  /**
-   * Get all folders
-   */
   async getAllFolders(): Promise<EditorFolder[]> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FOLDERS_STORE], 'readonly');
-      const store = transaction.objectStore(FOLDERS_STORE);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        resolve(request.result || []);
-      };
-      request.onerror = () => reject(new Error('Failed to get all folders'));
-    });
+    return await dbService.getAllEditorFolders();
   }
 
-  /**
-   * Delete a folder by ID
-   */
   async deleteFolder(id: string): Promise<void> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FOLDERS_STORE], 'readwrite');
-      const store = transaction.objectStore(FOLDERS_STORE);
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to delete folder'));
-    });
+    await dbService.deleteEditorFolder(id);
   }
 
-  /**
-   * Clear all files and folders
-   */
   async clearAll(): Promise<void> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FILES_STORE, FOLDERS_STORE], 'readwrite');
-
-      const filesStore = transaction.objectStore(FILES_STORE);
-      const foldersStore = transaction.objectStore(FOLDERS_STORE);
-
-      const clearFiles = filesStore.clear();
-      const clearFolders = foldersStore.clear();
-
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(new Error('Failed to clear database'));
-    });
+    await dbService.clearEditorData();
   }
 
-  /**
-   * Export all files and folders as JSON
-   */
   async exportAll(): Promise<{ files: EditorFile[]; folders: EditorFolder[] }> {
     const files = await this.getAllFiles();
     const folders = await this.getAllFolders();
     return { files, folders };
   }
 
-  /**
-   * Import files and folders from JSON
-   */
   async importAll(data: { files: EditorFile[]; folders: EditorFolder[] }): Promise<void> {
     await this.clearAll();
-
     for (const file of data.files) {
       await this.saveFile(file);
     }
-
     for (const folder of data.folders) {
       await this.saveFolder(folder);
     }
   }
 
-  /**
-   * Get recent files (last 10 modified)
-   */
   async getRecentFiles(limit: number = 10): Promise<EditorFile[]> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([FILES_STORE], 'readonly');
-      const store = transaction.objectStore(FILES_STORE);
-      const index = store.index('lastModified');
-      const request = index.openCursor(null, 'prev'); // Descending order
-
-      const files: EditorFile[] = [];
-      let count = 0;
-
-      request.onsuccess = () => {
-        const cursor = request.result;
-        if (cursor && count < limit) {
-          files.push(cursor.value);
-          count++;
-          cursor.continue();
-        } else {
-          resolve(files);
-        }
-      };
-
-      request.onerror = () => reject(new Error('Failed to get recent files'));
-    });
+    return await dbService.getRecentEditorFiles(limit);
   }
 }
 
-// Export singleton instance
 export const editorFileService = new EditorFileService();

@@ -16,6 +16,8 @@ interface BackupSummary {
     chats: number;
     settings: number;
     canvasBoards: number;
+    editorFiles: number;
+    editorFolders: number;
   };
   totalSize: number;
   timestamp: number;
@@ -34,6 +36,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
   const [includeChats, setIncludeChats] = useState(true);
   const [includeSettings, setIncludeSettings] = useState(true);
   const [includeCanvas, setIncludeCanvas] = useState(true);
+  const [includeEditor, setIncludeEditor] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -160,6 +163,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
         skipChats: !includeChats,
         skipSettings: !includeSettings,
         skipCanvas: !includeCanvas,
+        skipEditor: !includeEditor,
         onProgress: (value, label) => {
           setProgress(Math.min(100, Math.max(0, value)));
           if (label) setStatus(label);
@@ -169,7 +173,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
       if (!result.success) {
         setError(`Import finished with errors: ${result.errors.join('; ')}`);
       } else {
-        const summary = `Imported chats:${result.imported.chats} settings:${result.imported.settings} canvas:${result.imported.canvasBoards}`;
+        const summary = `Imported chats:${result.imported.chats} settings:${result.imported.settings} canvas:${result.imported.canvasBoards} editorFiles:${result.imported.editorFiles} editorFolders:${result.imported.editorFolders}`;
         setImportSummary(summary);
         setStatus('Import complete.');
       }
@@ -200,6 +204,8 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
       chats: preview.chats?.length || 0,
       settings: Object.keys(preview.settings || {}).length,
       canvasBoards: preview.canvasBoards?.length || 0,
+      editorFiles: preview.editorFiles?.length || 0,
+      editorFolders: preview.editorFolders?.length || 0,
     };
     const totalSize = preview.metadata?.totalSize || 0;
 
@@ -224,6 +230,8 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
           <div className="pill">Chats: {counts.chats}</div>
           <div className="pill">Settings: {counts.settings}</div>
           <div className="pill">Canvas Boards: {counts.canvasBoards}</div>
+          <div className="pill">Editor Files: {counts.editorFiles}</div>
+          <div className="pill">Editor Folders: {counts.editorFolders}</div>
         </div>
         <div className="backup-import-options">
           <div className="radio-group">
@@ -240,6 +248,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
             <label><input type="checkbox" checked={includeChats} onChange={e => setIncludeChats(e.target.checked)} /> Chats</label>
             <label><input type="checkbox" checked={includeSettings} onChange={e => setIncludeSettings(e.target.checked)} /> Settings</label>
             <label><input type="checkbox" checked={includeCanvas} onChange={e => setIncludeCanvas(e.target.checked)} /> Canvas</label>
+            <label><input type="checkbox" checked={includeEditor} onChange={e => setIncludeEditor(e.target.checked)} /> Editor</label>
           </div>
           <button
             className="primary-btn"
@@ -283,7 +292,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
         <div className="backup-grid">
           <div className="backup-card">
             <div className="backup-card-title">Export</div>
-            <p className="muted">Download a full JSON backup of chats, settings, and canvas boards.</p>
+            <p className="muted">Download a full JSON backup of chats, settings, canvas boards, and editor files.</p>
             <button className="primary-btn" onClick={handleExport} disabled={isExporting} aria-label="Export all data">
               {isExporting ? 'Exporting...' : 'Export All Data'}
             </button>
@@ -313,6 +322,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
                 includeChats ? 'Chats' : null,
                 includeSettings ? 'Settings' : null,
                 includeCanvas ? 'Canvas' : null,
+                includeEditor ? 'Editor' : null,
               ].filter(Boolean).join(', ') || 'None selected'}</span>
             </div>
           </div>
@@ -333,6 +343,14 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ theme, onClose }) 
               <div>
                 <div className="backup-summary-label">Canvas</div>
                 <div className="backup-summary-value">{loadingInfo ? '...' : info?.itemCounts.canvasBoards ?? 0}</div>
+              </div>
+              <div>
+                <div className="backup-summary-label">Editor Files</div>
+                <div className="backup-summary-value">{loadingInfo ? '...' : info?.itemCounts.editorFiles ?? 0}</div>
+              </div>
+              <div>
+                <div className="backup-summary-label">Editor Folders</div>
+                <div className="backup-summary-value">{loadingInfo ? '...' : info?.itemCounts.editorFolders ?? 0}</div>
               </div>
             </div>
             <div className="inline-stats">

@@ -1,10 +1,15 @@
 .browserContainer {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
+    /* Changed from 100vh to fit within tab container */
+    width: 100%;
     background-color: #1a1a1a;
     color: #fff;
     font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    position: relative;
 }
 
 .tabBar {
@@ -14,7 +19,10 @@
     background-color: #111;
     padding-left: 8px;
     /* Mac traffic lights spacing */
-    padding-top: 4px;
+    padding-top: 0;
+    /* Removed padding to eliminate gap */
+    flex-shrink: 0;
+    /* Prevent shrinking */
 }
 
 .tab {

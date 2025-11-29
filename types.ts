@@ -324,6 +324,7 @@ export interface AppSettings {
   terminalOpenInTab: boolean;
   notesOpenInTab: boolean;
   browserOpenInTab: boolean;
+  defaultBrowserUrl: string; // Default URL for new browser tabs
 }
 
 export const DEFAULT_AGENTS: AgentConfig[] = [
@@ -592,7 +593,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   terminalOpenInTab: false,
   notesOpenInTab: false,
-  browserOpenInTab: false
+  browserOpenInTab: false,
+  defaultBrowserUrl: 'https://google.com' // Prevent inception loop
 };
 
 export interface TrainingExample {

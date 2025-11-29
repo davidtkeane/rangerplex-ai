@@ -1,5 +1,6 @@
 import { dbService } from './dbService';
 import { canvasDbService, CanvasBoardRecord } from './canvasDbService';
+import type { EditorFile, EditorFolder } from '../src/types/editor';
 
 export interface BackupData {
   version: string;
@@ -8,12 +9,16 @@ export interface BackupData {
   chats: any[];
   settings: Record<string, any>;
   canvasBoards: CanvasBoardRecord[];
+  editorFiles: EditorFile[];
+  editorFolders: EditorFolder[];
   metadata: {
     totalSize: number;
     itemCounts: {
       chats: number;
       settings: number;
       canvasBoards: number;
+      editorFiles: number;
+      editorFolders: number;
     };
   };
 }
@@ -23,6 +28,7 @@ export interface ImportOptions {
   skipChats?: boolean;
   skipSettings?: boolean;
   skipCanvas?: boolean;
+  skipEditor?: boolean;
   onProgress?: (value: number, label?: string) => void;
 }
 
@@ -32,6 +38,8 @@ export interface ImportResult {
     chats: number;
     settings: number;
     canvasBoards: number;
+    editorFiles: number;
+    editorFolders: number;
   };
   errors: string[];
   warnings: string[];
@@ -51,11 +59,15 @@ const buildBackupObject = async (user?: string): Promise<BackupData> => {
   const chats = await dbService.getAllChats();
   const settings = await dbService.getAllSettings();
   const canvasBoards = await canvasDbService.loadBoards();
+  const editorFiles = await dbService.getAllEditorFiles();
+  const editorFolders = await dbService.getAllEditorFolders();
 
   const totalSize =
     estimateSize(chats) +
     estimateSize(settings) +
-    estimateSize(canvasBoards);
+    estimateSize(canvasBoards) +
+    estimateSize(editorFiles) +
+    estimateSize(editorFolders);
 
   return {
     version: BACKUP_VERSION,
@@ -64,12 +76,16 @@ const buildBackupObject = async (user?: string): Promise<BackupData> => {
     chats,
     settings,
     canvasBoards,
+    editorFiles,
+    editorFolders,
     metadata: {
       totalSize,
       itemCounts: {
         chats: chats.length,
         settings: Object.keys(settings || {}).length,
         canvasBoards: canvasBoards.length,
+        editorFiles: editorFiles.length,
+        editorFolders: editorFolders.length,
       },
     },
   };
@@ -82,6 +98,8 @@ const validateBackup = (data: any): { valid: boolean; errors: string[] } => {
   if (!Array.isArray(data.chats)) errors.push('Chats must be an array');
   if (!data.settings || typeof data.settings !== 'object') errors.push('Settings must be an object');
   if (!Array.isArray(data.canvasBoards)) errors.push('Canvas boards must be an array');
+  if (data.editorFiles !== undefined && !Array.isArray(data.editorFiles)) errors.push('Editor files must be an array');
+  if (data.editorFolders !== undefined && !Array.isArray(data.editorFolders)) errors.push('Editor folders must be an array');
   return { valid: errors.length === 0, errors };
 };
 
@@ -89,7 +107,7 @@ const importBackupData = async (data: BackupData, options?: ImportOptions): Prom
   const opts: ImportOptions = { mode: 'merge', ...options };
   const result: ImportResult = {
     success: true,
-    imported: { chats: 0, settings: 0, canvasBoards: 0 },
+    imported: { chats: 0, settings: 0, canvasBoards: 0, editorFiles: 0, editorFolders: 0 },
     errors: [],
     warnings: [],
   };
@@ -104,6 +122,7 @@ const importBackupData = async (data: BackupData, options?: ImportOptions): Prom
       await dbService.clearChats();
       await dbService.clearSettings();
       await canvasDbService.clearAllBoards();
+      await dbService.clearEditorData();
       opts.onProgress?.(10, 'Existing data cleared');
     } catch (error) {
       result.errors.push(`Failed to clear existing data: ${String(error)}`);
@@ -160,6 +179,32 @@ const importBackupData = async (data: BackupData, options?: ImportOptions): Prom
       }
     } catch (error) {
       result.errors.push(`Canvas import error: ${String(error)}`);
+      result.success = false;
+    }
+  }
+
+  // Editor data
+  if (!opts.skipEditor && (Array.isArray(data.editorFiles) || Array.isArray(data.editorFolders))) {
+    try {
+      const files = Array.isArray(data.editorFiles) ? data.editorFiles : [];
+      const folders = Array.isArray(data.editorFolders) ? data.editorFolders : [];
+
+      const total = Math.max(files.length, 1);
+      let processed = 0;
+
+      for (const file of files) {
+        await dbService.saveEditorFile(file);
+        result.imported.editorFiles += 1;
+        processed += 1;
+        opts.onProgress?.(90 + Math.min(10, (processed / total) * 10), `Importing editor files (${processed}/${total})`);
+      }
+
+      for (const folder of folders) {
+        await dbService.saveEditorFolder(folder);
+        result.imported.editorFolders += 1;
+      }
+    } catch (error) {
+      result.errors.push(`Editor import error: ${String(error)}`);
       result.success = false;
     }
   }

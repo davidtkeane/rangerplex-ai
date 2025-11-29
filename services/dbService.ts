@@ -2,6 +2,7 @@
 // Provides a wrapper around IndexedDB for persistent browser storage
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import type { EditorFile, EditorFolder } from '../src/types/editor';
 
 interface RangerPlexDB extends DBSchema {
     chats: {
@@ -32,6 +33,16 @@ interface RangerPlexDB extends DBSchema {
             modified: number;
         };
         indexes: { 'by-modified': number; 'by-created': number };
+    };
+    editor_files: {
+        key: string;
+        value: EditorFile;
+        indexes: { 'by-path': string; 'by-lastModified': number };
+    };
+    editor_folders: {
+        key: string;
+        value: EditorFolder;
+        indexes: { 'by-path': string };
     };
     win95_state: {
         key: string; // Format: userId
@@ -121,7 +132,7 @@ interface RangerPlexDB extends DBSchema {
 class DBService {
     private db: IDBPDatabase<RangerPlexDB> | null = null;
     private dbName = 'rangerplex-db';
-    private version = 7; // Bumped to create weather_snapshots store
+    private version = 8; // Bumped to add editor files/folders stores
 
     async init() {
         if (this.db) return this.db;
@@ -144,6 +155,20 @@ class DBService {
                     const canvasStore = db.createObjectStore('canvas_boards', { keyPath: 'id' });
                     canvasStore.createIndex('by-modified', 'modified');
                     canvasStore.createIndex('by-created', 'created');
+                }
+
+                // Create editor stores
+                if (!db.objectStoreNames.contains('editor_files')) {
+                    const editorFilesStore = db.createObjectStore('editor_files', { keyPath: 'id' });
+                    editorFilesStore.createIndex('by-path', 'path', { unique: true });
+                    editorFilesStore.createIndex('by-lastModified', 'lastModified');
+                    console.log('✅ Created editor_files store');
+                }
+
+                if (!db.objectStoreNames.contains('editor_folders')) {
+                    const editorFoldersStore = db.createObjectStore('editor_folders', { keyPath: 'id' });
+                    editorFoldersStore.createIndex('by-path', 'path', { unique: true });
+                    console.log('✅ Created editor_folders store');
                 }
 
                 // Create Win95 state store
@@ -259,6 +284,90 @@ class DBService {
     async clearSettings() {
         const db = await this.init();
         await db.clear('settings');
+    }
+
+    // Editor files/folders operations
+    async saveEditorFile(file: EditorFile) {
+        const db = await this.init();
+        await db.put('editor_files', file);
+        console.log('💾 Editor file saved:', file.path);
+    }
+
+    async getEditorFile(id: string) {
+        const db = await this.init();
+        return await db.get('editor_files', id);
+    }
+
+    async getEditorFileByPath(path: string) {
+        const db = await this.init();
+        return await db.getFromIndex('editor_files', 'by-path', path);
+    }
+
+    async getAllEditorFiles() {
+        const db = await this.init();
+        return await db.getAll('editor_files');
+    }
+
+    async deleteEditorFile(id: string) {
+        const db = await this.init();
+        await db.delete('editor_files', id);
+        console.log('🗑️ Editor file deleted:', id);
+    }
+
+    async getRecentEditorFiles(limit: number = 10) {
+        const db = await this.init();
+        const tx = db.transaction('editor_files', 'readonly');
+        const index = tx.store.index('by-lastModified');
+        const files: EditorFile[] = [];
+        for await (const cursor of index.iterate(null, 'prev')) {
+            files.push(cursor.value);
+            if (files.length >= limit) break;
+        }
+        await tx.done;
+        return files;
+    }
+
+    async clearEditorFiles() {
+        const db = await this.init();
+        await db.clear('editor_files');
+    }
+
+    async saveEditorFolder(folder: EditorFolder) {
+        const db = await this.init();
+        await db.put('editor_folders', folder);
+        console.log('💾 Editor folder saved:', folder.path);
+    }
+
+    async getEditorFolder(id: string) {
+        const db = await this.init();
+        return await db.get('editor_folders', id);
+    }
+
+    async getEditorFolderByPath(path: string) {
+        const db = await this.init();
+        return await db.getFromIndex('editor_folders', 'by-path', path);
+    }
+
+    async getAllEditorFolders() {
+        const db = await this.init();
+        return await db.getAll('editor_folders');
+    }
+
+    async deleteEditorFolder(id: string) {
+        const db = await this.init();
+        await db.delete('editor_folders', id);
+        console.log('🗑️ Editor folder deleted:', id);
+    }
+
+    async clearEditorFolders() {
+        const db = await this.init();
+        await db.clear('editor_folders');
+    }
+
+    async clearEditorData() {
+        const db = await this.init();
+        await db.clear('editor_files');
+        await db.clear('editor_folders');
     }
 
     async getAllUsers() {

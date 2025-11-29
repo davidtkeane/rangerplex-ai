@@ -50,6 +50,73 @@ const mode = args[0] || ''; // '', '-t', or '-b'
 
 const SERVER_URL = 'http://localhost:5173';
 
+// --- DOCKER DESKTOP AUTO-START ---
+function ensureDockerRunning() {
+    return new Promise((resolve) => {
+        console.log('🐳 Checking Docker Desktop status...');
+
+        // Check if Docker is running by trying to execute 'docker info'
+        exec('docker info', (error) => {
+            if (!error) {
+                console.log('✅ Docker Desktop is already running');
+                resolve();
+                return;
+            }
+
+            console.log('⚠️  Docker Desktop is not running. Starting it now...');
+
+            let startCommand;
+
+            if (process.platform === 'darwin') {
+                // macOS
+                startCommand = 'open -a "Docker Desktop"';
+            } else if (process.platform === 'win32') {
+                // Windows
+                startCommand = 'start "" "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"';
+            } else {
+                // Linux
+                startCommand = 'systemctl --user start docker-desktop || (echo "Starting Docker Desktop..." && docker-desktop &)';
+            }
+
+            exec(startCommand, (startError) => {
+                if (startError) {
+                    console.warn('⚠️  Could not auto-start Docker Desktop. Please start it manually.');
+                    console.warn('   Continuing anyway...');
+                    resolve();
+                    return;
+                }
+
+                console.log('🐳 Docker Desktop is starting... waiting 10 seconds for initialization');
+
+                // Wait for Docker to fully start
+                let attempts = 0;
+                const maxAttempts = 20; // 20 attempts * 1 second = 20 seconds max wait
+
+                const checkInterval = setInterval(() => {
+                    exec('docker info', (checkError) => {
+                        if (!checkError) {
+                            clearInterval(checkInterval);
+                            console.log('✅ Docker Desktop is now running');
+                            resolve();
+                        } else {
+                            attempts++;
+                            if (attempts >= maxAttempts) {
+                                clearInterval(checkInterval);
+                                console.warn('⚠️  Docker Desktop is taking longer than expected to start.');
+                                console.warn('   Continuing anyway...');
+                                resolve();
+                            } else {
+                                process.stdout.write('.');
+                            }
+                        }
+                    });
+                }, 1000);
+            });
+        });
+    });
+}
+// --------------------------
+
 function openTab() {
     console.log(`🌐 Opening browser tab: ${SERVER_URL}`);
     const startCommand = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
@@ -97,15 +164,19 @@ console.log(`🚀 Launch Mode: ${mode || 'Default (Electron Only)'}`);
 
 switch (mode) {
     case '-t': // Tab Only
-        openTab();
+        ensureDockerRunning().then(openTab);
         break;
     case '-b': // Both
-        openTab();
-        // Wait a moment for the tab to open before starting Electron (optional, but nice)
-        setTimeout(openElectron, 1000);
+        ensureDockerRunning().then(() => {
+            openTab();
+            // Wait a moment for the tab to open before starting Electron (optional, but nice)
+            setTimeout(openElectron, 1000);
+        });
         break;
     default: // Electron Only (Default)
-        cleanupPorts().then(openElectron);
+        ensureDockerRunning()
+            .then(cleanupPorts)
+            .then(openElectron);
         break;
 }
 

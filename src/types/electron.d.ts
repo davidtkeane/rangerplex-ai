@@ -41,6 +41,10 @@ export interface ElectronAPI {
     resizeView: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>;
     navigate: (id: string, url: string) => Promise<void>;
     closeTab: (id: string) => Promise<void>;
+    goBack: (id?: string) => Promise<void>;
+    goForward: (id?: string) => Promise<void>;
+    reloadTab: (id?: string) => Promise<void>;
+    getNavState: (id?: string) => Promise<{ canGoBack: boolean; canGoForward: boolean } | undefined>;
     getPageText: () => Promise<string | null>;
 
     // Events

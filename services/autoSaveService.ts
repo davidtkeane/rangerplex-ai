@@ -3,6 +3,7 @@ import { syncService } from './syncService';
 import { canvasDbService, CanvasBoardRecord } from './canvasDbService';
 import { win95DbService, Win95State } from './win95DbService';
 import { studySessionDbService, StudySession } from './studySessionDbService';
+import type { EditorFile } from '../src/types/editor';
 
 type Listener = (...args: any[]) => void;
 
@@ -191,6 +192,16 @@ export const queueStudySessionsSave = (sessions: StudySession[], enableCloudSync
       });
     }
 
+    if (onSynced) onSynced();
+  });
+};
+
+export const queueEditorFileSave = (file: EditorFile, enableCloudSync: boolean, onSynced?: () => void) => {
+  autoSaveService.queueSave(`editor:file:${file.id}`, async () => {
+    await dbService.saveEditorFile(file);
+    if (enableCloudSync) {
+      syncService.send({ type: 'editor_file_update', data: file, timestamp: Date.now() });
+    }
     if (onSynced) onSynced();
   });
 };

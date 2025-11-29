@@ -1,10 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Plus, X, ArrowLeft, ArrowRight, RotateCw, Shield, Ghost, Eye, FileText, Save, Terminal } from 'lucide-react';
 import styles from './BrowserLayout.module.css';
 
+import { browserStateService } from '../../services/browserStateService';
+
 // Type definition for a Browser Tab
-interface Tab {
+export interface Tab {
   id: string;
   title: string;
   url: string;
@@ -15,30 +17,89 @@ interface Tab {
 
 interface BrowserLayoutProps {
   initialUrl?: string;
+  defaultUrl?: string;
+  openRequest?: { url?: string; ts: number };
+  onRequestClose?: () => void;
 }
 
-export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
-  const [tabs, setTabs] = useState<Tab[]>([
-    {
-      id: '1',
-      title: initialUrl ? 'New Tab' : 'RangerPlex Dashboard',
-      url: initialUrl || 'http://localhost:5173',
-      lastActive: Date.now(),
-      isPhantom: false,
-    },
-  ]);
-  const [activeTabId, setActiveTabId] = useState<string>('1');
-  const [urlInput, setUrlInput] = useState('');
+export default function BrowserLayout({ initialUrl, defaultUrl = 'https://google.com', openRequest, onRequestClose }: BrowserLayoutProps) {
+  const savedState = browserStateService.getState();
+
+  const normalizeUrl = useCallback((url: string) => {
+    if (!url) return defaultUrl;
+    return url.startsWith('http') ? url : `https://${url}`;
+  }, [defaultUrl]);
+
+  const initialSeed = useMemo(() => {
+    let baseTabs: Tab[] = [];
+    let initialActiveId = '1';
+
+    if (savedState && savedState.tabs.length > 0) {
+      baseTabs = [...savedState.tabs];
+      initialActiveId = savedState.activeTabId;
+    } else {
+      baseTabs = [{
+        id: '1',
+        title: initialUrl ? 'New Tab' : 'Google',
+        url: normalizeUrl(initialUrl || defaultUrl),
+        lastActive: Date.now(),
+        isPhantom: false,
+      }];
+      initialActiveId = '1';
+    }
+
+    if (initialUrl) {
+      const normalized = normalizeUrl(initialUrl);
+      const existing = baseTabs.find(t => t.url === normalized);
+      if (!existing) {
+        const newId = `seed-${Date.now()}`;
+        baseTabs.push({
+          id: newId,
+          title: 'New Tab',
+          url: normalized,
+          lastActive: Date.now(),
+          isPhantom: false,
+        });
+        initialActiveId = newId;
+      } else {
+        initialActiveId = existing.id;
+      }
+    }
+
+    const activeTab = baseTabs.find(t => t.id === initialActiveId);
+    return {
+      tabs: baseTabs,
+      activeTabId: initialActiveId,
+      urlInput: activeTab?.url || normalizeUrl(initialUrl || defaultUrl),
+    };
+  }, [defaultUrl, initialUrl, normalizeUrl, savedState]);
+
+  const [tabs, setTabs] = useState<Tab[]>(() => initialSeed.tabs);
+  const [activeTabId, setActiveTabId] = useState<string>(() => initialSeed.activeTabId);
+  const [urlInput, setUrlInput] = useState(() => initialSeed.urlInput);
+
   const [showNotes, setShowNotes] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [navState, setNavState] = useState({ canGoBack: false, canGoForward: false });
 
-  // Initial Tab Creation (Electron)
+  // Persist state whenever it changes
+  useEffect(() => {
+    browserStateService.saveState(tabs, activeTabId, urlInput);
+  }, [tabs, activeTabId, urlInput]);
+
+  // Initial Tab Creation (Electron) - Only if not restoring or if restoring phantom
   useEffect(() => {
     if (window.electronAPI) {
-      window.electronAPI.createTab('1', 'http://localhost:5173');
+      const active = tabs.find(t => t.id === activeTabId);
+      if (active && !active.isPhantom) {
+        window.electronAPI.createTab(active.id, active.url);
+      } else {
+        window.electronAPI.createTab(activeTabId, normalizeUrl(initialUrl || defaultUrl));
+      }
     }
-  }, []);
+  }, []); // Run once on mount
 
   // Track tabs in ref for cleanup
   const tabsRef = useRef(tabs);
@@ -47,15 +108,17 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('🧹 BrowserLayout unmounting, cleaning up views...');
+      console.log('🧹 BrowserLayout unmounting, saving state...');
+      // Save state one last time
+      browserStateService.saveState(tabsRef.current, activeTabId, urlInput);
+
       if (window.electronAPI) {
         tabsRef.current.forEach(t => {
-          console.log(`Closing tab ${t.id}`);
           window.electronAPI!.closeTab(t.id);
         });
       }
     };
-  }, []);
+  }, [activeTabId, urlInput]); // Add deps to ensure latest state is captured if closure runs
 
   // Resize Handler for Electron BrowserView
   useEffect(() => {
@@ -64,6 +127,8 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
     const updateBounds = () => {
       if (contentRef.current) {
         const rect = contentRef.current.getBoundingClientRect();
+        // If hidden (isVisible=false), we might want to force 0x0 or rely on display:none giving 0x0
+        // But explicitly handling it is safer.
         window.electronAPI?.resizeView({
           x: rect.x,
           y: rect.y,
@@ -107,6 +172,25 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
+  const refreshNavState = useCallback(async () => {
+    if (window.electronAPI?.getNavState) {
+      try {
+        const state = await window.electronAPI.getNavState(activeTabId);
+        if (state) {
+          setNavState({
+            canGoBack: !!state.canGoBack,
+            canGoForward: !!state.canGoForward,
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('Failed to get nav state', err);
+      }
+    }
+    // Web fallback or failure
+    setNavState({ canGoBack: false, canGoForward: false });
+  }, [activeTabId]);
+
   useEffect(() => {
     if (activeTab) {
       setUrlInput(activeTab.url);
@@ -125,46 +209,123 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
         if (window.electronAPI) window.electronAPI.switchTab(activeTab.id);
       }
     }
-  }, [activeTabId, activeTab?.isPhantom]);
+    refreshNavState();
+  }, [activeTabId, activeTab?.isPhantom, activeTab?.url, refreshNavState]);
 
-  const handleNewTab = () => {
+  const openNewTab = useCallback((url: string) => {
     const newId = Date.now().toString();
+    const normalized = normalizeUrl(url);
     const newTab: Tab = {
       id: newId,
       title: 'New Tab',
-      url: 'https://google.com',
+      url: normalized,
       lastActive: Date.now(),
       isPhantom: false,
     };
-    setTabs([...tabs, newTab]);
+    setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newId);
-    if (window.electronAPI) window.electronAPI.createTab(newId, newTab.url);
-  };
+    setUrlInput(normalized);
+    if (window.electronAPI) window.electronAPI.createTab(newId, normalized);
+  }, [normalizeUrl]);
 
   const closeTab = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (window.electronAPI) window.electronAPI.closeTab(id);
+    e.preventDefault();
 
-    const newTabs = tabs.filter((t) => t.id !== id);
-    if (newTabs.length === 0) {
-      handleNewTab(); // Always keep one tab open
-    } else if (activeTabId === id) {
-      setActiveTabId(newTabs[newTabs.length - 1].id);
-    }
-    setTabs(newTabs);
+    setTabs((prev) => {
+      const remaining = prev.filter((t) => t.id !== id);
+
+      if (window.electronAPI) window.electronAPI.closeTab(id);
+
+      if (remaining.length === 0) {
+        const fallbackUrl = normalizeUrl(defaultUrl);
+        const fallbackId = Date.now().toString();
+        const fallbackTab: Tab = {
+          id: fallbackId,
+          title: 'New Tab',
+          url: fallbackUrl,
+          lastActive: Date.now(),
+          isPhantom: false,
+        };
+        setActiveTabId(fallbackId);
+        setUrlInput(fallbackUrl);
+        if (window.electronAPI) window.electronAPI.createTab(fallbackId, fallbackUrl);
+        return [fallbackTab];
+      }
+
+      if (activeTabId === id) {
+        const newActiveTab = remaining[remaining.length - 1];
+        setActiveTabId(newActiveTab.id);
+        setUrlInput(newActiveTab.url);
+        if (window.electronAPI) window.electronAPI.switchTab(newActiveTab.id);
+      }
+
+      return remaining;
+    });
   };
 
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
-    let url = urlInput;
-    if (!url.startsWith('http')) url = `https://${url}`;
+    const url = normalizeUrl(urlInput);
 
     setTabs((prev) =>
       prev.map((t) => (t.id === activeTabId ? { ...t, url, title: url } : t))
     );
+    setUrlInput(url);
 
     if (window.electronAPI) window.electronAPI.navigate(activeTabId, url);
+    refreshNavState();
   };
+
+  useEffect(() => {
+    if (!openRequest || !openRequest.url) return;
+    const url = normalizeUrl(openRequest.url);
+    openNewTab(url);
+  }, [openNewTab, openRequest, normalizeUrl]);
+
+  const handleBack = async () => {
+    if (window.electronAPI?.goBack) {
+      await window.electronAPI.goBack(activeTabId);
+      refreshNavState();
+      return;
+    }
+    const iframeWin = iframeRef.current?.contentWindow;
+    try {
+      iframeWin?.history.back();
+    } catch (err) {
+      console.warn('Back navigation failed', err);
+    }
+  };
+
+  const handleForward = async () => {
+    if (window.electronAPI?.goForward) {
+      await window.electronAPI.goForward(activeTabId);
+      refreshNavState();
+      return;
+    }
+    const iframeWin = iframeRef.current?.contentWindow;
+    try {
+      iframeWin?.history.forward();
+    } catch (err) {
+      console.warn('Forward navigation failed', err);
+    }
+  };
+
+  const handleReload = async () => {
+    if (window.electronAPI?.reloadTab) {
+      await window.electronAPI.reloadTab(activeTabId);
+      refreshNavState();
+      return;
+    }
+    const iframeEl = iframeRef.current;
+    if (iframeEl) {
+      iframeEl.src = iframeEl.src;
+    }
+  };
+
+  useEffect(() => {
+    refreshNavState();
+  }, [refreshNavState, tabs.length]);
 
   // 👁️ THE LENS: AI Vision
   const handleLens = async () => {
@@ -214,7 +375,7 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
             />
           </div>
         ))}
-        <button className={styles.newTabBtn} onClick={handleNewTab}>
+        <button className={styles.newTabBtn} onClick={() => openNewTab(defaultUrl)}>
           <Plus size={16} />
         </button>
       </div>
@@ -222,9 +383,9 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
       {/* Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.navControls}>
-          <button className={styles.iconBtn}><ArrowLeft size={18} /></button>
-          <button className={styles.iconBtn}><ArrowRight size={18} /></button>
-          <button className={styles.iconBtn}><RotateCw size={18} /></button>
+          <button className={styles.iconBtn} onClick={handleBack} disabled={!navState.canGoBack}><ArrowLeft size={18} /></button>
+          <button className={styles.iconBtn} onClick={handleForward} disabled={!navState.canGoForward}><ArrowRight size={18} /></button>
+          <button className={styles.iconBtn} onClick={handleReload}><RotateCw size={18} /></button>
         </div>
 
         <form className={styles.addressBar} onSubmit={handleNavigate}>
@@ -262,6 +423,11 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
           </button>
 
           <div className={styles.walletWidget}>💰 0.00 RNC</div>
+          {onRequestClose && (
+            <button className={styles.iconBtn} onClick={onRequestClose} title="Close Browser">
+              <X size={16} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -275,6 +441,7 @@ export default function BrowserLayout({ initialUrl }: BrowserLayoutProps) {
               src={activeTab?.url}
               className={styles.webview}
               title="content"
+              ref={iframeRef}
             />
           )}
           {/* If in Electron, this div is just a placeholder for the BrowserView */}

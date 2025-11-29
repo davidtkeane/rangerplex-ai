@@ -239,6 +239,50 @@ class WordPressService {
     }
 
     /**
+     * Get Docker status for multiple sites with a single compose call
+     */
+    async getDockerStatuses(siteIds: number[]): Promise<Record<number, 'running' | 'stopped' | 'unknown'>> {
+        const statuses: Record<number, 'running' | 'stopped' | 'unknown'> = {};
+        if (!FEATURES.WORDPRESS_DOCKER) {
+            siteIds.forEach(id => { statuses[id] = 'unknown'; });
+            return statuses;
+        }
+
+        try {
+            if (window.electronAPI?.dockerCompose) {
+                const result = await window.electronAPI.dockerCompose('ps', 'docker-compose.wordpress.yml');
+
+                // Default to stopped if compose reports an error
+                if (result && typeof result === 'object' && 'error' in result) {
+                    siteIds.forEach(id => { statuses[id] = 'stopped'; });
+                    return statuses;
+                }
+
+                const output = result && typeof result === 'object' && 'output' in result ? String(result.output) : '';
+
+                siteIds.forEach(siteId => {
+                    const containerName = `rangerplex-wp-${siteId}`;
+                    const lineMatch = output.split('\n').find(line => line.includes(containerName));
+                    if (lineMatch && /Up|running/i.test(lineMatch)) {
+                        statuses[siteId] = 'running';
+                    } else if (lineMatch) {
+                        statuses[siteId] = 'stopped';
+                    } else {
+                        statuses[siteId] = 'unknown';
+                    }
+                });
+
+                return statuses;
+            }
+        } catch (error) {
+            console.error('Failed to check Docker WordPress statuses:', error);
+        }
+
+        siteIds.forEach(id => { statuses[id] = 'unknown'; });
+        return statuses;
+    }
+
+    /**
      * Open WordPress admin in browser
      */
     async openAdmin(siteUrl: string): Promise<void> {

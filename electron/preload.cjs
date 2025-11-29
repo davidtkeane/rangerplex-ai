@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     resizeView: (bounds) => ipcRenderer.invoke('resize-view', bounds),
     navigate: (id, url) => ipcRenderer.invoke('navigate', { id, url }),
     closeTab: (id) => ipcRenderer.invoke('close-tab', id),
+    goBack: (id) => ipcRenderer.invoke('go-back', id),
+    goForward: (id) => ipcRenderer.invoke('go-forward', id),
+    reloadTab: (id) => ipcRenderer.invoke('reload-tab', id),
+    getNavState: (id) => ipcRenderer.invoke('get-nav-state', id),
 
     // The Lens (AI Vision)
     getPageText: () => ipcRenderer.invoke('get-page-text'),
@@ -61,4 +65,3 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     },
 });
-

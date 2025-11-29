@@ -233,7 +233,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {isOpen && <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={toggleSidebar} />}
 
             <aside className={`
-          fixed top-0 left-0 md:left-auto z-[100] h-screen w-72 flex flex-col transition-transform duration-300 border-r
+          fixed top-0 left-0 z-[100] h-screen w-72 flex flex-col transition-transform duration-300 border-r
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           ${isTron ? 'bg-black border-tron-cyan/30 font-tron' : 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800'}
       `}>
@@ -348,15 +348,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Browser Tab - Hidden in compact mode */}
+                        {/* Browser - Hidden in compact mode */}
                         {!isCompactMode && onOpenBrowser && (
                             <button
                                 onClick={onOpenBrowser}
-                                title="Open Browser Tab"
+                                title="Open Browser"
                                 className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'}`}
                             >
                                 <i className="fa-solid fa-window-maximize text-lg mb-1"></i>
-                                <span className="text-[9px] uppercase tracking-wide">Tab</span>
+                                <span className="text-[9px] uppercase tracking-wide">Browser</span>
                             </button>
                         )}
 

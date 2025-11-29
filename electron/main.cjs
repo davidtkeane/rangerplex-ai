@@ -135,10 +135,50 @@ function setupIpcHandlers() {
                 mainWindow.setBrowserView(null);
                 activeTabId = null;
             }
-            // Destroy the view
-            // view.webContents.destroy(); // Optional, garbage collection handles it
+            // Destroy the view to free resources
+            try {
+                view.webContents.destroy();
+            } catch (err) {
+                console.warn('Error destroying webContents', err);
+            }
+            try {
+                view.destroy();
+            } catch (err) {
+                console.warn('Error destroying BrowserView', err);
+            }
             views.delete(id);
         }
+    });
+
+    // 6b. Navigation helpers
+    ipcMain.handle('go-back', (event, id) => {
+        const view = views.get(id || activeTabId);
+        if (view && view.webContents.canGoBack()) {
+            view.webContents.goBack();
+        }
+    });
+
+    ipcMain.handle('go-forward', (event, id) => {
+        const view = views.get(id || activeTabId);
+        if (view && view.webContents.canGoForward()) {
+            view.webContents.goForward();
+        }
+    });
+
+    ipcMain.handle('reload-tab', (event, id) => {
+        const view = views.get(id || activeTabId);
+        if (view) {
+            view.webContents.reload();
+        }
+    });
+
+    ipcMain.handle('get-nav-state', (event, id) => {
+        const view = views.get(id || activeTabId);
+        if (!view) return { canGoBack: false, canGoForward: false };
+        return {
+            canGoBack: view.webContents.canGoBack(),
+            canGoForward: view.webContents.canGoForward()
+        };
     });
 
     // 7. MINI-OS: File System API

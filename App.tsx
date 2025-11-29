@@ -25,6 +25,7 @@ import { BackupManager } from './src/components/BackupManager';
 import { StudyClock } from './components/StudyClock'; // Import Study Clock
 import ManualViewer from './components/ManualViewer';
 import { EditorLayout, EditorTerminalSplit } from './src/components/CodeEditor'; // Monaco editor with full UI
+import { browserStateService } from './src/services/browserStateService';
 import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS, DEFAULT_SAVED_PROMPTS } from './types';
 import { generateTitle } from './services/geminiService';
 import { dbService } from './services/dbService';
@@ -77,11 +78,16 @@ const App: React.FC = () => {
   const [isEditorOpen, setIsEditorOpen] = useState(false); // State for Code Editor visibility
   const [isWordPressOpen, setIsWordPressOpen] = useState(false); // State for WordPress Dashboard visibility
   const [isBlockchainChatOpen, setIsBlockchainChatOpen] = useState(false); // State for Blockchain Chat visibility
-  const [isBrowserOpen, setIsBrowserOpen] = useState(false); // State for Browser visibility
   const [initialBrowserUrl, setInitialBrowserUrl] = useState<string | undefined>(undefined);
+  const [browserOpenRequest, setBrowserOpenRequest] = useState<{ url?: string; ts: number } | null>(null);
+  const [activeSurface, setActiveSurface] = useState<'chat' | 'browser' | 'notes' | 'training' | 'canvas' | 'wordpress' | 'weather' | 'terminal' | 'editor' | 'blockchain' | 'manual'>('chat');
   const [isWeatherOpen, setIsWeatherOpen] = useState(false); // State for Weather Station visibility
   const [rainAlert, setRainAlert] = useState<RainAlert | null>(null); // State for rain notifications
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
+
+  useEffect(() => {
+    browserStateService.setUser(currentUser);
+  }, [currentUser]);
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
     if (!prompts || prompts.length === 0) return DEFAULT_SAVED_PROMPTS;
@@ -298,10 +304,12 @@ const App: React.FC = () => {
 
   // Helper to open a feature in a tab
   const openInTab = useCallback((type: WorkspaceTab['type'], title: string, icon: string, data?: any) => {
-    const existing = tabs.find(t => t.type === type);
-    if (existing) {
-      setActiveTabId(existing.id);
-    } else {
+    setTabs(prev => {
+      const existing = prev.find(t => t.type === type);
+      if (existing) {
+        setActiveTabId(existing.id);
+        return prev.map(t => t.id === existing.id ? { ...t, data: data ?? t.data } : t);
+      }
       const newTab: WorkspaceTab = {
         id: type,
         type,
@@ -309,38 +317,46 @@ const App: React.FC = () => {
         icon,
         data
       };
-      setTabs(prev => [...prev, newTab]);
       setActiveTabId(type);
-    }
-  }, [tabs]);
+      return [...prev, newTab];
+    });
+  }, []);
 
   // Close Tab Handler
   const closeTab = useCallback((id: string) => {
-    const newTabs = tabs.filter(t => t.id !== id);
-    setTabs(newTabs);
-    if (activeTabId === id && newTabs.length > 0) {
-      setActiveTabId(newTabs[newTabs.length - 1].id);
-    } else if (newTabs.length === 0) {
-      setTabs([{ id: 'chat', type: 'chat', title: 'Chat', icon: 'fa-solid fa-comments', isPinned: true }]);
-      setActiveTabId('chat');
-    }
-  }, [tabs, activeTabId]);
+    setTabs(prev => {
+      const newTabs = prev.filter(t => t.id !== id);
+      if (activeTabId === id && newTabs.length > 0) {
+        setActiveTabId(newTabs[newTabs.length - 1].id);
+      } else if (newTabs.length === 0) {
+        const fallback = [{ id: 'chat', type: 'chat', title: 'Chat', icon: 'fa-solid fa-comments', isPinned: true }];
+        setActiveTabId('chat');
+        return fallback;
+      }
+      return newTabs;
+    });
+  }, [activeTabId]);
 
   // Modified Open Handlers
   const openBrowser = useCallback((url?: string) => {
-    if (settings.browserOpenInTab) {
-      openInTab('browser', 'Browser', 'fa-solid fa-globe', { url });
-    } else {
-      setInitialBrowserUrl(url);
-      setIsBrowserOpen(true);
-    }
-  }, [settings.browserOpenInTab, openInTab]);
+    setBrowserOpenRequest({ url, ts: Date.now() });
+    setInitialBrowserUrl(url);
+    setActiveSurface('browser');
+  }, []);
+
+  const closeBrowserOverlay = useCallback(() => {
+    setActiveSurface('chat');
+    setInitialBrowserUrl(undefined);
+    setBrowserOpenRequest(null);
+    setTimeout(() => browserStateService.clearState(), 0);
+  }, []);
 
   const openStudyNotes = useCallback(() => {
     if (settings.notesOpenInTab) {
       openInTab('notes', 'Study Notes', 'fa-solid fa-book');
     } else {
       setIsStudyNotesOpen(true);
+      setActiveSurface('notes');
     }
   }, [settings.notesOpenInTab, openInTab]);
 
@@ -584,11 +600,13 @@ const App: React.FC = () => {
   const handleLogin = async (username: string) => {
     await dbService.saveSetting('active_user', username);
     setCurrentUser(username);
+    browserStateService.setUser(username);
   };
 
   const handleLogout = async () => {
     await dbService.saveSetting('active_user', null);
     setCurrentUser(null);
+    browserStateService.setUser(null);
   };
 
   const createNewSession = useCallback(() => {
@@ -603,6 +621,8 @@ const App: React.FC = () => {
     };
     setSessions((prev) => [newSession, ...prev]);
     setCurrentSessionId(newSession.id);
+    setActiveTabId('chat');
+    setActiveSurface('chat');
     setIsTrainingOpen(false);
     setIsStudyNotesOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
@@ -641,6 +661,7 @@ const App: React.FC = () => {
 
   const openTraining = useCallback(() => {
     setIsTrainingOpen(true);
+    setActiveSurface('training');
     setIsStudyNotesOpen(false);
     setIsWordPressOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
@@ -648,24 +669,26 @@ const App: React.FC = () => {
 
   const openCanvas = useCallback(() => {
     setIsCanvasOpen(true);
+    setActiveSurface('canvas');
     setIsWordPressOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
   const openWordPress = useCallback(() => {
     setIsWordPressOpen(true);
+    setActiveSurface('wordpress');
     setIsCanvasOpen(false);
     setIsTrainingOpen(false);
     setIsStudyNotesOpen(false);
     setIsEditorOpen(false);
     setIsStudyClockOpen(false);
     setIsManualOpen(false);
-    setIsBrowserOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
   const openWeather = useCallback(() => {
     setIsWeatherOpen(true);
+    setActiveSurface('weather');
     setIsWordPressOpen(false);
     setIsCanvasOpen(false);
     setIsTrainingOpen(false);
@@ -845,6 +868,8 @@ const App: React.FC = () => {
 
       // Switch to the session and open sidebar
       setCurrentSessionId(targetSessionId);
+      setActiveTabId('chat');
+      setIsBrowserOpen(false);
       setSidebarOpen(true);
       setIsEditorOpen(false);
     },
@@ -912,7 +937,7 @@ const App: React.FC = () => {
           isDarkMode={settings.theme !== 'light'}
           settings={settings}
           petBridge={petBridge}
-          onSelect={(id) => { setCurrentSessionId(id); setIsTrainingOpen(false); setIsStudyNotesOpen(false); if (window.innerWidth < 768) setSidebarOpen(false); }}
+          onSelect={(id) => { setCurrentSessionId(id); setActiveTabId('chat'); setActiveSurface('chat'); setIsTrainingOpen(false); setIsStudyNotesOpen(false); if (window.innerWidth < 768) setSidebarOpen(false); }}
           onNew={createNewSession}
           onDelete={deleteSession}
           onRename={renameSession}
@@ -951,13 +976,13 @@ const App: React.FC = () => {
 
 
 
-          // ... inside render ...
 
-        <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 md:ml-72 pt-14 md:pt-0 z-10`}>
+        <main className={`flex-1 flex flex-col h-full relative transition-all duration-300 md:pl-72 pt-14 md:pt-0 z-10`}>
           {/* ... existing header ... */}
 
           {/* Workspace Tabs */}
-          {tabs.length > 0 && (
+          {/* Workspace Tabs - Removed by user request */}
+          {/* {tabs.length > 0 && (
             <WorkspaceTabs
               tabs={tabs}
               activeTabId={activeTabId}
@@ -965,10 +990,10 @@ const App: React.FC = () => {
               onClose={closeTab}
               isTron={isTron}
             />
-          )}
+          )} */}
 
           {/* Persistent Tab Content Area */}
-          <div className="flex-1 relative overflow-hidden">
+          <div className="flex-1 relative">
 
             {/* Chat Tab (Always rendered, hidden if inactive) */}
             <div className={`absolute inset-0 ${activeTabId === 'chat' ? 'z-10' : 'z-0 invisible'}`}>
@@ -1021,78 +1046,41 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {/* Browser Tab */}
-            {tabs.some(t => t.type === 'browser') && (
-              <div className={`absolute inset-0 bg-white dark:bg-zinc-900 ${activeTabId === 'browser' ? 'z-10' : 'z-0 invisible'}`}>
-                <BrowserLayout initialUrl={tabs.find(t => t.type === 'browser')?.data?.url} />
-              </div>
-            )}
-
-            {/* Notes Tab */}
-            {tabs.some(t => t.type === 'notes') && (
-              <div className={`absolute inset-0 bg-white dark:bg-zinc-900 ${activeTabId === 'notes' ? 'z-10' : 'z-0 invisible'}`}>
-                <StudyNotes currentUser={currentUser} settings={settings} onOpenSettings={() => setIsSettingsOpen(true)} />
-              </div>
-            )}
-
-            {/* Legacy Overlays (for when tabs are disabled or for specific modals) */}
-            {/* These render ON TOP of the tab area if active */}
-
-            {isStudyNotesOpen && !settings.notesOpenInTab && (
-              <div className="absolute inset-0 z-20 bg-white dark:bg-zinc-900">
-                <div className="absolute top-4 right-16 z-50 flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSettings(s => ({ ...s, notesOpenInTab: true }));
-                      openInTab('notes', 'Study Notes', 'fa-solid fa-book');
-                    }}
-                    className="p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-                    title="Dock to Tab"
-                  >
-                    <i className="fa-solid fa-table-columns text-gray-600 dark:text-gray-300"></i>
-                  </button>
-                </div>
-                <button onClick={() => setIsStudyNotesOpen(false)} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+            {/* Notes surface */}
+            {activeSurface === 'notes' && (
+              <div className="absolute inset-0 z-10 bg-white dark:bg-zinc-900">
                 <StudyNotes currentUser={currentUser} settings={settings} initialDraft={noteDraft || undefined} onOpenSettings={() => setIsSettingsOpen(true)} />
               </div>
             )}
 
-            {isBrowserOpen && !settings.browserOpenInTab && (
-              <div className="absolute inset-0 z-20 bg-white dark:bg-zinc-900">
-                <div className="absolute top-2 right-12 z-50 flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSettings(s => ({ ...s, browserOpenInTab: true }));
-                      openInTab('browser', 'Browser', 'fa-solid fa-globe', { url: initialBrowserUrl });
-                    }}
-                    className="p-1 bg-white dark:bg-zinc-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-                    title="Dock to Tab"
-                  >
-                    <i className="fa-solid fa-table-columns text-gray-600 dark:text-gray-300 text-sm"></i>
-                  </button>
-                </div>
-                <button onClick={() => setIsBrowserOpen(false)} className="absolute top-2 right-2 z-50 p-1 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
-                <BrowserLayout initialUrl={initialBrowserUrl} />
+            {activeSurface === 'browser' && (
+              <div className="absolute inset-0 z-10 bg-white dark:bg-zinc-900">
+                <BrowserLayout
+                  initialUrl={initialBrowserUrl}
+                  defaultUrl={settings.defaultBrowserUrl}
+                  openRequest={browserOpenRequest || undefined}
+                  onRequestClose={closeBrowserOverlay}
+                />
               </div>
             )}
 
-            {isWordPressOpen && (
+            {activeSurface === 'wordpress' && (
               <div className="absolute inset-0 z-20 bg-gray-50 dark:bg-zinc-900">
-                <button onClick={() => { setIsWordPressOpen(false); setIsBrowserOpen(false); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+                <button onClick={() => { setIsWordPressOpen(false); setActiveSurface('chat'); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
                 <WordPressDashboard onOpenBrowser={openBrowser} autoStart={true} />
               </div>
             )}
 
-            {isWeatherOpen && (
+            {activeSurface === 'weather' && (
               <div className="absolute inset-0 z-20">
-                <button onClick={() => setIsWeatherOpen(false)} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+                <button onClick={() => { setIsWeatherOpen(false); setActiveSurface('chat'); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
                 <WeatherStation isDarkMode={settings.theme !== 'light'} isTron={isTron} />
               </div>
             )}
 
-            {isTrainingOpen && (
+            {activeSurface === 'training' && (
               <div className="absolute inset-0 z-20 bg-white dark:bg-zinc-900">
-                <TrainingPage sessions={sessions} onClose={() => setIsTrainingOpen(false)} />
+                <TrainingPage sessions={sessions} onClose={() => { setIsTrainingOpen(false); setActiveSurface('chat'); }} />
               </div>
             )}
 
@@ -1346,6 +1334,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-
-

@@ -195,6 +195,14 @@ export const useCanvasBoards = () => {
     return true;
   }, [boards, currentBoardId]);
 
+  const updateBoardBackground = useCallback((boardId: string, background: BackgroundType, color?: 'black' | 'gray' | 'white') => {
+    setBoards(prev => prev.map(b =>
+      b.id === boardId
+        ? { ...b, background, color: color ?? b.color, modified: Date.now() }
+        : b
+    ));
+  }, []);
+
   // Rename board
   const renameBoard = useCallback((boardId: string, newName: string): boolean => {
     const board = boards.find(b => b.id === boardId);
@@ -239,6 +247,7 @@ export const useCanvasBoards = () => {
     createBoard,
     switchBoard,
     updateBoardImage,
+    updateBoardBackground,
     deleteBoard,
     renameBoard,
     clearAllBoards,
