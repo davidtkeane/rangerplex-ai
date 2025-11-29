@@ -1436,7 +1436,10 @@ app.get('/api/podcast/feed', async (req, res) => {
             });
         }
 
-        console.log('✅ Stream connected:', response.status, response.headers.get('content-type'));
+        console.log('✅ Feed connected:', response.status, response.headers.get('content-type'));
+
+        // Read the response body
+        const xmlText = await response.text();
 
         // Set CORS headers
         res.set({
@@ -1446,7 +1449,7 @@ app.get('/api/podcast/feed', async (req, res) => {
         });
 
         res.send(xmlText);
-        console.log('✅ RSS feed fetched successfully');
+        console.log('✅ RSS feed fetched successfully, length:', xmlText.length);
 
     } catch (error) {
         console.error('❌ RSS proxy error:', error);

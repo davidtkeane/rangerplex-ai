@@ -5,6 +5,24 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.14] - 2025-11-29 🎙️ PODCAST FIX & RADIO OPTIMIZATION
+
+### 🎙️ Podcast Feed Fix
+- **Fixed**: Critical bug where podcast feeds weren't loading (xmlText variable was undefined)
+- **Fixed**: Added missing `response.text()` call to read feed XML content
+- **Result**: All 15+ cybersecurity podcasts now load correctly!
+
+### 🎵 Radio Stream Optimization
+- **Added**: Direct streaming for SomaFM (bypasses proxy - they already have CORS)
+- **Added**: URL memoization with `useMemo` to prevent reconnects on re-renders
+- **Improved**: Eliminates lag/stuttering caused by constant proxy reconnections
+- **Improved**: Only recalculates stream URL when station actually changes
+
+### 📦 Version
+- Bumped version to **2.13.14**
+
+---
+
 ## [2.13.13] - 2025-11-29 🔧 PORT MIGRATION & STABILITY
 
 ### 🔌 Complete Port Migration (3010 → 3000)

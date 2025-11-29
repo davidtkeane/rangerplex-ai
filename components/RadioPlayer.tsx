@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AppSettings } from '../types';
 
 interface RadioStation {
@@ -378,6 +378,17 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
     return `${proxyBaseUrl}/api/radio/stream?url=${encodeURIComponent(originalUrl)}`;
   };
 
+  // Memoize the stream URL so it only changes when station changes
+  // SomaFM already has CORS headers, so we can use direct streaming for better stability
+  const memoizedStreamUrl = useMemo(() => {
+    // SomaFM streams have Access-Control-Allow-Origin: * - use direct URL
+    if (currentStation.url.includes('somafm.com')) {
+      return currentStation.url;
+    }
+    // For other streams, use proxy
+    return getProxiedUrl(currentStation.url);
+  }, [currentStation.url]); // Only recalculate when station URL changes
+
   // 🎸 Reset inactivity timer (called on any user interaction)
   const resetInactivityTimer = () => {
     setShowRangerPic(false);
@@ -536,8 +547,14 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
       // Force reload the stream with a cache-buster
       setTimeout(() => {
         if (audioRef.current && currentStation) {
-          const baseUrl = getProxiedUrl(currentStation.url);
-          audioRef.current.src = `${baseUrl}&_t=${Date.now()}`;
+          // Use direct URL for SomaFM, proxy for others
+          let retryUrl: string;
+          if (currentStation.url.includes('somafm.com')) {
+            retryUrl = `${currentStation.url}?_t=${Date.now()}`;
+          } else {
+            retryUrl = `${getProxiedUrl(currentStation.url)}&_t=${Date.now()}`;
+          }
+          audioRef.current.src = retryUrl;
           audioRef.current.load();
           audioRef.current.play().catch(() => {});
         }
@@ -605,10 +622,10 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
   return (
     <>
-      {/* Hidden audio element */}
+      {/* Hidden audio element - uses memoized URL to prevent reconnects on re-renders */}
       <audio
         ref={audioRef}
-        src={getProxiedUrl(currentStation.url)}
+        src={memoizedStreamUrl}
         onError={handleAudioError}
         onCanPlay={handleAudioCanPlay}
         preload="none"
