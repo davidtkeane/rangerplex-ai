@@ -6,6 +6,7 @@
 
 # Move folder (machine-specific deployments - too large for git)
 move/
+legacy-move/
 
 # Database files
 data/*.db

@@ -133,8 +133,32 @@ class Installer {
     }
 
     hasIdentity() {
-        const identityPath = path.join(personalDir, 'node_identity.json');
-        return fs.existsSync(identityPath);
+        // Check for multiple naming conventions
+        const possibleFiles = [
+            'node_identity.json',
+            'genesis_node.json',
+            'm1air_node_identity.json',
+            'm3pro_node_identity.json',
+            'm4max_node_identity.json'
+        ];
+
+        for (const file of possibleFiles) {
+            if (fs.existsSync(path.join(personalDir, file))) {
+                return true;
+            }
+        }
+
+        // Also check for any *_identity.json or *_node.json files
+        if (fs.existsSync(personalDir)) {
+            const files = fs.readdirSync(personalDir);
+            for (const file of files) {
+                if (file.endsWith('_identity.json') || file.endsWith('_node.json')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     hasDependencies() {
