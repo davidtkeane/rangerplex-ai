@@ -693,6 +693,34 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                         )}
                     </div>
                     <div className="flex items-center gap-2">
+                        {/* Voice Call Button */}
+                        <button
+                            onClick={() => alert('📞 BlockCall coming soon!\n\nVoice calls over blockchain relay.\nFiles ready in: rangerblock/future-features/voice-video/')}
+                            className="p-1.5 text-green-500/50 hover:text-green-400 hover:bg-green-500/20 rounded transition-colors"
+                            title="BlockCall (Coming Soon)"
+                            disabled={!isConnected}
+                        >
+                            <i className="fa-solid fa-phone text-sm"></i>
+                        </button>
+                        {/* Video Call Button */}
+                        <button
+                            onClick={() => alert('🎥 BlockVideoCall coming soon!\n\nVideo calls over blockchain relay.\nFiles ready in: rangerblock/future-features/voice-video/')}
+                            className="p-1.5 text-purple-500/50 hover:text-purple-400 hover:bg-purple-500/20 rounded transition-colors"
+                            title="BlockVideoCall (Coming Soon)"
+                            disabled={!isConnected}
+                        >
+                            <i className="fa-solid fa-video text-sm"></i>
+                        </button>
+                        {/* File Transfer Button */}
+                        <button
+                            onClick={() => alert('📁 BlockFile coming soon!\n\nSecure file transfer over blockchain.\nFiles ready in: rangerblock/future-features/voice-video/')}
+                            className="p-1.5 text-yellow-500/50 hover:text-yellow-400 hover:bg-yellow-500/20 rounded transition-colors"
+                            title="BlockFile Transfer (Coming Soon)"
+                            disabled={!isConnected}
+                        >
+                            <i className="fa-solid fa-file-arrow-up text-sm"></i>
+                        </button>
+                        <span className="w-px h-4 bg-blue-500/30"></span>
                         <button
                             onClick={() => setShowUserList(!showUserList)}
                             className={`p-1.5 rounded ${showUserList ? 'bg-blue-500/30 text-blue-300' : 'text-blue-500/50 hover:text-blue-400'}`}

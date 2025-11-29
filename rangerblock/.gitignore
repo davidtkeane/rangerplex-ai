@@ -8,6 +8,9 @@
 move/
 legacy-move/
 
+# Future features (voice/video - work in progress)
+future-features/
+
 # Database files
 data/*.db
 data/*.sqlite
