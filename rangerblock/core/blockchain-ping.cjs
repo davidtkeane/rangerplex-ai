@@ -20,7 +20,7 @@ const path = require('path');
 // Parse command line args
 const args = process.argv.slice(2);
 let targetNode = null;
-let relayHost = '192.168.1.30';  // Default: M3Pro (genesis)
+let relayHost = 'localhost';  // Default: localhost (use --relay for remote)
 let relayPort = 5555;
 
 for (let i = 0; i < args.length; i++) {
