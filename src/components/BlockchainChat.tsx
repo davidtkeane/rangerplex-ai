@@ -66,10 +66,37 @@ const NODE_NETWORK: Record<string, Omit<NodeInfo, 'online' | 'permission' | 'key
     'Windows': { name: 'Windows VM', ip: '192.168.66.3', type: 'peer', emoji: '🪟' }
 };
 
-// WebSocket relay configuration - ALWAYS connect to M3Pro genesis node
-// The relay server runs on M3Pro (192.168.1.35), so all nodes connect there
-const RELAY_HOST = '192.168.1.35';  // M3Pro genesis - central relay
-const RELAY_PORT = 5555;
+// WebSocket relay configuration
+// Default: M3Pro genesis at 192.168.1.35:5555
+// Users can change this in the Settings panel
+const DEFAULT_RELAY_HOST = '192.168.1.35';
+const DEFAULT_RELAY_PORT = 5555;
+
+// Get saved relay settings from localStorage
+const getRelaySettings = () => {
+    try {
+        const saved = localStorage.getItem('rangerblock_relay_settings');
+        if (saved) {
+            const settings = JSON.parse(saved);
+            return {
+                host: settings.host || DEFAULT_RELAY_HOST,
+                port: settings.port || DEFAULT_RELAY_PORT
+            };
+        }
+    } catch (e) {
+        console.error('Failed to load relay settings:', e);
+    }
+    return { host: DEFAULT_RELAY_HOST, port: DEFAULT_RELAY_PORT };
+};
+
+// Save relay settings to localStorage
+const saveRelaySettings = (host: string, port: number) => {
+    try {
+        localStorage.setItem('rangerblock_relay_settings', JSON.stringify({ host, port }));
+    } catch (e) {
+        console.error('Failed to save relay settings:', e);
+    }
+};
 
 const IRC_COLORS = [
     'text-white', 'text-gray-900', 'text-blue-600', 'text-green-600',
@@ -98,6 +125,11 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
     const [showUserList, setShowUserList] = useState(true);
+
+    // Relay settings state
+    const [relayHost, setRelayHost] = useState(() => getRelaySettings().host);
+    const [relayPort, setRelayPort] = useState(() => getRelaySettings().port);
+    const [showRelaySettings, setShowRelaySettings] = useState(false);
 
     // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -145,11 +177,11 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
         setCurrentNode(nodeKey);
 
         addSystemMessage(`* Connecting as ${NODE_NETWORK[nodeKey].emoji} ${NODE_NETWORK[nodeKey].name}...`);
-        addSystemMessage(`* Relay: ws://${RELAY_HOST}:${RELAY_PORT}`);
+        addSystemMessage(`* Relay: ws://${relayHost}:${relayPort}`);
 
         try {
-            // Connect to WebSocket relay
-            const ws = new WebSocket(`ws://${RELAY_HOST}:${RELAY_PORT}`);
+            // Connect to WebSocket relay using configured settings
+            const ws = new WebSocket(`ws://${relayHost}:${relayPort}`);
             wsRef.current = ws;
 
             ws.onopen = () => {
@@ -203,7 +235,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
             addSystemMessage(`* Running in offline mode`);
             setIsConnecting(false);
         }
-    }, [addSystemMessage]);
+    }, [addSystemMessage, relayHost, relayPort]);
 
     // Handle WebSocket messages from relay
     const handleWebSocketMessage = useCallback((msg: any, nodeKey: string) => {
@@ -573,6 +605,58 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                                     </div>
                                 </button>
                             ))}
+                        </div>
+
+                        {/* Relay Settings Toggle */}
+                        <div className="mt-4 pt-4 border-t border-blue-500/20">
+                            <button
+                                onClick={() => setShowRelaySettings(!showRelaySettings)}
+                                className="w-full flex items-center justify-between text-xs text-blue-400/60 hover:text-blue-400 font-mono py-2"
+                            >
+                                <span>⚙️ RELAY SETTINGS</span>
+                                <span>{showRelaySettings ? '▼' : '▶'}</span>
+                            </button>
+
+                            {showRelaySettings && (
+                                <div className="mt-2 p-3 bg-blue-900/20 rounded-lg border border-blue-500/20 space-y-3">
+                                    <div>
+                                        <label className="text-xs text-blue-400/60 font-mono block mb-1">
+                                            Relay Host:
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={relayHost}
+                                            onChange={(e) => setRelayHost(e.target.value)}
+                                            className="w-full bg-blue-900/30 border border-blue-500/30 rounded px-2 py-1 text-blue-200 font-mono text-sm focus:border-blue-400 focus:outline-none"
+                                            placeholder="192.168.1.35"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-blue-400/60 font-mono block mb-1">
+                                            Relay Port:
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={relayPort}
+                                            onChange={(e) => setRelayPort(parseInt(e.target.value) || 5555)}
+                                            className="w-full bg-blue-900/30 border border-blue-500/30 rounded px-2 py-1 text-blue-200 font-mono text-sm focus:border-blue-400 focus:outline-none"
+                                            placeholder="5555"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            saveRelaySettings(relayHost, relayPort);
+                                            alert(`Relay saved: ${relayHost}:${relayPort}`);
+                                        }}
+                                        className="w-full py-1.5 bg-green-900/40 hover:bg-green-900/60 text-green-400 rounded text-xs font-mono border border-green-500/30"
+                                    >
+                                        💾 SAVE RELAY SETTINGS
+                                    </button>
+                                    <p className="text-[10px] text-blue-400/40 font-mono">
+                                        Default: 192.168.1.35:5555 (M3Pro Genesis)
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mt-4 pt-4 border-t border-blue-500/20 text-center">
