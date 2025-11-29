@@ -22,6 +22,7 @@ const args = process.argv.slice(2);
 let targetNode = null;
 let relayHost = 'localhost';  // Default: localhost (use --relay for remote)
 let relayPort = 5555;
+let listenMode = false;  // Stay connected and respond to pings
 
 for (let i = 0; i < args.length; i++) {
     if (args[i] === '--target' && args[i + 1]) {
@@ -32,6 +33,8 @@ for (let i = 0; i < args.length; i++) {
         relayHost = parts[0];
         relayPort = parseInt(parts[1]) || 5555;
         i++;
+    } else if (args[i] === '--listen' || args[i] === '-l') {
+        listenMode = true;
     } else if (args[i] === '--help') {
         console.log(`
 BLOCKCHAIN PING - Test P2P node communication
@@ -40,11 +43,12 @@ Usage:
   node blockchain-ping.cjs                       # Discover and ping all nodes
   node blockchain-ping.cjs --target <name>       # Ping specific node
   node blockchain-ping.cjs --relay <host:port>   # Use different relay
+  node blockchain-ping.cjs --listen              # Stay connected (wait for pings)
 
 Examples:
-  node blockchain-ping.cjs --target M3Pro
-  node blockchain-ping.cjs --target M1Air
-  node blockchain-ping.cjs --relay localhost:5555 --target M3Pro
+  node blockchain-ping.cjs --listen              # Stay connected as pingable node
+  node blockchain-ping.cjs --target M3Pro        # Ping specific node
+  node blockchain-ping.cjs --relay 192.168.1.35:5555 --target M1Air
 `);
         process.exit(0);
     }
@@ -188,11 +192,34 @@ async function runPingTest() {
             case 'peerList':
             case 'peerListUpdate':
                 peers = msg.peers || [];
+
+                // In listen mode, just show who's connected
+                if (listenMode) {
+                    if (msg.type === 'peerListUpdate') {
+                        console.log(`\n   [UPDATE] ${peers.length} peer(s) now connected:`);
+                        peers.forEach((peer, i) => {
+                            console.log(`     ${i + 1}. ${peer.address} (${peer.ip})`);
+                        });
+                    } else {
+                        console.log(`\n   Found ${peers.length} peer(s):`);
+                        if (peers.length === 0) {
+                            console.log('   No other nodes connected yet.');
+                        } else {
+                            peers.forEach((peer, i) => {
+                                console.log(`     ${i + 1}. ${peer.address} (${peer.ip})`);
+                            });
+                        }
+                        console.log('\n   LISTEN MODE: Waiting for pings... (Ctrl+C to exit)\n');
+                    }
+                    return;  // Don't auto-close in listen mode
+                }
+
                 console.log(`\n   Found ${peers.length} peer(s):`);
 
                 if (peers.length === 0) {
                     console.log('   No other nodes connected.');
                     console.log('\n   Start another node to test P2P communication.');
+                    console.log('   TIP: Use --listen mode on one machine first!');
                     setTimeout(() => ws.close(), 1000);
                     return;
                 }
