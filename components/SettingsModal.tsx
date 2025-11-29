@@ -1202,7 +1202,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     icon="fa-brands fa-google"
                                     inputClass={inputClass}
                                     onTest={() => testConnection('gemini', localSettings.geminiApiKey)}
-                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Google Gemini', testType: 'llm', apiKey: localSettings.geminiApiKey, provider: 'gemini', defaultModel: 'gemini-pro' })}
+                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Google Gemini', testType: 'llm', apiKey: localSettings.geminiApiKey, provider: 'gemini', defaultModel: 'gemini-1.5-flash' })}
                                     status={connectionStatus['gemini']}
                                 />
                                 <InputGroup

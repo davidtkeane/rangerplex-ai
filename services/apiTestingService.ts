@@ -51,7 +51,7 @@ class ApiTestingService {
                     break;
 
                 case 'gemini':
-                    const m = model || 'gemini-pro';
+                    const m = model || 'gemini-1.5-flash';
                     url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
                     body = {
                         contents: [{ parts: [{ text: prompt }] }]
