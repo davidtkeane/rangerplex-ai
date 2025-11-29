@@ -197,6 +197,11 @@ const App: React.FC = () => {
     }
   }, [settings.enableCloudSync]);
 
+  // Update Weather Service when settings change
+  useEffect(() => {
+    weatherService.updateSettings(settings);
+  }, [settings]);
+
   // Tabbed Workspace State
   const [tabs, setTabs] = useState<WorkspaceTab[]>([
     { id: 'chat', type: 'chat', title: 'Chat', icon: 'fa-solid fa-comments', isPinned: true }
@@ -1304,6 +1309,7 @@ const App: React.FC = () => {
             onViewWeather={() => {
               setInitialWeatherTab('radar');
               setIsWeatherOpen(true);
+              setActiveSurface('weather');
               setRainAlert(null);
             }}
             onDismiss={() => setRainAlert(null)}

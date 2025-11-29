@@ -4,6 +4,7 @@
 
 import { fetchWeatherApi } from 'openmeteo';
 import { dbService } from './dbService';
+import { AppSettings } from '../types';
 
 // Weather data interfaces
 export interface CurrentWeather {
@@ -97,17 +98,16 @@ class WeatherService {
     private tomorrowKey: string;
     private visualCrossingKey: string;
     private usageStats: APIUsageStats;
+    private weatherProvider: 'fusion' | 'openmeteo' | 'openweather' | 'tomorrow' | 'visualcrossing' = 'fusion';
 
     constructor() {
-        // Load API keys from environment
+        // Load API keys from environment as initial defaults
         this.openWeatherKey = import.meta.env.OPENWEATHER_API_KEY || '';
         this.tomorrowKey = import.meta.env.TOMORROW_API_KEY || '';
         this.visualCrossingKey = import.meta.env.VISUAL_CROSSING_API_KEY || '';
 
         console.log('🌤️ Weather Service Initialized');
-        console.log(`🔑 OpenWeather: ${this.openWeatherKey ? '✅ Loaded' : '❌ Missing'}`);
-        console.log(`🔑 Tomorrow.io: ${this.tomorrowKey ? '✅ Loaded' : '❌ Missing'}`);
-        console.log(`🔑 Visual Crossing: ${this.visualCrossingKey ? '✅ Loaded' : '❌ Missing'}`);
+        this.logKeyStatus();
 
         // Initialize usage stats
         this.usageStats = {
@@ -118,6 +118,23 @@ class WeatherService {
         };
 
         this.loadUsageStats();
+    }
+
+    public updateSettings(settings: AppSettings) {
+        this.openWeatherKey = settings.openWeatherApiKey || import.meta.env.OPENWEATHER_API_KEY || '';
+        this.tomorrowKey = settings.tomorrowApiKey || import.meta.env.TOMORROW_API_KEY || '';
+        this.visualCrossingKey = settings.visualCrossingApiKey || import.meta.env.VISUAL_CROSSING_API_KEY || '';
+        this.weatherProvider = settings.weatherProvider || 'fusion';
+
+        console.log(`🌤️ Weather Service Settings Updated: Provider=${this.weatherProvider}`);
+        this.logKeyStatus();
+    }
+
+    private logKeyStatus() {
+        console.log(`🔑 OpenWeather: ${this.openWeatherKey ? '✅ Loaded' : '❌ Missing'}`);
+        console.log(`🔑 Tomorrow.io: ${this.tomorrowKey ? '✅ Loaded' : '❌ Missing'}`);
+        console.log(`🔑 Visual Crossing: ${this.visualCrossingKey ? '✅ Loaded' : '❌ Missing'}`);
+        console.log(`🔑 Open-Meteo: ✅ Always Available (Free)`);
     }
 
     private getNextMidnight(): number {
@@ -355,12 +372,16 @@ class WeatherService {
 
             const data = await response.json();
 
-            if (!data.timelines || !data.timelines.minutely) {
-                console.warn('⚠️ Tomorrow.io response missing minutely data:', data);
+            // Handle potential response structure variations
+            const timelines = data.timelines || data.data?.timelines;
+
+            if (!timelines || !timelines.minutely) {
+                console.warn('⚠️ Tomorrow.io response missing minutely data. Response keys:', Object.keys(data));
+                if (data.data) console.warn('Inner data keys:', Object.keys(data.data));
                 return [];
             }
 
-            const minutely = data.timelines.minutely;
+            const minutely = timelines.minutely;
             console.log(`✅ Got ${minutely.length} minutely data points`);
 
             // Track API call
@@ -551,6 +572,23 @@ class WeatherService {
     // ========================================
 
     async getCurrentWeather(location: string = 'Dublin,IE'): Promise<CurrentWeather | null> {
+        console.log(`🌤️ Getting current weather using provider: ${this.weatherProvider}`);
+
+        // 1. Explicit Provider Selection
+        if (this.weatherProvider === 'openmeteo') {
+            return await this.getOpenMeteoCurrent(53.3498, -6.2603);
+        }
+        if (this.weatherProvider === 'openweather') {
+            return await this.getOpenWeatherCurrent(location);
+        }
+        if (this.weatherProvider === 'tomorrow') {
+            return await this.getTomorrowCurrent(53.3498, -6.2603);
+        }
+        if (this.weatherProvider === 'visualcrossing') {
+            return await this.getVisualCrossingCurrent(location);
+        }
+
+        // 2. Fusion Mode (Smart Fallback)
         // Try Tomorrow.io first (most detailed)
         let weather = await this.getTomorrowCurrent(53.3498, -6.2603);
         if (weather) return weather;
@@ -569,9 +607,29 @@ class WeatherService {
 
     async getCompleteWeatherSnapshot(location: string = 'Dublin,IE'): Promise<WeatherSnapshot> {
         const current = await this.getCurrentWeather(location);
-        const hourly = await this.getOpenMeteoHourly();
-        const daily = await this.getVisualCrossingForecast('Dublin,Ireland');
-        const airQuality = current ? await this.getOpenWeatherAirQuality(current.latitude, current.longitude) : null;
+        const lat = current?.latitude || 53.3498;
+        const lon = current?.longitude || -6.2603;
+
+        let hourly: HourlyForecast[] = [];
+        let daily: DailyForecast[] = [];
+        let airQuality: AirQuality | null = null;
+
+        // 1. Get Hourly Forecast
+        if (this.weatherProvider === 'openweather') {
+            hourly = await this.getOpenWeatherForecast(location);
+        }
+        // Fallback or default to Open-Meteo (Free & Unlimited)
+        if (hourly.length === 0) {
+            hourly = await this.getOpenMeteoHourly(lat, lon);
+        }
+
+        // 2. Get Daily Forecast
+        // Visual Crossing is our primary source for daily/historical
+        daily = await this.getVisualCrossingForecast(location);
+
+        // 3. Get Air Quality
+        // OpenWeatherMap is our primary source for AQI
+        airQuality = await this.getOpenWeatherAirQuality(lat, lon);
 
         const snapshot: WeatherSnapshot = {
             id: `weather_${Date.now()}`,
@@ -581,7 +639,7 @@ class WeatherService {
             hourly,
             daily,
             airQuality: airQuality || undefined,
-            source: 'fusion-4api'
+            source: this.weatherProvider
         };
 
         // Save to database
@@ -835,6 +893,68 @@ class WeatherService {
         } catch (error) {
             console.error('Visual Crossing alerts error:', error);
             return [];
+        }
+    }
+    // ========================================
+    // DEBUGGING & TESTING
+    // ========================================
+
+    async testApiConnection(
+        provider: 'openweather' | 'tomorrow' | 'visualcrossing' | 'openmeteo',
+        key: string,
+        location: string = 'Dublin,IE'
+    ): Promise<{ success: boolean; status: number; data: any; error?: string; latency: number }> {
+        const start = Date.now();
+        let url = '';
+
+        try {
+            if (provider === 'openweather') {
+                url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${key}&units=metric`;
+            } else if (provider === 'tomorrow') {
+                // Tomorrow.io needs lat/lon usually, but let's try to geocode or just use a default for testing if location is a city name
+                // For simplicity in this raw test, if location looks like "lat,lon", use it, otherwise default to Dublin coords
+                let lat = 53.3498;
+                let lon = -6.2603;
+                if (location.includes(',')) {
+                    const parts = location.split(',');
+                    if (!isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+                        lat = parseFloat(parts[0]);
+                        lon = parseFloat(parts[1]);
+                    }
+                }
+                url = `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${key}`;
+            } else if (provider === 'visualcrossing') {
+                url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(location)}/today?key=${key}&unitGroup=metric&include=current`;
+            } else if (provider === 'openmeteo') {
+                // Open-Meteo doesn't use a key, but we can test the endpoint
+                url = `https://api.open-meteo.com/v1/forecast?latitude=53.3498&longitude=-6.2603&current=temperature_2m`;
+            }
+
+            const response = await fetch(url);
+            const latency = Date.now() - start;
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = { error: 'Failed to parse JSON', text: await response.text() };
+            }
+
+            return {
+                success: response.ok,
+                status: response.status,
+                data,
+                latency
+            };
+
+        } catch (error: any) {
+            return {
+                success: false,
+                status: 0,
+                data: null,
+                error: error.message || 'Network Error',
+                latency: Date.now() - start
+            };
         }
     }
 }

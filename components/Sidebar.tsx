@@ -260,10 +260,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     {/* Compact Mode Toggle */}
                     <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200/30 dark:border-zinc-700/30">
                         <span className={`text-[10px] font-bold uppercase tracking-wider ${isTron ? 'text-tron-cyan/60' : 'text-gray-500 dark:text-zinc-400'}`}>
-                            {isCompactMode ? 'Compact' : 'Full View'}
-                        </span>
-                        <span className={`text-[10px] font-mono px-2 py-1 rounded ${isTron ? 'text-tron-orange bg-black/40 border border-tron-orange/30' : 'text-gray-600 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700'}`}>
-                            v2.9.0
+                            {isCompactMode ? 'Apps' : 'Full View'}
                         </span>
                         <button
                             onClick={toggleCompactMode}
@@ -372,8 +369,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
-                        {/* Terminal - Always visible */}
-                        {onToggleTerminal && (
+                        {/* Terminal - Hidden in compact mode */}
+                        {!isCompactMode && onToggleTerminal && (
                             <button
                                 onClick={onToggleTerminal}
                                 title="Ranger Console"
@@ -449,7 +446,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     )}
                     <div className={`text-[10px] flex items-center justify-center gap-2 ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>
-                        <span>v2.12.3 // WEATHER STATION 2.0 🌦️</span>
+                        <span>v2.12.4 // ADVANCED API TESTERS 🧪</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText('bc1q3jvxvhqt7u7qnnjjv5jtkh7wsgg9nrgk3hgsce');

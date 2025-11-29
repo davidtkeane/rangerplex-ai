@@ -215,8 +215,15 @@ export interface AppSettings {
   abstractEmailApiKey?: string; // AbstractAPI Email
   abstractIpApiKey?: string; // AbstractAPI IP
   googleSafeBrowsingApiKey?: string; // Google Safe Browsing
+  deepseekApiKey?: string; // DeepSeek
+  groqApiKey?: string; // Groq
+  openRouterApiKey?: string; // OpenRouter
+  googleSearchApiKey?: string; // Google Search
+  bingSearchApiKey?: string; // Bing Search
+  tavilyApiKey?: string; // Tavily Search
 
   // Weather APIs 🌤️
+  weatherProvider: 'fusion' | 'openmeteo' | 'openweather' | 'tomorrow' | 'visualcrossing';
   openWeatherApiKey?: string; // OpenWeatherMap
   tomorrowApiKey?: string; // Tomorrow.io
   visualCrossingApiKey?: string; // Visual Crossing
@@ -587,6 +594,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   numverifyApiKey: import.meta.env.VITE_NUMVERIFY_API_KEY || '',
   abstractEmailApiKey: import.meta.env.VITE_ABSTRACT_EMAIL_API_KEY || '',
   abstractIpApiKey: import.meta.env.VITE_ABSTRACT_IP_API_KEY || '',
+  deepseekApiKey: import.meta.env.VITE_DEEPSEEK_API_KEY || '',
+  groqApiKey: import.meta.env.VITE_GROQ_API_KEY || '',
+  openRouterApiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+  googleSearchApiKey: import.meta.env.VITE_GOOGLE_SEARCH_API_KEY || '',
+  bingSearchApiKey: import.meta.env.VITE_BING_SEARCH_API_KEY || '',
+  tavilyApiKey: import.meta.env.VITE_TAVILY_API_KEY || '',
+
+  weatherProvider: 'fusion',
 
   defaultCanvasColor: 'white',
   editorAutoOpenTerminal: false,
@@ -599,7 +614,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   terminalOpenInTab: false,
   notesOpenInTab: false,
   browserOpenInTab: false,
-  defaultBrowserUrl: 'https://google.com' // Prevent inception loop
+  defaultBrowserUrl: 'https://google.com', // Prevent inception loop
+
+  // Weather API Keys
+  openWeatherApiKey: import.meta.env.OPENWEATHER_API_KEY || '',
+  tomorrowApiKey: import.meta.env.TOMORROW_API_KEY || '',
+  visualCrossingApiKey: import.meta.env.VISUAL_CROSSING_API_KEY || ''
 };
 
 export interface TrainingExample {

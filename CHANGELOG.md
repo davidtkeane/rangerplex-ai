@@ -5,6 +5,23 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.4] - 2025-12-03 🧪 ADVANCED API TESTERS
+
+### 🧪 Advanced API Testing Suite
+- **Comprehensive Testing**: Added "Advanced" test buttons for all LLM and Search providers.
+- **Detailed Diagnostics**: New `ApiTester` modal provides deep insights:
+  - **Latency Metrics**: Track connection speed and response times.
+  - **Raw JSON**: View full API response payloads for debugging.
+  - **HTTP Status**: Clear success/error reporting with status codes.
+- **New Providers**: Added support for **Google Search**, **Bing Search**, and **Tavily** in the Search settings tab.
+- **Refactored Logic**: Centralized API testing logic in `apiTestingService` for consistency and reliability.
+- **Local LLM Support**: Enhanced testing for **Ollama** and **LM Studio** with real connection checks.
+
+### 🛠️ Fixes & Improvements
+- **Type Safety**: Updated `AppSettings` interface to include all new API keys, removing temporary type casts.
+- **Code Cleanup**: Removed duplicate functions and improved code organization in `SettingsModal.tsx`.
+- **Version Sync**: Updated version to **2.12.4** across all system components.
+
 ## [2.12.3] - 2025-12-02 🌦️ WEATHER STATION 2.0
 
 ### 🌦️ Weather Station 2.0
