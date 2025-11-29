@@ -182,7 +182,37 @@ export const streamGeminiResponse = async (
   }
 };
 
+// Rate limiting for title generation to prevent 429 errors
+let lastTitleRequest = 0;
+const TITLE_REQUEST_INTERVAL = 2000; // 2 seconds minimum between requests
+let pendingTitleRequest: NodeJS.Timeout | null = null;
+
 export const generateTitle = async (firstMessage: string, apiKey?: string): Promise<string> => {
+  // Cancel any pending request
+  if (pendingTitleRequest) {
+    clearTimeout(pendingTitleRequest);
+    pendingTitleRequest = null;
+  }
+
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastTitleRequest;
+
+  // If we're requesting too fast, delay this request
+  if (timeSinceLastRequest < TITLE_REQUEST_INTERVAL) {
+    return new Promise((resolve) => {
+      pendingTitleRequest = setTimeout(async () => {
+        pendingTitleRequest = null;
+        const result = await generateTitleInternal(firstMessage, apiKey);
+        resolve(result);
+      }, TITLE_REQUEST_INTERVAL - timeSinceLastRequest);
+    });
+  }
+
+  return generateTitleInternal(firstMessage, apiKey);
+};
+
+const generateTitleInternal = async (firstMessage: string, apiKey?: string): Promise<string> => {
+  lastTitleRequest = Date.now();
   try {
     const ai = getClient(apiKey);
     const response = await ai.models.generateContent({
@@ -190,5 +220,8 @@ export const generateTitle = async (firstMessage: string, apiKey?: string): Prom
       contents: `Generate a very short, concise title (max 5 words) for a chat that starts with: "${firstMessage}"`,
     });
     return response.text?.trim() || "New Chat";
-  } catch (e) { return "New Chat"; }
+  } catch (e) {
+    // Silently handle rate limiting - just return default title
+    return "New Chat";
+  }
 };

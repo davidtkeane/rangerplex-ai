@@ -2,17 +2,20 @@ const { app, BrowserWindow, shell, globalShortcut, BrowserView, ipcMain, Menu } 
 const path = require('path');
 const { spawn } = require('child_process');
 const http = require('http');
+const CodeServerManager = require('./services/VSCodeManager.cjs');
+console.log('✅ Loaded VSCodeManager.cjs');
 
 // Global reference to prevent garbage collection
 let mainWindow;
 let serverProcess;
+let codeServer;
 let views = new Map(); // tabId -> BrowserView
 
 let activeTabId = null;
 let openLinksInApp = false;
 
 const SERVER_PORT = 5173; // Vite dev server port
-const PROXY_PORT = 3010;  // Proxy server port
+const PROXY_PORT = 3000;  // Proxy server port
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -595,7 +598,7 @@ function activateGhostProtocol() {
         mainWindow.hide();
 
         // 2. Send message to Renderer to lock vault & clear RAM
-        mainWindow.webContents.send('fromMain', 'GHOST_PROTOCOL_TRIGGERED');
+        mainWindow.webContents.send('fromMain', { type: 'GHOST_PROTOCOL_TRIGGERED' });
 
         // 3. Clear history/cache
         mainWindow.webContents.session.clearCache();
@@ -605,15 +608,31 @@ function activateGhostProtocol() {
         views.forEach(view => {
             // view.webContents.destroy();
         });
-        views.clear();
-        mainWindow.setBrowserView(null);
-
-        console.log('👻 RAM wiped. Views destroyed. Window hidden.');
     }
+    views.clear();
+    mainWindow.setBrowserView(null);
+
+    console.log('👻 RAM wiped. Views destroyed. Window hidden.');
 }
+
+// IPC Handler for VS Code Status
+ipcMain.handle('vscode-status', async () => {
+    if (!codeServer) return false;
+    // Simple check: is the process running?
+    // A more robust check would be to ping the health endpoint from here (Main process has no CORS)
+    return checkServerRunning(8081);
+});
 
 app.whenReady().then(async () => {
     setupMenu();
+
+    // Start VS Code Server
+    try {
+        codeServer = new CodeServerManager();
+        codeServer.start(); // Start in background, don't block app launch
+    } catch (err) {
+        console.error('Failed to start VS Code Server:', err);
+    }
 
     // Check if server is already running (e.g. started by launch_browser.cjs)
     const isRunning = await checkServerRunning(SERVER_PORT);
@@ -658,5 +677,9 @@ app.on('will-quit', () => {
         } catch (e) {
             console.error('Failed to kill server process:', e);
         }
+    }
+
+    if (codeServer) {
+        codeServer.stop();
     }
 });

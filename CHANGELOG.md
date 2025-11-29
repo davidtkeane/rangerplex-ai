@@ -5,6 +5,68 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.12] - 2025-11-29 ⛓️ RANGERPLEXCHAIN + RADIO FIX
+
+### ⛓️ RangerPlexChain Blockchain Playground
+Complete JavaScript blockchain system for RangerPlex apps:
+
+**Core Modules (Python → JavaScript Conversion):**
+- `AdminSystem.cjs` - Multi-machine admin with hardware UUID verification
+- `BlockchainLogger.cjs` - SQLite transaction/event logging
+- `KeyValidator.cjs` - Security validation and duplicate detection
+- `ChatBridge.cjs` - mIRC-style P2P chat with moderation
+- `relay-server.cjs` - WebSocket P2P discovery server
+
+**Admin Features:**
+- **Machine Independence**: ANY registered admin machine works alone (M3Pro OR M1Air)
+- **Dynamic Management**: Add/remove/block admin machines on the fly
+- **mIRC Permissions**: `~`Owner `&`Admin `@`Op `%`HalfOp `+`Voice User Banned
+- **Chat Commands**: /kick /ban /op /voice /msg /me + full moderation
+- **Audit Logging**: All admin actions tracked in SQLite database
+
+**Security:**
+- 3-Layer Admin Verification: JSON key + Hardware UUID + Password
+- Genesis identity files for M3Pro and M1Air configured
+- Security validator for key files and duplicates
+
+**Location:** `/rangerblock/RangerPlexChain/`
+
+### 📻 Ranger Radio Fix
+- **Fixed**: "Failed to play stream" error when starting radio
+- **Improved**: Added retry logic with exponential backoff
+- **Improved**: Better error messages for stream failures
+- **Improved**: Fallback to alternative stream URLs when primary fails
+
+### 📦 Version
+- Bumped version to **2.13.12**
+
+---
+
+## [2.13.11] - 2025-11-29 🔨 VS CODE FIXES
+- **Fixed**: Resolved `ReferenceError: require is not defined` by converting `codeServerManager` to CommonJS.
+- **Fixed**: Improved `isElectron` detection to use `window.electronAPI` instead of `process.type`.
+- **Fixed**: Renamed `codeServerManager` to `VSCodeManager` to clear module caching issues.
+- **Fixed**: Hardened shutdown logic to prevent zombie processes.
+
+## [2.13.10] - 2025-11-29 🔨 VS CODE INTEGRATION
+
+### 🔨 VS Code (Code Server) Integration
+- **Dual-Mode Architecture**:
+  - **Web Mode**: Lightweight Monaco Editor (default).
+  - **Electron Mode**: Full VS Code experience via `code-server`.
+- **Seamless Integration**:
+  - "Editor" button renamed to "Code" in Sidebar.
+  - Automatically detects Electron environment.
+  - Launches `code-server` in the background (port 8081).
+  - Embeds VS Code directly in the app interface.
+- **Cross-Platform**: Works on macOS, Windows, and Linux.
+- **Optional Dependencies**: `code-server` and `electron` are optional, keeping the web build light.
+
+### 📦 Version
+- Bumped version to **2.13.10**
+
+---
+
 ## [2.13.9] - 2025-11-29 📖 COMMAND REFERENCE TAB
 
 ### 📖 New Commands Tab in Settings

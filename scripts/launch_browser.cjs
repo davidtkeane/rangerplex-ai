@@ -285,5 +285,13 @@ switch (mode) {
         break;
 }
 
+function shutdownServers() {
+    // Electron manages the servers, so we just need to ensure ports are clean if needed
+    // But usually Electron's will-quit handler takes care of it.
+    // We can run cleanupPorts() to be sure, but it might be aggressive.
+    console.log('🧹 Shutting down...');
+    cleanupPorts();
+}
+
 // Note: We don't shutdown servers on exit anymore since Electron manages them
 // The cleanup only happens if user explicitly closes the launch script

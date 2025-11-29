@@ -44,6 +44,8 @@ import { RSSNewsTicker } from './components/RSSNewsTicker';
 import { rssService } from './services/rssService';
 import type { RSSSettings, RSSItem } from './types/rss';
 import { DEFAULT_RSS_SETTINGS } from './types/rss';
+import VSCodePage from './src/pages/VSCode/VSCodePage';
+import { isElectron } from './src/utils/environmentDetector';
 
 
 const App: React.FC = () => {
@@ -247,23 +249,54 @@ const App: React.FC = () => {
         if (settings.braveApiKey) secrets.braveApiKey = settings.braveApiKey;
         if ((settings as any).obsidianApiKey) secrets.obsidianApiKey = (settings as any).obsidianApiKey;
 
-        const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+        // Always use port 3000 (fix for old settings that may have 3010)
+        let proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+        if (proxyUrl.includes(':3010')) {
+          proxyUrl = proxyUrl.replace(':3010', ':3000');
+        }
+
+        // First check if server is available (quick health check)
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+        try {
+          const healthCheck = await fetch(`${proxyUrl}/api/health`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
+
+          if (!healthCheck.ok) {
+            console.log('📡 Server not ready yet, skipping MCP auto-start');
+            return;
+          }
+        } catch {
+          clearTimeout(timeout);
+          console.log('📡 Server not available, skipping MCP auto-start');
+          return;
+        }
+
+        // Server is available, now start MCP
         await fetch(`${proxyUrl}/api/mcp/ensure`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ secrets })
         });
         setMcpStartedByApp(true);
+        console.log('✅ MCP gateway auto-started');
       } catch (err) {
-        console.warn('MCP auto-start failed', err);
+        // Silent fail - MCP is optional
+        console.log('📡 MCP auto-start skipped (server may not be ready)');
       }
     };
 
-    ensureMcp();
+    // Delay MCP start slightly to let server initialize
+    const mcpTimer = setTimeout(ensureMcp, 2000);
 
     return () => {
+      clearTimeout(mcpTimer);
       if (mcpStartedByApp) {
-        const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+        let proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+        if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
         fetch(`${proxyUrl}/api/mcp/stop`, { method: 'POST' }).catch(() => { });
       }
     };
@@ -563,6 +596,27 @@ const App: React.FC = () => {
           huggingface: sanitizeModels(mergedSettings.availableModels?.huggingface, DEFAULT_SETTINGS.availableModels.huggingface)
         };
         mergedSettings.savedPrompts = ensureImagineFirst(mergedSettings.savedPrompts);
+
+        // Auto-fix proxy port if it's outdated (3010 -> 3000) and SAVE it
+        let needsPortFix = false;
+        if (mergedSettings.corsProxyUrl && mergedSettings.corsProxyUrl.includes(':3010')) {
+          console.log('🔧 Auto-correcting corsProxyUrl port from 3010 to 3000');
+          mergedSettings.corsProxyUrl = mergedSettings.corsProxyUrl.replace(':3010', ':3000');
+          needsPortFix = true;
+        }
+        if (mergedSettings.lmstudioBaseUrl && mergedSettings.lmstudioBaseUrl.includes(':3010')) {
+          console.log('🔧 Auto-correcting lmstudioBaseUrl port from 3010 to 3000');
+          mergedSettings.lmstudioBaseUrl = mergedSettings.lmstudioBaseUrl.replace(':3010', ':3000');
+          needsPortFix = true;
+        }
+        // Save the corrected settings back to IndexedDB so this fix persists
+        if (needsPortFix) {
+          console.log('💾 Saving corrected port settings to IndexedDB');
+          dbService.saveSetting('corsProxyUrl', mergedSettings.corsProxyUrl);
+          if (mergedSettings.lmstudioBaseUrl) {
+            dbService.saveSetting('lmstudioBaseUrl', mergedSettings.lmstudioBaseUrl);
+          }
+        }
 
         finalSettings = mergedSettings;
         setHydrationSource('local');
@@ -1401,17 +1455,21 @@ const App: React.FC = () => {
         {/* Code Editor */}
         {isEditorOpen && (
           <div className="fixed inset-0 z-[9999] bg-black">
-            <EditorTerminalSplit
-              onSendToChat={handleSendCodeQuestion}
-              onClose={() => setIsEditorOpen(false)}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-              autoOpenTerminal={settings.editorAutoOpenTerminal}
-              fontSize={settings.editorFontSize}
-              tabSize={settings.editorTabSize}
-              wordWrap={settings.editorWordWrap}
-              minimap={settings.editorMinimap}
-              lineNumbers={settings.editorLineNumbers}
-            />
+            {isElectron() ? (
+              <VSCodePage onClose={() => setIsEditorOpen(false)} />
+            ) : (
+              <EditorTerminalSplit
+                onSendToChat={handleSendCodeQuestion}
+                onClose={() => setIsEditorOpen(false)}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+                autoOpenTerminal={settings.editorAutoOpenTerminal}
+                fontSize={settings.editorFontSize}
+                tabSize={settings.editorTabSize}
+                wordWrap={settings.editorWordWrap}
+                minimap={settings.editorMinimap}
+                lineNumbers={settings.editorLineNumbers}
+              />
+            )}
           </div>
         )}
 

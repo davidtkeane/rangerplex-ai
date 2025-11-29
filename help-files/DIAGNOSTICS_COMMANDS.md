@@ -34,7 +34,7 @@ Displays a comprehensive system health report with real-time diagnostics.
 
 ## 🔧 Services
 
-✅ **Proxy Server** (Port 3010) - RUNNING
+✅ **Proxy Server** (Port 3000) - RUNNING
 ✅ **Vite Dev Server** (Port 5173) - RUNNING
 ⏸️ **WordPress** (Port 8080) - STOPPED
 
@@ -137,7 +137,7 @@ Use `/sys-info` to see the last 10 errors in the system report.
 
 RangerPlex monitors the following services:
 
-1. **Proxy Server (Port 3010)**
+1. **Proxy Server (Port 3000)**
    - Backend API server
    - Handles all external API calls
    - Manages WordPress, code-server, and system operations

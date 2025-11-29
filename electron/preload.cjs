@@ -55,6 +55,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Forensics
     calculateHash: (filePath, algorithm) => ipcRenderer.invoke('forensics-hash', { filePath, algorithm }),
 
+    // VS Code
+    checkVSCodeStatus: () => ipcRenderer.invoke('vscode-status'),
+
     // Generic Event Listener
     on: (channel, func) => {
         const validChannels = ['fromMain', 'request-open-url'];

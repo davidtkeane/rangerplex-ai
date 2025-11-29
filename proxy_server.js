@@ -17,6 +17,8 @@ import net from 'net';
 import puppeteer from 'puppeteer';
 import pty from 'node-pty';
 import { createRequire } from 'module';
+import { Readable } from 'stream';
+import Parser from 'rss-parser';
 import { allowlistValidator } from './services/allowlistValidator.js';
 import { commandExecutor } from './services/commandExecutor.js';
 import { executionLogger } from './services/executionLogger.js';
@@ -38,7 +40,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const VERSION = '2.13.9';
+const rssParser = new Parser({
+    customFields: {
+        item: ['content:encoded', 'description', 'summary'],
+    },
+    requestOptions: {
+        rejectUnauthorized: false,
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        },
+    },
+});
+const VERSION = '2.13.12';
 const PORT = 3000;
 const startDockerDesktop = async () => {
     const platform = process.platform;
@@ -139,6 +153,26 @@ app.post('/api/sync/chat', (req, res) => {
         console.error('Sync error:', error);
         res.status(500).json({ error: error.message });
     }
+});
+
+// Health check endpoint for connectivity tests
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        version: VERSION,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
+// Legacy health endpoint (without /api prefix) for backward compatibility
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        version: VERSION,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
 });
 
 // Get all chats
@@ -503,20 +537,7 @@ app.get('/api/proxy', async (req, res) => {
 });
 
 // 📡 RSS PARSER - Parse RSS feeds on backend
-// 📡 RSS PARSER - Parse RSS feeds on backend
-const Parser = require('rss-parser');
-const rssParser = new Parser({
-    customFields: {
-        item: ['content:encoded', 'description', 'summary'],
-    },
-    requestOptions: {
-        rejectUnauthorized: false, // Ignore SSL certificate errors
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-        },
-    },
-});
+
 
 app.post('/api/rss/parse', async (req, res) => {
     const { url } = req.body;
@@ -526,7 +547,13 @@ app.post('/api/rss/parse', async (req, res) => {
     }
 
     try {
-        const feed = await rssParser.parseURL(url);
+        // Add timeout to prevent hanging on slow feeds
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Feed request timed out (15s)')), 15000);
+        });
+
+        const parsePromise = rssParser.parseURL(url);
+        const feed = await Promise.race([parsePromise, timeoutPromise]);
 
         const items = feed.items.map(item => ({
             title: item.title || 'Untitled',
@@ -543,10 +570,24 @@ app.post('/api/rss/parse', async (req, res) => {
             items: items,
         });
     } catch (error) {
-        console.error(`[SERVER] RSS Parse Error for ${url}:`, error.message);
-        res.status(500).json({
+        // Don't spam logs for common feed failures
+        const errorMsg = error.message || 'Failed to parse RSS feed';
+        const isCommonError = errorMsg.includes('ECONNREFUSED') ||
+                              errorMsg.includes('ETIMEDOUT') ||
+                              errorMsg.includes('ENOTFOUND') ||
+                              errorMsg.includes('403') ||
+                              errorMsg.includes('404') ||
+                              errorMsg.includes('timed out');
+
+        if (!isCommonError) {
+            console.error(`[RSS] Parse Error for ${url}:`, errorMsg);
+        }
+
+        // Return 200 with error info instead of 500 (so frontend can handle gracefully)
+        res.json({
             success: false,
-            error: error.message || 'Failed to parse RSS feed',
+            error: errorMsg,
+            url: url
         });
     }
 });
@@ -1230,7 +1271,7 @@ app.all('/api/lmstudio/*', async (req, res) => {
     }
 });
 
-// Radio stream proxy (to bypass CORS)
+// Radio stream proxy (to bypass CORS) - Fixed Nov 29, 2025
 app.get('/api/radio/stream', async (req, res) => {
     try {
         const streamUrl = req.query.url;
@@ -1241,53 +1282,132 @@ app.get('/api/radio/stream', async (req, res) => {
 
         console.log('📻 Proxying radio stream:', streamUrl);
 
-        // Fetch the stream with proper headers
-        const response = await fetch(streamUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                'Referer': 'https://somafm.com/',
-                'Accept': 'audio/mpeg,audio/*;q=0.9,*/*;q=0.8'
-            }
-        });
+        // Try primary URL first, then fallback servers
+        const urlsToTry = [
+            streamUrl,
+            streamUrl.replace('ice1.somafm.com', 'ice2.somafm.com'),
+            streamUrl.replace('ice1.somafm.com', 'ice4.somafm.com'),
+            streamUrl.replace('-128-mp3', '-64-aac') // Lower quality fallback
+        ];
 
-        if (!response.ok) {
-            console.error('❌ Stream fetch failed:', response.status, response.statusText);
-            return res.status(response.status).json({
-                error: `Stream unavailable: ${response.statusText}`
+        let response = null;
+        let lastError = null;
+
+        for (const url of urlsToTry) {
+            try {
+                console.log('📻 Trying stream URL:', url);
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+                response = await fetch(url, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Referer': 'https://somafm.com/',
+                        'Accept': '*/*',
+                        'Icy-MetaData': '1'
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeout);
+
+                if (response.ok) {
+                    console.log('✅ Stream connected:', url);
+                    break;
+                } else {
+                    console.log(`⚠️ Stream ${url} returned ${response.status}`);
+                    response = null;
+                }
+            } catch (err) {
+                console.log(`⚠️ Failed to connect to ${url}:`, err.message);
+                lastError = err;
+                response = null;
+            }
+        }
+
+        if (!response || !response.ok) {
+            console.error('❌ All stream URLs failed');
+            return res.status(503).json({
+                error: 'Stream temporarily unavailable',
+                details: lastError?.message || 'All fallback servers failed',
+                suggestion: 'Try a different station or wait a moment'
             });
         }
 
-        // Set CORS headers
+        // Set CORS and streaming headers
+        // Use 'identity' transfer encoding to prevent chunked encoding issues
         res.set({
             'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'audio/mpeg',
-            'Cache-Control': 'no-cache'
+            'Content-Type': response.headers.get('content-type') || 'audio/mpeg',
+            'Cache-Control': 'no-cache, no-store',
+            'Connection': 'keep-alive',
+            'Transfer-Encoding': 'identity',
+            'X-Content-Type-Options': 'nosniff'
         });
 
+        // Disable response buffering for true streaming
+        res.flushHeaders();
+
         // Convert Web ReadableStream to Node.js stream and pipe to response
-        const reader = response.body.getReader();
-
-        const pump = async () => {
+        if (response.body) {
             try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    if (!res.write(value)) {
-                        // Backpressure handling
-                        await new Promise(resolve => res.once('drain', resolve));
-                    }
-                }
-                res.end();
-            } catch (error) {
-                console.error('❌ Stream pump error:', error);
-                res.end();
-            }
-        };
+                // Check if Readable.fromWeb is available (Node 16.17+)
+                if (typeof Readable.fromWeb === 'function') {
+                    console.log('Using Readable.fromWeb for streaming');
+                    const nodeStream = Readable.fromWeb(response.body);
+                    nodeStream.pipe(res);
 
-        pump();
+                    nodeStream.on('error', (err) => {
+                        console.error('❌ Stream pipe error:', err.message);
+                        if (!res.headersSent) {
+                            res.status(500).json({ error: 'Stream interrupted' });
+                        }
+                        res.end();
+                    });
+
+                    res.on('close', () => {
+                        console.log('📻 Client disconnected from stream');
+                        nodeStream.destroy();
+                    });
+                } else {
+                    // Fallback for older Node versions - manual streaming
+                    const reader = response.body.getReader();
+                    const pump = async () => {
+                        try {
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                if (!res.writableEnded) {
+                                    res.write(value);
+                                }
+                            }
+                            res.end();
+                        } catch (err) {
+                            console.error('❌ Manual stream error:', err.message);
+                            res.end();
+                        }
+                    };
+                    pump();
+
+                    res.on('close', () => {
+                        console.log('📻 Client disconnected (manual mode)');
+                        reader.cancel();
+                    });
+                }
+            } catch (streamError) {
+                console.error('❌ Stream setup error:', streamError);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'Failed to initialize stream' });
+                }
+            }
+        } else {
+            throw new Error('No response body from radio stream');
+        }
     } catch (error) {
         console.error('❌ Radio proxy error:', error);
-        res.status(500).json({ error: error.message });
+        if (!res.headersSent) {
+            res.status(500).json({ error: error.message });
+        }
     }
 });
 
@@ -1310,17 +1430,18 @@ app.get('/api/podcast/feed', async (req, res) => {
         });
 
         if (!response.ok) {
-            console.error('❌ RSS fetch failed:', response.status, response.statusText);
+            console.error('❌ Stream fetch failed:', response.status, response.statusText);
             return res.status(response.status).json({
-                error: `Feed unavailable: ${response.statusText}`
+                error: `Stream unavailable: ${response.statusText}`
             });
         }
 
-        const xmlText = await response.text();
+        console.log('✅ Stream connected:', response.status, response.headers.get('content-type'));
 
+        // Set CORS headers
         res.set({
             'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/xml',
+            'Content-Type': response.headers.get('content-type') || 'application/xml',
             'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
         });
 
@@ -4548,7 +4669,7 @@ server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎖️  RANGERPLEX AI SERVER v2.13.5                       ║
+║   🎖️  RANGERPLEX AI SERVER v${VERSION}                       ║
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║
@@ -4569,7 +4690,7 @@ server.listen(PORT, async () => {
         const result = await blockchainService.start();
 
         if (result.success) {
-            console.log(`🚀 RangerPlex AI Server v2.13.2 running on port ${PORT}`);
+            console.log(`🚀 RangerPlex AI Server v${VERSION} running on port ${PORT}`);
             console.log(`📡 RSS News Ticker: 120 feeds ready!`);
         } else {
             console.error(`❌ RangerBlock failed to start: ${result.message}`);
@@ -4595,5 +4716,22 @@ process.on('SIGINT', async () => {
 
     // Exit
     console.log('🎖️ Rangers lead the way!\n');
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('\n\n🛑 Received SIGTERM, shutting down RangerPlex...');
+
+    // Stop blockchain
+    if (blockchainService.isRunning) {
+        console.log('🛑 Stopping RangerBlock...');
+        await blockchainService.stop();
+    }
+
+    // Close database
+    db.close();
+    console.log('✅ Database closed');
+
+    // Exit
     process.exit(0);
 });

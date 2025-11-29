@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.13.9-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.13.11-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -417,7 +417,7 @@ npm start
 ```
 
 This will start:
-1. **RangerPlex Server** (Port 3010) - Database + WebSocket sync
+1. **RangerPlex Server** (Port 3000) - Database + WebSocket sync
 2. **Vite Dev Server** (Port 5173) - The app interface
 
 ### Manual Start (Advanced)
@@ -469,7 +469,7 @@ RangerPlex supports **Docker** for containerized deployment and **WordPress host
    ```
 3. Access the app:
    - **Frontend**: [http://localhost:5173](http://localhost:5173)
-   - **Backend**: [http://localhost:3010](http://localhost:3010)
+   - **Backend**: [http://localhost:3000](http://localhost:3000)
 
 ### WordPress Hosting (Project PRESS FORGE)
 Run up to **3 independent WordPress sites** locally with Docker:
@@ -522,7 +522,7 @@ ollama pull mistral:latest      # 4GB - Lightweight & fast
 1. Open RangerPlex Settings (⚙️ gear icon)
 2. Go to **"Ollama"** tab
 3. Set:
-   - **Ollama Base URL**: `http://localhost:3010/api/ollama`
+   - **Ollama Base URL**: `http://localhost:3000/api/ollama`
    - **Ollama Model ID**: `deepseek-r1:14b` (or your chosen model name)
 4. Click **"Test"** button - should show ✅
 5. Click **"Save"**
@@ -535,7 +535,7 @@ ollama pull mistral:latest      # 4GB - Lightweight & fast
 ### Important Configuration Notes
 
 ⚠️ **Use the Proxy URL, NOT direct Ollama URL!**
-- ✅ **Correct**: `http://localhost:3010/api/ollama` (proxy - works!)
+- ✅ **Correct**: `http://localhost:3000/api/ollama` (proxy - works!)
 - ❌ **Wrong**: `http://localhost:11434` (direct - CORS errors!)
 
 The proxy eliminates browser CORS restrictions and enables proper streaming.
@@ -554,12 +554,12 @@ The proxy eliminates browser CORS restrictions and enables proper streaming.
 
 **"Ollama API Error: Not Found"**
 - Check Ollama is running: `ollama list`
-- Verify Base URL uses proxy: `http://localhost:3010/api/ollama`
+- Verify Base URL uses proxy: `http://localhost:3000/api/ollama`
 - Ensure model name matches exactly (check with `ollama list`)
 
 **"Connection Failed"**
 - Make sure RangerPlex server is running: `npm start` or `npm run dev`
-- Verify proxy is on port 3010: `lsof -i :3010`
+- Verify proxy is on port 3000: `lsof -i :3000`
 
 **Model too slow?**
 - Use a smaller model (14B instead of 70B)
@@ -616,7 +616,7 @@ Download from [https://lmstudio.ai](https://lmstudio.ai)
 1. Make sure RangerPlex is running: `npm start`
 2. Open Settings → **"LMSTUDIO"** tab
 3. Configure:
-   - **Base URL**: `http://localhost:3010/api/lmstudio` ← **USE THIS (via proxy)**
+   - **Base URL**: `http://localhost:3000/api/lmstudio` ← **USE THIS (via proxy)**
    - **Model ID**: Auto-populated from loaded models
 4. Click **"Test"** button → Should show **green ✓**
 5. Click **"Refresh Models from LM Studio"** if needed
@@ -640,7 +640,7 @@ Download from [https://lmstudio.ai](https://lmstudio.ai)
 **Test button shows red X**
 - ✅ Ensure a model is **LOADED** in LM Studio (not just downloaded)
 - ✅ Verify server is running
-- ✅ Check Base URL uses proxy: `http://localhost:3010/api/lmstudio`
+- ✅ Check Base URL uses proxy: `http://localhost:3000/api/lmstudio`
 
 ### Full Documentation
 
@@ -962,7 +962,7 @@ ollama pull mistral
 2.  **Providers Tab**: Enter your API Keys (see [Getting API Keys](#-getting-api-keys) above).
     *   *Note: API Keys are stored locally in your browser. They are never sent to us.*
 3.  **Test Connection**: Click the "Test" button next to each API key to verify it works.
-4.  **Proxy Check**: Ensure the "Proxy URL" is set to `http://localhost:3010` and click "Test". It should turn Green.
+4.  **Proxy Check**: Ensure the "Proxy URL" is set to `http://localhost:3000` and click "Test". It should turn Green.
 
 ### 🚀 One-Command Install
 
@@ -1022,7 +1022,7 @@ Pros/cons and data/UX notes are in that doc.
 
 ### "Anthropic/Claude isn't working"
 *   **Cause**: The Proxy Server isn't running.
-*   **Fix**: Check **Terminal 1**. Ensure `node proxy_server.js` is running. In Settings, verify Proxy URL is `http://localhost:3010`.
+*   **Fix**: Check **Terminal 1**. Ensure `node proxy_server.js` is running. In Settings, verify Proxy URL is `http://localhost:3000`.
 
 ### "Ollama isn't connecting"
 *   **Cause**: Cross-Origin restrictions or Ollama not running.
@@ -1095,12 +1095,12 @@ Pros/cons and data/UX notes are in that doc.
 *   **Fix**: Update to v2.5.27 or later. The routing logic now checks LM Studio models before checking for "gpt" in the model name.
 *   **Workaround** (older versions): Use models without "gpt" in their name.
 
-### "Port 3010 already in use (EADDRINUSE)"
+### "Port 3000 already in use (EADDRINUSE)"
 *   **Cause**: A previous instance of the proxy server is still running.
 *   **Fix**:
     ```bash
-    # Kill the process using port 3010
-    lsof -ti:3010 | xargs kill -9
+    # Kill the process using port 3000
+    lsof -ti:3000 | xargs kill -9
     # Then restart
     npm start
     ```

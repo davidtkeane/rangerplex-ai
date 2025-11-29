@@ -621,7 +621,7 @@ LM Studio is a desktop app that lets you download, run, and chat with open-sourc
 
 5. **Configure RangerPlex**
    - Open Settings → LM Studio tab
-   - Base URL should be: `http://localhost:3010/api/lmstudio`
+   - Base URL should be: `http://localhost:3000/api/lmstudio`
    - Click "Test Connection" (should show green checkmark)
    - Click "Refresh Models" to sync available models
 
@@ -656,7 +656,7 @@ Both can run side-by-side on the same machine or different machines on your netw
 ### Settings Configuration
 
 **Settings → LM Studio Tab:**
-- **Base URL:** Proxy endpoint (default: `http://localhost:3010/api/lmstudio`)
+- **Base URL:** Proxy endpoint (default: `http://localhost:3000/api/lmstudio`)
   - Uses proxy to bypass CORS restrictions
   - Direct connection: `http://localhost:1234/v1` (may be blocked by browser)
 - **Model ID:** Default model (e.g., `mistral-7b-instruct`)
@@ -700,7 +700,7 @@ Both can run side-by-side on the same machine or different machines on your netw
 **Issue 4: CORS Policy Error**
 - ❌ **Symptom:** Browser console shows CORS policy blocked
 - ✅ **Fix:** Use proxy URL instead of direct connection
-  - Change base URL to: `http://localhost:3010/api/lmstudio`
+  - Change base URL to: `http://localhost:3000/api/lmstudio`
   - Proxy adds CORS headers and enables browser access
   - Direct URL `http://localhost:1234/v1` will be blocked by browser security
 
@@ -725,8 +725,8 @@ Both can run side-by-side on the same machine or different machines on your netw
 **Network Access (Optional):**
 Access LM Studio from other devices on your network:
 1. Find your local IP: `ifconfig | grep inet` (Mac/Linux) or `ipconfig` (Windows)
-2. Update base URL: `http://YOUR_IP:3010/api/lmstudio`
-3. Ensure firewall allows port 3010 and 1234
+2. Update base URL: `http://YOUR_IP:3000/api/lmstudio`
+3. Ensure firewall allows port 3000 and 1234
 4. Test connection from remote device
 
 **Model Parameters:**
@@ -1079,7 +1079,7 @@ Key areas (see Settings modal):
 - **Vision/Holiday not showing:** Ensure effects toggles are on in Settings; heavy browsers may block animations.
 - **Training not visible:** Go to Settings → Data & Tools; feature moved off sidebar.
 - **Sticky Notes not saving:** Use "Save all" to export JSON; reload and "Load" to restore.
-- **LM Studio not connecting:** Ensure model is LOADED (not just downloaded) and server is started; use proxy URL `http://localhost:3010/api/lmstudio`; test with `http://localhost:1234/v1/models` in browser. See [LM Studio section](#lm-studio-local-ai-with-gui) for detailed fixes.
+- **LM Studio not connecting:** Ensure model is LOADED (not just downloaded) and server is started; use proxy URL `http://localhost:3000/api/lmstudio`; test with `http://localhost:1234/v1/models` in browser. See [LM Studio section](#lm-studio-local-ai-with-gui) for detailed fixes.
 - **LM Studio "Ollama API Error":** Fixed in v2.5.26; update to latest version for proper model routing.
 - **LM Studio models not syncing:** Open Settings → LM Studio tab (auto-syncs) or click "Refresh Models" button; verify server is running with loaded model.
 

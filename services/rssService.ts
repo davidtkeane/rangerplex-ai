@@ -21,6 +21,10 @@ class RSSService {
     private readonly SETTINGS_STORE = 'settings';
     private readonly PROXY_URL = 'http://localhost:3000';
 
+    // Track failed feeds to avoid spamming console with same errors
+    private failedFeeds: Map<string, number> = new Map();
+    private readonly FAILED_FEED_QUIET_PERIOD = 5 * 60 * 1000; // 5 minutes
+
     constructor() {
         this.cache = new Map();
         this.initializeDatabase();
@@ -250,7 +254,14 @@ class RSSService {
             return items;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            console.error(`❌ Failed to fetch feed ${feed.name}:`, errorMessage);
+
+            // Only log error if we haven't logged it recently (prevent console spam)
+            const lastFailed = this.failedFeeds.get(feed.id);
+            const now = Date.now();
+            if (!lastFailed || (now - lastFailed) > this.FAILED_FEED_QUIET_PERIOD) {
+                console.warn(`⚠️ Feed temporarily unavailable: ${feed.name}`);
+                this.failedFeeds.set(feed.id, now);
+            }
 
             // Update feed with error
             await this.updateFeedMetadata(feed.id, 0, errorMessage);
@@ -273,13 +284,22 @@ class RSSService {
         );
 
         const allItems: RSSItem[] = [];
+        let failedCount = 0;
         results.forEach((result, index) => {
             if (result.status === 'fulfilled') {
                 allItems.push(...result.value);
+                // Clear from failed feeds if it succeeded
+                this.failedFeeds.delete(enabledFeeds[index].id);
             } else {
-                console.error(`Failed to fetch ${enabledFeeds[index].name}:`, result.reason);
+                failedCount++;
+                // Error already logged in fetchFeed, no need to log again
             }
         });
+
+        // Log summary instead of individual errors
+        if (failedCount > 0) {
+            console.log(`📡 RSS: ${results.length - failedCount}/${results.length} feeds loaded (${failedCount} temporarily unavailable)`);
+        }
 
         // Sort by publication date (newest first)
         allItems.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());

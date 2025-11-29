@@ -534,7 +534,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const checkProxyStatus = async () => {
         setProxyStatus('checking');
         try {
-            const res = await fetch(`${localSettings.corsProxyUrl?.replace(/\/$/, '')}/health`);
+            // Always use port 3000 (fix for old settings that may have 3010)
+            let proxyUrl = localSettings.corsProxyUrl?.replace(/\/$/, '') || 'http://localhost:3000';
+            if (proxyUrl.includes(':3010')) {
+                proxyUrl = proxyUrl.replace(':3010', ':3000');
+            }
+            const res = await fetch(`${proxyUrl}/api/health`);
             if (res.ok) setProxyStatus('connected');
             else setProxyStatus('disconnected');
         } catch {

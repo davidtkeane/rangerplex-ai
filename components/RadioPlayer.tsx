@@ -370,7 +370,11 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
   // Helper function to get proxied stream URL (bypass CORS)
   const getProxiedUrl = (originalUrl: string) => {
-    const proxyBaseUrl = settings.corsProxyUrl || 'http://localhost:3000';
+    // Always use port 3000 (fix for old settings that may have 3010)
+    let proxyBaseUrl = settings.corsProxyUrl || 'http://localhost:3000';
+    if (proxyBaseUrl.includes(':3010')) {
+      proxyBaseUrl = proxyBaseUrl.replace(':3010', ':3000');
+    }
     return `${proxyBaseUrl}/api/radio/stream?url=${encodeURIComponent(originalUrl)}`;
   };
 
@@ -515,15 +519,57 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
     onSettingsChange({ radioEnabled: false });
   };
 
-  const handleAudioError = () => {
-    setError('Stream unavailable');
+  // Track retry attempts to prevent infinite loops
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
+
+  const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    const audio = e.target as HTMLAudioElement;
+    const errorCode = audio.error?.code;
+    const errorMessage = audio.error?.message || 'Unknown error';
+
+    // Error code 3 (decode error) is often transient - auto-retry silently
+    if (errorCode === 3 && retryCountRef.current < MAX_RETRIES) {
+      retryCountRef.current++;
+      console.log(`📻 Decode error, auto-retrying (${retryCountRef.current}/${MAX_RETRIES})...`);
+
+      // Force reload the stream with a cache-buster
+      setTimeout(() => {
+        if (audioRef.current && currentStation) {
+          const baseUrl = getProxiedUrl(currentStation.url);
+          audioRef.current.src = `${baseUrl}&_t=${Date.now()}`;
+          audioRef.current.load();
+          audioRef.current.play().catch(() => {});
+        }
+      }, 1000);
+      return;
+    }
+
+    // Log actual errors (not just transient decode issues)
+    if (errorCode !== 3) {
+      console.error('📻 Audio error:', errorCode, errorMessage);
+    }
+
+    // Provide user-friendly error messages
+    let userMessage = 'Stream unavailable';
+    if (errorCode === 2) {
+      userMessage = 'Network error - check connection';
+    } else if (errorCode === 3) {
+      userMessage = 'Stream temporarily interrupted - try again';
+    } else if (errorCode === 4) {
+      userMessage = 'Stream source not found';
+    }
+
+    setError(userMessage);
     setIsPlaying(false);
     setIsLoading(false);
+    retryCountRef.current = 0; // Reset retries for next attempt
   };
 
   const handleAudioCanPlay = () => {
     setIsLoading(false);
     setError(null);
+    retryCountRef.current = 0; // Reset retry count on successful play
   };
 
   // External toggle (e.g., from screensaver)
