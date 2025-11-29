@@ -5,39 +5,21 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.12.5] - 2025-12-02 🎨 CANVAS ARCHITECTURE REBUILD
-
-### 🎨 Canvas Re-Architecture
-- **Container/Editor Pattern**: Completely rebuilt `CanvasBoard` to separate the "Manager" (list/modals) from the "Editor" (drawing logic).
-- **Key-Based Remounting**: Implemented `key={boardId}` on the editor to force a complete component reset when switching boards. This guarantees zero state leakage between boards and eliminates race conditions.
-- **Isolated Data Fetching**: The Editor now fetches its own image data on mount, ensuring the canvas always displays the correct source of truth from IndexedDB.
-- **Visual Stability**: Added local loading states within the editor to prevent "black flash" or interaction before the image is ready.
-
-## [2.12.4] - 2025-12-02 🧠 MEMORY MANAGEMENT & CANVAS FIXES
-
-### 🧠 Memory Management
-- **New Memory Tab**: Added a dedicated "Memory" tab in Settings to monitor browser heap usage and database storage size.
-- **Storage Tools**: Added one-click actions to clear LocalStorage, IndexedDB, and export all data.
-- **Developer Notes**: Included in-app developer guide for extending the memory system.
-
-### 🎨 Canvas Persistence
-- **Lazy Loading**: Implemented lazy loading for canvas boards to prevent memory leaks and improve startup performance.
-- **Granular Saving**: Refactored saving logic to only persist modified boards, eliminating race conditions and "empty board" flashes.
-- **Loading States**: Added visual loading indicators to prevent interaction before data is ready.
-
-### 🧹 Housekeeping
-- **Documentation**: Updated `memory-system.md` with new architecture details.
-- **Version**: Synced across app (badge, package files, server banner, sidebar, db metadata) to **2.12.4**.
-
 ## [2.12.3] - 2025-12-02 🛠️ WORDPRESS COMMAND CENTER UX
 
 ### 🎨 UI/UX
-- WordPress Command Center buttons restyled to match the sidebar (neutral dark surfaces, FA icons) and cards use sidebar-matching backgrounds.
-- Added header shortcuts for WP Login, Admin, and Settings that target the best available site.
+- WordPress Command Center buttons restyled to match the sidebar (neutral dark surfaces, FA icons), with cards aligned to sidebar visuals.
+- Header shortcuts for WP Login, Admin, and Settings pick the best available site automatically.
 
 ### 🏎️ Behavior
-- Browser overlay now reuses an existing tab when opening WordPress pages to prevent duplicate tabs.
-- Single-click guards on WordPress header buttons to avoid accidental double opens.
+- Browser overlay now reuses an existing tab when opening WordPress pages to prevent duplicates.
+- Single-click guardrails on WordPress header buttons to avoid accidental double opens.
+
+### 🔒 Guardrails
+- Added small safety checks around WP actions to reduce accidental navigation and double submissions.
+
+### 📦 Version
+- Synced version across badge, package files, server banner, sidebar, and DB metadata to **2.12.3**.
 
 ### 🧹 Housekeeping
 - Version synced across app (badge, package files, server banner, sidebar, db metadata).
