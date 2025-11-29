@@ -269,6 +269,8 @@ export interface AppSettings {
   enableDuckDuckGo: boolean;
   enableVoiceResponse: boolean;
   enableCloudSync: boolean;
+  enableMcpAuto?: boolean;
+  showSlashHints?: boolean;
   chatHistoryMaxMessages: number;
   chatHistoryMaxChars: number;
   currency: Currency;
@@ -307,6 +309,8 @@ export interface AppSettings {
   saveStatusNotifications: boolean;
   saveStatusDurationMs: number;
   openLinksInApp?: boolean;
+  // MCP Gateway
+  mcpGatewayUrl?: string;
   // Data & Backup
   autoBackupEnabled: boolean;
   autoBackupInterval: number; // minutes
@@ -476,13 +480,31 @@ export const DEFAULT_SETTINGS: AppSettings = {
       'gemini-2.0-flash-thinking-exp-01-21'
     ],
     openai: [
+      'gpt-5.1',
+      'gpt-5',
+      'gpt-5-mini',
+      'gpt-5-nano',
+      'gpt-5-pro',
+      'gpt-5.1-codex',
+      'gpt-5-codex',
+      'gpt-5.1-codex-mini',
       'gpt-4.1',
       'gpt-4.1-mini',
+      'gpt-4.1-nano',
       'gpt-4o',
       'gpt-4o-mini',
+      'gpt-4o-search-preview',
+      'gpt-4o-mini-search-preview',
+      'chatgpt-4o-latest',
       'o1',
       'o1-mini',
-      'o3-mini'
+      'o1-pro',
+      'o3',
+      'o3-mini',
+      'o3-pro',
+      'o3-deep-research',
+      'o4-mini',
+      'o4-mini-deep-research'
     ],
     anthropic: [
       'claude-sonnet-4-5-20250929',  // Sonnet 4.5 (Latest!)
@@ -524,6 +546,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enableDuckDuckGo: true,
   enableVoiceResponse: false,
   enableCloudSync: true, // ✅ ENABLED by default - saves to server + IndexedDB for data persistence
+  enableMcpAuto: false,
+  showSlashHints: true,
   chatHistoryMaxMessages: 24,
   chatHistoryMaxChars: 120000,
   currency: 'USD',
@@ -568,6 +592,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   saveStatusNotifications: true,
   saveStatusDurationMs: 5000,
   openLinksInApp: false,
+  mcpGatewayUrl: 'http://localhost:3000',
 
   // Rain Notifications 🌧️
   rainNotificationsEnabled: false,
@@ -647,6 +672,8 @@ export const getModelCapabilities = (modelId: string): ModelCapabilities => {
     };
   }
 
+  const lowerId = modelId.toLowerCase();
+
   const defaults: ModelCapabilities = {
     vision: false,
     reasoning: false,
@@ -655,9 +682,25 @@ export const getModelCapabilities = (modelId: string): ModelCapabilities => {
   };
 
   // OpenAI Models
-  if (modelId.includes('gpt-4o')) return { ...defaults, vision: true, speed: 'balanced' };
-  if (modelId.includes('gpt-4.1')) return { ...defaults, vision: true, speed: 'balanced' };
-  if (modelId.includes('o1') || modelId.includes('o3')) return { ...defaults, reasoning: true, speed: 'powerful' };
+  if (lowerId.includes('gpt-5')) {
+    const speed = lowerId.includes('nano') || lowerId.includes('mini') ? 'fast' : (lowerId.includes('pro') ? 'powerful' : 'balanced');
+    return { ...defaults, vision: true, reasoning: true, speed };
+  }
+
+  if (lowerId.includes('gpt-4o')) {
+    const speed = lowerId.includes('mini') ? 'fast' : 'balanced';
+    return { ...defaults, vision: true, speed };
+  }
+
+  if (lowerId.includes('gpt-4.1')) {
+    const speed = lowerId.includes('mini') || lowerId.includes('nano') ? 'fast' : 'balanced';
+    return { ...defaults, vision: true, speed };
+  }
+
+  if (lowerId.includes('o1') || lowerId.includes('o3') || lowerId.includes('o4')) {
+    const speed = lowerId.includes('mini') ? 'fast' : 'powerful';
+    return { ...defaults, reasoning: true, speed };
+  }
 
   // Anthropic (Claude) - All Claude 3+ have vision
   if (modelId.includes('claude')) {

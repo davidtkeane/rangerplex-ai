@@ -5,11 +5,17 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.12.5] - 2025-12-04 🧭 SIDEBAR POLISH
+## [2.12.5] - 2025-12-04 🧭 SIDEBAR POLISH & API FIXES
 
 ### 🎛️ Sidebar
 - Minimized quick-action row restored to three icons by hiding the console button in compact mode.
 - Compact header label now reads **Apps** and the inline version pill was removed for a cleaner toggle area.
+
+### 🧪 API Tester Fixes
+- **Gemini**: Updated default model to `gemini-2.5-flash` to resolve 404 errors with deprecated models.
+- **Groq**: Updated default model to `llama-3.1-8b-instant` to replace decommissioned `llama3-8b-8192`.
+- **Anthropic**: Fixed CORS issues by routing test requests through the local proxy (`/v1/messages`).
+- **UI Cleanup**: Moved LLM provider inputs from the Weather tab back to the Providers tab where they belong.
 
 ### 🧹 Version Sync
 - Bumped version to **2.12.5** across app banner, exports, docs badge, and package manifests.

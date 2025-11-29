@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppSettings, AgentConfig, ModelType, SavedPrompt, VoiceConfig, Currency, DEFAULT_SAVED_PROMPTS } from '../types';
+import { AppSettings, AgentConfig, ModelType, SavedPrompt, VoiceConfig, Currency, DEFAULT_SAVED_PROMPTS, getModelBadges } from '../types';
 import { checkOllamaConnection, pullOllamaModel } from '../services/ollamaService';
 import { checkLMStudioConnection } from '../services/lmstudioService';
 import { fetchGeminiModels, fetchOllamaModels, fetchOpenAIModels, fetchLMStudioModels } from '../services/modelRegistry';
@@ -53,7 +53,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, 
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
 
     // Window mode state (normal, fullscreen, minimized)
@@ -74,7 +74,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [loadingModels, setLoadingModels] = useState(false);
     const [promptSearch, setPromptSearch] = useState('');
     const [promptImportText, setPromptImportText] = useState('');
+    const [mcpStatus, setMcpStatus] = useState<'unknown' | 'running' | 'stopped' | 'error'>('unknown');
     const [showAliasManager, setShowAliasManager] = useState(false);
+    const [providerView, setProviderView] = useState<'keys' | 'openai'>('keys');
 
     // Update Checker State
     const [updateStatus, setUpdateStatus] = useState<UpdateInfo | null>(null);
@@ -641,6 +643,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setLocalSettings(prev => ({ ...prev, savedPrompts: [...prev.savedPrompts, newPrompt] }));
     };
 
+    const openaiModelCatalog = [
+        { id: 'gpt-5.1', title: 'GPT-5.1', desc: 'Flagship ChatGPT model with stronger reasoning and coding depth.' },
+        { id: 'gpt-5', title: 'GPT-5', desc: 'Previous-gen intelligence with configurable reasoning effort.' },
+        { id: 'gpt-5-pro', title: 'GPT-5 Pro', desc: 'Higher quality variant tuned for precision responses.' },
+        { id: 'gpt-5-mini', title: 'GPT-5 Mini', desc: 'Faster, cost-efficient for focused tasks.' },
+        { id: 'gpt-5-nano', title: 'GPT-5 Nano', desc: 'Lowest latency and cost for lightweight prompts.' },
+        { id: 'gpt-5.1-codex', title: 'GPT-5.1 Codex', desc: 'Agentic coding tuned for IDE-like workflows.' },
+        { id: 'gpt-5-codex', title: 'GPT-5 Codex', desc: 'Coding-optimized variant of GPT-5.' },
+        { id: 'gpt-5.1-codex-mini', title: 'GPT-5.1 Codex Mini', desc: 'Cost saver for rapid code iteration.' },
+        { id: 'gpt-4.1', title: 'GPT-4.1', desc: 'Versatile, high-quality omni model with vision.' },
+        { id: 'gpt-4.1-mini', title: 'GPT-4.1 Mini', desc: 'Fast, budget-friendly 4.1 tier with vision.' },
+        { id: 'gpt-4.1-nano', title: 'GPT-4.1 Nano', desc: 'Ultra-low latency micro tier.' },
+        { id: 'gpt-4o', title: 'GPT-4o', desc: 'Omni flagship: strong reasoning + vision/audio.' },
+        { id: 'gpt-4o-mini', title: 'GPT-4o Mini', desc: 'Speed-first omni model for quick answers.' },
+        { id: 'gpt-4o-search-preview', title: 'GPT-4o Search Preview', desc: 'Search-augmented 4o tuned for retrieval.' },
+        { id: 'gpt-4o-mini-search-preview', title: 'GPT-4o Mini Search', desc: 'Fast search-optimized 4o mini.' },
+        { id: 'chatgpt-4o-latest', title: 'ChatGPT-4o Latest', desc: 'ChatGPT production routing of 4o.' },
+        { id: 'o1', title: 'o1', desc: 'Structured reasoning (non-streamed) for complex tasks.' },
+        { id: 'o1-mini', title: 'o1 Mini', desc: 'Cheaper o-series reasoning.' },
+        { id: 'o1-pro', title: 'o1 Pro', desc: 'More compute for o1 responses.' },
+        { id: 'o3', title: 'o3', desc: 'Reasoning model succeeded by GPT-5; still supported.' },
+        { id: 'o3-mini', title: 'o3 Mini', desc: 'Smaller o3 for latency-sensitive flows.' },
+        { id: 'o3-pro', title: 'o3 Pro', desc: 'Higher quality o3 variant with extra compute.' },
+        { id: 'o3-deep-research', title: 'o3 Deep Research', desc: 'Long-form research agent mode.' },
+        { id: 'o4-mini', title: 'o4 Mini', desc: 'Fast reasoning successor to o3 mini.' },
+        { id: 'o4-mini-deep-research', title: 'o4 Mini Deep Research', desc: 'Cost-efficient deep research pipeline.' },
+    ];
+
     const updatePrompt = (idx: number, field: keyof SavedPrompt, value: string) => {
         const updated = [...localSettings.savedPrompts];
         updated[idx] = { ...updated[idx], [field]: value };
@@ -803,7 +833,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                     {/* Tabs */}
                     <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                        {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
+                        {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -1195,81 +1225,160 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         {/* PROVIDERS TAB */}
                         {activeTab === 'providers' && (
                             <div className="space-y-6">
-                                <InputGroup
-                                    label="Gemini API Key"
-                                    value={localSettings.geminiApiKey}
-                                    onChange={(v: string) => setLocalSettings({ ...localSettings, geminiApiKey: v })}
-                                    icon="fa-brands fa-google"
-                                    inputClass={inputClass}
-                                    onTest={() => testConnection('gemini', localSettings.geminiApiKey)}
-                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Google Gemini', testType: 'llm', apiKey: localSettings.geminiApiKey, provider: 'gemini', defaultModel: 'gemini-1.5-flash' })}
-                                    status={connectionStatus['gemini']}
-                                />
-                                <InputGroup
-                                    label="OpenAI API Key"
-                                    value={localSettings.openaiApiKey || ''}
-                                    onChange={(v: string) => setLocalSettings({ ...localSettings, openaiApiKey: v })}
-                                    icon="fa-solid fa-bolt"
-                                    inputClass={inputClass}
-                                    onTest={() => testConnection('openai', localSettings.openaiApiKey)}
-                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'OpenAI', testType: 'llm', apiKey: localSettings.openaiApiKey, provider: 'openai', defaultModel: 'gpt-3.5-turbo' })}
-                                    status={connectionStatus['openai']}
-                                />
-                                <InputGroup
-                                    label="Anthropic API Key"
-                                    value={localSettings.anthropicApiKey || ''}
-                                    onChange={(v: string) => setLocalSettings({ ...localSettings, anthropicApiKey: v })}
-                                    icon="fa-solid fa-brain"
-                                    inputClass={inputClass}
-                                    onTest={() => testConnection('anthropic', localSettings.anthropicApiKey)}
-                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Anthropic', testType: 'llm', apiKey: localSettings.anthropicApiKey, provider: 'anthropic', defaultModel: 'claude-3-haiku-20240307' })}
-                                    status={connectionStatus['anthropic']}
-                                />
-                                <InputGroup
-                                    label="DeepSeek API Key"
-                                    value={localSettings.deepseekApiKey || ''}
-                                    onChange={(v: string) => setLocalSettings({ ...localSettings, deepseekApiKey: v })}
-                                    icon="fa-solid fa-code"
-                                    inputClass={inputClass}
-                                    onTest={() => testConnection('deepseek', localSettings.deepseekApiKey)}
-                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'DeepSeek', testType: 'llm', apiKey: localSettings.deepseekApiKey, provider: 'deepseek', defaultModel: 'deepseek-chat' })}
-                                    status={connectionStatus['deepseek']}
-                                />
-                                <InputGroup
-                                    label="Groq API Key"
-                                    value={localSettings.groqApiKey || ''}
-                                    onChange={(v: string) => setLocalSettings({ ...localSettings, groqApiKey: v })}
-                                    icon="fa-solid fa-bolt"
-                                    inputClass={inputClass}
-                                    onTest={() => testConnection('groq', localSettings.groqApiKey)}
-                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Groq', testType: 'llm', apiKey: localSettings.groqApiKey, provider: 'groq', defaultModel: 'llama3-8b-8192' })}
-                                    status={connectionStatus['groq']}
-                                />
-                                <InputGroup
-                                    label="OpenRouter API Key"
-                                    value={localSettings.openRouterApiKey || ''}
-                                    onChange={(v: string) => setLocalSettings({ ...localSettings, openRouterApiKey: v })}
-                                    icon="fa-solid fa-network-wired"
-                                    inputClass={inputClass}
-                                    onTest={() => testConnection('openrouter', localSettings.openRouterApiKey)}
-                                    onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'OpenRouter', testType: 'llm', apiKey: localSettings.openRouterApiKey, provider: 'openrouter', defaultModel: 'openai/gpt-3.5-turbo' })}
-                                    status={connectionStatus['openrouter']}
-                                />
-                                <InputGroup label="Proxy URL" value={localSettings.corsProxyUrl || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, corsProxyUrl: v })} icon="fa-solid fa-server" onTest={checkProxyStatus} status={proxyStatus === 'connected' ? 'success' : 'error'} inputClass={inputClass} />
+                                <div className="flex items-center justify-between flex-wrap gap-3">
+                                    <div>
+                                        <h3 className="font-bold text-lg">Provider Console</h3>
+                                        <p className="text-xs opacity-70">Wire up keys or explore OpenAI models in one place.</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {[
+                                            { id: 'keys', label: 'API Keys', icon: 'fa-key' },
+                                            { id: 'openai', label: 'OpenAI Models', icon: 'fa-rocket' }
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setProviderView(tab.id as 'keys' | 'openai')}
+                                                className={`px-3 py-1.5 rounded text-xs font-bold border transition-all flex items-center gap-2 ${providerView === tab.id ? 'bg-teal-600 text-white border-transparent shadow-lg' : 'border-inherit hover:bg-white/5'}`}
+                                            >
+                                                <i className={`fa-solid ${tab.icon}`}></i>
+                                                {tab.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
 
-                                <h4 className="font-bold opacity-70 mt-4 border-t border-inherit pt-4">New Frontier Models</h4>
-                                <InputGroup label="ElevenLabs API Key" value={localSettings.elevenLabsApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, elevenLabsApiKey: v })} icon="fa-solid fa-microphone-lines" onTest={() => testConnection('elevenlabs')} status={connectionStatus['elevenlabs']} inputClass={inputClass} />
-                                <InputGroup label="Hugging Face Token" value={localSettings.huggingFaceApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, huggingFaceApiKey: v })} icon="fa-solid fa-face-smile" onTest={() => testConnection('huggingface')} status={connectionStatus['huggingface']} inputClass={inputClass} />
-                                <InputGroup label="xAI (Grok) API Key" value={localSettings.xaiApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, xaiApiKey: v })} icon="fa-solid fa-x" onTest={() => testConnection('xai')} status={connectionStatus['xai']} inputClass={inputClass} />
-                                <InputGroup label="VirusTotal API Key" value={localSettings.virusTotalApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, virusTotalApiKey: v })} icon="fa-solid fa-shield-virus" onTest={() => testConnection('virustotal')} status={connectionStatus['virustotal']} inputClass={inputClass} />
-                                <InputGroup label="Have I Been Pwned Key" value={localSettings.hibpApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, hibpApiKey: v })} icon="fa-solid fa-user-shield" onTest={() => testConnection('hibp')} status={connectionStatus['hibp']} inputClass={inputClass} />
-                                <InputGroup label="Shodan API Key" value={localSettings.shodanApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, shodanApiKey: v })} icon="fa-solid fa-eye" onTest={() => testConnection('shodan')} status={connectionStatus['shodan']} inputClass={inputClass} />
-                                <InputGroup label="Companies House API Key" value={localSettings.companiesHouseApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, companiesHouseApiKey: v })} icon="fa-solid fa-building-columns" onTest={() => testConnection('companieshouse')} status={connectionStatus['companieshouse']} inputClass={inputClass} />
-                                <InputGroup label="OpenCorporates API Token" value={localSettings.openCorporatesApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, openCorporatesApiKey: v })} icon="fa-solid fa-globe" onTest={() => testConnection('opencorporates')} status={connectionStatus['opencorporates']} inputClass={inputClass} />
-                                <InputGroup label="IPInfo Token" value={localSettings.ipinfoToken || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, ipinfoToken: v })} icon="fa-solid fa-location-dot" onTest={() => testConnection('ipinfo')} status={connectionStatus['ipinfo']} inputClass={inputClass} />
-                                <InputGroup label="NumVerify API Key" value={localSettings.numverifyApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, numverifyApiKey: v })} icon="fa-solid fa-phone" onTest={() => testConnection('numverify')} status={connectionStatus['numverify']} inputClass={inputClass} />
-                                <InputGroup label="AbstractAPI Email Key" value={localSettings.abstractEmailApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, abstractEmailApiKey: v })} icon="fa-solid fa-envelope" onTest={() => testConnection('abstractemail')} status={connectionStatus['abstractemail']} inputClass={inputClass} />
-                                <InputGroup label="AbstractAPI IP Key" value={localSettings.abstractIpApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, abstractIpApiKey: v })} icon="fa-solid fa-shield-halved" onTest={() => testConnection('abstractip')} status={connectionStatus['abstractip']} inputClass={inputClass} />
+                                {providerView === 'keys' && (
+                                    <div className="space-y-6">
+                                        <InputGroup
+                                            label="Gemini API Key"
+                                            value={localSettings.geminiApiKey}
+                                            onChange={(v: string) => setLocalSettings({ ...localSettings, geminiApiKey: v })}
+                                            icon="fa-brands fa-google"
+                                            inputClass={inputClass}
+                                            onTest={() => testConnection('gemini', localSettings.geminiApiKey)}
+                                            onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Google Gemini', testType: 'llm', apiKey: localSettings.geminiApiKey, provider: 'gemini', defaultModel: 'gemini-2.5-flash' })}
+                                            status={connectionStatus['gemini']}
+                                        />
+                                        <InputGroup
+                                            label="OpenAI API Key"
+                                            value={localSettings.openaiApiKey || ''}
+                                            onChange={(v: string) => setLocalSettings({ ...localSettings, openaiApiKey: v })}
+                                            icon="fa-solid fa-bolt"
+                                            inputClass={inputClass}
+                                            onTest={() => testConnection('openai', localSettings.openaiApiKey)}
+                                            onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'OpenAI', testType: 'llm', apiKey: localSettings.openaiApiKey, provider: 'openai', defaultModel: 'gpt-4.1' })}
+                                            status={connectionStatus['openai']}
+                                        />
+                                        <InputGroup
+                                            label="Anthropic API Key"
+                                            value={localSettings.anthropicApiKey || ''}
+                                            onChange={(v: string) => setLocalSettings({ ...localSettings, anthropicApiKey: v })}
+                                            icon="fa-solid fa-brain"
+                                            inputClass={inputClass}
+                                            onTest={() => testConnection('anthropic', localSettings.anthropicApiKey)}
+                                            onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Anthropic', testType: 'llm', apiKey: localSettings.anthropicApiKey, provider: 'anthropic', defaultModel: 'claude-3-haiku-20240307' })}
+                                            status={connectionStatus['anthropic']}
+                                        />
+                                        <InputGroup
+                                            label="DeepSeek API Key"
+                                            value={localSettings.deepseekApiKey || ''}
+                                            onChange={(v: string) => setLocalSettings({ ...localSettings, deepseekApiKey: v })}
+                                            icon="fa-solid fa-code"
+                                            inputClass={inputClass}
+                                            onTest={() => testConnection('deepseek', localSettings.deepseekApiKey)}
+                                            onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'DeepSeek', testType: 'llm', apiKey: localSettings.deepseekApiKey, provider: 'deepseek', defaultModel: 'deepseek-chat' })}
+                                            status={connectionStatus['deepseek']}
+                                        />
+                                        <InputGroup
+                                            label="Groq API Key"
+                                            value={localSettings.groqApiKey || ''}
+                                            onChange={(v: string) => setLocalSettings({ ...localSettings, groqApiKey: v })}
+                                            icon="fa-solid fa-bolt"
+                                            inputClass={inputClass}
+                                            onTest={() => testConnection('groq', localSettings.groqApiKey)}
+                                            onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'Groq', testType: 'llm', apiKey: localSettings.groqApiKey, provider: 'groq', defaultModel: 'llama-3.1-8b-instant' })}
+                                            status={connectionStatus['groq']}
+                                        />
+                                        <InputGroup
+                                            label="OpenRouter API Key"
+                                            value={localSettings.openRouterApiKey || ''}
+                                            onChange={(v: string) => setLocalSettings({ ...localSettings, openRouterApiKey: v })}
+                                            icon="fa-solid fa-network-wired"
+                                            inputClass={inputClass}
+                                            onTest={() => testConnection('openrouter', localSettings.openRouterApiKey)}
+                                            onAdvanced={() => setApiTester({ isOpen: true, serviceName: 'OpenRouter', testType: 'llm', apiKey: localSettings.openRouterApiKey, provider: 'openrouter', defaultModel: 'openai/gpt-4.1' })}
+                                            status={connectionStatus['openrouter']}
+                                        />
+                                        <InputGroup label="Proxy URL" value={localSettings.corsProxyUrl || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, corsProxyUrl: v })} icon="fa-solid fa-server" onTest={checkProxyStatus} status={proxyStatus === 'connected' ? 'success' : 'error'} inputClass={inputClass} />
+
+                                        <h4 className="font-bold opacity-70 mt-4 border-t border-inherit pt-4">New Frontier Models</h4>
+                                        <InputGroup label="ElevenLabs API Key" value={localSettings.elevenLabsApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, elevenLabsApiKey: v })} icon="fa-solid fa-microphone-lines" onTest={() => testConnection('elevenlabs')} status={connectionStatus['elevenlabs']} inputClass={inputClass} />
+                                        <InputGroup label="Hugging Face Token" value={localSettings.huggingFaceApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, huggingFaceApiKey: v })} icon="fa-solid fa-face-smile" onTest={() => testConnection('huggingface')} status={connectionStatus['huggingface']} inputClass={inputClass} />
+                                        <InputGroup label="xAI (Grok) API Key" value={localSettings.xaiApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, xaiApiKey: v })} icon="fa-solid fa-x" onTest={() => testConnection('xai')} status={connectionStatus['xai']} inputClass={inputClass} />
+                                        <InputGroup label="VirusTotal API Key" value={localSettings.virusTotalApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, virusTotalApiKey: v })} icon="fa-solid fa-shield-virus" onTest={() => testConnection('virustotal')} status={connectionStatus['virustotal']} inputClass={inputClass} />
+                                        <InputGroup label="Have I Been Pwned Key" value={localSettings.hibpApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, hibpApiKey: v })} icon="fa-solid fa-user-shield" onTest={() => testConnection('hibp')} status={connectionStatus['hibp']} inputClass={inputClass} />
+                                        <InputGroup label="Shodan API Key" value={localSettings.shodanApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, shodanApiKey: v })} icon="fa-solid fa-eye" onTest={() => testConnection('shodan')} status={connectionStatus['shodan']} inputClass={inputClass} />
+                                        <InputGroup label="Companies House API Key" value={localSettings.companiesHouseApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, companiesHouseApiKey: v })} icon="fa-solid fa-building-columns" onTest={() => testConnection('companieshouse')} status={connectionStatus['companieshouse']} inputClass={inputClass} />
+                                        <InputGroup label="OpenCorporates API Token" value={localSettings.openCorporatesApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, openCorporatesApiKey: v })} icon="fa-solid fa-globe" onTest={() => testConnection('opencorporates')} status={connectionStatus['opencorporates']} inputClass={inputClass} />
+                                        <InputGroup label="IPInfo Token" value={localSettings.ipinfoToken || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, ipinfoToken: v })} icon="fa-solid fa-location-dot" onTest={() => testConnection('ipinfo')} status={connectionStatus['ipinfo']} inputClass={inputClass} />
+                                        <InputGroup label="NumVerify API Key" value={localSettings.numverifyApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, numverifyApiKey: v })} icon="fa-solid fa-phone" onTest={() => testConnection('numverify')} status={connectionStatus['numverify']} inputClass={inputClass} />
+                                        <InputGroup label="AbstractAPI Email Key" value={localSettings.abstractEmailApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, abstractEmailApiKey: v })} icon="fa-solid fa-envelope" onTest={() => testConnection('abstractemail')} status={connectionStatus['abstractemail']} inputClass={inputClass} />
+                                        <InputGroup label="AbstractAPI IP Key" value={localSettings.abstractIpApiKey || ''} onChange={(v: any) => setLocalSettings({ ...localSettings, abstractIpApiKey: v })} icon="fa-solid fa-shield-halved" onTest={() => testConnection('abstractip')} status={connectionStatus['abstractip']} inputClass={inputClass} />
+                                    </div>
+                                )}
+
+                                {providerView === 'openai' && (
+                                    <div className="space-y-4">
+                                        <div className="p-5 rounded-xl border border-teal-500/40 bg-gradient-to-r from-[#0d1b2a] via-[#122b39] to-[#0d1b2a] text-white shadow-lg">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div>
+                                                    <div className="uppercase text-[11px] tracking-[0.2em] opacity-70">OpenAI Catalog</div>
+                                                    <div className="text-xl font-bold">ChatGPT Models in RangerPlex</div>
+                                                    <div className="text-xs opacity-80 mt-1">Detected {localSettings.availableModels.openai.length} models • Click refresh after updating your key.</div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => testConnection('openai', localSettings.openaiApiKey)}
+                                                        className="px-3 py-2 rounded bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-bold flex items-center gap-2"
+                                                    >
+                                                        <i className="fa-solid fa-plug"></i>
+                                                        Test OpenAI Key
+                                                    </button>
+                                                    <button
+                                                        onClick={fetchAllModels}
+                                                        className="px-3 py-2 rounded bg-teal-500 text-black font-bold text-xs hover:bg-teal-400 flex items-center gap-2"
+                                                        disabled={loadingModels}
+                                                    >
+                                                        {loadingModels ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-rotate"></i>}
+                                                        {loadingModels ? 'Refreshing…' : 'Refresh Models'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                            {openaiModelCatalog.map(model => {
+                                                const available = localSettings.availableModels.openai.includes(model.id);
+                                                const badges = getModelBadges(model.id);
+                                                return (
+                                                    <div key={model.id} className={`p-4 rounded-lg border ${available ? 'border-teal-500/50 bg-teal-500/5' : 'border-zinc-700/60 bg-black/40'} shadow-inner`}> 
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-sm font-bold">{model.title}</span>
+                                                                    {available && <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-600 text-black font-bold">Available</span>}
+                                                                </div>
+                                                                <div className="text-xs opacity-70 mt-1 leading-snug">{model.desc}</div>
+                                                            </div>
+                                                            {badges && <span className="text-lg opacity-70" title="Capabilities">{badges}</span>}
+                                                        </div>
+                                                        <div className="text-[11px] mt-2 opacity-60">ID: <code className="bg-black/30 px-1 rounded">{model.id}</code></div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Ollama Moved to dedicated tab */}
                             </div>
@@ -1724,6 +1833,87 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         Enable Web Search for LLMs
                                     </label>
                                     <p className="text-xs opacity-60 ml-8">When enabled, LLMs will automatically search the web when the 🌐 WEB button is active</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MCP TAB */}
+                        {activeTab === 'mcp' && (
+                            <div className="space-y-6">
+                                <h3 className="font-bold mb-4 border-b border-inherit pb-2">Docker MCP</h3>
+                                <div className="p-4 border border-inherit rounded bg-opacity-5 space-y-3">
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={localSettings.enableMcpAuto || false}
+                                            onChange={e => setLocalSettings({ ...localSettings, enableMcpAuto: e.target.checked })}
+                                            className="accent-teal-500 w-5 h-5"
+                                        />
+                                        Auto-start MCP gateway on app launch
+                                    </label>
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Gateway URL</label>
+                                        <input
+                                            type="text"
+                                            value={localSettings.mcpGatewayUrl || ''}
+                                            onChange={e => setLocalSettings({ ...localSettings, mcpGatewayUrl: e.target.value })}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                            placeholder="http://localhost:3000"
+                                        />
+                                        <p className="text-[10px] opacity-60 mt-1">Requires Docker Desktop. We’ll set Brave/Obsidian secrets from your stored keys and run docker mcp gateway run.</p>
+                                    </div>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button
+                                            onClick={async () => {
+                                                setMcpStatus('unknown');
+                                                const secrets: any = {};
+                                                if (localSettings.braveApiKey) secrets.braveApiKey = localSettings.braveApiKey;
+                                                if ((localSettings as any).obsidianApiKey) secrets.obsidianApiKey = (localSettings as any).obsidianApiKey;
+                                                try {
+                                                    await fetch('http://localhost:3010/api/mcp/ensure', {
+                                                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secrets })
+                                                    });
+                                                    setMcpStatus('running');
+                                                } catch {
+                                                    setMcpStatus('error');
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-green-600 text-white rounded text-sm font-bold hover:bg-green-500"
+                                        >Start Gateway</button>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await fetch('http://localhost:3010/api/mcp/stop', { method: 'POST' });
+                                                    setMcpStatus('stopped');
+                                                } catch {
+                                                    setMcpStatus('error');
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-red-600 text-white rounded text-sm font-bold hover:bg-red-500"
+                                        >Stop Gateway</button>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await fetch('http://localhost:3010/api/mcp/status');
+                                                    const data = await res.json();
+                                                    setMcpStatus(data.running ? 'running' : 'stopped');
+                                                } catch {
+                                                    setMcpStatus('error');
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold hover:bg-blue-500"
+                                        >Check Status</button>
+                                        {mcpStatus !== 'unknown' && (
+                                            <span className="text-sm font-bold px-2 py-1 rounded bg-black/20">
+                                                Status: {mcpStatus}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="text-[10px] opacity-70 space-y-1">
+                                        <div>Slash commands: /mcp-tools (list), /mcp-commands (cheatsheet), /mcp-&lt;tool&gt; [input].</div>
+                                        <div>WEB mode will try MCP brave_web_search first when enabled.</div>
+                                        <div>Ensure Docker Desktop is running.</div>
+                                    </div>
                                 </div>
                             </div>
                         )}

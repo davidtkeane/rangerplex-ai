@@ -18,7 +18,7 @@ export const fetchOpenAIModels = async (apiKey: string): Promise<string[]> => {
         });
         const data = await res.json();
         return data.data
-            .filter((m: any) => m.id.includes('gpt') || m.id.includes('o1') || m.id.includes('o3'))
+            .filter((m: any) => ['gpt', 'o1', 'o3', 'o4'].some(token => m.id.includes(token)))
             .map((m: any) => m.id)
             .sort();
     } catch (e) { console.error(e); return []; }

@@ -37,8 +37,8 @@ export const streamOpenAIResponse = async (
   });
   messages.push({ role: 'user', content });
 
-  const isO1 = model.startsWith('o1');
-  const stream = !isO1; 
+  const isReasoning = ['o1', 'o3', 'o4'].some(prefix => model.startsWith(prefix));
+  const stream = !isReasoning; 
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -48,9 +48,9 @@ export const streamOpenAIResponse = async (
         model: model,
         messages: messages,
         stream: stream,
-        max_tokens: isO1 ? undefined : (modelParams?.maxOutputTokens || 4096),
-        temperature: isO1 ? 1 : (modelParams?.temperature ?? 1),
-        top_p: isO1 ? 1 : (modelParams?.topP ?? 1)
+        max_tokens: isReasoning ? undefined : (modelParams?.maxOutputTokens || 4096),
+        temperature: isReasoning ? 1 : (modelParams?.temperature ?? 1),
+        top_p: isReasoning ? 1 : (modelParams?.topP ?? 1)
       })
     });
 

@@ -85,6 +85,7 @@ const App: React.FC = () => {
   const [rainAlert, setRainAlert] = useState<RainAlert | null>(null); // State for rain notifications
   const [initialWeatherTab, setInitialWeatherTab] = useState<'dashboard' | 'radar'>('dashboard'); // State for initial weather tab
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
+  const [mcpStartedByApp, setMcpStartedByApp] = useState(false);
 
   useEffect(() => {
     browserStateService.setUser(currentUser);
@@ -196,6 +197,38 @@ const App: React.FC = () => {
       syncService.disableSync();
     }
   }, [settings.enableCloudSync]);
+
+  // Auto-start MCP gateway when enabled
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    if (!settings.enableMcpAuto) return;
+
+    const ensureMcp = async () => {
+      try {
+        const secrets: any = {};
+        if (settings.braveApiKey) secrets.braveApiKey = settings.braveApiKey;
+        if ((settings as any).obsidianApiKey) secrets.obsidianApiKey = (settings as any).obsidianApiKey;
+
+        await fetch('http://localhost:3010/api/mcp/ensure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ secrets })
+        });
+        setMcpStartedByApp(true);
+      } catch (err) {
+        console.warn('MCP auto-start failed', err);
+      }
+    };
+
+    ensureMcp();
+
+    return () => {
+      if (mcpStartedByApp) {
+        fetch('http://localhost:3010/api/mcp/stop', { method: 'POST' }).catch(() => {});
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsLoaded, settings.enableMcpAuto, settings.braveApiKey]);
 
   // Update Weather Service when settings change
   useEffect(() => {

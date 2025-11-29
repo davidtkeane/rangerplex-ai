@@ -3,13 +3,32 @@ import { Currency } from "../types";
 
 // Approximate pricing per 1M tokens (Input / Output) as of early 2025
 const PRICING_MAP: Record<string, { input: number, output: number }> = {
-    // OpenAI
+    // OpenAI (token costs to be confirmed for the newest models; NaN prevents cost display)
+    'gpt-5.1': { input: NaN, output: NaN },
+    'gpt-5': { input: NaN, output: NaN },
+    'gpt-5-mini': { input: NaN, output: NaN },
+    'gpt-5-nano': { input: NaN, output: NaN },
+    'gpt-5-pro': { input: NaN, output: NaN },
+    'gpt-5.1-codex': { input: NaN, output: NaN },
+    'gpt-5-codex': { input: NaN, output: NaN },
+    'gpt-5.1-codex-mini': { input: NaN, output: NaN },
     'gpt-4.1': { input: 5.00, output: 15.00 },
     'gpt-4.1-mini': { input: 0.15, output: 0.60 },
+    'gpt-4.1-nano': { input: NaN, output: NaN },
     'gpt-4o': { input: 2.50, output: 10.00 },
     'gpt-4o-mini': { input: 0.15, output: 0.60 },
+    'gpt-4o-search-preview': { input: NaN, output: NaN },
+    'gpt-4o-mini-search-preview': { input: NaN, output: NaN },
+    'chatgpt-4o-latest': { input: NaN, output: NaN },
     'o1': { input: 15.00, output: 60.00 },
     'o1-mini': { input: 3.00, output: 12.00 },
+    'o1-pro': { input: NaN, output: NaN },
+    'o3': { input: NaN, output: NaN },
+    'o3-mini': { input: NaN, output: NaN },
+    'o3-pro': { input: NaN, output: NaN },
+    'o3-deep-research': { input: NaN, output: NaN },
+    'o4-mini': { input: NaN, output: NaN },
+    'o4-mini-deep-research': { input: NaN, output: NaN },
     
     // Anthropic
     'claude-sonnet-4-5': { input: 3.00, output: 15.00 },
@@ -67,7 +86,7 @@ export const calculateCost = (
     // Find matching pricing or default to zero (Local LLMs)
     const pricing = Object.entries(PRICING_MAP).find(([key]) => model.includes(key))?.[1];
     
-    if (!pricing) return ""; // Free or unknown
+    if (!pricing || !isFinite(pricing.input) || !isFinite(pricing.output)) return ""; // Free/unknown pricing
 
     const costUSD = (inputTokens / 1_000_000 * pricing.input) + (outputTokens / 1_000_000 * pricing.output);
     const rate = EXCHANGE_RATES[targetCurrency] || 1;

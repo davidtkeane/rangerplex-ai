@@ -30,19 +30,17 @@ class ApiTestingService {
                     url = 'https://api.openai.com/v1/chat/completions';
                     headers['Authorization'] = `Bearer ${apiKey}`;
                     body = {
-                        model: model || 'gpt-3.5-turbo',
+                        model: model || 'gpt-4.1',
                         messages: [{ role: 'user', content: prompt }],
                         max_tokens: 10
                     };
                     break;
 
                 case 'anthropic':
-                    // Note: Anthropic usually requires a proxy due to CORS, but we'll try direct or via user's proxy setting if passed
-                    // For this service, we assume standard fetch. If CORS fails, it returns error.
-                    url = 'https://api.anthropic.com/v1/messages';
+                    // Use local proxy to avoid CORS
+                    url = 'http://localhost:3010/v1/messages';
                     headers['x-api-key'] = apiKey;
                     headers['anthropic-version'] = '2023-06-01';
-                    headers['dangerously-allow-browser'] = 'true'; // Only for testing!
                     body = {
                         model: model || 'claude-3-haiku-20240307',
                         messages: [{ role: 'user', content: prompt }],
@@ -51,7 +49,7 @@ class ApiTestingService {
                     break;
 
                 case 'gemini':
-                    const m = model || 'gemini-1.5-flash';
+                    const m = model || 'gemini-2.5-flash';
                     url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
                     body = {
                         contents: [{ parts: [{ text: prompt }] }]
@@ -72,7 +70,7 @@ class ApiTestingService {
                     url = 'https://api.groq.com/openai/v1/chat/completions';
                     headers['Authorization'] = `Bearer ${apiKey}`;
                     body = {
-                        model: model || 'llama3-8b-8192',
+                        model: model || 'llama-3.1-8b-instant',
                         messages: [{ role: 'user', content: prompt }],
                         max_tokens: 10
                     };
@@ -82,7 +80,7 @@ class ApiTestingService {
                     url = 'https://openrouter.ai/api/v1/chat/completions';
                     headers['Authorization'] = `Bearer ${apiKey}`;
                     body = {
-                        model: model || 'openai/gpt-3.5-turbo',
+                        model: model || 'openai/gpt-4.1',
                         messages: [{ role: 'user', content: prompt }],
                         max_tokens: 10
                     };
