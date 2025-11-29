@@ -1,0 +1,24 @@
+{
+  "nodeID": "YOUR_NODE_ID",
+  "nodeType": "PeerNode",
+  "genesisTimestamp": "",
+  "publicKey": "",
+  "hardwareFingerprint": "",
+  "platform": {
+    "system": "",
+    "machine": "",
+    "processor": "",
+    "node_name": ""
+  },
+  "accessibility_mission": {
+    "primary_mission": "Transform disabilities into superpowers through blockchain technology",
+    "education_support": "10% of all transactions fund disability schools",
+    "philosophy": "One foot in front of the other - David Keane"
+  },
+  "instructions": {
+    "1": "Copy this file to .personal/my_identity.json",
+    "2": "Run: ioreg -d2 -c IOPlatformExpertDevice | awk -F'\"' '/IOPlatformUUID/ {print $4}'",
+    "3": "Fill in your hardware details",
+    "4": "Answer security questions for recovery"
+  }
+}

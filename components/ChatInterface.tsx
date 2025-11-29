@@ -53,6 +53,8 @@ interface ChatInterfaceProps {
     onOpenStudyClock?: () => void; // Study Clock opener
     onOpenManual?: () => void; // Manual viewer
     onOpenPodcast?: () => void; // Podcast Hub opener
+    onOpenVSCode?: () => void; // VS Code opener
+    onOpenBlockchainChat?: () => void; // Blockchain Chat opener
     saveImageToLocal: (url?: string) => Promise<string | undefined>;
     petBridge?: {
         pet: PetState | null;
@@ -111,6 +113,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     onOpenStudyClock, // Destructure Study Clock opener
     onOpenManual,
     onOpenPodcast,
+    onOpenVSCode,
+    onOpenBlockchainChat,
     saveImageToLocal,
     petBridge
 }) => {
@@ -421,6 +425,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         { name: 'wp', command: '/wordpress', usage: '/wordpress', summary: 'Open the WordPress Command Center (local).', examples: ['/wordpress', '/check wordpress'], tags: ['wordpress', 'cms'] },
         { name: 'study', command: '/study', usage: '/study', summary: 'Open Study Clock (Pomodoro).', examples: ['/study'], tags: ['focus', 'timer'] },
         { name: 'podcasts', command: '/podcasts', usage: '/podcasts', summary: 'Open CyberSec Podcast Hub with curated security content.', examples: ['/podcasts', '/podcast', '/radio'], tags: ['podcast', 'audio', 'video', 'learning'] },
+        { name: 'vscode', command: '/vscode', usage: '/vscode', summary: 'Open VS Code editor inside RangerPlex.', examples: ['/vscode', '/code', '/editor'], tags: ['code', 'editor', 'vscode', 'development'] },
+        { name: 'blockchain', command: '/blockchain', usage: '/blockchain', summary: 'Open RangerPlexChain mIRC-style P2P chat.', examples: ['/blockchain', '/chain', '/irc'], tags: ['blockchain', 'chat', 'p2p', 'irc', 'mirc'] },
         { name: 'imagine', command: '/imagine <prompt>', usage: '/imagine cyberpunk fox', summary: 'Generate images.', examples: ['/imagine sunset over Dublin'], tags: ['image', 'creative'] },
         { name: 'fun', command: '/joke', usage: '/joke', summary: 'Random joke.', examples: ['/chuck'], tags: ['fun'] },
         { name: 'perplexity', command: '/perplexity <query>', usage: '/perplexity best M3 Pro price', summary: 'AI-powered web search via Perplexity (sonar-pro).', examples: ['/perplexity latest AI news', '/perplexity what is quantum computing'], tags: ['search', 'ai', 'web', 'perplexity'] },
@@ -641,6 +647,60 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         id: uuidv4(),
                         sender: Sender.AI,
                         text: '⚠️ Podcast Hub is not available in this context. Try using the sidebar button or Settings → PODCAST tab.',
+                        timestamp: Date.now()
+                    }
+                ]);
+            }
+            return;
+        }
+
+        // 💻 VSCODE: Type "/vscode" or "/code" or "/editor" to open VS Code
+        if (lowerText.trim() === '/vscode' || lowerText.trim() === '/code' || lowerText.trim() === '/editor') {
+            if (onOpenVSCode) {
+                onOpenVSCode();
+                onUpdateMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: '💻 **Opening VS Code Editor...**\n\nLaunching the integrated code editor inside RangerPlex.\n\n**Features:**\n- 📝 Full syntax highlighting\n- 🔍 File explorer\n- ⚡ IntelliSense\n- 🎨 Theme support\n\n*Pro Tip: Also available via the "Code" button in the sidebar!*',
+                        timestamp: Date.now()
+                    }
+                ]);
+            } else {
+                onUpdateMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: '⚠️ VS Code is not available in this context. Try using the sidebar "Code" button.',
+                        timestamp: Date.now()
+                    }
+                ]);
+            }
+            return;
+        }
+
+        // 🌐 BLOCKCHAIN CHAT: Type "/blockchain" or "/chain" or "/irc" to open mIRC-style P2P chat
+        if (lowerText.trim() === '/blockchain' || lowerText.trim() === '/chain' || lowerText.trim() === '/irc') {
+            if (onOpenBlockchainChat) {
+                onOpenBlockchainChat();
+                onUpdateMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: '🌐 **Opening RangerPlexChain Chat...**\n\nLaunching the mIRC-style P2P blockchain chat.\n\n**Features:**\n- 🏛️ Node-to-node communication\n- 👥 Permission levels (~Owner, @Op, +Voice)\n- 📢 Channel system (#rangers, #general, #admin)\n- ⚡ IRC commands (/me, /msg, /kick, /ban)\n\n*Type `/help` in the chat for all commands!*',
+                        timestamp: Date.now()
+                    }
+                ]);
+            } else {
+                onUpdateMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: '⚠️ Blockchain Chat is not available in this context. Try using the sidebar "Blockchain" button.',
                         timestamp: Date.now()
                     }
                 ]);

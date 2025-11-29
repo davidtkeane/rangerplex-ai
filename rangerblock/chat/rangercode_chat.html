@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 RangerCode Blockchain Chat</title>
+    <style>
+        /* Accessibility-First Design for Neurodivergent Users */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: 95vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .network-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+        
+        .node-status {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-online { background: #4CAF50; }
+        .status-offline { background: #f44336; }
+        .status-pending { background: #FF9800; }
+        
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .message-bubble {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .message-bubble:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .message-bubble:focus {
+            outline: 3px solid #87CEEB;
+            outline-offset: 2px;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .sender-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sender-name {
+            font-weight: bold;
+            color: #87CEEB;
+        }
+        
+        .crypto-badge {
+            background: #4CAF50;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            animation: pulse 2s infinite;
+        }
+        
+        .timestamp {
+            opacity: 0.7;
+            font-size: 10px;
+        }
+        
+        .message-content {
+            font-size: 16px;
+            line-height: 1.4;
+            margin: 10px 0;
+            word-wrap: break-word;
+        }
+        
+        .blockchain-info {
+            font-size: 10px;
+            opacity: 0.6;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 5px;
+            margin-top: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .input-area {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            align-items: center;
+        }
+        
+        #message-input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+            outline: none;
+            resize: none;
+            min-height: 20px;
+            max-height: 100px;
+        }
+        
+        #message-input::placeholder {
+            color: #666;
+        }
+        
+        #message-input:focus {
+            box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.5);
+        }
+        
+        .send-button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 25px;
+            background: #4CAF50;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .send-button:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        
+        .send-button:active {
+            transform: scale(0.95);
+        }
+        
+        .send-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .control-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .stats-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+            font-size: 11px;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        
+        /* Accessibility Enhancements */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        @media (max-width: 700px) {
+            .network-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-display {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .input-area {
+                flex-direction: column;
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 10px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            <h1>🔐 RangerCode Blockchain Chat</h1>
+            <p>🏔️ Philosophy: "One foot in front of the other"</p>
+            <p>🌟 World's first accessibility-designed cryptographic blockchain messaging</p>
+            
+            <div class="connection-status">
+                <span class="status-dot" id="connection-dot"></span>
+                <span id="connection-text">Connecting to blockchain chat...</span>
+            </div>
+            
+            <div class="network-info">
+                <div class="node-status" id="m3-status">
+                    <div>🏛️ M3 Pro Genesis</div>
+                    <div><span class="status-dot status-pending"></span><span id="m3-text">Checking...</span></div>
+                </div>
+                <div class="node-status" id="m1-status">
+                    <div>🛰️ M1 Air Peer</div>
+                    <div><span class="status-dot status-pending"></span><span id="m1-text">Checking...</span></div>
+                </div>
+                <div class="node-status" id="m4-status">
+                    <div>🚀 M4 Third Peer</div>
+                    <div><span class="status-dot status-pending"></span><span id="m4-text">Checking...</span></div>
+                </div>
+            </div>
+            
+            <div id="node-identity">🆔 Node: Loading...</div>
+            
+            <div class="stats-display" id="stats-display">
+                <div class="stat-item">
+                    <div>📨</div>
+                    <div id="total-messages">0</div>
+                    <div>Messages</div>
+                </div>
+                <div class="stat-item">
+                    <div>💰</div>
+                    <div id="education-fund">$0.000</div>
+                    <div>Education Fund</div>
+                </div>
+                <div class="stat-item">
+                    <div>🌐</div>
+                    <div id="active-nodes">0</div>
+                    <div>Active Nodes</div>
+                </div>
+                <div class="stat-item">
+                    <div>🔒</div>
+                    <div id="verified-messages">0</div>
+                    <div>Verified</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="control-button" onclick="refreshChat()">🔄 Refresh</button>
+            <button class="control-button" onclick="getNetworkStats()">📊 Stats</button>
+            <button class="control-button" onclick="toggleSearch()">🔍 Search</button>
+            <button class="control-button" onclick="clearChat()">🗑️ Clear</button>
+            <button class="control-button" onclick="exportChat()">💾 Export</button>
+        </div>
+        
+        <div class="messages-container" id="messages">
+            <div class="message-bubble" style="text-align: center; opacity: 0.6;">
+                <div>🌌 Welcome to RangerCode Blockchain Chat</div>
+                <div style="font-size: 12px; margin-top: 5px;">
+                    Your messages are cryptographically signed and stored forever on the blockchain
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <textarea 
+                id="message-input" 
+                placeholder="Type your cryptographically signed message... (every message funds disability education)"
+                maxlength="500"
+                rows="1"
+            ></textarea>
+            <button class="send-button" id="send-button" onclick="sendMessage()">
+                📤 Send via Blockchain
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification container -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        class RangerCodeBlockchainChat {
+            constructor() {
+                this.websocket = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 10;
+                this.messageHistory = [];
+                this.networkStats = {};
+                this.currentNodeInfo = null;
+                
+                this.connect();
+                this.setupEventListeners();
+                this.startHeartbeat();
+            }
+            
+            connect() {
+                try {
+                    console.log('🔌 Connecting to chat server...');
+                    this.websocket = new WebSocket('ws://localhost:8895');
+                    
+                    this.websocket.onopen = () => {
+                        console.log('🔌 Connected to RangerCode Chat Server');
+                        this.updateConnectionStatus(true);
+                        this.reconnectAttempts = 0;
+                        this.showNotification('✅ Connected to blockchain chat', 'success');
+                    };
+                    
+                    this.websocket.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        this.handleMessage(data);
+                    };
+                    
+                    this.websocket.onclose = () => {
+                        console.log('🔌 Disconnected from chat server');
+                        this.updateConnectionStatus(false);
+                        this.attemptReconnect();
+                    };
+                    
+                    this.websocket.onerror = (error) => {
+                        console.error('🔌 WebSocket error:', error);
+                        this.showNotification('❌ Connection error', 'error');
+                    };
+                    
+                } catch (error) {
+                    console.error('🔌 Connection failed:', error);
+                    this.updateConnectionStatus(false);
+                }
+            }
+            
+            handleMessage(data) {
+                switch(data.type) {
+                    case 'welcome':
+                        this.handleWelcome(data);
+                        break;
+                    case 'chat_history':
+                        this.loadChatHistory(data.messages);
+                        break;
+                    case 'new_message':
+                        this.displayNewMessage(data);
+                        break;
+                    case 'network_stats':
+                        this.updateNetworkStats(data.stats);
+                        break;
+                    case 'search_results':
+                        this.displaySearchResults(data.results);
+                        break;
+                }
+            }
+            
+            handleWelcome(data) {
+                this.currentNodeInfo = data.node_info;
+                document.getElementById('node-identity').textContent = 
+                    `🆔 Node: ${data.node_info.node_id}`;
+                
+                this.updateNetworkStats(data.network_stats);
+                this.showNotification(`Welcome ${this.formatNodeName(data.node_info.node_id)}!`, 'success');
+            }
+            
+            loadChatHistory(messages) {
+                const messagesContainer = document.getElementById('messages');
+                
+                // Clear welcome message
+                messagesContainer.innerHTML = '';
+                
+                if (messages.length === 0) {
+                    messagesContainer.innerHTML = `
+                        <div class="message-bubble" style="text-align: center; opacity: 0.6;">
+                            <div>🌌 No messages yet - Start the conversation!</div>
+                            <div style="font-size: 12px; margin-top: 5px;">
+                                Your messages are cryptographically signed with RSA private keys
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    messages.forEach(message => {
+                        this.displayMessage({
+                            message: message,
+                            verification: { verified: true },
+                            block_number: message.block_number || 'Historical'
+                        });
+                    });
+                }
+                
+                this.scrollToBottom();
+            }
+            
+            displayNewMessage(data) {
+                this.displayMessage(data);
+                this.scrollToBottom();
+                this.playNotificationSound();
+                
+                // Show notification for messages from other nodes
+                if (data.message.sender_node !== this.currentNodeInfo?.node_id) {
+                    this.showNotification(`New message from ${this.formatNodeName(data.message.sender_node)}`, 'info');
+                }
+            }
+            
+            displayMessage(data) {
+                const messagesContainer = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message-bubble';
+                messageDiv.tabIndex = 0; // For accessibility
+                
+                const timestamp = new Date(data.message.timestamp).toLocaleTimeString();
+                const isOwnMessage = data.message.sender_node === this.currentNodeInfo?.node_id;
+                const senderName = this.formatNodeName(data.message.sender_node);
+                
+                // Different styling for own vs other messages
+                if (isOwnMessage) {
+                    messageDiv.style.marginLeft = '20%';
+                    messageDiv.style.background = 'rgba(76, 175, 80, 0.3)';
+                }
+                
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <div class="sender-info">
+                            <span class="sender-name">${senderName}</span>
+                            <span class="crypto-badge">🔒 SIGNED</span>
+                        </div>
+                        <span class="timestamp">${timestamp}</span>
+                    </div>
+                    <div class="message-content">${this.escapeHtml(data.message.content)}</div>
+                    <div class="blockchain-info">
+                        <div>Block: ${data.block_number} | Tithe: $${data.message.education_tithe}</div>
+                        <div>ID: ${data.message.message_id}</div>
+                    </div>
+                `;
+                
+                messagesContainer.appendChild(messageDiv);
+            }
+            
+            sendMessage() {
+                const input = document.getElementById('message-input');
+                const button = document.getElementById('send-button');
+                const content = input.value.trim();
+                
+                if (content && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                    // Disable button temporarily
+                    button.disabled = true;
+                    button.textContent = '📤 Signing...';
+                    
+                    this.websocket.send(JSON.stringify({
+                        type: 'chat_message',
+                        content: content,
+                        recipient: 'broadcast'
+                    }));
+                    
+                    input.value = '';
+                    
+                    // Re-enable button
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.innerHTML = '📤 Send via Blockchain';
+                        input.focus();
+                    }, 500);
+                    
+                } else if (!content) {
+                    this.showNotification('Please enter a message', 'warning');
+                    input.focus();
+                } else {
+                    this.showNotification('Not connected to chat server', 'error');
+                }
+            }
+            
+            setupEventListeners() {
+                const input = document.getElementById('message-input');
+                
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                
+                // Auto-resize textarea
+                input.addEventListener('input', () => {
+                    input.style.height = 'auto';
+                    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+                });
+                
+                // Auto-focus input on page load
+                input.focus();
+            }
+            
+            updateConnectionStatus(connected) {
+                const statusDot = document.getElementById('connection-dot');
+                const connectionText = document.getElementById('connection-text');
+                
+                if (connected) {
+                    statusDot.className = 'status-dot status-online';
+                    connectionText.textContent = 'Connected to blockchain';
+                } else {
+                    statusDot.className = 'status-dot status-offline';
+                    connectionText.textContent = 'Disconnected';
+                }
+            }
+            
+            updateNetworkStats(stats) {
+                this.networkStats = stats;
+                
+                document.getElementById('total-messages').textContent = stats.total_messages || 0;
+                document.getElementById('education-fund').textContent = `$${(stats.total_education_fund || 0).toFixed(3)}`;
+                document.getElementById('active-nodes').textContent = stats.active_nodes || 0;
+                document.getElementById('verified-messages').textContent = stats.total_messages || 0;
+            }
+            
+            formatNodeName(nodeId) {
+                if (nodeId.includes('Genesis') || nodeId.includes('001')) return '🏛️ M3 Pro Genesis';
+                if (nodeId.includes('Peer') || nodeId.includes('002')) return '🛰️ M1 Air Peer';
+                if (nodeId.includes('M4') || nodeId.includes('003')) return '🚀 M4 Third Peer';
+                return nodeId;
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            scrollToBottom() {
+                const messagesContainer = document.getElementById('messages');
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification show ${type}`;
+                
+                setTimeout(() => {
+                    notification.className = 'notification';
+                }, 3000);
+            }
+            
+            playNotificationSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+                    
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                } catch (error) {
+                    // Silent fail if audio not supported
+                }
+            }
+            
+            startHeartbeat() {
+                // Request network stats every 30 seconds
+                setInterval(() => {
+                    if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                        this.websocket.send(JSON.stringify({
+                            type: 'get_network_stats'
+                        }));
+                    }
+                }, 30000);
+            }
+            
+            attemptReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+                    
+                    console.log(`🔄 Reconnecting in ${delay/1000} seconds (attempt ${this.reconnectAttempts})`);
+                    this.showNotification(`Reconnecting in ${delay/1000}s...`, 'warning');
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, delay);
+                } else {
+                    console.error('🔌 Max reconnection attempts reached');
+                    this.showNotification('Connection lost. Please refresh page.', 'error');
+                }
+            }
+        }
+        
+        // Global functions for control buttons
+        let rangerChat;
+        
+        function refreshChat() {
+            if (rangerChat && rangerChat.websocket && rangerChat.websocket.readyState === WebSocket.OPEN) {
+                location.reload();
+            }
+        }
+        
+        function getNetworkStats() {
+            if (rangerChat && rangerChat.websocket && rangerChat.websocket.readyState === WebSocket.OPEN) {
+                rangerChat.websocket.send(JSON.stringify({
+                    type: 'get_network_stats'
+                }));
+                rangerChat.showNotification('📊 Network stats updated', 'info');
+            }
+        }
+        
+        function toggleSearch() {
+            const query = prompt('🔍 Search messages:');
+            if (query && rangerChat && rangerChat.websocket && rangerChat.websocket.readyState === WebSocket.OPEN) {
+                rangerChat.websocket.send(JSON.stringify({
+                    type: 'search_messages',
+                    query: query
+                }));
+            }
+        }
+        
+        function clearChat() {
+            if (confirm('Clear chat display? (Messages remain on blockchain)')) {
+                document.getElementById('messages').innerHTML = `
+                    <div class="message-bubble" style="text-align: center; opacity: 0.6;">
+                        <div>🌌 Chat display cleared</div>
+                        <div style="font-size: 12px; margin-top: 5px;">
+                            Messages remain permanently stored on blockchain
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        function exportChat() {
+            // Simple export functionality
+            const messages = document.getElementById('messages').innerText;
+            const blob = new Blob([messages], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rangercode_chat_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            if (rangerChat) {
+                rangerChat.showNotification('💾 Chat exported', 'success');
+            }
+        }
+        
+        function sendMessage() {
+            if (rangerChat) {
+                rangerChat.sendMessage();
+            }
+        }
+        
+        // Initialize chat when page loads
+        window.addEventListener('load', () => {
+            rangerChat = new RangerCodeBlockchainChat();
+            console.log('🚀 RangerCode Blockchain Chat initialized');
+        });
+        
+        // Page visibility handling for better UX
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && rangerChat) {
+                // Page became visible, refresh connection if needed
+                if (!rangerChat.websocket || rangerChat.websocket.readyState !== WebSocket.OPEN) {
+                    rangerChat.connect();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

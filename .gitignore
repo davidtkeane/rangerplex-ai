@@ -71,9 +71,14 @@ data/vault/
 !data/vault/.gitignore
 PHANTOM_PROTECTION_STATUS.md
 
-# RangerChain blockchain files (keep local)
-# 🔒 SECURITY: Full rangerblock/ ignored (contains sensitive phantom wallet system)
-rangerblock/
+# RangerChain blockchain files
+# 🔒 SECURITY: Personal files ignored, templates tracked
+rangerblock/.personal/
+rangerblock/data/*.db
+rangerblock/keys/
+rangerblock/**/node_modules/
+rangerblock/**/*.log
+# Keep templates and code tracked for git clone to M1Air
 blockchain/
 
 # Ollama setup files (keep local)

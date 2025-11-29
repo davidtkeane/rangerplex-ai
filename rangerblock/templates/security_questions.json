@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "description": "Security questions for account recovery - personal facts you cannot forget",
+  "categories": {
+    "childhood": [
+      "What was the name of your first pet?",
+      "What was your childhood nickname?",
+      "What street did you grow up on?",
+      "What was the name of your best friend in primary school?"
+    ],
+    "family": [
+      "What is your mother's maiden name?",
+      "In what city were your parents married?",
+      "What is your grandmother's first name?"
+    ],
+    "personal": [
+      "What was the name of your first school?",
+      "What city were you born in?",
+      "What hospital were you born in?"
+    ],
+    "unique": [
+      "What was the destination of your first flight?",
+      "What was the name of your first teacher?",
+      "What was your first email address?"
+    ]
+  },
+  "requirements": {
+    "minimumQuestions": 3,
+    "answersAreHashed": true,
+    "caseInsensitive": true
+  }
+}

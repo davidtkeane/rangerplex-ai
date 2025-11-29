@@ -1,0 +1,21 @@
+{
+  "node_address": "RANGER_GENESIS_YOUR_ID",
+  "node_type": "genesis_enhanced",
+  "node_id": 0,
+  "created": "",
+  "creator": "YOUR_NAME",
+  "blockchain": "rangercode",
+  "network": "rangercode_mainnet",
+  "genesis_block": true,
+  "enhanced_features": {
+    "real_transaction_support": true,
+    "security_key_integration": true,
+    "cross_device_capable": true,
+    "audit_trail_enabled": true
+  },
+  "instructions": {
+    "1": "This is for GENESIS nodes only (network founders)",
+    "2": "Copy to .personal/ and fill in your details",
+    "3": "Regular peer nodes use node_identity.json.template instead"
+  }
+}

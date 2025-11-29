@@ -1198,6 +1198,8 @@ const App: React.FC = () => {
                   onOpenStudyClock={() => setIsStudyClockOpen(true)}
                   onOpenManual={() => setIsManualOpen(true)}
                   onOpenPodcast={openPodcast}
+                  onOpenVSCode={() => setIsEditorOpen(true)}
+                  onOpenBlockchainChat={() => setIsBlockchainChatOpen(true)}
                   saveImageToLocal={saveImageToLocal}
                   petBridge={petBridge}
                 />

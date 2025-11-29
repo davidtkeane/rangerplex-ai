@@ -1,0 +1,30 @@
+{
+  "chain": [],
+  "node_count": 0,
+  "last_updated": "",
+  "instructions": {
+    "1": "This file stores the blockchain - all registered nodes and transactions",
+    "2": "Copy to .personal/genesis_blockchain.json when setting up",
+    "3": "The first block is created when you run initiate_node.sh",
+    "4": "New nodes are added via registration transactions"
+  },
+  "example_block": {
+    "block_number": 0,
+    "block_hash": "GENERATED_HASH",
+    "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp": "ISO_TIMESTAMP",
+    "transactions": [
+      {
+        "type": "node_registration",
+        "node_id": "YOUR_NODE_ID",
+        "hardware_serial": "YOUR_HARDWARE_UUID",
+        "node_type": "genesis|peer|security_peer",
+        "node_name": "Your Node Name",
+        "ip_address": "YOUR_IP"
+      }
+    ],
+    "merkle_root": "CALCULATED",
+    "validator": "genesis_node",
+    "signature": "GENERATED"
+  }
+}

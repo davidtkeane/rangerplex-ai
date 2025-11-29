@@ -1,0 +1,47 @@
+# RangerBlock Personal Files - NEVER COMMIT
+# These contain hardware UUIDs, keys, and personal identity
+
+# Personal identity folder
+.personal/
+
+# Move folder (machine-specific deployments - too large for git)
+move/
+
+# Database files
+data/*.db
+data/*.sqlite
+*.db
+
+# Keys and certificates
+keys/
+*.pem
+*.key
+*.crt
+
+# Log files
+*.log
+logs/
+
+# Node modules (reinstall on each machine)
+node_modules/
+
+# Runtime files
+*.pid
+*.sock
+
+# Media files (keep folder, ignore contents)
+files/music-videos/*.mp4
+files/music-videos/*.rangerblock
+files/**/*.mp4
+files/**/*.mkv
+files/**/*.avi
+*.rangerblock
+
+# The following files contain YOUR identity - move to .personal/
+# genesis_registrations.json (if contains your real data)
+# node_identity.json (if contains your hardware UUID)
+# genesis_blockchain.json (if contains real registrations)
+
+# Templates are OK to commit (they're blank)
+!templates/*.template
+!templates/security_questions.json

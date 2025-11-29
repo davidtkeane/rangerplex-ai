@@ -124,6 +124,23 @@ class SystemInfoService {
             });
         }
 
+        // Check RangerPlexChain Blockchain
+        try {
+            const bcStatus = await fetch('http://localhost:3000/api/rangerblock/status');
+            const bcData = await bcStatus.json();
+            services.push({
+                name: 'RangerPlexChain',
+                status: bcData.running ? 'running' : 'stopped',
+                port: 5555
+            });
+        } catch {
+            services.push({
+                name: 'RangerPlexChain',
+                status: 'stopped',
+                port: 5555
+            });
+        }
+
         // Get database status
         let dbStatus: DatabaseStatus = {
             connected: false,
