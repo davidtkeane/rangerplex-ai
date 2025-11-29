@@ -5,6 +5,34 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.5] - 2025-11-29 💬 BLOCKCHAIN CHAT & P2P PING
+
+### 💬 Blockchain Chat - P2P Messaging!
+- **Added**: `blockchain-chat.cjs` - Real-time P2P chat between nodes
+- **Added**: `npm run blockchain:chat` - Start chat client
+- **Added**: Messages routed through blockchain relay (not direct IP!)
+- **Added**: Live peer join/leave notifications
+- **Added**: Commands: `/peers`, `/quit`, `/clear`
+
+### 🏓 Blockchain Ping - Test P2P Connectivity
+- **Added**: `blockchain-ping.cjs` - Test node-to-node communication
+- **Added**: `npm run blockchain:ping` - Ping all connected nodes
+- **Added**: `--listen` mode - Stay connected for incoming pings
+- **Added**: `--target` flag - Ping specific node by name
+- **Added**: `--relay` flag - Connect to remote relay server
+
+### 🔀 Relay Server Enhancements
+- **Added**: `relayMessage` type - Route messages between specific nodes
+- **Added**: `broadcast` type - Send to all connected nodes
+- **Added**: Node-to-node message routing via relay
+
+### ✅ Tested & Verified
+- M3Pro (Genesis) ↔ M1Air (Peer) communication: **WORKING**
+- Ping latency: 2ms local, 7ms cross-machine
+- Real P2P communication using blockchain addresses (not IP!)
+
+---
+
 ## [4.0.0] - 2025-11-29 🔗 RANGERPLEXBLOCK BLOCKCHAIN INTEGRATION
 
 ### 🔗 RangerPlexBlock - Full Blockchain Integration

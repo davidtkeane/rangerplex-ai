@@ -22,7 +22,8 @@
     "blockchain:setup": "node rangerblock/core/setup_new_user.cjs",
     "blockchain:relay": "node rangerblock/core/relay-server.cjs",
     "blockchain:status": "node -e \"const s=require('./rangerblock/blockchainService.cjs');console.log(JSON.stringify(s.getStatus(),null,2))\"",
-    "blockchain:ping": "node rangerblock/core/blockchain-ping.cjs"
+    "blockchain:ping": "node rangerblock/core/blockchain-ping.cjs",
+    "blockchain:chat": "node rangerblock/core/blockchain-chat.cjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
