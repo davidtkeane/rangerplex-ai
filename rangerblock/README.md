@@ -1,6 +1,6 @@
 # RangerPlexBlock - P2P Blockchain for RangerPlex
 
-**Version:** 4.0.7
+**Version:** 4.0.9
 **Created:** November 29, 2025
 **Creator:** David Keane (IrishRanger) with Claude Code
 **Philosophy:** "One foot in front of the other"
@@ -117,7 +117,7 @@ rangerblock/
 
 ## Features
 
-### Working Now (v4.0.7)
+### Working Now (v4.0.9)
 - [x] WebSocket relay server
 - [x] GUI chat in RangerPlex browser
 - [x] Terminal chat client (`npm run blockchain:chat`)
@@ -127,9 +127,13 @@ rangerblock/
 - [x] Multi-machine communication (M3Pro <-> M1Air)
 - [x] IRC-style channels (#rangers, #general, #admin)
 - [x] Live peer join/leave notifications
+- [x] **Configurable relay settings** (connect from any network!)
+- [x] **UI buttons for BlockCall, BlockVideoCall, BlockFile** (coming soon!)
 
 ### Coming Soon
-- [ ] Secure file transfers (.rangerblock format)
+- [ ] BlockCall - Voice calls over blockchain relay
+- [ ] BlockVideoCall - Video calls over blockchain relay
+- [ ] BlockFile - Secure file transfers (.rangerblock format)
 - [ ] Admin key system
 - [ ] Permission levels
 - [ ] Cross-network relay (internet)

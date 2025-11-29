@@ -5,6 +5,53 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.9] - 2025-11-29 📞 BLOCKCALL & BLOCKVIDEOCALL UI BUTTONS
+
+### 📞 Future Features UI (Coming Soon!)
+- **Added**: BlockCall button in blockchain chat (voice calls over relay)
+- **Added**: BlockVideoCall button in blockchain chat (video calls over relay)
+- **Added**: BlockFile button in blockchain chat (secure file transfers)
+- **Added**: `rangerblock/future-features/voice-video/` folder with implementation files
+- **Added**: Voice chat controls, sender/receiver scripts staged for integration
+- **Added**: Video streaming player and server files staged for integration
+
+### 🎨 UI Enhancements
+- **Added**: Phone, video, and file icons in chat title bar
+- **Added**: "Coming Soon" alerts with feature descriptions
+- **Added**: Buttons disabled when not connected (visual feedback)
+
+### 📁 Files Staged
+- `voice_chat_controls.html` - Voice chat UI
+- `voice_chat_sender.py` - Voice transmission
+- `voice_chat_receiver.py` - Voice reception
+- `simple_blockchain_video_player.html` - Video streaming UI
+- `send_file_to_m4.py` - File transfer script
+
+---
+
+## [4.0.8] - 2025-11-29 ⚙️ CONFIGURABLE RELAY SETTINGS
+
+### ⚙️ Relay Settings Panel
+- **Added**: Configurable relay host and port in blockchain chat
+- **Added**: Settings stored in localStorage (persists across sessions)
+- **Added**: Collapsible settings panel in node selector
+- **Added**: Default relay: `192.168.1.35:5555` (Genesis node)
+- **Added**: Users can now connect from any network by changing relay address
+
+### 🔧 Technical Details
+- **Added**: `getRelaySettings()` - Load relay config from localStorage
+- **Added**: `saveRelaySettings()` - Persist relay config
+- **Added**: State management for relay host/port
+- **Added**: Settings gear icon toggle in node selector
+
+### 🌐 Network Flexibility
+- Users can now connect to relay via:
+  - Local network (192.168.x.x)
+  - VPN (custom IP)
+  - Future: Tor/I2P support planned
+
+---
+
 ## [4.0.7] - 2025-11-29 🌐 RANGERPLEX GUI CHAT - FULL P2P NETWORK!
 
 ### 🌐 RangerPlex GUI Blockchain Chat
