@@ -5,6 +5,28 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.9] - 2025-11-29 📖 COMMAND REFERENCE TAB
+
+### 📖 New Commands Tab in Settings
+- **Command Reference**: Complete searchable catalog of ALL 60+ slash commands
+- **9 Categories**: System, Recon, Intel, Forensics, Malware, Crypto, Search, MCP, Fun
+- **Live Search**: Instant filtering by command name, description, or tags
+- **Quick Stats**: Category counts at a glance (🖥️ 🔍 📊 🎯)
+- **Click to Copy**: Click any example to copy it directly to clipboard
+- **Collapsible Sections**: Expand/collapse categories for easy browsing
+- **Pro Tips**: Helpful hints at the bottom for power users
+
+### 🎨 Visual Features
+- **Cyan Theme**: Tron-style glow effects on commands tab
+- **Icon Per Command**: Each command has its own icon (Terminal, Globe, Shield, etc.)
+- **Tags Display**: Searchable tags under each command
+- **Keyboard Friendly**: Full keyboard navigation support
+
+### 📦 Version
+- Bumped version to **2.13.9**
+
+---
+
 ## [2.13.8] - 2025-11-29 💡 NOTES IN RSS TICKER
 
 ### 💡 Study Notes Integration

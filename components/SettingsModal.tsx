@@ -60,7 +60,9 @@ const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, 
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll, initialTab }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'commands' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
+    const [commandSearch, setCommandSearch] = useState('');
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['system', 'recon', 'intel']));
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
 
     // Window mode state (normal, fullscreen, minimized)
@@ -910,7 +912,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                     {/* Tabs */}
                     <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                        {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
+                        {['general', 'commands', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -1248,6 +1250,287 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                             </div>
                                         )}
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* COMMANDS TAB - Comprehensive Slash Command Reference */}
+                        {activeTab === 'commands' && (
+                            <div className="space-y-4">
+                                {/* Header with search */}
+                                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                                    <div>
+                                        <h2 className="text-xl font-bold flex items-center gap-2">
+                                            <i className="fa-solid fa-terminal text-cyan-400"></i>
+                                            Slash Commands Reference
+                                        </h2>
+                                        <p className="text-sm text-zinc-500 mt-1">70+ commands at your fingertips. Type in chat to use.</p>
+                                    </div>
+                                    {/* Search box */}
+                                    <div className="relative w-full md:w-80">
+                                        <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                                        <input
+                                            type="text"
+                                            placeholder="Search commands... (e.g., nmap, weather, mcp)"
+                                            value={commandSearch}
+                                            onChange={(e) => setCommandSearch(e.target.value)}
+                                            className={`w-full pl-10 pr-4 py-2 rounded-lg border ${localSettings.theme === 'tron' ? 'bg-black border-tron-cyan/30 text-tron-cyan placeholder-tron-cyan/50' : 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500'}`}
+                                        />
+                                        {commandSearch && (
+                                            <button
+                                                onClick={() => setCommandSearch('')}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                                            >
+                                                <i className="fa-solid fa-xmark"></i>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Quick Stats */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    {[
+                                        { label: 'System', icon: 'fa-cog', count: 11, color: 'text-blue-400' },
+                                        { label: 'Recon', icon: 'fa-radar', count: 20, color: 'text-green-400' },
+                                        { label: 'Intel', icon: 'fa-user-secret', count: 12, color: 'text-purple-400' },
+                                        { label: 'Forensics', icon: 'fa-microscope', count: 10, color: 'text-red-400' },
+                                    ].map(stat => (
+                                        <div key={stat.label} className={`p-2 rounded-lg ${localSettings.theme === 'tron' ? 'bg-black/50 border border-tron-cyan/20' : 'bg-zinc-800/50'} text-center`}>
+                                            <i className={`fa-solid ${stat.icon} ${stat.color}`}></i>
+                                            <div className="text-xs text-zinc-500">{stat.label}</div>
+                                            <div className="font-bold">{stat.count}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Command Categories */}
+                                {(() => {
+                                    const allCommands = [
+                                        // SYSTEM
+                                        { cat: 'system', cmd: '/help', usage: '/help [topic]', desc: 'Show help menu or search for commands', ex: ['/help', '/help nmap', '/help mcp'], icon: 'fa-circle-question', tags: ['help', 'start'] },
+                                        { cat: 'system', cmd: '/settings', usage: '/settings', desc: 'Open settings panel', ex: ['/settings'], icon: 'fa-cog', tags: ['config'] },
+                                        { cat: 'system', cmd: '/about', usage: '/about', desc: 'About RangerPlex', ex: ['/about'], icon: 'fa-info-circle', tags: ['info'] },
+                                        { cat: 'system', cmd: '/manual', usage: '/manual', desc: 'Open documentation manual', ex: ['/manual'], icon: 'fa-book', tags: ['docs', 'help'] },
+                                        { cat: 'system', cmd: '/study', usage: '/study', desc: 'Open Study Clock (Pomodoro timer)', ex: ['/study'], icon: 'fa-clock', tags: ['focus', 'timer'] },
+                                        { cat: 'system', cmd: '/wordpress', usage: '/wordpress', desc: 'Open WordPress Command Center', ex: ['/wordpress'], icon: 'fa-wordpress', tags: ['cms', 'blog'] },
+                                        { cat: 'system', cmd: '/sys-info', usage: '/sys-info', desc: 'System diagnostics report', ex: ['/sys-info'], icon: 'fa-microchip', tags: ['diagnostics'] },
+                                        { cat: 'system', cmd: '/restart', usage: '/restart', desc: 'Restart proxy server', ex: ['/restart'], icon: 'fa-rotate-right', tags: ['server'] },
+                                        { cat: 'system', cmd: '/podcasts', usage: '/podcasts', desc: 'Open CyberSec Podcast Hub', ex: ['/podcasts', '/podcast', '/radio'], icon: 'fa-headphones', tags: ['audio', 'learning'] },
+                                        { cat: 'system', cmd: 'canvas', usage: 'canvas', desc: 'Open Canvas drawing board', ex: ['canvas'], icon: 'fa-paintbrush', tags: ['draw', 'creative'] },
+                                        { cat: 'system', cmd: '/deathstar', usage: '/deathstar', desc: '⚫ Easter egg animation', ex: ['/deathstar'], icon: 'fa-moon', tags: ['fun', 'easter'] },
+
+                                        // RECON
+                                        { cat: 'recon', cmd: '/whois', usage: '/whois <domain>', desc: 'Domain registration lookup', ex: ['/whois example.com'], icon: 'fa-id-card', tags: ['domain'] },
+                                        { cat: 'recon', cmd: '/dns', usage: '/dns <domain>', desc: 'DNS records lookup (A, MX, NS, TXT)', ex: ['/dns example.com'], icon: 'fa-server', tags: ['domain', 'records'] },
+                                        { cat: 'recon', cmd: '/subdomains', usage: '/subdomains <domain>', desc: 'Discover subdomains via crt.sh', ex: ['/subdomains example.com'], icon: 'fa-sitemap', tags: ['domain', 'enum'] },
+                                        { cat: 'recon', cmd: '/certs', usage: '/certs <domain>', desc: 'SSL certificate enumeration', ex: ['/certs example.com'], icon: 'fa-certificate', tags: ['ssl', 'domain'] },
+                                        { cat: 'recon', cmd: '/ssl', usage: '/ssl <domain>', desc: 'SSL/TLS certificate inspector', ex: ['/ssl example.com'], icon: 'fa-lock', tags: ['security'] },
+                                        { cat: 'recon', cmd: '/headers', usage: '/headers <url>', desc: 'HTTP security headers check', ex: ['/headers https://example.com'], icon: 'fa-file-code', tags: ['security', 'web'] },
+                                        { cat: 'recon', cmd: '/reverse', usage: '/reverse <ip>', desc: 'Reverse DNS lookup', ex: ['/reverse 8.8.8.8'], icon: 'fa-backward', tags: ['dns', 'ip'] },
+                                        { cat: 'recon', cmd: '/geoip', usage: '/geoip <ip>', desc: 'IP geolocation lookup', ex: ['/geoip 8.8.8.8'], icon: 'fa-location-dot', tags: ['ip', 'location'] },
+                                        { cat: 'recon', cmd: '/ipinfo', usage: '/ipinfo <ip>', desc: 'Advanced IP intelligence', ex: ['/ipinfo 8.8.8.8'], icon: 'fa-globe', tags: ['ip', 'intel'] },
+                                        { cat: 'recon', cmd: '/myip', usage: '/myip', desc: 'Your public IP address', ex: ['/myip'], icon: 'fa-wifi', tags: ['ip', 'self'] },
+                                        { cat: 'recon', cmd: '/iprecon', usage: '/iprecon <ip>', desc: 'Threat intel (VPN/Proxy detection)', ex: ['/iprecon 8.8.8.8'], icon: 'fa-shield-halved', tags: ['threat', 'ip'] },
+                                        { cat: 'recon', cmd: '/asn', usage: '/asn <ip_or_asn>', desc: 'ASN lookup and IP ranges', ex: ['/asn 8.8.8.8', '/asn AS15169'], icon: 'fa-network-wired', tags: ['network'] },
+                                        { cat: 'recon', cmd: '/mac', usage: '/mac <mac_address>', desc: 'MAC address vendor lookup', ex: ['/mac 00:1A:2B:3C:4D:5E'], icon: 'fa-ethernet', tags: ['hardware'] },
+                                        { cat: 'recon', cmd: '/trace', usage: '/trace <host>', desc: 'Traceroute to destination', ex: ['/trace example.com'], icon: 'fa-route', tags: ['network', 'path'] },
+                                        { cat: 'recon', cmd: '/ports', usage: '/ports <ip> [ports]', desc: 'Quick TCP port scan', ex: ['/ports 1.1.1.1', '/ports 10.10.10.50 22,80,443'], icon: 'fa-door-open', tags: ['scan'] },
+                                        { cat: 'recon', cmd: '/nmap', usage: '/nmap <target> [flags]', desc: 'Full Nmap scanner (CTF/authorized only)', ex: ['/nmap 10.10.10.50', '/nmap 10.10.10.50 -sV -sC'], icon: 'fa-crosshairs', tags: ['scan', 'pentest'] },
+                                        { cat: 'recon', cmd: '/profile', usage: '/profile <domain>', desc: 'Full domain profile (WHOIS+DNS+SSL+AI)', ex: ['/profile example.com'], icon: 'fa-magnifying-glass-chart', tags: ['intel', 'domain'] },
+                                        { cat: 'recon', cmd: '/reputation', usage: '/reputation <domain>', desc: 'Google Safe Browsing check', ex: ['/reputation example.com'], icon: 'fa-check-circle', tags: ['safety'] },
+                                        { cat: 'recon', cmd: '/privacy', usage: '/privacy', desc: 'Privacy fingerprinting snapshot', ex: ['/privacy'], icon: 'fa-eye-slash', tags: ['privacy'] },
+
+                                        // INTELLIGENCE
+                                        { cat: 'intel', cmd: '/sherlock', usage: '/sherlock <username>', desc: 'Username search across 12+ platforms', ex: ['/sherlock johndoe'], icon: 'fa-user-secret', tags: ['osint', 'social'] },
+                                        { cat: 'intel', cmd: '/breach', usage: '/breach <email>', desc: 'Check email in data breaches (HIBP)', ex: ['/breach user@example.com'], icon: 'fa-database', tags: ['security', 'email'] },
+                                        { cat: 'intel', cmd: '/phone', usage: '/phone <number>', desc: 'Phone number analysis', ex: ['/phone +353861234567'], icon: 'fa-phone', tags: ['osint'] },
+                                        { cat: 'intel', cmd: '/email', usage: '/email <address>', desc: 'Email validation & SMTP check', ex: ['/email user@example.com'], icon: 'fa-envelope', tags: ['validation'] },
+                                        { cat: 'intel', cmd: '/company', usage: '/company <name> [country]', desc: 'Company registry lookup', ex: ['/company Apple US', '/company Google'], icon: 'fa-building', tags: ['osint', 'business'] },
+                                        { cat: 'intel', cmd: '/shodan', usage: '/shodan <ip>', desc: 'Shodan IP exposure scan (needs API)', ex: ['/shodan 8.8.8.8'], icon: 'fa-binoculars', tags: ['security', 'vuln'] },
+                                        { cat: 'intel', cmd: '/scan', usage: '/scan <url>', desc: 'VirusTotal URL scanner', ex: ['/scan https://example.com'], icon: 'fa-virus-slash', tags: ['malware', 'safety'] },
+                                        { cat: 'intel', cmd: '/screenshot', usage: '/screenshot <url>', desc: 'Capture website screenshot', ex: ['/screenshot https://example.com'], icon: 'fa-camera', tags: ['evidence'] },
+                                        { cat: 'intel', cmd: '/wayback', usage: '/wayback <url>', desc: 'Internet Archive history', ex: ['/wayback https://example.com'], icon: 'fa-clock-rotate-left', tags: ['archive', 'history'] },
+                                        { cat: 'intel', cmd: '/news', usage: '/news <query>', desc: 'Search news articles', ex: ['/news cybersecurity'], icon: 'fa-newspaper', tags: ['osint'] },
+                                        { cat: 'intel', cmd: '/weather', usage: '/weather [city]', desc: 'Weather forecast', ex: ['/weather', '/weather Dublin'], icon: 'fa-cloud-sun', tags: ['utility'] },
+
+                                        // FORENSICS
+                                        { cat: 'forensics', cmd: '/hash', usage: '/hash <file_or_value>', desc: 'Calculate file hash (MD5/SHA)', ex: ['/hash /path/to/file'], icon: 'fa-fingerprint', tags: ['integrity'] },
+                                        { cat: 'forensics', cmd: '/metadata', usage: '/metadata <file>', desc: 'Extract file metadata', ex: ['/metadata /path/to/doc.pdf'], icon: 'fa-file-lines', tags: ['analysis'] },
+                                        { cat: 'forensics', cmd: '/exif', usage: '/exif <image>', desc: 'Extract EXIF data from image', ex: ['/exif /path/to/photo.jpg'], icon: 'fa-image', tags: ['image'] },
+                                        { cat: 'forensics', cmd: '/timeline', usage: '/timeline <file>', desc: 'Generate file timeline', ex: ['/timeline /path/to/file'], icon: 'fa-timeline', tags: ['analysis'] },
+                                        { cat: 'forensics', cmd: '/strings', usage: '/strings <file>', desc: 'Extract readable strings', ex: ['/strings /path/to/binary'], icon: 'fa-font', tags: ['analysis'] },
+                                        { cat: 'forensics', cmd: '/grep', usage: '/grep <pattern> <file>', desc: 'Pattern search in file', ex: ['/grep password config.txt'], icon: 'fa-magnifying-glass', tags: ['search'] },
+                                        { cat: 'forensics', cmd: '/custody', usage: '/custody <action>', desc: 'Chain of custody management', ex: ['/custody-create', '/custody-update', '/custody-verify'], icon: 'fa-link', tags: ['evidence', 'legal'] },
+
+                                        // MALWARE
+                                        { cat: 'malware', cmd: '/malware-hash', usage: '/malware-hash <file>', desc: 'Multi-hash report (MD5/SHA1/SHA256)', ex: ['/malware-hash /path/to/sample'], icon: 'fa-skull-crossbones', tags: ['analysis'] },
+                                        { cat: 'malware', cmd: '/malware-strings', usage: '/malware-strings <file>', desc: 'Extract strings & IOCs', ex: ['/malware-strings /path/to/sample'], icon: 'fa-bug', tags: ['analysis'] },
+                                        { cat: 'malware', cmd: '/malware-entropy', usage: '/malware-entropy <file>', desc: 'Calculate file entropy (packing detection)', ex: ['/malware-entropy /path/to/sample'], icon: 'fa-chart-line', tags: ['analysis'] },
+                                        { cat: 'malware', cmd: '/hexdump', usage: '/hexdump <file>', desc: 'Hex dump of file', ex: ['/hexdump /path/to/binary'], icon: 'fa-code', tags: ['analysis'] },
+                                        { cat: 'malware', cmd: '/ioc-extract', usage: '/ioc-extract <file>', desc: 'Extract IOCs (IPs, URLs, hashes)', ex: ['/ioc-extract /path/to/sample'], icon: 'fa-shield-virus', tags: ['threat'] },
+                                        { cat: 'malware', cmd: '/malware-pe', usage: '/malware-pe <file>', desc: 'PE header analysis (Windows)', ex: ['/malware-pe /path/to/exe'], icon: 'fa-windows', tags: ['binary'] },
+                                        { cat: 'malware', cmd: '/malware-elf', usage: '/malware-elf <file>', desc: 'ELF header analysis (Linux)', ex: ['/malware-elf /path/to/binary'], icon: 'fa-linux', tags: ['binary'] },
+                                        { cat: 'malware', cmd: '/vm-start', usage: '/vm-start <vm>', desc: 'Start analysis VM', ex: ['/vm-start kali'], icon: 'fa-play', tags: ['vm'] },
+                                        { cat: 'malware', cmd: '/msf', usage: '/msf <command>', desc: 'Metasploit command (to Kali)', ex: ['/msf db_nmap -sV 10.10.10.50'], icon: 'fa-terminal', tags: ['pentest'] },
+
+                                        // CRYPTO
+                                        { cat: 'crypto', cmd: '/crypto', usage: '/crypto <symbol>', desc: 'Cryptocurrency price lookup', ex: ['/crypto btc', '/crypto eth'], icon: 'fa-bitcoin-sign', tags: ['price', 'market'] },
+                                        { cat: 'crypto', cmd: '/wallet', usage: '/wallet <btc_address>', desc: 'Bitcoin wallet inspector', ex: ['/wallet 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'], icon: 'fa-wallet', tags: ['blockchain'] },
+
+                                        // SEARCH & AI
+                                        { cat: 'search', cmd: '/perplexity', usage: '/perplexity <query>', desc: 'AI-powered web search (Sonar)', ex: ['/perplexity best M3 Pro price', '/perplexity latest AI news'], icon: 'fa-brain', tags: ['ai', 'web'] },
+                                        { cat: 'search', cmd: '/ducky', usage: '/ducky <query>', desc: 'DuckDuckGo search via MCP', ex: ['/ducky weather Dublin', '/ducky programming tips'], icon: 'fa-duck', tags: ['web'] },
+                                        { cat: 'search', cmd: '/imagine', usage: '/imagine <prompt>', desc: 'Generate AI images (DALL-E 3)', ex: ['/imagine cyberpunk fox', '/imagine sunset Dublin'], icon: 'fa-wand-magic-sparkles', tags: ['creative', 'ai'] },
+
+                                        // MCP
+                                        { cat: 'mcp', cmd: '/mcp-tools', usage: '/mcp-tools', desc: 'List available MCP tools', ex: ['/mcp-tools'], icon: 'fa-toolbox', tags: ['docker'] },
+                                        { cat: 'mcp', cmd: '/mcp-commands', usage: '/mcp-commands', desc: 'MCP cheat sheet', ex: ['/mcp-commands'], icon: 'fa-list-check', tags: ['help'] },
+                                        { cat: 'mcp', cmd: '/mcp-<tool>', usage: '/mcp-<tool> [input]', desc: 'Call any MCP tool directly', ex: ['/mcp-brave_web_search AI news', '/mcp-fetch https://example.com'], icon: 'fa-plug', tags: ['docker', 'tools'] },
+
+                                        // FUN
+                                        { cat: 'fun', cmd: '/chuck', usage: '/chuck', desc: 'Random Chuck Norris fact', ex: ['/chuck'], icon: 'fa-hand-fist', tags: ['joke'] },
+                                        { cat: 'fun', cmd: '/joke', usage: '/joke', desc: 'Random programming joke', ex: ['/joke'], icon: 'fa-face-laugh-beam', tags: ['humor'] },
+                                        { cat: 'fun', cmd: '/bible', usage: '/bible [verse]', desc: 'Bible verse lookup', ex: ['/bible', '/bible John 3:16'], icon: 'fa-book-bible', tags: ['spiritual'] },
+                                    ];
+
+                                    const categories = [
+                                        { id: 'system', name: 'System & UI', icon: 'fa-cog', color: 'text-blue-400', desc: 'App controls, settings, utilities' },
+                                        { id: 'recon', name: 'Reconnaissance', icon: 'fa-radar', color: 'text-green-400', desc: 'Domain, IP, network scanning' },
+                                        { id: 'intel', name: 'Intelligence', icon: 'fa-user-secret', color: 'text-purple-400', desc: 'OSINT, people, threats' },
+                                        { id: 'forensics', name: 'Forensics', icon: 'fa-microscope', color: 'text-red-400', desc: 'File analysis, evidence' },
+                                        { id: 'malware', name: 'Malware Analysis', icon: 'fa-virus', color: 'text-orange-400', desc: 'Binary analysis, VMs' },
+                                        { id: 'crypto', name: 'Cryptocurrency', icon: 'fa-bitcoin-sign', color: 'text-yellow-400', desc: 'Prices, wallets' },
+                                        { id: 'search', name: 'Search & AI', icon: 'fa-brain', color: 'text-cyan-400', desc: 'Web search, image gen' },
+                                        { id: 'mcp', name: 'MCP Tools', icon: 'fa-docker', color: 'text-sky-400', desc: 'Docker MCP gateway' },
+                                        { id: 'fun', name: 'Fun & Easter Eggs', icon: 'fa-gamepad', color: 'text-pink-400', desc: 'Jokes, surprises' },
+                                    ];
+
+                                    const q = commandSearch.toLowerCase();
+                                    const filteredCommands = q
+                                        ? allCommands.filter(c =>
+                                            c.cmd.toLowerCase().includes(q) ||
+                                            c.desc.toLowerCase().includes(q) ||
+                                            c.tags.some(t => t.includes(q)) ||
+                                            c.ex.some(e => e.toLowerCase().includes(q))
+                                        )
+                                        : allCommands;
+
+                                    const toggleCategory = (catId: string) => {
+                                        setExpandedCategories(prev => {
+                                            const next = new Set(prev);
+                                            if (next.has(catId)) next.delete(catId);
+                                            else next.add(catId);
+                                            return next;
+                                        });
+                                    };
+
+                                    const copyCommand = (cmd: string) => {
+                                        navigator.clipboard.writeText(cmd);
+                                    };
+
+                                    return (
+                                        <div className="space-y-3 mt-4">
+                                            {categories.map(cat => {
+                                                const catCommands = filteredCommands.filter(c => c.cat === cat.id);
+                                                if (catCommands.length === 0) return null;
+                                                const isExpanded = expandedCategories.has(cat.id) || !!commandSearch;
+
+                                                return (
+                                                    <div key={cat.id} className={`rounded-lg border ${localSettings.theme === 'tron' ? 'border-tron-cyan/30 bg-black/30' : 'border-zinc-700 bg-zinc-800/30'}`}>
+                                                        {/* Category Header */}
+                                                        <button
+                                                            onClick={() => toggleCategory(cat.id)}
+                                                            className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors rounded-t-lg"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <i className={`fa-solid ${cat.icon} ${cat.color} w-5`}></i>
+                                                                <span className="font-bold">{cat.name}</span>
+                                                                <span className="text-xs text-zinc-500">({catCommands.length})</span>
+                                                                <span className="text-xs text-zinc-600 hidden md:inline">— {cat.desc}</span>
+                                                            </div>
+                                                            <i className={`fa-solid fa-chevron-${isExpanded ? 'up' : 'down'} text-zinc-500`}></i>
+                                                        </button>
+
+                                                        {/* Commands */}
+                                                        {isExpanded && (
+                                                            <div className="border-t border-inherit">
+                                                                {catCommands.map((c, idx) => (
+                                                                    <div
+                                                                        key={c.cmd}
+                                                                        className={`p-3 ${idx > 0 ? 'border-t border-inherit' : ''} hover:bg-white/5 transition-colors group`}
+                                                                    >
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                                    <code className={`px-2 py-0.5 rounded text-sm font-mono ${localSettings.theme === 'tron' ? 'bg-tron-cyan/20 text-tron-cyan' : 'bg-cyan-900/50 text-cyan-300'}`}>
+                                                                                        {c.cmd}
+                                                                                    </code>
+                                                                                    {c.tags.slice(0, 2).map(tag => (
+                                                                                        <span key={tag} className="px-1.5 py-0.5 text-[10px] rounded bg-zinc-700 text-zinc-400">
+                                                                                            {tag}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                                <p className="text-sm text-zinc-400 mt-1">{c.desc}</p>
+                                                                                <div className="text-xs text-zinc-600 mt-1">
+                                                                                    <span className="text-zinc-500">Usage:</span> <code className="text-zinc-400">{c.usage}</code>
+                                                                                </div>
+                                                                                <div className="text-xs text-zinc-600 mt-0.5">
+                                                                                    <span className="text-zinc-500">Examples:</span>{' '}
+                                                                                    {c.ex.map((ex, i) => (
+                                                                                        <span key={ex}>
+                                                                                            <code
+                                                                                                className="text-emerald-400/70 cursor-pointer hover:text-emerald-300"
+                                                                                                onClick={() => copyCommand(ex)}
+                                                                                                title="Click to copy"
+                                                                                            >
+                                                                                                {ex}
+                                                                                            </code>
+                                                                                            {i < c.ex.length - 1 && ', '}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                            <button
+                                                                                onClick={() => copyCommand(c.cmd)}
+                                                                                className="opacity-0 group-hover:opacity-100 px-2 py-1 text-xs bg-zinc-700 hover:bg-zinc-600 rounded transition-all"
+                                                                                title="Copy command"
+                                                                            >
+                                                                                <i className="fa-solid fa-copy"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+
+                                            {filteredCommands.length === 0 && (
+                                                <div className="text-center py-8 text-zinc-500">
+                                                    <i className="fa-solid fa-search text-3xl mb-2"></i>
+                                                    <p>No commands found for "{commandSearch}"</p>
+                                                    <p className="text-xs mt-1">Try: nmap, weather, mcp, sherlock, hash</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Pro Tips */}
+                                <div className={`mt-6 p-4 rounded-lg ${localSettings.theme === 'tron' ? 'bg-tron-cyan/10 border border-tron-cyan/30' : 'bg-gradient-to-r from-cyan-900/30 to-purple-900/30 border border-cyan-700/30'}`}>
+                                    <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
+                                        <i className="fa-solid fa-lightbulb text-yellow-400"></i>
+                                        Pro Tips
+                                    </h3>
+                                    <ul className="text-xs text-zinc-400 space-y-1">
+                                        <li>• Type <code className="text-cyan-400">/help &lt;topic&gt;</code> in chat for quick help</li>
+                                        <li>• Click any example to copy it to clipboard</li>
+                                        <li>• Commands starting with <code className="text-cyan-400">/nmap</code> or <code className="text-cyan-400">/shodan</code> require authorization</li>
+                                        <li>• Use <code className="text-cyan-400">/mcp-tools</code> to discover 30+ Docker MCP tools</li>
+                                        <li>• Chain commands for comprehensive investigations</li>
+                                    </ul>
                                 </div>
                             </div>
                         )}

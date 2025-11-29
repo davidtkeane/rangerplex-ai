@@ -38,7 +38,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const VERSION = '2.13.8';
+const VERSION = '2.13.9';
 const PORT = 3000;
 const startDockerDesktop = async () => {
     const platform = process.platform;
