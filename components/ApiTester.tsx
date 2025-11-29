@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiTestingService, TestResult } from '../../services/apiTestingService';
+import { apiTestingService, TestResult } from '../services/apiTestingService';
 
 interface ApiTesterProps {
     isOpen: boolean;
