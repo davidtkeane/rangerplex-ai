@@ -346,9 +346,10 @@ interface RadioPlayerProps {
   onSettingsChange: (updates: Partial<AppSettings>) => void;
   theme: 'dark' | 'light' | 'tron';
   externalToggleSignal?: number; // toggles play/pause when changed
+  bottomOffset?: number; // Offset from bottom (e.g. for RSS ticker)
 }
 
-const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, theme, externalToggleSignal }) => {
+const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, theme, externalToggleSignal, bottomOffset = 0 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -569,9 +570,12 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
       {/* Floating Radio Player */}
       <div
-        className={`fixed bottom-4 right-4 rounded-lg border-2 backdrop-blur-sm z-50 transition-all duration-300 ${containerClass} ${isMinimized ? 'w-64' : 'w-80'
+        className={`fixed right-4 rounded-lg border-2 backdrop-blur-sm z-50 transition-all duration-300 ${containerClass} ${isMinimized ? 'w-64' : 'w-80'
           }`}
-        style={{ maxHeight: isMinimized ? '70px' : '280px' }}
+        style={{
+          maxHeight: isMinimized ? '70px' : '280px',
+          bottom: `${16 + bottomOffset}px` // 16px is the default bottom-4
+        }}
       >
         {/* Header */}
         <div

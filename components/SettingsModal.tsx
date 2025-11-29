@@ -17,6 +17,10 @@ import AliasManager from './AliasManager';
 import { WeatherTester } from './Weather/WeatherTester';
 import { ApiTester } from './ApiTester';
 import CyberSecPodcast from './CyberSecPodcast';
+import { RSSFeedManager } from './RSSFeedManager';
+import { rssService } from '../services/rssService';
+import type { RSSSettings } from '../types/rss';
+import { DEFAULT_RSS_SETTINGS } from '../types/rss';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -30,6 +34,7 @@ interface SettingsModalProps {
     onExportChat?: (session: any) => void;
     onExportAll?: () => void;
     onPurgeAll?: () => void;
+    initialTab?: string;
 }
 
 const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, inputClass }: any) => (
@@ -53,9 +58,9 @@ const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, 
     </div>
 );
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll, initialTab }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
 
     // Window mode state (normal, fullscreen, minimized)
@@ -93,6 +98,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
     // Advanced Weather Tester State
     const [weatherTester, setWeatherTester] = useState<{ isOpen: boolean; provider: 'openweather' | 'tomorrow' | 'visualcrossing' | 'openmeteo'; apiKey: string } | null>(null);
+
+    // RSS State
+    const [rssSettings, setRssSettings] = useState<RSSSettings>(DEFAULT_RSS_SETTINGS);
+    const [showFeedManager, setShowFeedManager] = useState(false);
 
     // Generic API Tester State
     const [apiTester, setApiTester] = useState<{
@@ -326,6 +335,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     useEffect(() => {
         if (isOpen) {
             setLocalSettings(settings);
+            if (initialTab) {
+                setActiveTab(initialTab as any);
+            }
             checkProxyStatus();
             if (settings.elevenLabsApiKey) loadVoices(settings.elevenLabsApiKey);
 
@@ -346,6 +358,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             if (activeTab === 'rangerblock') {
                 loadBlockchainStatus();
                 loadBlockchainConfig();
+            }
+
+            // Load RSS settings when opening RSS tab
+            if (activeTab === 'rss') {
+                loadRssSettings();
             }
         }
     }, [settings, isOpen, activeTab]);
@@ -375,6 +392,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             }
         } catch (error) {
             console.error('Failed to load blockchain config:', error);
+        }
+    };
+
+    // Load RSS settings
+    const loadRssSettings = async () => {
+        try {
+            const settings = await rssService.loadSettings();
+            setRssSettings(settings);
+        } catch (error) {
+            console.error('Failed to load RSS settings:', error);
         }
     };
 
@@ -883,7 +910,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                     {/* Tabs */}
                     <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                        {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'council', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
+                        {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -2134,6 +2161,211 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         ))}
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* RSS TAB */}
+                        {activeTab === 'rss' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h3 className="text-lg font-bold mb-1">📡 RSS News Ticker</h3>
+                                        <p className="text-sm opacity-70">Configure live news feeds and ticker settings</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowFeedManager(!showFeedManager)}
+                                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-medium transition-colors"
+                                    >
+                                        {showFeedManager ? 'Hide' : 'Manage Feeds'}
+                                    </button>
+                                </div>
+
+                                {showFeedManager ? (
+                                    <RSSFeedManager onClose={() => setShowFeedManager(false)} />
+                                ) : (
+                                    <div className="space-y-6">
+                                        {/* Enable Ticker */}
+                                        <div className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg">
+                                            <div>
+                                                <div className="font-bold">Enable RSS Ticker</div>
+                                                <div className="text-sm opacity-70">Show live news ticker below chat</div>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={rssSettings.enabled}
+                                                    onChange={(e) => {
+                                                        const newSettings = { ...rssSettings, enabled: e.target.checked };
+                                                        setRssSettings(newSettings);
+                                                        rssService.saveSettings(newSettings);
+                                                    }}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                                            </label>
+                                        </div>
+
+                                        {/* Ticker Speed */}
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2">
+                                                Ticker Speed: {rssSettings.speed}
+                                            </label>
+                                            <input
+                                                type="range"
+                                                min="1"
+                                                max="10"
+                                                value={rssSettings.speed}
+                                                onChange={(e) => {
+                                                    const newSettings = { ...rssSettings, speed: parseInt(e.target.value) };
+                                                    setRssSettings(newSettings);
+                                                    rssService.saveSettings(newSettings);
+                                                }}
+                                                className="w-full"
+                                            />
+                                            <div className="flex justify-between text-xs opacity-50 mt-1">
+                                                <span>Slow</span>
+                                                <span>Fast</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Ticker Height */}
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2">Ticker Height</label>
+                                            <select
+                                                value={rssSettings.height}
+                                                onChange={(e) => {
+                                                    const newSettings = { ...rssSettings, height: e.target.value as any };
+                                                    setRssSettings(newSettings);
+                                                    rssService.saveSettings(newSettings);
+                                                }}
+                                                className={inputClass}
+                                            >
+                                                <option value="small">Small (32px)</option>
+                                                <option value="medium">Medium (40px)</option>
+                                                <option value="large">Large (48px)</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Feed Order */}
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2">Feed Order</label>
+                                            <select
+                                                value={rssSettings.feedOrder || 'newest'}
+                                                onChange={(e) => {
+                                                    const newSettings = { ...rssSettings, feedOrder: e.target.value as any };
+                                                    setRssSettings(newSettings);
+                                                    rssService.saveSettings(newSettings);
+                                                }}
+                                                className={inputClass}
+                                            >
+                                                <option value="newest">Newest First (Default)</option>
+                                                <option value="random">Random Shuffle</option>
+                                                <option value="category">Group by Topic</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Auto-refresh Interval */}
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2">Auto-refresh Interval</label>
+                                            <select
+                                                value={rssSettings.autoRefreshInterval}
+                                                onChange={(e) => {
+                                                    const newSettings = { ...rssSettings, autoRefreshInterval: parseInt(e.target.value) };
+                                                    setRssSettings(newSettings);
+                                                    rssService.saveSettings(newSettings);
+                                                }}
+                                                className={inputClass}
+                                            >
+                                                <option value="5">5 minutes</option>
+                                                <option value="10">10 minutes</option>
+                                                <option value="15">15 minutes</option>
+                                                <option value="30">30 minutes</option>
+                                                <option value="60">1 hour</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Show Category Badges */}
+                                        <div className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg">
+                                            <div>
+                                                <div className="font-bold">Show Category Badges</div>
+                                                <div className="text-sm opacity-70">Display colored badges for each category</div>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={rssSettings.showCategoryBadges}
+                                                    onChange={(e) => {
+                                                        const newSettings = { ...rssSettings, showCategoryBadges: e.target.checked };
+                                                        setRssSettings(newSettings);
+                                                        rssService.saveSettings(newSettings);
+                                                    }}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                                            </label>
+                                        </div>
+
+                                        {/* Pause on Hover */}
+                                        <div className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg">
+                                            <div>
+                                                <div className="font-bold">Pause on Hover</div>
+                                                <div className="text-sm opacity-70">Pause ticker when mouse hovers over it</div>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={rssSettings.pauseOnHover}
+                                                    onChange={(e) => {
+                                                        const newSettings = { ...rssSettings, pauseOnHover: e.target.checked };
+                                                        setRssSettings(newSettings);
+                                                        rssService.saveSettings(newSettings);
+                                                    }}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                                            </label>
+                                        </div>
+
+                                        {/* Max Headlines */}
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2">Max Headlines</label>
+                                            <select
+                                                value={rssSettings.maxHeadlines}
+                                                onChange={(e) => {
+                                                    const newSettings = { ...rssSettings, maxHeadlines: parseInt(e.target.value) };
+                                                    setRssSettings(newSettings);
+                                                    rssService.saveSettings(newSettings);
+                                                }}
+                                                className={inputClass}
+                                            >
+                                                <option value="10">10 headlines</option>
+                                                <option value="25">25 headlines</option>
+                                                <option value="50">50 headlines</option>
+                                                <option value="100">100 headlines</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Initialize Default Feeds */}
+                                        <div className="pt-4 border-t border-zinc-700">
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await rssService.initializeDefaultFeeds();
+                                                        alert('✅ Default feeds initialized! (120 feeds)\n\nGo to "Manage Feeds" to see them.');
+                                                    } catch (error) {
+                                                        alert('❌ Failed to initialize feeds: ' + (error as Error).message);
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-3 bg-green-600 hover:bg-green-500 text-white rounded font-medium transition-colors"
+                                            >
+                                                Initialize Default Feeds (120 feeds)
+                                            </button>
+                                            <p className="text-xs opacity-50 mt-2 text-center">
+                                                This will add all pre-configured RSS feeds if not already added
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

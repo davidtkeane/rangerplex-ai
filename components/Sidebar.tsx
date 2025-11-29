@@ -30,6 +30,8 @@ interface SidebarProps {
     onOpenBrowser?: () => void;
     onOpenWeather?: () => void;
     onOpenPodcast?: () => void;
+    onToggleRss?: () => void;
+    isRssEnabled?: boolean;
     onLock: () => void;
     onOpenVisionMode: () => void;
     toggleSidebar: () => void;
@@ -72,14 +74,17 @@ const Sidebar: React.FC<SidebarProps> = ({
     onOpenBrowser,
     onOpenWeather,
     onOpenPodcast,
+    onToggleRss,
+    isRssEnabled,
     onLock,
     onOpenVisionMode,
     toggleSidebar,
     onToggleTerminal,
     isTerminalOpen,
     onShowChats,
-    petBridge,
+    petBridge
 }) => {
+
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState<string>('');
     const [burst, setBurst] = useState<{ id: string, visible: boolean }>({ id: '', visible: false });
@@ -383,6 +388,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         )}
 
+                        {/* RSS Ticker Toggle - Hidden in compact mode */}
+                        {!isCompactMode && onToggleRss && (
+                            <button
+                                onClick={onToggleRss}
+                                title={isRssEnabled ? "Disable RSS Ticker" : "Enable RSS Ticker"}
+                                className={`flex flex-col items-center justify-center p-2 rounded transition-all ${isTron ? 'hover:bg-tron-cyan/10 text-tron-cyan/70 hover:text-tron-cyan' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-400'} ${isRssEnabled ? (isTron ? 'text-tron-cyan bg-tron-cyan/10' : 'text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20') : ''}`}
+                            >
+                                <i className={`fa-solid fa-rss text-lg mb-1 ${isRssEnabled ? 'animate-pulse' : ''}`}></i>
+                                <span className="text-[9px] uppercase tracking-wide">RSS</span>
+                            </button>
+                        )}
+
+
                         {/* Terminal - Hidden in compact mode */}
                         {!isCompactMode && onToggleTerminal && (
                             <button
@@ -460,7 +478,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     )}
                     <div className={`text-[10px] flex items-center justify-center gap-2 ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>
-                        <span>v2.13.0 // Podcast Hub 🎧</span>
+                        <span>v2.13.4 // RSS & UI Polish 📡</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText('bc1q3jvxvhqt7u7qnnjjv5jtkh7wsgg9nrgk3hgsce');

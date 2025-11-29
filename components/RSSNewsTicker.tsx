@@ -1,0 +1,226 @@
+// 🎖️ RangerPlex RSS News Ticker Component
+// TV-style scrolling news ticker
+
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { rssService } from '../services/rssService';
+import type { RSSItem, RSSSettings } from '../types/rss';
+import { RSS_CATEGORIES } from '../types/rss';
+
+interface RSSNewsTickerProps {
+    settings: RSSSettings;
+    onItemClick: (item: RSSItem) => void;
+    onSettingsClick: () => void;
+}
+
+export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
+    settings,
+    onItemClick,
+    onSettingsClick,
+}) => {
+    const [items, setItems] = useState<RSSItem[]>([]);
+    const [isPaused, setIsPaused] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [duration, setDuration] = useState(0);
+    const tickerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    // Fetch RSS items
+    useEffect(() => {
+        const fetchItems = async () => {
+            try {
+                setIsLoading(true);
+                const allItems = await rssService.fetchAllFeeds();
+
+                // Filter by enabled categories
+                let processedItems = allItems.filter(item =>
+                    settings.enabledCategories.includes(item.category)
+                );
+
+                // Apply sorting/ordering
+                if (settings.feedOrder === 'random') {
+                    // Fisher-Yates shuffle
+                    for (let i = processedItems.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [processedItems[i], processedItems[j]] = [processedItems[j], processedItems[i]];
+                    }
+                } else if (settings.feedOrder === 'category') {
+                    // Sort by category, then date
+                    processedItems.sort((a, b) => {
+                        if (a.category !== b.category) {
+                            return a.category.localeCompare(b.category);
+                        }
+                        return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+                    });
+                } else {
+                    // Default: newest first
+                    processedItems.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+                }
+
+                // Limit to max headlines
+                const limited = processedItems.slice(0, settings.maxHeadlines);
+
+                setItems(limited);
+            } catch (error) {
+                console.error('Failed to fetch RSS items:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchItems();
+
+        // Auto-refresh on interval
+        const intervalMs = settings.autoRefreshInterval * 60 * 1000;
+        const interval = setInterval(fetchItems, intervalMs);
+
+        return () => clearInterval(interval);
+    }, [settings.enabledCategories, settings.maxHeadlines, settings.autoRefreshInterval, settings.feedOrder]);
+
+    // Measure content width and set animation duration for constant speed
+    useLayoutEffect(() => {
+        if (contentRef.current && items.length > 0) {
+            const totalWidth = contentRef.current.scrollWidth;
+            const halfWidth = totalWidth / 2; // We scroll half the width (one set of items)
+            const speed = settings.speed * 30; // Adjust multiplier for reasonable speed (pixels per second)
+            const newDuration = halfWidth / speed;
+            setDuration(newDuration);
+        }
+    }, [items, settings.speed]);
+
+    // Handle item click
+    const handleItemClick = async (item: RSSItem) => {
+        await rssService.markAsRead(item.id);
+        onItemClick(item);
+    };
+
+    // Calculate ticker height
+    const getHeight = () => {
+        switch (settings.height) {
+            case 'small': return '32px';
+            case 'large': return '48px';
+            default: return '40px';
+        }
+    };
+
+    if (!settings.enabled) {
+        return null;
+    }
+
+    if (isLoading) {
+        return (
+            <div
+                className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-zinc-800 flex items-center justify-center"
+                style={{ height: getHeight() }}
+            >
+                <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                    <div className="animate-spin"><i className="fa-solid fa-circle-notch"></i></div>
+                    <span>Loading Feeds...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (items.length === 0) {
+        return (
+            <div
+                className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-zinc-800 flex items-center justify-between px-4"
+                style={{ height: getHeight() }}
+            >
+                <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                    <i className="fa-solid fa-triangle-exclamation"></i>
+                    <span>No RSS items available</span>
+                </div>
+                <button
+                    onClick={onSettingsClick}
+                    className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded transition-colors border border-zinc-700"
+                >
+                    Configure
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-zinc-800 overflow-hidden select-none"
+            style={{ height: getHeight() }}
+            onMouseEnter={() => settings.pauseOnHover && setIsPaused(true)}
+            onMouseLeave={() => settings.pauseOnHover && setIsPaused(false)}
+        >
+            <div className="relative h-full flex items-center">
+                {/* Live indicator (Neutral) */}
+                <div className="absolute left-0 top-0 bottom-0 flex items-center px-3 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-pulse" />
+                        <span className="text-zinc-500 font-bold text-[10px] tracking-wider">RSS</span>
+                    </div>
+                </div>
+
+                {/* Settings button (Neutral) */}
+                <button
+                    onClick={onSettingsClick}
+                    className="absolute right-0 top-0 bottom-0 px-3 bg-gradient-to-l from-black to-transparent z-10 hover:text-zinc-300 text-zinc-600 transition-colors"
+                    title="RSS Settings"
+                >
+                    <i className="fa-solid fa-gear text-sm" />
+                </button>
+
+                {/* Scrolling ticker */}
+                <div
+                    ref={tickerRef}
+                    className="absolute left-0 right-0 flex items-center whitespace-nowrap will-change-transform"
+                >
+                    <div
+                        ref={contentRef}
+                        className="flex items-center"
+                        style={{
+                            animation: (isPaused || duration === 0) ? 'none' : `scroll-left ${duration}s linear infinite`,
+                        }}
+                    >
+                        {/* Duplicate items for seamless loop */}
+                        {[...items, ...items].map((item, index) => (
+                            <div
+                                key={`${item.id}-${index}`}
+                                className="inline-flex items-center gap-3 px-6 cursor-pointer group"
+                                onClick={() => handleItemClick(item)}
+                            >
+                                {/* Category badge (Neutral) */}
+                                {settings.showCategoryBadges && (
+                                    <span
+                                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${RSS_CATEGORIES[item.category].badgeColor}`}
+                                        title={RSS_CATEGORIES[item.category].name}
+                                    >
+                                        <i className={`${RSS_CATEGORIES[item.category].icon} mr-1`}></i>
+                                        {item.category}
+                                    </span>
+                                )}
+
+                                {/* Headline */}
+                                <span className="text-zinc-400 text-sm font-medium group-hover:text-zinc-200 transition-colors">
+                                    {item.title}
+                                </span>
+
+                                {/* Separator */}
+                                <span className="text-zinc-800 text-xs">●</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* CSS Animation */}
+            <style>{`
+        @keyframes scroll-left {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
+        </div>
+    );
+};
+
+export default RSSNewsTicker;

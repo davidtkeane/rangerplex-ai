@@ -204,9 +204,10 @@ const CATEGORIES = [
 
 interface CyberSecPodcastProps {
   settings: AppSettings;
+  bottomOffset?: number; // Offset from bottom (e.g. for RSS ticker)
 }
 
-const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
+const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings, bottomOffset = 0 }) => {
   const theme = settings.theme || 'dark';
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -279,7 +280,7 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
     items.forEach((item, index) => {
       const title = item.querySelector('title')?.textContent || `Episode ${index + 1}`;
       const description = item.querySelector('description')?.textContent ||
-                         item.querySelector('itunes\\:summary')?.textContent || '';
+        item.querySelector('itunes\\:summary')?.textContent || '';
       const enclosure = item.querySelector('enclosure');
       const audioUrl = enclosure?.getAttribute('url') || '';
       const pubDate = item.querySelector('pubDate')?.textContent || '';
@@ -586,11 +587,10 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
               onClick={refreshCurrentFeed}
               disabled={isRefreshing || loadingFeed}
               title={lastRefreshed ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()}` : 'Refresh podcast feed'}
-              className={`px-3 py-2 rounded-lg text-sm font-bold mr-3 transition-all ${
-                isTron
+              className={`px-3 py-2 rounded-lg text-sm font-bold mr-3 transition-all ${isTron
                   ? 'bg-tron-cyan/20 text-tron-cyan hover:bg-tron-cyan/30 border border-tron-cyan/50'
                   : 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 border border-teal-500/50'
-              } ${(isRefreshing || loadingFeed) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(isRefreshing || loadingFeed) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <i className={`fa-solid fa-sync ${isRefreshing ? 'fa-spin' : ''} mr-2`}></i>
               Refresh
@@ -600,22 +600,20 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
           <div className={`flex rounded-lg overflow-hidden border ${isTron ? 'border-tron-cyan' : 'border-zinc-600'}`}>
             <button
               onClick={() => setActiveTab('audio')}
-              className={`px-4 py-2 text-sm font-bold flex items-center gap-2 transition-all ${
-                activeTab === 'audio'
+              className={`px-4 py-2 text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'audio'
                   ? isTron ? 'bg-tron-cyan text-black' : 'bg-teal-500 text-white'
                   : isTron ? 'bg-black/50 text-tron-cyan hover:bg-tron-cyan/20' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-              }`}
+                }`}
             >
               <i className="fa-solid fa-headphones"></i>
               Audio
             </button>
             <button
               onClick={() => setActiveTab('video')}
-              className={`px-4 py-2 text-sm font-bold flex items-center gap-2 transition-all ${
-                activeTab === 'video'
+              className={`px-4 py-2 text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'video'
                   ? isTron ? 'bg-tron-cyan text-black' : 'bg-teal-500 text-white'
                   : isTron ? 'bg-black/50 text-tron-cyan hover:bg-tron-cyan/20' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-              }`}
+                }`}
             >
               <i className="fa-solid fa-video"></i>
               Video
@@ -630,8 +628,7 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
-                  selectedCategory === cat.id
+                className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${selectedCategory === cat.id
                     ? isTron
                       ? 'bg-tron-cyan text-black'
                       : 'bg-teal-500 text-white'
@@ -640,7 +637,7 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
                       : isDark
                         ? 'bg-zinc-800 border border-zinc-600 hover:bg-zinc-700'
                         : 'bg-gray-100 border border-gray-300 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <i className={`fa-solid ${cat.icon}`}></i>
                 {cat.label}
@@ -657,8 +654,7 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
                 <button
                   key={channel.id}
                   onClick={() => setSelectedYoutubeCategory(channel.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
-                    selectedYoutubeCategory === channel.id
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${selectedYoutubeCategory === channel.id
                       ? isTron
                         ? 'bg-tron-cyan text-black'
                         : 'bg-red-500 text-white'
@@ -667,7 +663,7 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
                         : isDark
                           ? 'bg-zinc-800 border border-zinc-600 hover:bg-zinc-700'
                           : 'bg-gray-100 border border-gray-300 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   <i className={`fa-solid ${channel.icon}`}></i>
                   {channel.label}
@@ -681,19 +677,17 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
                 value={youtubeSearchQuery}
                 onChange={(e) => setYoutubeSearchQuery(e.target.value)}
                 placeholder="Search cybersecurity videos..."
-                className={`flex-1 px-3 py-2 rounded-lg text-sm ${
-                  isTron
+                className={`flex-1 px-3 py-2 rounded-lg text-sm ${isTron
                     ? 'bg-black border border-tron-cyan/50 text-tron-cyan placeholder:text-tron-cyan/40'
                     : isDark
                       ? 'bg-zinc-800 border border-zinc-600 text-white placeholder:text-zinc-500'
                       : 'bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400'
-                }`}
+                  }`}
               />
               <button
                 type="submit"
-                className={`px-4 py-2 rounded-lg font-bold text-sm ${
-                  isTron ? 'bg-tron-cyan text-black' : 'bg-red-500 text-white'
-                }`}
+                className={`px-4 py-2 rounded-lg font-bold text-sm ${isTron ? 'bg-tron-cyan text-black' : 'bg-red-500 text-white'
+                  }`}
               >
                 <i className="fa-solid fa-search"></i>
               </button>
@@ -708,94 +702,91 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
           {/* Podcast list */}
           <div className="w-1/3 border-r border-inherit overflow-y-auto p-3 space-y-2">
             <h3 className="text-sm font-bold mb-2 opacity-70">Podcasts</h3>
-          {filteredPodcasts.map(podcast => (
-            <button
-              key={podcast.id}
-              onClick={() => fetchPodcastFeed(podcast)}
-              className={`w-full p-3 rounded-lg border text-left transition-all ${cardClass} ${
-                selectedPodcast?.id === podcast.id ? 'ring-2 ring-teal-500' : ''
-              }`}
-            >
-              <div className="flex items-start gap-2">
-                <span className={`w-2 h-2 rounded-full mt-1.5 ${categoryColors[podcast.category]}`}></span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm truncate">{podcast.name}</div>
-                  <div className={`text-xs ${mutedTextClass} line-clamp-2`}>{podcast.description}</div>
+            {filteredPodcasts.map(podcast => (
+              <button
+                key={podcast.id}
+                onClick={() => fetchPodcastFeed(podcast)}
+                className={`w-full p-3 rounded-lg border text-left transition-all ${cardClass} ${selectedPodcast?.id === podcast.id ? 'ring-2 ring-teal-500' : ''
+                  }`}
+              >
+                <div className="flex items-start gap-2">
+                  <span className={`w-2 h-2 rounded-full mt-1.5 ${categoryColors[podcast.category]}`}></span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm truncate">{podcast.name}</div>
+                    <div className={`text-xs ${mutedTextClass} line-clamp-2`}>{podcast.description}</div>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
 
-        {/* Episodes list */}
-        <div className="flex-1 overflow-y-auto p-3">
-          {loadingFeed ? (
-            <div className="flex items-center justify-center h-full">
-              <i className="fa-solid fa-circle-notch fa-spin text-2xl opacity-50"></i>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <i className="fa-solid fa-exclamation-triangle text-3xl text-red-500 mb-2"></i>
-              <p className="text-sm text-red-500">{error}</p>
-            </div>
-          ) : !selectedPodcast ? (
-            <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
-              <i className="fa-solid fa-arrow-left text-3xl mb-2"></i>
-              <p className="text-sm">Select a podcast to view episodes</p>
-            </div>
-          ) : episodes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
-              <i className="fa-solid fa-podcast text-3xl mb-2"></i>
-              <p className="text-sm">No episodes found</p>
-            </div>
-          ) : (
-            <>
-              <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-                <span>{selectedPodcast.name}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${categoryColors[selectedPodcast.category]} text-white`}>
-                  {selectedPodcast.category}
-                </span>
-                <span className={`text-xs ${mutedTextClass}`}>({episodes.length} episodes)</span>
-              </h3>
-              <div className="space-y-2">
-                {episodes.map(episode => (
-                  <div
-                    key={episode.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${cardClass} ${
-                      currentEpisode?.id === episode.id ? 'ring-2 ring-teal-500' : ''
-                    }`}
-                    onClick={() => playEpisode(episode)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <button
-                        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          isTron ? 'bg-tron-cyan/20 text-tron-cyan' : 'bg-teal-500/20 text-teal-500'
+          {/* Episodes list */}
+          <div className="flex-1 overflow-y-auto p-3">
+            {loadingFeed ? (
+              <div className="flex items-center justify-center h-full">
+                <i className="fa-solid fa-circle-notch fa-spin text-2xl opacity-50"></i>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <i className="fa-solid fa-exclamation-triangle text-3xl text-red-500 mb-2"></i>
+                <p className="text-sm text-red-500">{error}</p>
+              </div>
+            ) : !selectedPodcast ? (
+              <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
+                <i className="fa-solid fa-arrow-left text-3xl mb-2"></i>
+                <p className="text-sm">Select a podcast to view episodes</p>
+              </div>
+            ) : episodes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
+                <i className="fa-solid fa-podcast text-3xl mb-2"></i>
+                <p className="text-sm">No episodes found</p>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                  <span>{selectedPodcast.name}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${categoryColors[selectedPodcast.category]} text-white`}>
+                    {selectedPodcast.category}
+                  </span>
+                  <span className={`text-xs ${mutedTextClass}`}>({episodes.length} episodes)</span>
+                </h3>
+                <div className="space-y-2">
+                  {episodes.map(episode => (
+                    <div
+                      key={episode.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-all ${cardClass} ${currentEpisode?.id === episode.id ? 'ring-2 ring-teal-500' : ''
                         }`}
-                      >
-                        {currentEpisode?.id === episode.id && isPlaying ? (
-                          <i className="fa-solid fa-pause"></i>
-                        ) : (
-                          <i className="fa-solid fa-play ml-0.5"></i>
-                        )}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-sm line-clamp-2">{episode.title}</div>
-                        <div className={`text-xs ${mutedTextClass} mt-1 line-clamp-2`}>{episode.description}</div>
-                        <div className={`text-xs ${mutedTextClass} mt-1 flex items-center gap-3`}>
-                          {episode.pubDate && (
-                            <span><i className="fa-solid fa-calendar mr-1"></i>{new Date(episode.pubDate).toLocaleDateString()}</span>
+                      onClick={() => playEpisode(episode)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <button
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isTron ? 'bg-tron-cyan/20 text-tron-cyan' : 'bg-teal-500/20 text-teal-500'
+                            }`}
+                        >
+                          {currentEpisode?.id === episode.id && isPlaying ? (
+                            <i className="fa-solid fa-pause"></i>
+                          ) : (
+                            <i className="fa-solid fa-play ml-0.5"></i>
                           )}
-                          {episode.duration && (
-                            <span><i className="fa-solid fa-clock mr-1"></i>{episode.duration}</span>
-                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm line-clamp-2">{episode.title}</div>
+                          <div className={`text-xs ${mutedTextClass} mt-1 line-clamp-2`}>{episode.description}</div>
+                          <div className={`text-xs ${mutedTextClass} mt-1 flex items-center gap-3`}>
+                            {episode.pubDate && (
+                              <span><i className="fa-solid fa-calendar mr-1"></i>{new Date(episode.pubDate).toLocaleDateString()}</span>
+                            )}
+                            {episode.duration && (
+                              <span><i className="fa-solid fa-clock mr-1"></i>{episode.duration}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -844,9 +835,8 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
                   </div>
                   <button
                     onClick={() => setCurrentVideo(null)}
-                    className={`px-3 py-2 rounded-lg text-sm ${
-                      isTron ? 'bg-tron-cyan/20 hover:bg-tron-cyan/30' : 'bg-zinc-700 hover:bg-zinc-600'
-                    }`}
+                    className={`px-3 py-2 rounded-lg text-sm ${isTron ? 'bg-tron-cyan/20 hover:bg-tron-cyan/30' : 'bg-zinc-700 hover:bg-zinc-600'
+                      }`}
                   >
                     <i className="fa-solid fa-list mr-2"></i>Back to List
                   </button>
@@ -907,18 +897,16 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
 
       {/* Floating Player - positioned left of Ranger Radio */}
       {showPlayer && currentEpisode && (
-        <div className={`fixed bottom-4 right-[22rem] z-50 rounded-xl border-2 shadow-2xl backdrop-blur-sm transition-all ${
-          isTron ? 'bg-black/90 border-tron-cyan' : isDark ? 'bg-zinc-900/95 border-zinc-600' : 'bg-white/95 border-gray-300'
-        } ${isMinimized ? 'w-72' : 'w-96'}`}>
+        <div className={`fixed bottom-4 right-[22rem] z-50 rounded-xl border-2 shadow-2xl backdrop-blur-sm transition-all ${isTron ? 'bg-black/90 border-tron-cyan' : isDark ? 'bg-zinc-900/95 border-zinc-600' : 'bg-white/95 border-gray-300'
+          } ${isMinimized ? 'w-72' : 'w-96'}`}>
           {/* Player header */}
           <div
             className={`flex items-center justify-between p-3 cursor-pointer ${textClass}`}
             onClick={() => setIsMinimized(!isMinimized)}
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                isTron ? 'bg-tron-cyan/20' : 'bg-teal-500/20'
-              }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isTron ? 'bg-tron-cyan/20' : 'bg-teal-500/20'
+                }`}>
                 {isLoading ? (
                   <i className="fa-solid fa-circle-notch fa-spin text-sm"></i>
                 ) : isPlaying ? (
@@ -981,9 +969,8 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
                   onClick={togglePlayPause}
                   onMouseEnter={() => setIsHoveringButton(true)}
                   onMouseLeave={() => setIsHoveringButton(false)}
-                  className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${
-                    isTron ? 'bg-tron-cyan text-black' : 'bg-teal-500 text-white'
-                  }`}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${isTron ? 'bg-tron-cyan text-black' : 'bg-teal-500 text-white'
+                    }`}
                   title={isPlaying ? 'Pause' : 'Play'}
                 >
                   {/* 🎧 Show Ranger's picture after 5s of inactivity, hide on hover */}
@@ -1023,9 +1010,8 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings }) => {
                 <select
                   value={playbackRate}
                   onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
-                  className={`text-xs px-2 py-1 rounded border ${
-                    isTron ? 'bg-black border-tron-cyan text-tron-cyan' : isDark ? 'bg-zinc-800 border-zinc-600' : 'bg-white border-gray-300'
-                  }`}
+                  className={`text-xs px-2 py-1 rounded border ${isTron ? 'bg-black border-tron-cyan text-tron-cyan' : isDark ? 'bg-zinc-800 border-zinc-600' : 'bg-white border-gray-300'
+                    }`}
                 >
                   <option value="0.5">0.5x</option>
                   <option value="0.75">0.75x</option>

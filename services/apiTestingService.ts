@@ -14,7 +14,7 @@ class ApiTestingService {
     // LLM Providers (OpenAI, Anthropic, etc.)
     // ==========================================
     async testLLM(
-        provider: 'openai' | 'anthropic' | 'gemini' | 'deepseek' | 'groq' | 'openrouter' | 'huggingface',
+        provider: 'openai' | 'anthropic' | 'gemini' | 'deepseek' | 'groq' | 'openrouter' | 'huggingface' | 'perplexity',
         apiKey: string,
         model: string = '',
         prompt: string = 'Hello, are you operational?'
@@ -85,6 +85,16 @@ class ApiTestingService {
                         max_tokens: 10
                     };
                     break;
+
+                case 'perplexity':
+                    url = 'https://api.perplexity.ai/chat/completions';
+                    headers['Authorization'] = `Bearer ${apiKey}`;
+                    body = {
+                        model: model || 'sonar-reasoning-pro',
+                        messages: [{ role: 'user', content: prompt }],
+                        max_tokens: 50
+                    };
+                    break;
             }
 
             const response = await fetch(url, {
@@ -95,10 +105,13 @@ class ApiTestingService {
 
             const latency = Date.now() - start;
             let data;
+
+            // Clone response before reading to avoid "body stream already read" error
+            const responseText = await response.text();
             try {
-                data = await response.json();
+                data = JSON.parse(responseText);
             } catch (e) {
-                data = { text: await response.text() };
+                data = { text: responseText };
             }
 
             return {

@@ -40,6 +40,11 @@ import WeatherStation from './components/Weather/WeatherStation'; // Import Weat
 import RainNotification from './components/RainNotification'; // Import Rain Notification
 import CyberSecPodcast from './components/CyberSecPodcast'; // Import CyberSec Podcast Hub
 import { weatherService, RainAlert } from './services/weatherService';
+import { RSSNewsTicker } from './components/RSSNewsTicker';
+import { rssService } from './services/rssService';
+import type { RSSSettings, RSSItem } from './types/rss';
+import { DEFAULT_RSS_SETTINGS } from './types/rss';
+
 
 const App: React.FC = () => {
   // MINI-OS: Floating Terminal Route
@@ -53,6 +58,7 @@ const App: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
   const [isTerminalOpen, setIsTerminalOpen] = useState(false); // Ranger Console State
   const [isTerminalMinimized, setIsTerminalMinimized] = useState(false); // Ranger Console Minimize State
   const [isTrainingOpen, setIsTrainingOpen] = useState(false);
@@ -88,6 +94,8 @@ const App: React.FC = () => {
   const [initialWeatherTab, setInitialWeatherTab] = useState<'dashboard' | 'radar'>('dashboard'); // State for initial weather tab
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
   const [mcpStartedByApp, setMcpStartedByApp] = useState(false);
+  const [rssSettings, setRssSettings] = useState<RSSSettings>(DEFAULT_RSS_SETTINGS);
+
 
   useEffect(() => {
     browserStateService.setUser(currentUser);
@@ -238,6 +246,20 @@ const App: React.FC = () => {
   useEffect(() => {
     weatherService.updateSettings(settings);
   }, [settings]);
+
+  // Load RSS settings on startup
+  useEffect(() => {
+    const loadRssSettings = async () => {
+      try {
+        const settings = await rssService.loadSettings();
+        setRssSettings(settings);
+      } catch (error) {
+        console.error('Failed to load RSS settings:', error);
+      }
+    };
+    loadRssSettings();
+  }, []);
+
 
   // Tabbed Workspace State
   const [tabs, setTabs] = useState<WorkspaceTab[]>([
@@ -557,6 +579,13 @@ const App: React.FC = () => {
             finalSettings = mergedFromServer;
             setHydrationSource('server');
             console.log('☁️ Merged settings from server');
+          }
+
+          // Restore study notes from server if they exist
+          const studyNotesKey = `study_notes_${currentUser}`;
+          if (serverSettings && serverSettings[studyNotesKey]) {
+            await dbService.saveSetting(studyNotesKey, serverSettings[studyNotesKey]);
+            console.log('📝 Restored study notes from server');
           }
 
           if (sessionList.length === 0 && !storedSettings && (!serverSettings || Object.keys(serverSettings).length === 0)) {
@@ -1013,6 +1042,19 @@ const App: React.FC = () => {
           onOpenBrowser={() => openBrowser()}
           onOpenWeather={openWeather}
           onOpenPodcast={openPodcast}
+          onToggleRss={() => {
+            const newSettings = { ...rssSettings, enabled: !rssSettings.enabled };
+            setRssSettings(newSettings);
+            rssService.saveSettings(newSettings);
+
+            // If enabling, we might want to open settings if no feeds are set up
+            // But for now, just toggle it. The ticker handles empty states.
+            if (newSettings.enabled) {
+              // Optional: Check feeds async if needed later
+            }
+          }}
+          isRssEnabled={rssSettings.enabled}
+
           onLock={() => setIsLocked(true)}
           onOpenVisionMode={() => {
             setIsVisionModeOpen(true);
@@ -1140,7 +1182,10 @@ const App: React.FC = () => {
             {activeSurface === 'podcast' && (
               <div className="absolute inset-0 z-20 bg-zinc-900">
                 <button onClick={() => { setIsPodcastOpen(false); setActiveSurface('chat'); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
-                <CyberSecPodcast settings={settings} />
+                <CyberSecPodcast
+                  settings={settings}
+                  bottomOffset={rssSettings.enabled ? (rssSettings.height === 'small' ? 32 : rssSettings.height === 'large' ? 48 : 40) : 0}
+                />
               </div>
             )}
 
@@ -1150,13 +1195,35 @@ const App: React.FC = () => {
               </div>
             )}
 
+            {activeSurface === 'training' && (
+              <div className="absolute inset-0 z-20 bg-white dark:bg-zinc-900">
+                <TrainingPage sessions={sessions} onClose={() => { setIsTrainingOpen(false); setActiveSurface('chat'); }} />
+              </div>
+            )}
+
+
+
+            {/* Auth Page */}
+            {!currentUser && (
+              <div className="absolute inset-0 z-50 bg-zinc-900">
+                <AuthPage onLogin={handleLogin} />
+              </div>
+            )}
+
           </div>
         </main>
 
+        {/* Overlays */}
+
+        {/* Settings Modal - Moved to root level to avoid z-index issues */}
         {isSettingsOpen && (
           <SettingsModal
             isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
+            onClose={() => {
+              setIsSettingsOpen(false);
+              setSettingsInitialTab(undefined);
+            }}
+            initialTab={settingsInitialTab}
             settings={settings}
             onSave={setSettings}
             onOpenBackupManager={() => setShowBackupManager(true)}
@@ -1173,45 +1240,28 @@ const App: React.FC = () => {
               a.click();
               URL.revokeObjectURL(url);
             }}
-            onExportAll={async () => {
-              try {
-                const data = await dbService.exportAll();
-                const json = JSON.stringify(data, null, 2);
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `rangerplex-backup-${timestamp}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              } catch (error) {
-                console.error('Export all failed:', error);
-                alert('Failed to export data. Please try again.');
-              }
+            onExportAll={() => {
+              const data = JSON.stringify({ sessions, settings }, null, 2);
+              const blob = new Blob([data], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `ranger_backup_${new Date().toISOString().split('T')[0]}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
             }}
-            onPurgeAll={async () => {
-              try {
-                await dbService.clearChats();
-                await dbService.clearSettings();
-                await dbService.clearAllWin95States();
-                localStorage.removeItem('rangerplex_canvas_boards');
-                const keys = Object.keys(localStorage);
-                keys.forEach(key => {
-                  if (key.startsWith('win95_state_')) {
-                    localStorage.removeItem(key);
-                  }
-                });
+            onPurgeAll={() => {
+              if (confirm('Are you sure you want to delete all chat history? This cannot be undone.')) {
                 setSessions([]);
                 setCurrentSessionId(null);
-                window.location.reload();
-              } catch (error) {
-                console.error('Purge failed:', error);
-                alert('Failed to purge data. Please try again.');
+                dbService.clearChats();
               }
             }}
           />
         )}
+        {settings.holidayMode && settings.holidayEffect === 'snow' && <SnowOverlay />}
+        {settings.holidayMode && settings.holidayEffect === 'confetti' && <ConfettiOverlay />}
+        {settings.holidayMode && settings.holidayEffect === 'sparkles' && <SparkleOverlay />}
 
         {/* Ranger Vision Mode */}
         <RangerVisionMode
@@ -1231,6 +1281,7 @@ const App: React.FC = () => {
             onSettingsChange={(updates) => setSettings({ ...settings, ...updates })}
             theme={settings.theme}
             externalToggleSignal={radioToggleSignal}
+            bottomOffset={rssSettings.enabled ? (rssSettings.height === 'small' ? 32 : rssSettings.height === 'large' ? 48 : 40) : 0}
           />
         )}
 
@@ -1402,6 +1453,43 @@ const App: React.FC = () => {
         {/* Backup Manager */}
         {showBackupManager && (
           <BackupManager theme={settings.theme} onClose={() => setShowBackupManager(false)} />
+        )}
+
+        {/* RSS News Ticker */}
+        {rssSettings.enabled && (
+          <RSSNewsTicker
+            settings={rssSettings}
+            onItemClick={(item: RSSItem) => {
+              // Import article into chat
+              const articleText = `📰 **${item.title}**\n\n**Source**: ${item.feedName}\n**Category**: ${item.category}\n**Published**: ${new Date(item.pubDate).toLocaleString()}\n\n${item.description}\n\n**Link**: ${item.link}`;
+
+              const newMessage: Message = {
+                id: uuidv4(),
+                sender: Sender.USER,
+                text: articleText,
+                timestamp: Date.now(),
+              };
+
+              // Add message to current session
+              setSessions((prevSessions: ChatSession[]) => {
+                const currentSession = prevSessions.find(s => s.id === currentSessionId);
+                if (!currentSession) return prevSessions;
+
+                return prevSessions.map(s =>
+                  s.id === currentSessionId
+                    ? { ...s, messages: [...s.messages, newMessage] }
+                    : s
+                );
+              });
+
+              setActiveSurface('chat');
+            }}
+            onSettingsClick={() => {
+              setSettingsInitialTab('rss');
+              setIsSettingsOpen(true);
+            }}
+
+          />
         )}
 
       </div>

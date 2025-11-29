@@ -437,6 +437,122 @@ app.post('/api/mcp/call', async (req, res) => {
     }
 });
 
+// 📡 RSS PROXY - Bypass CORS for RSS feeds
+app.get('/api/proxy', async (req, res) => {
+    const { url } = req.query;
+
+    if (!url) {
+        return res.status(400).json({ error: 'URL parameter is required' });
+    }
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'RangerPlex-RSS/2.12.9 (https://github.com/davidtkeane/rangerplex-ai)',
+                'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+            },
+            signal: AbortSignal.timeout(15000), // 15 second timeout
+        });
+
+        if (!response.ok) {
+            return res.status(response.status).json({
+                error: `HTTP ${response.status}: ${response.statusText}`
+            });
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        const text = await response.text();
+
+        // Set appropriate content type
+        res.setHeader('Content-Type', contentType.includes('xml') ? 'application/xml' : 'text/plain');
+        res.setHeader('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes
+        res.send(text);
+    } catch (error) {
+        console.error('RSS Proxy Error:', error.message);
+        res.status(500).json({
+            error: error.message || 'Failed to fetch RSS feed'
+        });
+    }
+});
+
+// 📡 RSS PARSER - Parse RSS feeds on backend
+// 📡 RSS PARSER - Parse RSS feeds on backend
+const Parser = require('rss-parser');
+const rssParser = new Parser({
+    customFields: {
+        item: ['content:encoded', 'description', 'summary'],
+    },
+    requestOptions: {
+        rejectUnauthorized: false, // Ignore SSL certificate errors
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        },
+    },
+});
+
+app.post('/api/rss/parse', async (req, res) => {
+    const { url } = req.body;
+
+    if (!url) {
+        return res.status(400).json({ success: false, error: 'URL is required' });
+    }
+
+    try {
+        const feed = await rssParser.parseURL(url);
+
+        const items = feed.items.map(item => ({
+            title: item.title || 'Untitled',
+            link: item.link || '',
+            pubDate: item.pubDate || new Date().toISOString(),
+            description: item.contentSnippet || item.summary || item.description || '',
+            content: item['content:encoded'] || item.content || item.description || '',
+            guid: item.guid || item.link || '',
+        }));
+
+        res.json({
+            success: true,
+            title: feed.title || 'Unknown Feed',
+            items: items,
+        });
+    } catch (error) {
+        console.error(`[SERVER] RSS Parse Error for ${url}:`, error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to parse RSS feed',
+        });
+    }
+});
+
+app.post('/api/rss/test', async (req, res) => {
+    const { url } = req.body;
+
+    if (!url) {
+        return res.status(400).json({ success: false, error: 'URL is required' });
+    }
+
+    try {
+        const feed = await rssParser.parseURL(url);
+
+        const preview = {
+            title: feed.title || 'Unknown Feed',
+            itemCount: feed.items.length,
+            latestItems: feed.items.slice(0, 3).map(item => ({
+                title: item.title || 'Untitled',
+                pubDate: item.pubDate || 'Unknown date',
+            })),
+        };
+
+        res.json({ success: true, preview });
+    } catch (error) {
+        console.error('RSS Test Error:', error.message);
+        res.json({
+            success: false,
+            error: error.message || 'Failed to test RSS feed',
+        });
+    }
+});
+
 // Get execution logs
 app.get('/api/alias/logs', async (req, res) => {
     const limit = Number(req.query.limit) || 10;
@@ -4405,7 +4521,7 @@ server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎖️  RANGERPLEX AI SERVER v2.13.0                       ║
+║   🎖️  RANGERPLEX AI SERVER v2.13.4                       ║
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║
@@ -4426,7 +4542,8 @@ server.listen(PORT, async () => {
         const result = await blockchainService.start();
 
         if (result.success) {
-            console.log(`🚀 RangerPlex AI Server v2.12.9 running on port ${PORT}`);
+            console.log(`🚀 RangerPlex AI Server v2.13.2 running on port ${PORT}`);
+            console.log(`📡 RSS News Ticker: 120 feeds ready!`);
         } else {
             console.error(`❌ RangerBlock failed to start: ${result.message}`);
         }

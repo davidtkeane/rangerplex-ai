@@ -5,6 +5,104 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.4] - 2025-11-29 📡 RSS & UI POLISH
+
+### 🆕 RSS Enhancements
+- **Feed Order Control**: Added "Feed Order" setting in RSS configuration.
+  - **Newest First**: Default behavior.
+  - **Random Shuffle**: Mixes all feeds for variety (fixes "only malware" issue).
+  - **Group by Topic**: Organizes ticker by category.
+- **Robust Parsing**: Improved RSS parser to handle SSL errors and anti-bot protections.
+  - Ignores self-signed/invalid certificates.
+  - Uses browser-like User-Agent to bypass blocks.
+  - Detailed error logging for broken feeds.
+
+### 🔧 UI/UX Fixes
+- **Settings Modal Z-Index**: Fixed issue where Settings Modal appeared behind the Sidebar.
+  - Moved modal to root-level overlays for correct stacking.
+- **RSS Visuals**:
+  - Monochromatic "Zinc" theme for distraction-free reading.
+  - Smooth scrolling animation (pixel-perfect speed calculation).
+  - FontAwesome icons for categories.
+
+### 📦 Version
+- Bumped version to **2.13.4** across all components.
+
+---
+
+## [2.13.3] - 2025-11-29 📝 NOTES SYNC & API FIXES
+
+### 🔧 Fixed
+- **Study Notes Hydration**: Notes now sync from server to browser on app load
+  - Added `study_notes_${currentUser}` to hydration process in App.tsx
+  - Notes stored on server are now restored to IndexedDB automatically
+  - Console logs `📝 Restored study notes from server` on successful sync
+
+- **Perplexity API Tester**: Fixed Advanced Tester for Perplexity
+  - Added `perplexity` provider to `apiTestingService.testLLM()`
+  - Uses `https://api.perplexity.ai/chat/completions` endpoint
+  - Default model: `sonar-reasoning-pro`
+
+- **Body Stream Error**: Fixed "body stream already read" error in API testing
+  - Changed response handling to read as text first, then parse JSON
+  - Prevents double-read of response body on parse failures
+
+### 📦 Version
+- Synced version across badge, package, server banner, sidebar, and DB metadata to **2.13.3**
+
+---
+
+## [2.13.2] - 2025-11-29 📡 RSS NEWS TICKER
+
+### 🆕 New Features
+- **Live RSS News Ticker**: TV-style scrolling news below chat
+- **120 Pre-configured Feeds**: Pentesting, Malware, Forensics, News, Data Gov, Blockchain
+- **Feed Manager**: Add/remove/test unlimited RSS feeds
+- **Customizable Ticker**: Adjust speed, height, and behavior
+- **Click to Import**: Import articles directly into chat
+- **Category Badges**: Color-coded badges for each feed category
+- **Auto-refresh**: Configurable refresh intervals (5-60 min)
+
+### ⚙️ Settings
+- New "RSS" tab in Settings
+- Ticker speed control (1-10)
+- Auto-refresh interval (5/10/15/30/60 min)
+- Height selector (small/medium/large)
+- Category filters
+- Pause on hover toggle
+
+### 📡 Supported Categories
+- 🔒 Penetration Testing (20 feeds)
+- 🦠 Malware Analysis (20 feeds)
+- 🔍 Digital Forensics (20 feeds)
+- 📰 Cybersecurity News (20 feeds)
+- 🛡️ Data Governance (20 feeds)
+- ⛓️ Blockchain & Crypto (20 feeds)
+
+### 🔧 Technical
+- Backend RSS parsing (Node.js) - Fixed browser incompatibility
+- IndexedDB persistence
+- CORS bypass via proxy
+- Browser-compatible architecture
+
+### 📦 Version
+- Synced version across badge, package, server banner, sidebar, and DB metadata to **2.13.2**
+
+---
+
+## [2.13.1] - 2025-11-29 🎬 RANGERPLAYER FIX
+
+### 🔧 Fixed
+- **RangerPlayer Profile**: Fixed import error preventing Vite from compiling
+  - Changed `setAutoplayEnabled` → `setAutoplayState` (correct export name)
+  - Fixed `isAutoplayEnabled()` → `isAutoplayEnabled` (variable, not function)
+  - Profile page now loads correctly with autoplay preferences
+
+### 📦 Version
+- Synced version across badge, package, server banner, sidebar, and DB metadata to **2.13.1**
+
+---
+
 ## [2.13.0] - 2025-11-29 🎧 CYBERSEC PODCAST HUB
 
 ### 🎧 Podcast Hub Enhancements
