@@ -5,6 +5,40 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.13] - 2025-11-29 🔧 PORT MIGRATION & STABILITY
+
+### 🔌 Complete Port Migration (3010 → 3000)
+- **Fixed**: All hardcoded port 3010 references migrated to port 3000
+- **Added**: Inline port detection and auto-fix in App.tsx, RadioPlayer.tsx, SettingsModal.tsx
+- **Added**: Auto-save of corrected port settings to IndexedDB
+- **Added**: `/api/health` and `/health` endpoints for connectivity checks
+
+### 🎵 Radio Stream Stability
+- **Added**: Auto-retry on decode errors (up to 3 attempts with 1s delay)
+- **Added**: Cache-buster parameter to force fresh stream on retry
+- **Improved**: Transfer-Encoding set to 'identity' to prevent chunked encoding issues
+- **Improved**: `res.flushHeaders()` for true streaming without buffering
+
+### 🧠 Gemini Rate Limiting Prevention
+- **Added**: 2-second minimum delay between title generation requests
+- **Added**: Request debouncing (cancels pending requests if new one arrives)
+- **Improved**: Silent fallback to "New Chat" on rate limit errors
+
+### 📰 RSS Console Cleanup
+- **Added**: 5-minute quiet period for failed feeds (no repeated error logging)
+- **Added**: Summary logging: `📡 RSS: 95/100 feeds loaded (5 temporarily unavailable)`
+- **Improved**: Clears failed status when feed recovers
+
+### 📚 Documentation Updates
+- **Updated**: README.md - all port references to 3000
+- **Updated**: rangerplex_manule.md - all port references to 3000
+- **Updated**: help-files/DIAGNOSTICS_COMMANDS.md - all port references to 3000
+
+### 📦 Version
+- Bumped version to **2.13.13**
+
+---
+
 ## [2.13.12] - 2025-11-29 ⛓️ RANGERPLEXCHAIN + RADIO FIX
 
 ### ⛓️ RangerPlexChain Blockchain Playground
