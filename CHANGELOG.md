@@ -5,6 +5,12 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.8] - 2025-11-29
+### Changed
+- **Port Migration**: Migrated backend server from port 3010 to **3000** for better compatibility and standard usage.
+- **Frontend Updates**: Updated all frontend components (Settings, Chat, Radio, Terminal, Blockchain) to communicate with the new backend port 3000.
+- **MCP Integration**: Verified and solidified Docker MCP integration on the new port.
+
 ## [2.12.7] - 2025-11-29 🛠️ MCP INTEGRATION COMPLETE
 
 ### 🐳 Docker MCP

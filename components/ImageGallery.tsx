@@ -27,7 +27,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
 
         try {
             // Use proxy server to download image (bypasses CORS)
-            const proxyUrl = `http://localhost:3010/api/image/download?url=${encodeURIComponent(img.url)}`;
+            const proxyUrl = `http://localhost:3000/api/image/download?url=${encodeURIComponent(img.url)}`;
 
             // Fetch through proxy
             const response = await fetch(proxyUrl);

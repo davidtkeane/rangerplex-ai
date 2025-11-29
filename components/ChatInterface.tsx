@@ -1310,7 +1310,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/mac')) {
                 setProcessingStatus("Identifying Hardware...");
                 const mac = text.replace('/mac', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const res = await fetch(`${proxyUrl}/api/tools/mac`, {
@@ -1341,7 +1341,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 17. My IP (/myip)
             if (text.startsWith('/myip')) {
                 setProcessingStatus("Detecting Your IP...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     // Get public IP
@@ -1390,7 +1390,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/ipinfo')) {
                 setProcessingStatus("Analyzing IP...");
                 const ip = text.replace('/ipinfo', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const token = settings.ipinfoToken || '';

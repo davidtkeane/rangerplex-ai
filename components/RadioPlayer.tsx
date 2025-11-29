@@ -369,7 +369,7 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
   // Helper function to get proxied stream URL (bypass CORS)
   const getProxiedUrl = (originalUrl: string) => {
-    const proxyBaseUrl = settings.corsProxyUrl || 'http://localhost:3010';
+    const proxyBaseUrl = settings.corsProxyUrl || 'http://localhost:3000';
     return `${proxyBaseUrl}/api/radio/stream?url=${encodeURIComponent(originalUrl)}`;
   };
 

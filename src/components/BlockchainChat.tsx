@@ -24,7 +24,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
     const loadMessages = async () => {
         try {
             setIsLoading(true);
-            const response = await fetch('http://127.0.0.1:3010/api/rangerblock/chat');
+            const response = await fetch('http://127.0.0.1:3000/api/rangerblock/chat');
             const data = await response.json();
 
             if (data.success) {
@@ -45,7 +45,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
         try {
             setIsSending(true);
 
-            const response = await fetch('http://127.0.0.1:3010/api/rangerblock/chat', {
+            const response = await fetch('http://127.0.0.1:3000/api/rangerblock/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: inputMessage.trim() })

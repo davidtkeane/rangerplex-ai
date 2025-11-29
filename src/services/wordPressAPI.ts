@@ -3,7 +3,7 @@
  * Handles WordPress operations via REST API (works in both web and Electron modes)
  */
 
-const API_BASE = 'http://localhost:3010/api/wordpress';
+const API_BASE = 'http://localhost:3000/api/wordpress';
 
 export interface WordPressAPIResult {
     success: boolean;

@@ -65,7 +65,7 @@ const AliasManager: React.FC<AliasManagerProps> = ({ isOpen, onClose }) => {
         setLogsLoading(true);
         setLogsError(null);
         try {
-            const res = await fetch('http://localhost:3010/api/alias/logs?limit=20');
+            const res = await fetch('http://localhost:3000/api/alias/logs?limit=20');
             const body = await res.json();
             if (!res.ok || !body.success) {
                 throw new Error(body?.error || 'Failed to load logs');

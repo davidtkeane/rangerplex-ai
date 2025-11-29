@@ -72,10 +72,10 @@ const RangerTerminal = forwardRef<RangerTerminalHandle, RangerTerminalProps>(
 
       const socketUrl = (() => {
         if (endpoint) return endpoint;
-        if (typeof window === 'undefined') return 'ws://localhost:3010/terminal';
+        if (typeof window === 'undefined') return 'ws://localhost:3000/terminal';
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.hostname || 'localhost';
-        return `${protocol}//${host}:3010/terminal`;
+        return `${protocol}//${host}:3000/terminal`;
       })();
 
       const socket = new WebSocket(socketUrl);

@@ -1597,7 +1597,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                 </button>
                                             </div>
                                             <p className="text-[10px] opacity-60 mt-1">
-                                                💡 <strong>Tip:</strong> Use <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3010/api/ollama</code> as Base URL (proxy) instead of <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:11434</code> (direct) to avoid CORS errors.
+                                                💡 <strong>Tip:</strong> Use <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3000/api/ollama</code> as Base URL (proxy) instead of <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:11434</code> (direct) to avoid CORS errors.
                                             </p>
                                         </div>
                                         <div className="mt-3">
@@ -1627,8 +1627,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                     <input
                                                         type="radio"
                                                         name="ollamaHost"
-                                                        checked={localSettings.ollamaBaseUrl.includes('localhost:3010/api/ollama')}
-                                                        onChange={() => setLocalSettings({ ...localSettings, ollamaBaseUrl: 'http://localhost:3010/api/ollama' })}
+                                                        checked={localSettings.ollamaBaseUrl.includes('localhost:3000/api/ollama')}
+                                                        onChange={() => setLocalSettings({ ...localSettings, ollamaBaseUrl: 'http://localhost:3000/api/ollama' })}
                                                         className="accent-teal-500"
                                                     />
                                                     <span className="text-xs">Proxy (Recommended)</span>
@@ -1771,7 +1771,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                 placeholder="e.g. mistral-7b-instruct, llama-3-8b"
                                             />
                                             <p className="text-[10px] opacity-60 mt-1">
-                                                💡 <strong>Recommended:</strong> Use proxy URL <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3010/api/lmstudio</code> to avoid CORS errors
+                                                💡 <strong>Recommended:</strong> Use proxy URL <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3000/api/lmstudio</code> to avoid CORS errors
                                             </p>
                                             <p className="text-[10px] opacity-60 mt-1">
                                                 🔧 <strong>Direct (advanced):</strong> <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:1234/v1</code> (may have CORS issues)
@@ -1807,8 +1807,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                     <input
                                                         type="radio"
                                                         name="lmstudioHost"
-                                                        checked={localSettings.lmstudioBaseUrl.includes('localhost:3010/api/lmstudio')}
-                                                        onChange={() => setLocalSettings({ ...localSettings, lmstudioBaseUrl: 'http://localhost:3010/api/lmstudio' })}
+                                                        checked={localSettings.lmstudioBaseUrl.includes('localhost:3000/api/lmstudio')}
+                                                        onChange={() => setLocalSettings({ ...localSettings, lmstudioBaseUrl: 'http://localhost:3000/api/lmstudio' })}
                                                         className="accent-teal-500"
                                                     />
                                                     <span className="text-xs">Proxy (Recommended)</span>

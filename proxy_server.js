@@ -38,7 +38,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3010;
+const PORT = 3000;
 const startDockerDesktop = async () => {
     const platform = process.platform;
     let cmd = null;
@@ -339,9 +339,16 @@ app.post('/api/mcp/ensure', async (req, res) => {
         if (mcpGatewayProc && !mcpGatewayProc.killed) {
             return res.json({ success: true, status: 'running' });
         }
-        const child = spawn('docker', ['mcp', 'gateway', 'run'], { stdio: 'ignore' });
+        const child = spawn('docker', ['mcp', 'gateway', 'run'], {
+            detached: true,
+            stdio: 'ignore'
+        });
+        child.unref();
         mcpGatewayProc = child;
-        child.on('exit', (code) => { if (mcpGatewayProc === child) mcpGatewayProc = null; console.log('MCP gateway exited with code', code); });
+        child.on('exit', (code) => {
+            if (mcpGatewayProc === child) mcpGatewayProc = null;
+            console.log('MCP gateway exited with code', code);
+        });
         res.json({ success: true, status: 'starting' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -4309,7 +4316,7 @@ server.listen(PORT, async () => {
         const result = await blockchainService.start();
 
         if (result.success) {
-            console.log(`✅ RangerBlock started: ${result.nodeName} on port ${result.port}`);
+            console.log(`🚀 RangerPlex AI Server v2.12.8 running on port ${PORT}`);
         } else {
             console.error(`❌ RangerBlock failed to start: ${result.message}`);
         }
