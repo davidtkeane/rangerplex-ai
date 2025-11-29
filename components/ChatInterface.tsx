@@ -423,6 +423,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         { name: 'podcasts', command: '/podcasts', usage: '/podcasts', summary: 'Open CyberSec Podcast Hub with curated security content.', examples: ['/podcasts', '/podcast', '/radio'], tags: ['podcast', 'audio', 'video', 'learning'] },
         { name: 'imagine', command: '/imagine <prompt>', usage: '/imagine cyberpunk fox', summary: 'Generate images.', examples: ['/imagine sunset over Dublin'], tags: ['image', 'creative'] },
         { name: 'fun', command: '/joke', usage: '/joke', summary: 'Random joke.', examples: ['/chuck'], tags: ['fun'] },
+        { name: 'perplexity', command: '/perplexity <query>', usage: '/perplexity best M3 Pro price', summary: 'AI-powered web search via Perplexity (sonar-pro).', examples: ['/perplexity latest AI news', '/perplexity what is quantum computing'], tags: ['search', 'ai', 'web', 'perplexity'] },
+        { name: 'ducky', command: '/ducky <query>', usage: '/ducky where is London', summary: 'DuckDuckGo web search via MCP.', examples: ['/ducky best programming languages 2024', '/ducky weather Dublin'], tags: ['search', 'web', 'duckduckgo', 'ddg'] },
     ];
 
     const levenshtein = (a: string, b: string) => {
@@ -2534,6 +2536,124 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     generatedImages: segment.thumbnail ? [segment.thumbnail] : undefined,
                     audioData: segment.audio
                 }]);
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // Perplexity Search (/perplexity)
+            if (text.startsWith('/perplexity')) {
+                const query = text.replace('/perplexity', '').trim();
+                if (!query) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: "🔍 **Perplexity Search**\n\nUsage: `/perplexity <your question>`\n\nExample: `/perplexity what is the best price for M3 Pro`", timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+                if (!settings.perplexityApiKey) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: "⚠️ Please configure your Perplexity API Key in Settings > Providers to use this feature.", timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+
+                setProcessingStatus("Searching with Perplexity...");
+                const aiPlaceholder = { id: uuidv4(), sender: Sender.AI, text: '', timestamp: Date.now(), isThinking: true };
+                onUpdateMessages(prev => [...prev, aiPlaceholder]);
+
+                try {
+                    const model = settings.perplexityModel || 'sonar-pro'; // Use configured model or default to sonar-pro
+                    const res = await streamPerplexityResponse(query, [], model, settings.perplexityApiKey,
+                        (txt, sources) => onUpdateMessages(prev => {
+                            const updated = [...prev];
+                            const idx = updated.findIndex(m => m.id === aiPlaceholder.id);
+                            if (idx !== -1) {
+                                updated[idx] = { ...aiPlaceholder, text: txt, isThinking: false, groundingSources: sources };
+                            }
+                            return updated;
+                        }));
+
+                    onUpdateMessages(prev => {
+                        const updated = [...prev];
+                        const idx = updated.findIndex(m => m.id === aiPlaceholder.id);
+                        if (idx !== -1) {
+                            updated[idx] = { ...aiPlaceholder, text: res.text, isThinking: false, groundingSources: res.sources };
+                        }
+                        return updated;
+                    });
+                } catch (error: any) {
+                    onUpdateMessages(prev => {
+                        const updated = [...prev];
+                        const idx = updated.findIndex(m => m.id === aiPlaceholder.id);
+                        if (idx !== -1) {
+                            updated[idx] = { ...aiPlaceholder, text: `❌ Perplexity Search Error: ${error.message}`, isThinking: false };
+                        }
+                        return updated;
+                    });
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
+            // DuckDuckGo Search (/ducky)
+            if (text.startsWith('/ducky')) {
+                const query = text.replace('/ducky', '').trim();
+                if (!query) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: "🦆 **DuckDuckGo Search**\n\nUsage: `/ducky <your question>`\n\nExample: `/ducky where is London`", timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    return;
+                }
+
+                setProcessingStatus("Searching with DuckDuckGo...");
+
+                try {
+                    const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+                    const maxResults = settings.searchResultsCount || 10;
+                    const response = await fetch(`${proxyUrl}/api/mcp/call`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tool: 'search', input: query }) // Send plain query, proxy handles JSON wrapping
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.stdout) {
+                        // Parse the MCP response
+                        let searchResults = '';
+                        try {
+                            const parsed = JSON.parse(result.stdout);
+                            if (Array.isArray(parsed)) {
+                                searchResults = parsed.map((r: any, i: number) =>
+                                    `**${i + 1}. [${r.title}](${r.link || r.url})**\n${r.snippet || r.description || ''}`
+                                ).join('\n\n');
+                            } else if (parsed.content) {
+                                // Handle text content format
+                                searchResults = parsed.content.map((c: any) => c.text).join('\n');
+                            } else {
+                                searchResults = result.stdout;
+                            }
+                        } catch {
+                            searchResults = result.stdout;
+                        }
+
+                        onUpdateMessages(prev => [...prev, {
+                            id: uuidv4(), sender: Sender.AI,
+                            text: `🦆 **DuckDuckGo Results for:** "${query}"\n\n${searchResults}`,
+                            timestamp: Date.now()
+                        }]);
+                    } else {
+                        throw new Error(result.error || result.stderr || 'Search failed');
+                    }
+                } catch (error: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ DuckDuckGo Search Error: ${error.message}\n\n**Hint:** Make sure Docker MCP is running. Try \`/mcp-tools\` first.`, timestamp: Date.now()
+                    }]);
+                }
                 setIsStreaming(false);
                 setProcessingStatus(null);
                 return;

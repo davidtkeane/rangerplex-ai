@@ -32,7 +32,7 @@ interface PodcastFeed {
   id: string;
   name: string;
   rssUrl: string;
-  category: 'pentesting' | 'malware' | 'forensics' | 'news' | 'governance' | 'blockchain';
+  category: 'pentesting' | 'malware' | 'forensics' | 'news' | 'governance' | 'blockchain' | 'webdev';
   description: string;
   website?: string;
 }
@@ -189,6 +189,16 @@ const CYBERSEC_PODCASTS: PodcastFeed[] = [
     category: 'blockchain',
     description: 'Crypto and blockchain security, DeFi hacks, smart contract vulnerabilities',
     website: 'https://unchainedpodcast.com'
+  },
+
+  // === WEB DEVELOPMENT ===
+  {
+    id: 'html-all-the-things',
+    name: 'HTML All The Things',
+    rssUrl: 'https://podcast.htmlallthethings.com/feed.xml',
+    category: 'webdev',
+    description: 'Web development, web design, and small business goodies for developers',
+    website: 'https://www.htmlallthethings.com'
   }
 ];
 
@@ -199,7 +209,8 @@ const CATEGORIES = [
   { id: 'forensics', label: 'Forensics', icon: 'fa-magnifying-glass' },
   { id: 'news', label: 'News', icon: 'fa-newspaper' },
   { id: 'governance', label: 'Governance', icon: 'fa-scale-balanced' },
-  { id: 'blockchain', label: 'Blockchain', icon: 'fa-link' }
+  { id: 'blockchain', label: 'Blockchain', icon: 'fa-link' },
+  { id: 'webdev', label: 'Web Dev', icon: 'fa-code' }
 ];
 
 interface CyberSecPodcastProps {
@@ -588,8 +599,8 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings, bottomOffse
               disabled={isRefreshing || loadingFeed}
               title={lastRefreshed ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()}` : 'Refresh podcast feed'}
               className={`px-3 py-2 rounded-lg text-sm font-bold mr-3 transition-all ${isTron
-                  ? 'bg-tron-cyan/20 text-tron-cyan hover:bg-tron-cyan/30 border border-tron-cyan/50'
-                  : 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 border border-teal-500/50'
+                ? 'bg-tron-cyan/20 text-tron-cyan hover:bg-tron-cyan/30 border border-tron-cyan/50'
+                : 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 border border-teal-500/50'
                 } ${(isRefreshing || loadingFeed) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <i className={`fa-solid fa-sync ${isRefreshing ? 'fa-spin' : ''} mr-2`}></i>
@@ -601,8 +612,8 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings, bottomOffse
             <button
               onClick={() => setActiveTab('audio')}
               className={`px-4 py-2 text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'audio'
-                  ? isTron ? 'bg-tron-cyan text-black' : 'bg-teal-500 text-white'
-                  : isTron ? 'bg-black/50 text-tron-cyan hover:bg-tron-cyan/20' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                ? isTron ? 'bg-tron-cyan text-black' : 'bg-teal-500 text-white'
+                : isTron ? 'bg-black/50 text-tron-cyan hover:bg-tron-cyan/20' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                 }`}
             >
               <i className="fa-solid fa-headphones"></i>
@@ -611,8 +622,8 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings, bottomOffse
             <button
               onClick={() => setActiveTab('video')}
               className={`px-4 py-2 text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'video'
-                  ? isTron ? 'bg-tron-cyan text-black' : 'bg-teal-500 text-white'
-                  : isTron ? 'bg-black/50 text-tron-cyan hover:bg-tron-cyan/20' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                ? isTron ? 'bg-tron-cyan text-black' : 'bg-teal-500 text-white'
+                : isTron ? 'bg-black/50 text-tron-cyan hover:bg-tron-cyan/20' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                 }`}
             >
               <i className="fa-solid fa-video"></i>
@@ -629,14 +640,14 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings, bottomOffse
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${selectedCategory === cat.id
-                    ? isTron
-                      ? 'bg-tron-cyan text-black'
-                      : 'bg-teal-500 text-white'
-                    : isTron
-                      ? 'bg-tron-cyan/10 border border-tron-cyan/50 hover:bg-tron-cyan/20'
-                      : isDark
-                        ? 'bg-zinc-800 border border-zinc-600 hover:bg-zinc-700'
-                        : 'bg-gray-100 border border-gray-300 hover:bg-gray-200'
+                  ? isTron
+                    ? 'bg-tron-cyan text-black'
+                    : 'bg-teal-500 text-white'
+                  : isTron
+                    ? 'bg-tron-cyan/10 border border-tron-cyan/50 hover:bg-tron-cyan/20'
+                    : isDark
+                      ? 'bg-zinc-800 border border-zinc-600 hover:bg-zinc-700'
+                      : 'bg-gray-100 border border-gray-300 hover:bg-gray-200'
                   }`}
               >
                 <i className={`fa-solid ${cat.icon}`}></i>
@@ -655,14 +666,14 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings, bottomOffse
                   key={channel.id}
                   onClick={() => setSelectedYoutubeCategory(channel.id)}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${selectedYoutubeCategory === channel.id
-                      ? isTron
-                        ? 'bg-tron-cyan text-black'
-                        : 'bg-red-500 text-white'
-                      : isTron
-                        ? 'bg-tron-cyan/10 border border-tron-cyan/50 hover:bg-tron-cyan/20'
-                        : isDark
-                          ? 'bg-zinc-800 border border-zinc-600 hover:bg-zinc-700'
-                          : 'bg-gray-100 border border-gray-300 hover:bg-gray-200'
+                    ? isTron
+                      ? 'bg-tron-cyan text-black'
+                      : 'bg-red-500 text-white'
+                    : isTron
+                      ? 'bg-tron-cyan/10 border border-tron-cyan/50 hover:bg-tron-cyan/20'
+                      : isDark
+                        ? 'bg-zinc-800 border border-zinc-600 hover:bg-zinc-700'
+                        : 'bg-gray-100 border border-gray-300 hover:bg-gray-200'
                     }`}
                 >
                   <i className={`fa-solid ${channel.icon}`}></i>
@@ -678,10 +689,10 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings, bottomOffse
                 onChange={(e) => setYoutubeSearchQuery(e.target.value)}
                 placeholder="Search cybersecurity videos..."
                 className={`flex-1 px-3 py-2 rounded-lg text-sm ${isTron
-                    ? 'bg-black border border-tron-cyan/50 text-tron-cyan placeholder:text-tron-cyan/40'
-                    : isDark
-                      ? 'bg-zinc-800 border border-zinc-600 text-white placeholder:text-zinc-500'
-                      : 'bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400'
+                  ? 'bg-black border border-tron-cyan/50 text-tron-cyan placeholder:text-tron-cyan/40'
+                  : isDark
+                    ? 'bg-zinc-800 border border-zinc-600 text-white placeholder:text-zinc-500'
+                    : 'bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400'
                   }`}
               />
               <button
@@ -897,8 +908,13 @@ const CyberSecPodcast: React.FC<CyberSecPodcastProps> = ({ settings, bottomOffse
 
       {/* Floating Player - positioned left of Ranger Radio */}
       {showPlayer && currentEpisode && (
-        <div className={`fixed bottom-4 right-[22rem] z-50 rounded-xl border-2 shadow-2xl backdrop-blur-sm transition-all ${isTron ? 'bg-black/90 border-tron-cyan' : isDark ? 'bg-zinc-900/95 border-zinc-600' : 'bg-white/95 border-gray-300'
-          } ${isMinimized ? 'w-72' : 'w-96'}`}>
+        <div
+          className={`fixed right-[23rem] z-50 rounded-xl border-2 shadow-2xl backdrop-blur-sm transition-all ${isTron ? 'bg-black/90 border-tron-cyan' : isDark ? 'bg-zinc-900/95 border-zinc-600' : 'bg-white/95 border-gray-300'
+            } ${isMinimized ? 'w-72' : 'w-96'}`}
+          style={{
+            bottom: `${16 + bottomOffset}px`
+          }}
+        >
           {/* Player header */}
           <div
             className={`flex items-center justify-between p-3 cursor-pointer ${textClass}`}

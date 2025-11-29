@@ -5,6 +5,114 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.7] - 2025-11-29 📁 AI WORKSPACE
+
+### 📁 MCP Filesystem Workspace (NEW!)
+- **AI File Access**: Models can now read/write files in a sandboxed workspace
+- **Workspace Directory**: `/rangerplex-ai/workspace/` with subdirectories:
+  - `projects/` - AI-assisted project files
+  - `uploads/` - Files for AI processing
+  - `temp/` - Temporary files
+  - `shared/` - Persistent shared files
+
+### 🛠️ 11 Filesystem Tools Available
+| Tool | Description |
+|------|-------------|
+| `read_file` | Read file contents |
+| `write_file` | Create/overwrite files |
+| `edit_file` | Line-based text edits |
+| `list_directory` | View folder contents |
+| `directory_tree` | Recursive tree view |
+| `search_files` | Find files by pattern |
+| `move_file` | Move/rename files |
+| `create_directory` | Create folders |
+| `get_file_info` | File metadata |
+| `read_multiple_files` | Batch read |
+| `list_allowed_directories` | Show accessible paths |
+
+### 🔒 Security
+- **Sandboxed**: AI can ONLY access `/workspace` folder
+- **No Execution**: Cannot run scripts or programs
+- **Read/Write Only**: Safe file operations within bounds
+
+### 📦 Version
+- Bumped version to **2.13.7**
+
+---
+
+## [2.13.6] - 2025-11-29 🎧 PODCAST UI POLISH
+
+### 🎨 UI Improvements
+- **CyberSec Podcast Hub**: Fixed floating player positioning
+  - Player now floats **above** the news ticker (respects bottom offset)
+  - Aligned horizontally with Ranger Radio (2rem gap) for a clean, side-by-side layout
+  - Prevents UI overlap when both radio and podcast player are active
+
+### 📦 Version
+- Bumped version to **2.13.6**
+
+---
+
+## [2.13.5] - 2025-11-29 🔍 SEARCH COMMANDS & MCP FIXES
+
+### 🆕 New Search Commands
+- **`/perplexity <query>`**: AI-powered web search using Perplexity's Sonar models
+  - Streams results in real-time with citations
+  - Uses configured model from Settings (default: sonar-pro)
+  - Example: `/perplexity what is the best M3 Pro price`
+
+- **`/ducky <query>`**: DuckDuckGo web search via MCP Docker gateway
+  - Returns formatted search results with titles, URLs, and snippets
+  - Uses configured results count from Settings
+  - Example: `/ducky where is London`
+
+### ⚙️ Enhanced Search Settings
+New comprehensive search configuration in **Settings > Search**:
+
+**Search Preferences:**
+- **Default Search Provider**: Perplexity, Brave, DuckDuckGo, Google, Bing, Tavily
+- **Perplexity Model**: Sonar, Sonar Pro, Sonar Reasoning, Sonar Reasoning Pro
+- **Results Count**: 5, 10, 15, or 20 results
+- **Safe Search**: Off, Moderate, Strict
+- **Search Region**: US, GB, IE, CA, AU, DE, FR, ES, IT, JP, IN, BR
+- **Search Language**: 11 languages supported
+
+**Search Behavior Toggles:**
+- Enable DuckDuckGo Fallback (via MCP)
+- Enable Web Search for LLMs
+- Show Source Links in Results
+- Auto-Search on Questions
+
+**Quick Commands Reference**: Handy reference box showing available search commands
+
+### 🔧 Critical Bug Fixes
+
+- **Docker MCP Tools Call**: Fixed stdin JSON parsing issue
+  - Docker MCP uses `key=value` command arguments, NOT stdin JSON
+  - Rewrote `/api/mcp/call` endpoint to convert JSON to key=value format
+  - Added `getToolArgs()` helper for mapping plain text to tool arguments
+  - All MCP tools now work correctly: search, brave_web_search, fetch, etc.
+
+- **App Startup Crash**: Fixed Electron crash on `npm run browser`
+  - Removed conflicting server startup from `launch_browser.cjs`
+  - Electron now manages servers internally (prevents double-start conflicts)
+  - MCP Gateway auto-starts 8 seconds after Electron boots
+
+- **Port Cleanup**: Added MCP gateway port (8808) to cleanup list
+  - Prevents port conflicts on restart
+
+### 🚀 Launch Script Improvements
+Updated `scripts/launch_browser.cjs`:
+- Simplified startup sequence: Docker → Port cleanup → UI → MCP Gateway
+- Removed server startup (Electron handles this)
+- Added delayed MCP Gateway initialization
+- Better console output showing startup progress
+
+### 📦 Version
+- Bumped version to **2.13.5**
+
+---
+
 ## [2.13.4] - 2025-11-29 📡 RSS & UI POLISH
 
 ### 🆕 RSS Enhancements
@@ -24,6 +132,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Monochromatic "Zinc" theme for distraction-free reading.
   - Smooth scrolling animation (pixel-perfect speed calculation).
   - FontAwesome icons for categories.
+
+### 🐛 Bug Fixes
+- **Electron Startup Crash**: Fixed double-server startup conflict when running `npm run browser`.
+  - Electron now checks if the server is already running before attempting to start it.
 
 ### 📦 Version
 - Bumped version to **2.13.4** across all components.

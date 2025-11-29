@@ -2037,16 +2037,154 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     status={connectionStatus['tavily']}
                                 />
 
-                                <div className="mt-6 space-y-3">
+                                {/* Search Preferences Section */}
+                                <h3 className="font-bold mb-4 border-b border-inherit pb-2 mt-8">Search Preferences</h3>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Default Search Provider */}
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Default Search Provider</label>
+                                        <select
+                                            value={localSettings.defaultSearchProvider || 'perplexity'}
+                                            onChange={e => setLocalSettings({ ...localSettings, defaultSearchProvider: e.target.value as any })}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        >
+                                            <option value="perplexity">🔍 Perplexity (AI-Powered)</option>
+                                            <option value="brave">🦁 Brave Search</option>
+                                            <option value="duckduckgo">🦆 DuckDuckGo</option>
+                                            <option value="google">🔎 Google Search</option>
+                                            <option value="bing">Ⓜ️ Bing Search</option>
+                                            <option value="tavily">🌐 Tavily</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Perplexity Model */}
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Perplexity Model</label>
+                                        <select
+                                            value={localSettings.perplexityModel || 'sonar-pro'}
+                                            onChange={e => setLocalSettings({ ...localSettings, perplexityModel: e.target.value as any })}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        >
+                                            <option value="sonar">Sonar (Fast)</option>
+                                            <option value="sonar-pro">Sonar Pro (Best Quality)</option>
+                                            <option value="sonar-reasoning">Sonar Reasoning</option>
+                                            <option value="sonar-reasoning-pro">Sonar Reasoning Pro (Most Powerful)</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Search Results Count */}
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Results Count</label>
+                                        <select
+                                            value={localSettings.searchResultsCount || 10}
+                                            onChange={e => setLocalSettings({ ...localSettings, searchResultsCount: parseInt(e.target.value) })}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        >
+                                            <option value={5}>5 results</option>
+                                            <option value={10}>10 results</option>
+                                            <option value={15}>15 results</option>
+                                            <option value={20}>20 results</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Safe Search Mode */}
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Safe Search</label>
+                                        <select
+                                            value={localSettings.searchSafeMode || 'moderate'}
+                                            onChange={e => setLocalSettings({ ...localSettings, searchSafeMode: e.target.value as any })}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        >
+                                            <option value="off">Off (No filtering)</option>
+                                            <option value="moderate">Moderate (Recommended)</option>
+                                            <option value="strict">Strict (Maximum filtering)</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Search Region */}
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Search Region</label>
+                                        <select
+                                            value={localSettings.searchRegion || 'US'}
+                                            onChange={e => setLocalSettings({ ...localSettings, searchRegion: e.target.value })}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        >
+                                            <option value="US">🇺🇸 United States</option>
+                                            <option value="GB">🇬🇧 United Kingdom</option>
+                                            <option value="IE">🇮🇪 Ireland</option>
+                                            <option value="CA">🇨🇦 Canada</option>
+                                            <option value="AU">🇦🇺 Australia</option>
+                                            <option value="DE">🇩🇪 Germany</option>
+                                            <option value="FR">🇫🇷 France</option>
+                                            <option value="ES">🇪🇸 Spain</option>
+                                            <option value="IT">🇮🇹 Italy</option>
+                                            <option value="JP">🇯🇵 Japan</option>
+                                            <option value="IN">🇮🇳 India</option>
+                                            <option value="BR">🇧🇷 Brazil</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Search Language */}
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1 opacity-80">Search Language</label>
+                                        <select
+                                            value={localSettings.searchLanguage || 'en'}
+                                            onChange={e => setLocalSettings({ ...localSettings, searchLanguage: e.target.value })}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        >
+                                            <option value="en">English</option>
+                                            <option value="es">Español</option>
+                                            <option value="de">Deutsch</option>
+                                            <option value="fr">Français</option>
+                                            <option value="it">Italiano</option>
+                                            <option value="pt">Português</option>
+                                            <option value="ja">日本語</option>
+                                            <option value="zh">中文</option>
+                                            <option value="ko">한국어</option>
+                                            <option value="ar">العربية</option>
+                                            <option value="hi">हिन्दी</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Toggle Options */}
+                                <h3 className="font-bold mb-4 border-b border-inherit pb-2 mt-8">Search Behavior</h3>
+                                <div className="space-y-3">
                                     <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
                                         <input type="checkbox" checked={localSettings.enableDuckDuckGo} onChange={e => setLocalSettings({ ...localSettings, enableDuckDuckGo: e.target.checked })} className="accent-teal-500 w-5 h-5" />
-                                        Enable DuckDuckGo (Requires Proxy)
+                                        Enable DuckDuckGo Fallback (via MCP)
                                     </label>
+                                    <p className="text-xs opacity-60 ml-8">Use DuckDuckGo when other search providers fail</p>
+
                                     <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
                                         <input type="checkbox" checked={localSettings.enableWebSearchForLLMs} onChange={e => setLocalSettings({ ...localSettings, enableWebSearchForLLMs: e.target.checked })} className="accent-teal-500 w-5 h-5" />
                                         Enable Web Search for LLMs
                                     </label>
                                     <p className="text-xs opacity-60 ml-8">When enabled, LLMs will automatically search the web when the 🌐 WEB button is active</p>
+
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input type="checkbox" checked={localSettings.showSearchSources ?? true} onChange={e => setLocalSettings({ ...localSettings, showSearchSources: e.target.checked })} className="accent-teal-500 w-5 h-5" />
+                                        Show Source Links in Results
+                                    </label>
+                                    <p className="text-xs opacity-60 ml-8">Display clickable source URLs with search results</p>
+
+                                    <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                        <input type="checkbox" checked={localSettings.autoSearchOnQuestion ?? false} onChange={e => setLocalSettings({ ...localSettings, autoSearchOnQuestion: e.target.checked })} className="accent-teal-500 w-5 h-5" />
+                                        Auto-Search on Questions
+                                    </label>
+                                    <p className="text-xs opacity-60 ml-8">Automatically trigger web search when a question is detected (e.g., "What is...?", "How do I...?")</p>
+                                </div>
+
+                                {/* Quick Commands Reference */}
+                                <div className="mt-6 p-4 border border-inherit rounded bg-opacity-5">
+                                    <h4 className="font-bold text-sm mb-2">🚀 Quick Search Commands</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                        <div><code className="bg-black/20 px-1 rounded">/perplexity</code> AI-powered search</div>
+                                        <div><code className="bg-black/20 px-1 rounded">/ducky</code> DuckDuckGo search</div>
+                                        <div><code className="bg-black/20 px-1 rounded">/mcp-brave_web_search</code> Brave search</div>
+                                        <div><code className="bg-black/20 px-1 rounded">/mcp-brave_news_search</code> News search</div>
+                                    </div>
                                 </div>
                             </div>
                         )}

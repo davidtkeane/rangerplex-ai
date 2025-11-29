@@ -38,6 +38,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const VERSION = '2.13.7';
 const PORT = 3000;
 const startDockerDesktop = async () => {
     const platform = process.platform;
@@ -386,7 +387,33 @@ app.post('/api/mcp/call', async (req, res) => {
         if (!tool || !/^[A-Za-z0-9_.:-]+$/.test(tool)) {
             return res.status(400).json({ success: false, error: 'Invalid MCP tool name' });
         }
+
+        // Build arguments array - docker mcp uses key=value format
         const args = ['mcp', 'tools', 'call', tool];
+
+        // Parse input and convert to key=value arguments
+        if (input && typeof input === 'string' && input.trim().length > 0) {
+            const trimmed = input.trim();
+
+            // If input is JSON, parse it and convert to key=value args
+            if (trimmed.startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    for (const [key, value] of Object.entries(parsed)) {
+                        if (value !== undefined && value !== null) {
+                            args.push(`${key}=${String(value)}`);
+                        }
+                    }
+                } catch (e) {
+                    // Not valid JSON, treat as plain text for specific tools
+                    args.push(...getToolArgs(tool, trimmed));
+                }
+            } else {
+                // Plain text input - map to appropriate argument based on tool
+                args.push(...getToolArgs(tool, trimmed));
+            }
+        }
+
         const child = spawn('docker', args);
         let stdout = '';
         let stderr = '';
@@ -408,34 +435,34 @@ app.post('/api/mcp/call', async (req, res) => {
             res.json({ success: code === 0, code, stdout: stdout.trim(), stderr: stderr.trim() });
         });
 
-        // Heuristic: for fetch tools, wrap plain URL into JSON {url}
-        if (input && typeof input === 'string' && input.trim().length > 0) {
-            const trimmed = input.trim();
-            if (!trimmed.startsWith('{')) {
-                if (tool === 'fetch' || tool === 'fetch_content') {
-                    child.stdin.write(JSON.stringify({ url: trimmed }));
-                } else if (tool === 'brave_web_search' || tool === 'brave_image_search' || tool === 'brave_news_search' || tool === 'brave_video_search') {
-                    child.stdin.write(JSON.stringify({ q: trimmed }));
-                } else if (tool === 'obsidian_search') {
-                    child.stdin.write(JSON.stringify({ query: trimmed }));
-                } else if (tool === 'search') {
-                    child.stdin.write(JSON.stringify({ query: trimmed }));
-                } else if (tool === 'obsidian_get_file_contents') {
-                    child.stdin.write(JSON.stringify({ path: trimmed }));
-                } else if (tool === 'get_transcript' || tool === 'get_timed_transcript' || tool === 'get_video_info') {
-                    child.stdin.write(JSON.stringify({ url: trimmed }));
-                } else {
-                    child.stdin.write(input);
-                }
-            } else {
-                child.stdin.write(input);
-            }
-        }
         child.stdin.end();
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+// Helper function to map plain text input to tool-specific arguments
+function getToolArgs(tool, input) {
+    const toolArgMap = {
+        'fetch': ['url'],
+        'fetch_content': ['url'],
+        'brave_web_search': ['query'],
+        'brave_image_search': ['query'],
+        'brave_news_search': ['query'],
+        'brave_video_search': ['query'],
+        'brave_local_search': ['query'],
+        'search': ['query'],
+        'obsidian_search': ['query'],
+        'obsidian_simple_search': ['query'],
+        'obsidian_get_file_contents': ['filepath'],
+        'get_transcript': ['url'],
+        'get_timed_transcript': ['url'],
+        'get_video_info': ['url'],
+    };
+
+    const argNames = toolArgMap[tool] || ['input'];
+    return argNames.map(name => `${name}=${input}`);
+}
 
 // 📡 RSS PROXY - Bypass CORS for RSS feeds
 app.get('/api/proxy', async (req, res) => {
@@ -4521,7 +4548,7 @@ server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎖️  RANGERPLEX AI SERVER v2.13.4                       ║
+║   🎖️  RANGERPLEX AI SERVER v2.13.5                       ║
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║

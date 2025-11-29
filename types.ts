@@ -222,6 +222,16 @@ export interface AppSettings {
   bingSearchApiKey?: string; // Bing Search
   tavilyApiKey?: string; // Tavily Search
 
+  // Search Settings 🔍
+  defaultSearchProvider?: 'perplexity' | 'brave' | 'duckduckgo' | 'google' | 'bing' | 'tavily';
+  perplexityModel?: 'sonar' | 'sonar-pro' | 'sonar-reasoning' | 'sonar-reasoning-pro';
+  searchResultsCount?: number; // Number of results to return (5-20)
+  autoSearchOnQuestion?: boolean; // Auto-search when detecting a question
+  showSearchSources?: boolean; // Show source links in search results
+  searchSafeMode?: 'off' | 'moderate' | 'strict'; // Safe search filter
+  searchRegion?: string; // Region for localized results (e.g., 'US', 'GB', 'IE')
+  searchLanguage?: string; // Language preference (e.g., 'en', 'es', 'de')
+
   // Weather APIs 🌤️
   weatherProvider: 'fusion' | 'openmeteo' | 'openweather' | 'tomorrow' | 'visualcrossing';
   openWeatherApiKey?: string; // OpenWeatherMap

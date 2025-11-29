@@ -117,8 +117,9 @@ function ensureDockerRunning() {
 }
 // --------------------------
 
-// RangerPlex ports to manage
-const RANGERPLEX_PORTS = [3000, 5173, 5555, 5005];
+// RangerPlex ports to manage (includes MCP gateway port 8808)
+const RANGERPLEX_PORTS = [3000, 5173, 5555, 5005, 8808];
+const PROXY_PORT = 3000;
 
 function cleanupPorts() {
     return new Promise((resolve) => {
@@ -138,18 +139,70 @@ function cleanupPorts() {
     });
 }
 
-function shutdownServers() {
-    console.log('\n🛑 Shutting down RangerPlex servers...');
+// Start the MCP Gateway via the proxy server API
+function startMcpGateway() {
+    return new Promise((resolve) => {
+        console.log('🔌 Starting MCP Gateway...');
 
-    if (process.platform === 'darwin' || process.platform === 'linux') {
-        const portList = RANGERPLEX_PORTS.join(',');
-        exec(`lsof -ti:${portList} | xargs kill -9 2>/dev/null`, () => {
-            // Also kill any node processes related to rangerplex
-            exec('pkill -f "proxy_server.js" 2>/dev/null; pkill -f "vite.*rangerplex" 2>/dev/null', () => {
-                console.log('✅ All RangerPlex servers stopped');
+        // Use http module to call the ensure endpoint
+        const http = require('http');
+        const postData = JSON.stringify({});
+
+        const options = {
+            hostname: 'localhost',
+            port: PROXY_PORT,
+            path: '/api/mcp/ensure',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+
+        const req = http.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const result = JSON.parse(data);
+                    if (result.success) {
+                        console.log(`✅ MCP Gateway ${result.status || 'started'}`);
+                    } else {
+                        console.warn('⚠️  MCP Gateway response:', result);
+                    }
+                } catch (e) {
+                    console.warn('⚠️  MCP Gateway response parse error');
+                }
+                resolve();
             });
         });
-    }
+
+        req.on('error', (err) => {
+            console.warn('⚠️  Could not start MCP Gateway:', err.message);
+            console.warn('   You can start it manually: /mcp-tools or call /api/mcp/ensure');
+            resolve();
+        });
+
+        req.setTimeout(5000, () => {
+            console.warn('⚠️  MCP Gateway request timed out');
+            req.destroy();
+            resolve();
+        });
+
+        req.write(postData);
+        req.end();
+    });
+}
+
+// Start MCP Gateway after Electron/servers are ready
+function startMcpGatewayDelayed() {
+    return new Promise((resolve) => {
+        // Wait for servers to be fully up (Electron starts them)
+        console.log('⏳ Waiting for servers to initialize...');
+        setTimeout(() => {
+            startMcpGateway().then(resolve);
+        }, 8000); // Wait 8 seconds for Electron to start servers
+    });
 }
 
 function openTab() {
@@ -197,28 +250,40 @@ function openElectron() {
 }
 
 console.log(`🚀 Launch Mode: ${mode || 'Default (Electron Only)'}`);
+console.log('📋 Startup sequence: Docker → Port cleanup → UI → MCP Gateway\n');
 
 switch (mode) {
-    case '-t': // Tab Only
-        ensureDockerRunning().then(openTab);
-        break;
-    case '-b': // Both
-        ensureDockerRunning().then(() => {
-            openTab();
-            // Wait a moment for the tab to open before starting Electron (optional, but nice)
-            setTimeout(openElectron, 1000);
-        });
-        break;
-    default: // Electron Only (Default)
+    case '-t': // Tab Only (browser tab) - needs servers started first
         ensureDockerRunning()
             .then(cleanupPorts)
-            .then(openElectron);
+            .then(() => {
+                console.log('\n🎉 Opening browser tab...\n');
+                console.log('⚠️  Note: Run "npm start" in another terminal for servers\n');
+                openTab();
+            });
+        break;
+    case '-b': // Both (browser + Electron)
+        ensureDockerRunning()
+            .then(cleanupPorts)
+            .then(() => {
+                console.log('\n🎉 Opening browser and Electron...\n');
+                openTab();
+                setTimeout(openElectron, 1000);
+                // Start MCP gateway after servers are up
+                startMcpGatewayDelayed();
+            });
+        break;
+    default: // Electron Only (Default) - Electron handles servers
+        ensureDockerRunning()
+            .then(cleanupPorts)
+            .then(() => {
+                console.log('\n🎉 Starting Electron (servers will auto-start)...\n');
+                openElectron();
+                // Start MCP gateway after Electron starts servers
+                startMcpGatewayDelayed();
+            });
         break;
 }
 
-// Register shutdown handlers for clean exit
-process.on('exit', shutdownServers);
-process.on('SIGTERM', () => {
-    shutdownServers();
-    process.exit(0);
-});
+// Note: We don't shutdown servers on exit anymore since Electron manages them
+// The cleanup only happens if user explicitly closes the launch script

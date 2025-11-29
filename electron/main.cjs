@@ -572,6 +572,20 @@ function waitForServer(port) {
     });
 }
 
+function checkServerRunning(port) {
+    return new Promise((resolve) => {
+        const req = http.get(`http://127.0.0.1:${port}`, (res) => {
+            resolve(true);
+            req.destroy();
+        });
+        req.on('error', () => resolve(false));
+        req.setTimeout(500, () => {
+            req.destroy();
+            resolve(false);
+        });
+    });
+}
+
 // 👻 GHOST PROTOCOL: The Panic Button
 function activateGhostProtocol() {
     console.log('👻 GHOST PROTOCOL ACTIVATED!');
@@ -600,7 +614,14 @@ function activateGhostProtocol() {
 
 app.whenReady().then(async () => {
     setupMenu();
-    startServer();
+
+    // Check if server is already running (e.g. started by launch_browser.cjs)
+    const isRunning = await checkServerRunning(SERVER_PORT);
+    if (!isRunning) {
+        startServer();
+    } else {
+        console.log('⚡ Server already running, skipping internal start.');
+    }
 
     // Wait for Vite to be ready before showing the window
     // This prevents the "Connection Refused" white screen
