@@ -132,7 +132,7 @@ class Installer {
         });
     }
 
-    hasIdentity() {
+    findIdentityFile() {
         // Check for multiple naming conventions
         const possibleFiles = [
             'node_identity.json',
@@ -143,8 +143,9 @@ class Installer {
         ];
 
         for (const file of possibleFiles) {
-            if (fs.existsSync(path.join(personalDir, file))) {
-                return true;
+            const filePath = path.join(personalDir, file);
+            if (fs.existsSync(filePath)) {
+                return { file, path: filePath };
             }
         }
 
@@ -153,12 +154,32 @@ class Installer {
             const files = fs.readdirSync(personalDir);
             for (const file of files) {
                 if (file.endsWith('_identity.json') || file.endsWith('_node.json')) {
-                    return true;
+                    return { file, path: path.join(personalDir, file) };
                 }
             }
         }
 
-        return false;
+        return null;
+    }
+
+    hasIdentity() {
+        return this.findIdentityFile() !== null;
+    }
+
+    getIdentityInfo() {
+        const found = this.findIdentityFile();
+        if (!found) return null;
+
+        try {
+            const data = JSON.parse(fs.readFileSync(found.path, 'utf8'));
+            return {
+                file: found.file,
+                nodeID: data.nodeID || data.node_address || 'Unknown',
+                nodeType: data.nodeType || data.node_type || 'peer'
+            };
+        } catch (e) {
+            return { file: found.file, nodeID: 'Unknown', nodeType: 'Unknown' };
+        }
     }
 
     hasDependencies() {
@@ -178,23 +199,44 @@ class Installer {
 
         // Check current state
         const hasDeps = this.hasDependencies();
-        const hasId = this.hasIdentity();
+        const identityInfo = this.getIdentityInfo();
+        let useExistingIdentity = false;
 
-        if (hasDeps && hasId) {
-            console.log('RangerPlexBlock is already installed and configured!\n');
-            const reinstall = await this.prompt('Reinstall anyway? (y/n): ');
-            if (reinstall !== 'y') {
-                console.log('\nInstallation cancelled. Your existing setup is preserved.');
-                this.rl.close();
-                return;
+        // Check for existing identity FIRST
+        if (identityInfo) {
+            console.log('=' .repeat(50));
+            console.log('   EXISTING IDENTITY FOUND!');
+            console.log('=' .repeat(50));
+            console.log(`   File: ${identityInfo.file}`);
+            console.log(`   Node ID: ${identityInfo.nodeID}`);
+            console.log(`   Type: ${identityInfo.nodeType}`);
+            console.log('=' .repeat(50) + '\n');
+
+            const useExisting = await this.prompt('Use this existing identity? (y/n): ');
+            useExistingIdentity = (useExisting === 'y');
+
+            if (useExistingIdentity) {
+                console.log('\n   Using existing identity!\n');
+            } else {
+                console.log('\n   Will create NEW identity.\n');
             }
         }
 
-        // Ask user if they want to proceed
+        // Check if fully configured
+        if (hasDeps && useExistingIdentity) {
+            console.log('RangerPlexBlock is ready to go!\n');
+            console.log('Start with: npm start');
+            this.rl.close();
+            return;
+        }
+
+        // Ask user if they want to proceed with installation
         console.log('This will install RangerPlexBlock with:');
         console.log('   - WebSocket relay server (port 5555)');
         console.log('   - P2P blockchain communication');
-        console.log('   - Secure node identity with RSA-2048 keys');
+        if (!useExistingIdentity) {
+            console.log('   - Secure node identity with RSA-2048 keys');
+        }
         console.log('   - IDCP video compression (if ffmpeg installed)');
         console.log('');
 
@@ -205,18 +247,33 @@ class Installer {
             return;
         }
 
-        // Install dependencies
-        console.log('\n' + '-'.repeat(40));
-        const depsOk = await this.installDependencies();
-        if (!depsOk) {
-            console.log('Failed to install dependencies. Please run: npm install');
-            this.rl.close();
-            process.exit(1);
+        // Install dependencies if needed
+        if (!hasDeps) {
+            console.log('\n' + '-'.repeat(40));
+            const depsOk = await this.installDependencies();
+            if (!depsOk) {
+                console.log('Failed to install dependencies. Please run: npm install');
+                this.rl.close();
+                process.exit(1);
+            }
+        } else {
+            console.log('\n   Dependencies already installed.\n');
         }
 
-        // Ask about node type
+        // Skip node type selection if using existing identity
+        if (useExistingIdentity) {
+            console.log('\n' + '='.repeat(60));
+            console.log('   INSTALLATION COMPLETE!');
+            console.log('='.repeat(60));
+            console.log('\nUsing existing identity. Start with: npm start');
+            console.log('\nRangers lead the way!\n');
+            this.rl.close();
+            return;
+        }
+
+        // Ask about node type for NEW identity
         console.log('-'.repeat(40) + '\n');
-        console.log('Node Type:');
+        console.log('Node Type (for NEW identity):');
         console.log('   1. PEER NODE - Join existing network (recommended)');
         console.log('   2. GENESIS NODE - Start new network (first node only)');
         console.log('');
