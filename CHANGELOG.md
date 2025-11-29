@@ -5,6 +5,17 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.7] - 2025-11-29 🛠️ MCP INTEGRATION COMPLETE
+
+### 🐳 Docker MCP
+- **Full Integration**: MCP tools (Brave, Fetch, YouTube, Obsidian) are now fully integrated with Gemini, Claude, Ollama, and OpenAI.
+- **Smart Proxy**: Backend heuristics automatically wrap raw text inputs into JSON for common tools, simplifying model usage.
+- **Model Awareness**: System prompts updated to make models aware of available tools and how to use them via slash commands.
+- **Frontend Handler**: Added chat interface support for executing `/mcp` commands and displaying results.
+
+### 📦 Version
+- Synced version across badge, package files, server banner, sidebar, and DB metadata to **2.12.7**.
+
 ## [2.12.6] - 2025-11-29 🎉 OPENAI CATALOG + CELEBRATIONS
 
 ### 🤖 OpenAI Updates

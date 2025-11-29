@@ -914,6 +914,71 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
             }
 
+            // MCP Command Handler (/mcp)
+            if (text.startsWith('/mcp')) {
+                setProcessingStatus("Executing MCP Tool...");
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+
+                // Parse command: /mcp-tool args OR /mcp tool args
+                let tool = '';
+                let input = '';
+
+                if (text.startsWith('/mcp-')) {
+                    const parts = text.substring(5).split(' '); // remove /mcp-
+                    tool = parts[0];
+                    input = parts.slice(1).join(' ');
+                } else {
+                    const parts = text.substring(4).trim().split(' '); // remove /mcp
+                    tool = parts[0];
+                    input = parts.slice(1).join(' ');
+                }
+
+                if (!tool) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: '❌ Usage: `/mcp-<tool> <args>` or `/mcp <tool> <args>`', timestamp: Date.now()
+                    }]);
+                    setIsStreaming(false);
+                    setProcessingStatus(null);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${proxyUrl}/api/mcp/call`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tool, input })
+                    }).then(r => r.json());
+
+                    if (!res.success) throw new Error(res.error || 'Unknown error');
+
+                    let msg = `### 🛠️ MCP Tool: ${tool}\n\n`;
+                    if (res.stdout) {
+                        // Check if output is JSON
+                        try {
+                            const json = JSON.parse(res.stdout);
+                            msg += '```json\n' + JSON.stringify(json, null, 2) + '\n```';
+                        } catch {
+                            msg += res.stdout;
+                        }
+                    }
+                    if (res.stderr) {
+                        msg += `\n\n**Stderr:**\n\`\`\`\n${res.stderr}\n\`\`\``;
+                    }
+
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: msg, timestamp: Date.now()
+                    }]);
+
+                } catch (e: any) {
+                    onUpdateMessages(prev => [...prev, {
+                        id: uuidv4(), sender: Sender.AI, text: `❌ MCP Call Failed: ${e.message}\n\nHint: Ensure Docker Desktop is running and the gateway is started via /api/mcp/ensure`, timestamp: Date.now()
+                    }]);
+                }
+                setIsStreaming(false);
+                setProcessingStatus(null);
+                return;
+            }
+
             // 0a. Manual (/manual) - opens the in-app manual overlay
             if (text.trim() === '/manual') {
                 onOpenManual?.();
@@ -3637,10 +3702,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         <button
                             onClick={() => setShowAliasManager(true)}
                             className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${isTron
-                                    ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
-                                    : settings.matrixMode
-                                        ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
-                                        : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
+                                ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
+                                : settings.matrixMode
+                                    ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
+                                    : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
                                 }`}
                         >
                             <i className="fa-solid fa-bolt mr-2"></i>Alias Manager
@@ -3648,10 +3713,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         <button
                             onClick={handleViewAliasLogs}
                             className={`text-[11px] px-3 py-1 rounded-full border font-semibold transition-colors ${isTron
-                                    ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
-                                    : settings.matrixMode
-                                        ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
-                                        : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
+                                ? 'border-tron-cyan text-tron-cyan hover:bg-tron-cyan/10'
+                                : settings.matrixMode
+                                    ? 'border-green-500/70 text-green-400 hover:bg-green-500/10'
+                                    : 'border-zinc-700 text-zinc-200 hover:bg-zinc-800'
                                 }`}
                         >
                             <i className="fa-solid fa-clipboard-list mr-2"></i>View Logs

@@ -116,8 +116,22 @@ export const streamAnthropicResponse = async (
     }
 
     // Add system prompt if provided
+    const mcpPrompt = `
+    AVAILABLE TOOLS (Docker MCP):
+    - Web Search: /mcp-brave_web_search <query>
+    - Fetch URL: /mcp-fetch <url>
+    - YouTube: /mcp-get_transcript <url>
+    - Obsidian: /mcp-obsidian_search <query>
+    
+    INSTRUCTIONS:
+    - If you need to search the web, fetch a page, or use any other tool, OUTPUT THE COMMAND DIRECTLY.
+    - Do not say "I cannot access the internet". Instead, output: /mcp-brave_web_search <query>
+    `;
+
     if (modelParams?.systemPromptOverride) {
-      requestBody.system = modelParams.systemPromptOverride;
+      requestBody.system = modelParams.systemPromptOverride + "\n\n" + mcpPrompt;
+    } else {
+      requestBody.system = "You are Claude, a helpful AI assistant.\n\n" + mcpPrompt;
     }
 
     const response = await fetch(url, {
@@ -131,9 +145,9 @@ export const streamAnthropicResponse = async (
     });
 
     if (!response.ok) {
-        const txt = await response.text();
-        if(txt.includes("CORS")) throw new Error("CORS Error: Set Proxy URL in settings.");
-        throw new Error("Anthropic Error: " + txt);
+      const txt = await response.text();
+      if (txt.includes("CORS")) throw new Error("CORS Error: Set Proxy URL in settings.");
+      throw new Error("Anthropic Error: " + txt);
     }
 
     const reader = response.body?.getReader();
@@ -147,17 +161,17 @@ export const streamAnthropicResponse = async (
       const chunk = decoder.decode(value, { stream: true });
       const lines = chunk.split('\n').filter(l => l.trim() !== '');
       for (const line of lines) {
-          if (line.startsWith('data: ')) {
-              try {
-                  const json = JSON.parse(line.slice(6));
-                  if (json.type === 'content_block_delta' && json.delta?.text) {
-                      fullText += json.delta.text;
-                      onChunk(fullText);
-                  }
-                  if (json.type === 'message_start') usage.inputTokens = json.message.usage.input_tokens;
-                  if (json.type === 'message_delta') usage.outputTokens = json.usage.output_tokens;
-              } catch (e) {}
-          }
+        if (line.startsWith('data: ')) {
+          try {
+            const json = JSON.parse(line.slice(6));
+            if (json.type === 'content_block_delta' && json.delta?.text) {
+              fullText += json.delta.text;
+              onChunk(fullText);
+            }
+            if (json.type === 'message_start') usage.inputTokens = json.message.usage.input_tokens;
+            if (json.type === 'message_delta') usage.outputTokens = json.usage.output_tokens;
+          } catch (e) { }
+        }
       }
     }
     return { text: fullText, usage };

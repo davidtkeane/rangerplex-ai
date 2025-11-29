@@ -105,6 +105,17 @@ export const streamGeminiResponse = async (
         Use Mermaid.js for diagrams.
         Use standard Markdown for tables.
         
+        AVAILABLE TOOLS (Docker MCP):
+        - Web Search: /mcp-brave_web_search <query>
+        - Fetch URL: /mcp-fetch <url>
+        - YouTube: /mcp-get_transcript <url>
+        - Obsidian: /mcp-obsidian_search <query>
+        
+        INSTRUCTIONS:
+        - If you need to search the web, fetch a page, or use any other tool, OUTPUT THE COMMAND DIRECTLY.
+        - Do not say "I cannot access the internet". Instead, output: /mcp-brave_web_search <query>
+        - The system will execute the command and return the result to you in the next turn.
+        
         IMPORTANT: If the user asks for reasoning, or if the task is complex, wrap your thought process in <thinking> tags before the answer.
         Example: <thinking>I need to calculate X first...</thinking> The answer is Y.`;
     }

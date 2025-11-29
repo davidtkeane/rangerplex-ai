@@ -404,9 +404,22 @@ app.post('/api/mcp/call', async (req, res) => {
         // Heuristic: for fetch tools, wrap plain URL into JSON {url}
         if (input && typeof input === 'string' && input.trim().length > 0) {
             const trimmed = input.trim();
-            if ((tool === 'fetch' || tool === 'fetch_content') && !trimmed.startsWith('{')) {
-                const body = JSON.stringify({ url: trimmed });
-                child.stdin.write(body);
+            if (!trimmed.startsWith('{')) {
+                if (tool === 'fetch' || tool === 'fetch_content') {
+                    child.stdin.write(JSON.stringify({ url: trimmed }));
+                } else if (tool === 'brave_web_search' || tool === 'brave_image_search' || tool === 'brave_news_search' || tool === 'brave_video_search') {
+                    child.stdin.write(JSON.stringify({ q: trimmed }));
+                } else if (tool === 'obsidian_search') {
+                    child.stdin.write(JSON.stringify({ query: trimmed }));
+                } else if (tool === 'search') {
+                    child.stdin.write(JSON.stringify({ query: trimmed }));
+                } else if (tool === 'obsidian_get_file_contents') {
+                    child.stdin.write(JSON.stringify({ path: trimmed }));
+                } else if (tool === 'get_transcript' || tool === 'get_timed_transcript' || tool === 'get_video_info') {
+                    child.stdin.write(JSON.stringify({ url: trimmed }));
+                } else {
+                    child.stdin.write(input);
+                }
             } else {
                 child.stdin.write(input);
             }
@@ -4275,7 +4288,7 @@ server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎖️  RANGERPLEX AI SERVER v2.12.6                       ║
+║   🎖️  RANGERPLEX AI SERVER v2.12.7                       ║
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║
