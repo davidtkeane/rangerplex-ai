@@ -59,12 +59,18 @@ const PERMISSION_COLORS: Record<PermissionLevel, string> = {
 };
 
 const NODE_NETWORK: Record<string, Omit<NodeInfo, 'online' | 'permission' | 'key'>> = {
-    'M3': { name: 'M3 Pro Genesis', ip: '192.168.1.7', type: 'genesis', emoji: '🏛️' },
-    'M1': { name: 'M1 Air Peer', ip: '192.168.1.3', type: 'peer', emoji: '🍎' },
-    'M4': { name: 'M4 Max Compute', ip: '192.168.1.4', type: 'compute', emoji: '⚡' },
+    'M3Pro': { name: 'M3 Pro Genesis', ip: '192.168.1.35', type: 'genesis', emoji: '🏛️' },
+    'M1Air': { name: 'M1 Air Peer', ip: '192.168.1.31', type: 'peer', emoji: '🍎' },
+    'M4Max': { name: 'M4 Max Compute', ip: '192.168.1.4', type: 'compute', emoji: '⚡' },
     'Kali': { name: 'Kali VM Security', ip: '192.168.66.2', type: 'security', emoji: '🔒' },
     'Windows': { name: 'Windows VM', ip: '192.168.66.3', type: 'peer', emoji: '🪟' }
 };
+
+// WebSocket relay configuration
+const RELAY_HOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'localhost'
+    : '192.168.1.35';  // Default to M3Pro genesis
+const RELAY_PORT = 5555;
 
 const IRC_COLORS = [
     'text-white', 'text-gray-900', 'text-blue-600', 'text-green-600',
@@ -97,6 +103,8 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
     // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const wsRef = useRef<WebSocket | null>(null);
+    const wsNodeIdRef = useRef<string | null>(null);
 
     // ==================== HELPERS ====================
 
@@ -137,32 +145,52 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
         setIsConnecting(true);
         setCurrentNode(nodeKey);
 
-        // Simulate connection
         addSystemMessage(`* Connecting as ${NODE_NETWORK[nodeKey].emoji} ${NODE_NETWORK[nodeKey].name}...`);
+        addSystemMessage(`* Relay: ws://${RELAY_HOST}:${RELAY_PORT}`);
 
         try {
-            // Check which nodes are online
-            const response = await fetch('http://127.0.0.1:3000/api/rangerblock/status');
-            const data = await response.json();
+            // Connect to WebSocket relay
+            const ws = new WebSocket(`ws://${RELAY_HOST}:${RELAY_PORT}`);
+            wsRef.current = ws;
 
-            // Build node list with online status
-            const nodeList: NodeInfo[] = Object.entries(NODE_NETWORK).map(([key, info]) => ({
-                key,
-                ...info,
-                online: key === nodeKey || (data.onlineNodes?.includes(key) ?? false),
-                permission: key === nodeKey ? 'owner' : (data.permissions?.[key] ?? 'user')
-            }));
+            ws.onopen = () => {
+                addSystemMessage(`* Connected to blockchain relay!`);
+            };
 
-            setNodes(nodeList);
-            setIsConnected(true);
-            setShowNodeSelector(false);
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleWebSocketMessage(msg, nodeKey);
+                } catch (e) {
+                    console.error('Invalid WS message:', e);
+                }
+            };
 
-            addSystemMessage(`* Now talking in ${currentChannel}`);
-            addSystemMessage(`* Topic is: ${channels.find(c => c.name === currentChannel)?.topic}`);
-            addSystemMessage(`* ${nodeKey} has joined ${currentChannel}`, 'join');
+            ws.onerror = (err) => {
+                console.error('WebSocket error:', err);
+                addSystemMessage(`* Connection error - relay may not be running`);
+                addSystemMessage(`* Start relay with: npm run blockchain:relay`);
+
+                // Fall back to offline mode
+                const nodeList: NodeInfo[] = Object.entries(NODE_NETWORK).map(([key, info]) => ({
+                    key,
+                    ...info,
+                    online: key === nodeKey,
+                    permission: key === nodeKey ? 'owner' : 'user'
+                }));
+                setNodes(nodeList);
+                setIsConnected(true);
+                setShowNodeSelector(false);
+                setIsConnecting(false);
+            };
+
+            ws.onclose = () => {
+                addSystemMessage(`* Disconnected from relay`);
+                setIsConnected(false);
+            };
 
         } catch (err) {
-            // Offline mode - show all nodes as potentially available
+            // Offline mode
             const nodeList: NodeInfo[] = Object.entries(NODE_NETWORK).map(([key, info]) => ({
                 key,
                 ...info,
@@ -173,13 +201,91 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
             setNodes(nodeList);
             setIsConnected(true);
             setShowNodeSelector(false);
-
-            addSystemMessage(`* Connected in offline mode (blockchain server not running)`);
-            addSystemMessage(`* Now talking in ${currentChannel}`);
+            addSystemMessage(`* Running in offline mode`);
+            setIsConnecting(false);
         }
+    }, [addSystemMessage]);
 
-        setIsConnecting(false);
-    }, [addSystemMessage, channels, currentChannel]);
+    // Handle WebSocket messages from relay
+    const handleWebSocketMessage = useCallback((msg: any, nodeKey: string) => {
+        switch (msg.type) {
+            case 'welcome':
+                wsNodeIdRef.current = msg.nodeId;
+                // Register ourselves
+                wsRef.current?.send(JSON.stringify({
+                    type: 'register',
+                    address: nodeKey,
+                    port: 0,
+                    blockchainHeight: 0
+                }));
+                break;
+
+            case 'registered':
+                addSystemMessage(`* Registered as ${nodeKey}`);
+                // Request peer list
+                wsRef.current?.send(JSON.stringify({ type: 'getPeers' }));
+                break;
+
+            case 'peerList':
+            case 'peerListUpdate':
+                const peers = msg.peers || [];
+                // Build node list from peers
+                const nodeList: NodeInfo[] = Object.entries(NODE_NETWORK).map(([key, info]) => {
+                    const peer = peers.find((p: any) => p.address === key || p.address.includes(key));
+                    return {
+                        key,
+                        ...info,
+                        online: key === nodeKey || !!peer,
+                        permission: key === nodeKey ? 'owner' : 'user'
+                    };
+                });
+                setNodes(nodeList);
+
+                if (msg.type === 'peerList') {
+                    // Initial connection complete
+                    setIsConnected(true);
+                    setShowNodeSelector(false);
+                    setIsConnecting(false);
+                    addSystemMessage(`* Now talking in ${currentChannel}`);
+                    addSystemMessage(`* ${peers.length} peer(s) online`);
+                    addSystemMessage(`* ${nodeKey} has joined ${currentChannel}`, 'join');
+                } else {
+                    // Peer update
+                    if (peers.length > 0) {
+                        const latestPeer = peers[peers.length - 1];
+                        if (latestPeer.address !== nodeKey) {
+                            addSystemMessage(`* ${latestPeer.address} has joined the network`, 'join');
+                        }
+                    }
+                }
+                break;
+
+            case 'nodeMessage':
+                // Incoming message from another node!
+                const payload = msg.payload;
+                if (payload.type === 'chatMessage') {
+                    const chatMsg: ChatMessage = {
+                        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        from: msg.from,
+                        fromName: NODE_NETWORK[msg.from]?.name || msg.from,
+                        content: payload.message,
+                        timestamp: payload.timestamp || Date.now(),
+                        type: 'message',
+                        channel: currentChannel
+                    };
+                    setMessages(prev => [...prev, chatMsg]);
+                }
+                break;
+
+            case 'broadcastSent':
+                // Our message was sent
+                break;
+
+            case 'error':
+                addSystemMessage(`* Error: ${msg.message}`);
+                break;
+        }
+    }, [addSystemMessage, currentChannel]);
 
     // ==================== COMMANDS ====================
 
@@ -343,20 +449,18 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
         setMessages(prev => [...prev, msg]);
         setInputMessage('');
 
-        // Send to backend
-        try {
-            await fetch('http://127.0.0.1:3000/api/rangerblock/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+        // Send via WebSocket broadcast to all peers
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                type: 'broadcast',
+                payload: {
+                    type: 'chatMessage',
                     from: currentNode,
-                    fromName: NODE_NETWORK[currentNode]?.name,
-                    content: inputMessage,
-                    channel: currentChannel
-                })
-            });
-        } catch {
-            // Offline mode - message already shown locally
+                    message: inputMessage,
+                    channel: currentChannel,
+                    timestamp: Date.now()
+                }
+            }));
         }
     }, [inputMessage, currentNode, currentChannel, executeCommand]);
 
@@ -398,30 +502,26 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
         }
     }, [isOpen, showNodeSelector]);
 
-    // Poll for messages when connected
+    // WebSocket cleanup and heartbeat
     useEffect(() => {
-        if (!isConnected || !currentNode) return;
+        if (!isConnected || !wsRef.current) return;
 
-        const pollMessages = async () => {
-            try {
-                const response = await fetch('http://127.0.0.1:3000/api/rangerblock/chat');
-                const data = await response.json();
-                if (data.success && data.messages) {
-                    // Merge new messages
-                    setMessages(prev => {
-                        const existingIds = new Set(prev.map(m => m.id));
-                        const newMsgs = data.messages.filter((m: ChatMessage) => !existingIds.has(m.id));
-                        return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev;
-                    });
-                }
-            } catch {
-                // Offline mode
+        // Send heartbeat every 30 seconds to stay connected
+        const heartbeat = setInterval(() => {
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, 30000);
+
+        return () => {
+            clearInterval(heartbeat);
+            // Close WebSocket on unmount
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
             }
         };
-
-        const interval = setInterval(pollMessages, 2000);
-        return () => clearInterval(interval);
-    }, [isConnected, currentNode]);
+    }, [isConnected]);
 
     if (!isOpen) return null;
 
