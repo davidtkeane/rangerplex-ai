@@ -1,0 +1,127 @@
+{
+  "block_id": "BLOCK_002",
+  "block_hash": "0x9cd99c4515aeb3f6_THREE_NODE_MESH",
+  "timestamp": "2025-11-29T23:47:28.000Z",
+  "title": "THREE NODE BLOCKCHAIN NETWORK - FULL MESH ACHIEVED",
+  "description": "First successful 3-node P2P blockchain chat with mixed network topology",
+
+  "network_topology": {
+    "total_nodes": 3,
+    "relay_server": {
+      "node": "M3Pro Genesis",
+      "emoji": "🏛️",
+      "type": "genesis",
+      "location": "Home WiFi",
+      "ip": "192.168.1.35:5555"
+    },
+    "peer_nodes": [
+      {
+        "node": "M4Max Compute",
+        "emoji": "⚡",
+        "type": "compute",
+        "location": "iPhone Hotspot (INTERNET)",
+        "ip": "172.20.10.5",
+        "connection": "ngrok tunnel (2.tcp.eu.ngrok.io:12232)"
+      },
+      {
+        "node": "M1Air Peer",
+        "emoji": "🍎",
+        "type": "peer",
+        "location": "Home WiFi (LAN)",
+        "ip": "192.168.1.31",
+        "connection": "Direct LAN"
+      }
+    ]
+  },
+
+  "network_diagram": [
+    "                    INTERNET (ngrok)",
+    "                         |",
+    "            +------------+------------+",
+    "            |     M3Pro Genesis       |",
+    "            |   192.168.1.35:5555     |",
+    "            |   (WebSocket Relay)     |",
+    "            +------------+------------+",
+    "                         |",
+    "           +-------------+-------------+",
+    "           |                           |",
+    "      M4Max (⚡)                   M1Air (🍎)",
+    "    iPhone/Internet              Home WiFi/LAN",
+    "    172.20.10.5                  192.168.1.31"
+  ],
+
+  "chat_transcript": [
+    {
+      "timestamp": "23:41:35",
+      "type": "join",
+      "node": "M3Pro",
+      "emoji": "🏛️",
+      "channel": "#rangers"
+    },
+    {
+      "timestamp": "23:41:41",
+      "type": "message",
+      "from": "🏛️M3 Pro Genesis",
+      "content": "hi"
+    },
+    {
+      "timestamp": "23:44:25",
+      "type": "join",
+      "node": "M4Max",
+      "emoji": "⚡",
+      "note": "Connected via INTERNET (ngrok)"
+    },
+    {
+      "timestamp": "23:44:40",
+      "type": "message",
+      "from": "⚡M4 Max Compute",
+      "content": "hi"
+    },
+    {
+      "timestamp": "23:47:22",
+      "type": "join",
+      "node": "M1Air",
+      "emoji": "🍎",
+      "note": "Connected via LAN"
+    },
+    {
+      "timestamp": "23:47:28",
+      "type": "message",
+      "from": "🍎M1 Air Peer",
+      "content": "hello there@ we have 3 machines chatting !!!!!"
+    }
+  ],
+
+  "achievement_summary": {
+    "milestone": "3-Node Mixed Network Blockchain Chat",
+    "features_demonstrated": [
+      "Multi-node P2P relay architecture",
+      "Mixed network connectivity (LAN + Internet)",
+      "Real-time message broadcast to all nodes",
+      "ngrok tunnel for internet accessibility",
+      "IRC-style channel system (#rangers)"
+    ],
+    "node_count": 3,
+    "networks_bridged": 2,
+    "connection_types": ["LAN (direct)", "Internet (ngrok tunnel)"]
+  },
+
+  "technical_stack": {
+    "protocol": "WebSocket over TCP",
+    "relay": "Node.js WebSocket Server",
+    "client": "React + TypeScript",
+    "tunnel": "ngrok TCP",
+    "version": "RangerPlexBlock v4.0.10"
+  },
+
+  "created_by": {
+    "developer": "David Keane (IrishRanger)",
+    "ai_assistant": "Claude Code (Ranger)",
+    "project": "RangerPlexBlock",
+    "date": "November 29, 2025",
+    "purpose": "Master's Thesis - Blockchain Technology"
+  },
+
+  "celebration": "🎉 THREE MACHINES CHATTING ACROSS TWO NETWORKS! 🎉",
+  "rangers_motto": "Rangers lead the way! 🎖️"
+}
