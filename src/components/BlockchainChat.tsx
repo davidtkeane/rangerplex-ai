@@ -619,6 +619,32 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
 
                             {showRelaySettings && (
                                 <div className="mt-2 p-3 bg-blue-900/20 rounded-lg border border-blue-500/20 space-y-3">
+                                    {/* Quick Presets */}
+                                    <div>
+                                        <label className="text-xs text-blue-400/60 font-mono block mb-2">
+                                            Quick Presets:
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setRelayHost('192.168.1.35');
+                                                    setRelayPort(5555);
+                                                }}
+                                                className="py-1.5 px-2 bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 rounded text-xs font-mono border border-blue-500/30"
+                                            >
+                                                🏠 LAN (M3Pro)
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setRelayHost('2.tcp.eu.ngrok.io');
+                                                    setRelayPort(12232);
+                                                }}
+                                                className="py-1.5 px-2 bg-purple-900/40 hover:bg-purple-900/60 text-purple-300 rounded text-xs font-mono border border-purple-500/30"
+                                            >
+                                                🌐 ngrok (Internet)
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div>
                                         <label className="text-xs text-blue-400/60 font-mono block mb-1">
                                             Relay Host:
@@ -653,7 +679,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                                         💾 SAVE RELAY SETTINGS
                                     </button>
                                     <p className="text-[10px] text-blue-400/40 font-mono">
-                                        Default: 192.168.1.35:5555 (M3Pro Genesis)
+                                        LAN: 192.168.1.35:5555 | ngrok: 2.tcp.eu.ngrok.io:12232
                                     </p>
                                 </div>
                             )}
