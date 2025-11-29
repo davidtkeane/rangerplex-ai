@@ -5,59 +5,48 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.12.5] - 2025-12-04 🧭 SIDEBAR POLISH & API FIXES
+## [2.12.6] - 2025-11-29 🎉 OPENAI CATALOG + CELEBRATIONS
 
-### 🎛️ Sidebar
-- Minimized quick-action row restored to three icons by hiding the console button in compact mode.
-- Compact header label now reads **Apps** and the inline version pill was removed for a cleaner toggle area.
+### 🤖 OpenAI Updates
+- Added the new ChatGPT/GPT-5 + o-series models into defaults, badges, pricing placeholders, and live fetch filters.
+- OpenAI test button now hits `/v1/models` and celebrates success with a confetti blast (toggleable).
 
-### 🧪 API Tester Fixes
-- **Gemini**: Updated default model to `gemini-2.5-flash` to resolve 404 errors with deprecated models.
-- **Groq**: Updated default model to `llama-3.1-8b-instant` to replace decommissioned `llama3-8b-8192`.
-- **Anthropic**: Fixed CORS issues by routing test requests through the local proxy (`/v1/messages`).
-- **UI Cleanup**: Moved LLM provider inputs from the Weather tab back to the Providers tab where they belong.
+### 🎨 Settings UX
+- Providers tab gains an OpenAI Models catalog with descriptions, capability icons, and status badges.
+- Confetti opt-out toggle relocated beside the Gemini Models controls for quick access.
 
-### 🧹 Version Sync
-- Bumped version to **2.12.5** across app banner, exports, docs badge, and package manifests.
+### 📦 Version
+- Synced version across badge, package files, server banner, sidebar, and DB metadata to **2.12.6**.
 
-## [2.12.4] - 2025-12-03 🧪 ADVANCED API TESTERS
+## [2.12.5] - 2025-12-04 🧭 MCP & HELP IMPROVEMENTS
 
-### 🧪 Advanced API Testing Suite
-- **Comprehensive Testing**: Added "Advanced" test buttons for all LLM and Search providers.
-- **Detailed Diagnostics**: New `ApiTester` modal provides deep insights:
-  - **Latency Metrics**: Track connection speed and response times.
-  - **Raw JSON**: View full API response payloads for debugging.
-  - **HTTP Status**: Clear success/error reporting with status codes.
-- **New Providers**: Added support for **Google Search**, **Bing Search**, and **Tavily** in the Search settings tab.
-- **Refactored Logic**: Centralized API testing logic in `apiTestingService` for consistency and reliability.
-- **Local LLM Support**: Enhanced testing for **Ollama** and **LM Studio** with real connection checks.
+### 🧭 MCP Experience
+- Added a dedicated MCP settings tab (gateway URL, start/stop/status, auto-start toggle using stored keys).
+- Improved status UX: connection errors show as “stopped” instead of generic errors; gateway auto-start/stop is handled when enabled.
 
-### 🛠️ Fixes & Improvements
-- **Type Safety**: Updated `AppSettings` interface to include all new API keys, removing temporary type casts.
-- **Code Cleanup**: Removed duplicate functions and improved code organization in `SettingsModal.tsx`.
-- **Version Sync**: Updated version to **2.12.4** across all system components.
+### 🙋‍♂️ Help System
+- Intelligent `/help` handles fuzzy topics/typos and returns concise, runnable examples for key commands.
+- Expanded help catalog coverage (networking, MCP, weather, recon) with quick hints.
 
-## [2.12.3] - 2025-12-02 🌦️ WEATHER STATION 2.0
+### 📦 Version
+- Synced version across badge, package files, server banner, sidebar, and DB metadata to **2.12.5**.
 
-### 🌦️ Weather Station 2.0
-- **Major Upgrade**: Weather Station completely overhauled with a new tabbed interface and 4-API fusion engine.
-- **New Tabs**:
-  - **📊 Dashboard**: Classic view with current conditions, API usage meters, and dynamic sky.
-  - **📅 Forecast**: 15-day extended outlook powered by Visual Crossing.
-  - **⏱️ Minutely**: "NowCast" precision rain intensity gauge powered by Tomorrow.io.
-  - **📡 Radar**: Live Windy.com embed with rain, wind, and cloud layers.
-  - **🕰️ History**: "Time Machine" to lookup past weather for any date (Visual Crossing).
-  - **⚠️ Alerts**: Severe weather warnings and safety info (The "Guardian").
-- **Smart Features**:
-  - **Lazy Loading**: Tabs only fetch data when opened to save API calls.
-  - **API Fusion**: Combines best-in-class data from OpenWeatherMap, Tomorrow.io, Visual Crossing, and Open-Meteo.
+## [2.12.3] - 2025-12-02 🛠️ WORDPRESS COMMAND CENTER UX
 
-### 🛠️ Fixes & Improvements
-- **Radar Button**: Fixed "Radar" button in rain notifications to correctly open the Weather Station's new Radar tab.
-- **State Management**: Improved state handling for weather data to support the new multi-tab architecture.
+### 🎨 UI/UX
+- WordPress Command Center buttons restyled to match the sidebar (neutral dark surfaces, FA icons), with cards aligned to sidebar visuals.
+- Header shortcuts for WP Login, Admin, and Settings pick the best available site automatically.
+
+### 🏎️ Behavior
+- Browser overlay now reuses an existing tab when opening WordPress pages to prevent duplicates.
+- Single-click guardrails on WordPress header buttons to avoid accidental double opens.
+
+### 🔒 Guardrails
+- Added small safety checks around WP actions to reduce accidental navigation and double submissions.
 
 ### 📦 Version
 - Synced version across badge, package files, server banner, sidebar, and DB metadata to **2.12.3**.
+
 
 ## [2.12.2] - 2025-12-01 🛡️ CONTEXT GUARDRAILS
 

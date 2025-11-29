@@ -309,6 +309,7 @@ export interface AppSettings {
   saveStatusNotifications: boolean;
   saveStatusDurationMs: number;
   openLinksInApp?: boolean;
+  disableConfetti?: boolean;
   // MCP Gateway
   mcpGatewayUrl?: string;
   // Data & Backup
@@ -469,6 +470,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   ollamaModelId: 'llama3',
   lmstudioBaseUrl: 'http://localhost:3010/api/lmstudio',
   lmstudioModelId: 'mistral-7b-instruct',
+  disableConfetti: false,
 
   availableModels: {
     gemini: [

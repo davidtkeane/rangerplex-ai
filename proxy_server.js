@@ -39,6 +39,21 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3010;
+const startDockerDesktop = async () => {
+    const platform = process.platform;
+    let cmd = null;
+    if (platform === 'darwin') {
+        cmd = 'open -a "Docker"';
+    } else if (platform === 'win32') {
+        cmd = 'powershell -Command "Start-Process \\"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\\""';
+    } else {
+        cmd = 'systemctl --user start docker-desktop || systemctl start docker || true';
+    }
+    if (cmd) {
+        await execAsync(cmd);
+    }
+};
+let mcpGatewayProc = null;
 
 // Middleware
 app.use(cors());
@@ -304,6 +319,99 @@ app.post('/api/alias/execute', async (req, res) => {
         });
 
         res.json({ success: true, result });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ========================================
+// MCP (Docker MCP CLI Bridge)
+// ========================================
+app.post('/api/mcp/ensure', async (req, res) => {
+    const { secrets = {} } = req.body || {};
+    try {
+        const secretCmds = [];
+        if (secrets.braveApiKey) secretCmds.push(`docker mcp secret set brave BRAVE_API_KEY \"${secrets.braveApiKey}\"`);
+        if (secrets.obsidianApiKey) secretCmds.push(`docker mcp secret set obsidian OBSIDIAN_API_KEY \"${secrets.obsidianApiKey}\"`);
+        for (const cmd of secretCmds) {
+            try { await execAsync(cmd); } catch (err) { console.warn('MCP secret set failed:', cmd, err?.message); }
+        }
+        if (mcpGatewayProc && !mcpGatewayProc.killed) {
+            return res.json({ success: true, status: 'running' });
+        }
+        const child = spawn('docker', ['mcp', 'gateway', 'run'], { stdio: 'ignore' });
+        mcpGatewayProc = child;
+        child.on('exit', (code) => { if (mcpGatewayProc === child) mcpGatewayProc = null; console.log('MCP gateway exited with code', code); });
+        res.json({ success: true, status: 'starting' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/mcp/stop', (req, res) => {
+    try {
+        if (mcpGatewayProc && !mcpGatewayProc.killed) {
+            mcpGatewayProc.kill('SIGTERM');
+            mcpGatewayProc = null;
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/mcp/status', (req, res) => {
+    res.json({ success: true, running: Boolean(mcpGatewayProc && !mcpGatewayProc.killed) });
+});
+
+app.get('/api/mcp/tools', async (req, res) => {
+    try {
+        const { stdout, stderr } = await execAsync('docker mcp tools ls');
+        res.json({ success: true, stdout, stderr });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message, stdout: error.stdout, stderr: error.stderr });
+    }
+});
+
+app.post('/api/mcp/call', async (req, res) => {
+    try {
+        const { tool, input } = req.body || {};
+        if (!tool || !/^[A-Za-z0-9_.:-]+$/.test(tool)) {
+            return res.status(400).json({ success: false, error: 'Invalid MCP tool name' });
+        }
+        const args = ['mcp', 'tools', 'call', tool];
+        const child = spawn('docker', args);
+        let stdout = '';
+        let stderr = '';
+
+        const killer = setTimeout(() => child.kill('SIGKILL'), 60000);
+
+        child.stdout.on('data', (d) => stdout += d.toString());
+        child.stderr.on('data', (d) => stderr += d.toString());
+
+        child.on('error', (err) => {
+            clearTimeout(killer);
+            const msg = err.message || '';
+            const dockerHint = 'Docker daemon not available';
+            res.status(500).json({ success: false, error: msg, hint: dockerHint });
+        });
+
+        child.on('close', (code) => {
+            clearTimeout(killer);
+            res.json({ success: code === 0, code, stdout: stdout.trim(), stderr: stderr.trim() });
+        });
+
+        // Heuristic: for fetch tools, wrap plain URL into JSON {url}
+        if (input && typeof input === 'string' && input.trim().length > 0) {
+            const trimmed = input.trim();
+            if ((tool === 'fetch' || tool === 'fetch_content') && !trimmed.startsWith('{')) {
+                const body = JSON.stringify({ url: trimmed });
+                child.stdin.write(body);
+            } else {
+                child.stdin.write(input);
+            }
+        }
+        child.stdin.end();
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -4167,7 +4275,7 @@ server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎖️  RANGERPLEX AI SERVER v2.12.5                       ║
+║   🎖️  RANGERPLEX AI SERVER v2.12.6                       ║
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║

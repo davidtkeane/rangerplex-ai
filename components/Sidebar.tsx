@@ -446,7 +446,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     )}
                     <div className={`text-[10px] flex items-center justify-center gap-2 ${isTron ? 'text-tron-cyan/40' : 'text-zinc-500'}`}>
-                        <span>v2.12.5 // SIDEBAR POLISH 🧭</span>
+                        <span>v2.12.6 // OpenAI catalog + confetti tweaks 🚀</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText('bc1q3jvxvhqt7u7qnnjjv5jtkh7wsgg9nrgk3hgsce');

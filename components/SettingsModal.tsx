@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AppSettings, AgentConfig, ModelType, SavedPrompt, VoiceConfig, Currency, DEFAULT_SAVED_PROMPTS, getModelBadges } from '../types';
 import { checkOllamaConnection, pullOllamaModel } from '../services/ollamaService';
 import { checkLMStudioConnection } from '../services/lmstudioService';
@@ -11,6 +11,7 @@ import { canvasDbService } from '../services/canvasDbService';
 import { syncService } from '../services/syncService';
 import { weatherService } from '../services/weatherService';
 import { updateService, UpdateInfo } from '../services/updateService';
+import { apiTestingService } from '../services/apiTestingService';
 import pkg from '../package.json';
 import AliasManager from './AliasManager';
 import { WeatherTester } from './Weather/WeatherTester';
@@ -76,7 +77,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [promptImportText, setPromptImportText] = useState('');
     const [mcpStatus, setMcpStatus] = useState<'unknown' | 'running' | 'stopped' | 'error'>('unknown');
     const [showAliasManager, setShowAliasManager] = useState(false);
-    const [providerView, setProviderView] = useState<'keys' | 'openai'>('keys');
+    const [providerView, setProviderView] = useState<'keys' | 'openai' | 'gemini'>('keys');
+    const [showConfetti, setShowConfetti] = useState(false);
 
     // Update Checker State
     const [updateStatus, setUpdateStatus] = useState<UpdateInfo | null>(null);
@@ -101,6 +103,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         provider?: string;
         defaultModel?: string;
     } | null>(null);
+
+    const confettiPieces = useMemo(() => (
+        Array.from({ length: 180 }).map((_, i) => ({
+            left: Math.random() * 100,
+            delay: Math.random() * 0.8,
+            duration: 1.8 + Math.random() * 1.4,
+            size: 6 + Math.random() * 8,
+            rotate: Math.random() * 720,
+            color: ['#10e0c9', '#ff7eb6', '#ffd166', '#7dd3fc', '#c084fc'][i % 5]
+        }))
+    ), []);
+
+    const triggerConfetti = () => {
+        if (localSettings.disableConfetti) return;
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 2200);
+    };
 
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true);
@@ -146,27 +165,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 success = await checkOllamaConnection(localSettings.ollamaBaseUrl || 'http://localhost:11434');
             } else if (provider === 'lmstudio') {
                 success = await checkLMStudioConnection(localSettings.lmstudioBaseUrl || 'http://localhost:1234');
+            } else if (provider === 'openai') {
+                if (!apiKey) throw new Error('Missing OpenAI API key');
+                const res = await fetch('https://api.openai.com/v1/models', {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                success = res.ok;
+                if (success) triggerConfetti();
+            } else if (['anthropic', 'gemini', 'deepseek', 'groq', 'openrouter'].includes(provider)) {
+                if (!apiKey) throw new Error('Missing API key');
+                // Lightweight ping using the shared tester
+                const modelMap: Record<string, string> = {
+                    anthropic: 'claude-3-haiku-20240307',
+                    gemini: 'gemini-2.5-flash',
+                    deepseek: 'deepseek-chat',
+                    groq: 'llama-3.1-8b-instant',
+                    openrouter: 'openai/gpt-4.1'
+                };
+                const result = await apiTestingService.testLLM(provider as any, apiKey, modelMap[provider]);
+                success = result.success;
             } else {
-                // For other providers (OpenAI, etc.), we use the apiTestingService for a quick check
-                // Or we can just simulate a success if the key is present (basic check)
-                // But better to use the new service if possible.
-                // Since we don't want to import apiTestingService here to avoid circular deps or complexity,
-                // we'll do a basic check or use the existing logic if any.
-                // Actually, let's use the apiTestingService since we imported ApiTester which uses it.
-                // Wait, ApiTester uses it internally.
-                // For the "Quick Test" button, let's just check if key is present for now, or implement a simple fetch.
-
-                // Simple fetch for LLMs
-                if (['openai', 'anthropic', 'gemini', 'deepseek', 'groq', 'openrouter'].includes(provider)) {
-                    // We can't easily test without a full request. 
-                    // Let's just mark success if key length > 10 for now to give visual feedback, 
-                    // OR rely on the Advanced Tester for real testing.
-                    // User asked for "same magic", so the Advanced Tester is the real deal.
-                    // The quick test button can just be a "syntax check" or similar.
-                    success = !!apiKey && apiKey.length > 5;
-                } else {
-                    success = !!apiKey && apiKey.length > 5;
-                }
+                success = !!apiKey && apiKey.length > 5;
             }
         } catch (e) {
             console.error(e);
@@ -642,6 +661,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         const newPrompt: SavedPrompt = { id: Math.random().toString(), trigger: 'new', text: '' };
         setLocalSettings(prev => ({ ...prev, savedPrompts: [...prev.savedPrompts, newPrompt] }));
     };
+
+    const geminiModelCatalog = [
+        { id: 'gemini-3-pro-preview', title: 'Gemini 3 Pro (Preview)', desc: 'Next-gen reasoning and agentic capabilities.' },
+        { id: 'gemini-2.5-pro', title: 'Gemini 2.5 Pro', desc: 'Best-in-class reasoning with 2M context window.' },
+        { id: 'gemini-2.5-flash', title: 'Gemini 2.5 Flash', desc: 'Ultra-fast, low latency multimodal workhorse.' },
+        { id: 'gemini-2.5-flash-lite', title: 'Gemini 2.5 Flash Lite', desc: 'Cost-effective speed for high-volume tasks.' },
+        { id: 'gemini-2.5-flash-image', title: 'Gemini 2.5 Flash Image', desc: 'Specialized for high-fidelity image tasks.' },
+        { id: 'gemini-2.0-flash', title: 'Gemini 2.0 Flash', desc: 'Balanced multimodal performance.' },
+        { id: 'gemini-2.0-flash-lite', title: 'Gemini 2.0 Flash Lite', desc: 'Efficient lightweight model.' },
+        { id: 'gemini-2.0-flash-thinking-exp-01-21', title: 'Gemini 2.0 Flash Thinking', desc: 'Experimental model with exposed thought process.' },
+    ];
 
     const openaiModelCatalog = [
         { id: 'gpt-5.1', title: 'GPT-5.1', desc: 'Flagship ChatGPT model with stronger reasoning and coding depth.' },
@@ -1230,14 +1260,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <h3 className="font-bold text-lg">Provider Console</h3>
                                         <p className="text-xs opacity-70">Wire up keys or explore OpenAI models in one place.</p>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 items-center">
                                         {[
                                             { id: 'keys', label: 'API Keys', icon: 'fa-key' },
-                                            { id: 'openai', label: 'OpenAI Models', icon: 'fa-rocket' }
+                                            { id: 'openai', label: 'OpenAI Models', icon: 'fa-rocket' },
+                                            { id: 'gemini', label: 'Gemini Models', icon: 'fa-brands fa-google' }
                                         ].map(tab => (
                                             <button
                                                 key={tab.id}
-                                                onClick={() => setProviderView(tab.id as 'keys' | 'openai')}
+                                                onClick={() => setProviderView(tab.id as 'keys' | 'openai' | 'gemini')}
                                                 className={`px-3 py-1.5 rounded text-xs font-bold border transition-all flex items-center gap-2 ${providerView === tab.id ? 'bg-teal-600 text-white border-transparent shadow-lg' : 'border-inherit hover:bg-white/5'}`}
                                             >
                                                 <i className={`fa-solid ${tab.icon}`}></i>
@@ -1341,8 +1372,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                         onClick={() => testConnection('openai', localSettings.openaiApiKey)}
                                                         className="px-3 py-2 rounded bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-bold flex items-center gap-2"
                                                     >
-                                                        <i className="fa-solid fa-plug"></i>
-                                                        Test OpenAI Key
+                                                        {connectionStatus['openai'] === 'loading' ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-plug"></i>}
+                                                        {connectionStatus['openai'] === 'success' ? 'Key OK' : connectionStatus['openai'] === 'error' ? 'Test Failed' : 'Test OpenAI Key'}
                                                     </button>
                                                     <button
                                                         onClick={fetchAllModels}
@@ -1361,7 +1392,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                 const available = localSettings.availableModels.openai.includes(model.id);
                                                 const badges = getModelBadges(model.id);
                                                 return (
-                                                    <div key={model.id} className={`p-4 rounded-lg border ${available ? 'border-teal-500/50 bg-teal-500/5' : 'border-zinc-700/60 bg-black/40'} shadow-inner`}> 
+                                                    <div key={model.id} className={`p-4 rounded-lg border ${available ? 'border-teal-500/50 bg-teal-500/5' : 'border-zinc-700/60 bg-black/40'} shadow-inner`}>
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div>
                                                                 <div className="flex items-center gap-2">
@@ -1371,6 +1402,66 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                                 <div className="text-xs opacity-70 mt-1 leading-snug">{model.desc}</div>
                                                             </div>
                                                             {badges && <span className="text-lg opacity-70" title="Capabilities">{badges}</span>}
+                                                        </div>
+                                                        <div className="text-[11px] mt-2 opacity-60">ID: <code className="bg-black/30 px-1 rounded">{model.id}</code></div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {providerView === 'gemini' && (
+                                    <div className="space-y-4">
+                                        <div className="p-5 rounded-xl border border-blue-500/40 bg-gradient-to-r from-[#0d1b2a] via-[#1e3a8a] to-[#0d1b2a] text-white shadow-lg">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div>
+                                                    <div className="uppercase text-[11px] tracking-[0.2em] opacity-70">Google DeepMind</div>
+                                                    <div className="text-xl font-bold">Gemini Models in RangerPlex</div>
+                                                    <div className="text-xs opacity-80 mt-1">Detected {localSettings.availableModels.gemini.length} models • Click refresh after updating your key.</div>
+                                                </div>
+                                                <div className="flex gap-3 items-center">
+                                                    <label className="text-[11px] flex items-center gap-2 opacity-80 select-none">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!localSettings.disableConfetti}
+                                                            onChange={(e) => setLocalSettings({ ...localSettings, disableConfetti: e.target.checked })}
+                                                            className="accent-current"
+                                                        />
+                                                        No confetti
+                                                    </label>
+                                                    <button
+                                                        onClick={() => testConnection('gemini', localSettings.geminiApiKey)}
+                                                        className="px-3 py-2 rounded bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-bold flex items-center gap-2"
+                                                    >
+                                                        {connectionStatus['gemini'] === 'loading' ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-plug"></i>}
+                                                        {connectionStatus['gemini'] === 'success' ? 'Key OK' : connectionStatus['gemini'] === 'error' ? 'Test Failed' : 'Test Gemini Key'}
+                                                    </button>
+                                                    <button
+                                                        onClick={fetchAllModels}
+                                                        className="px-3 py-2 rounded bg-blue-500 text-white font-bold text-xs hover:bg-blue-400 flex items-center gap-2"
+                                                        disabled={loadingModels}
+                                                    >
+                                                        {loadingModels ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-rotate"></i>}
+                                                        {loadingModels ? 'Refreshing…' : 'Refresh Models'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                            {geminiModelCatalog.map(model => {
+                                                const available = localSettings.availableModels.gemini.includes(model.id);
+                                                return (
+                                                    <div key={model.id} className={`p-4 rounded-lg border ${available ? 'border-blue-500/50 bg-blue-500/5' : 'border-zinc-700/60 bg-black/40'} shadow-inner`}>
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-sm font-bold">{model.title}</span>
+                                                                    {available && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold">Available</span>}
+                                                                </div>
+                                                                <div className="text-xs opacity-70 mt-1 leading-snug">{model.desc}</div>
+                                                            </div>
                                                         </div>
                                                         <div className="text-[11px] mt-2 opacity-60">ID: <code className="bg-black/30 px-1 rounded">{model.id}</code></div>
                                                     </div>
@@ -3518,6 +3609,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     provider={apiTester.provider}
                     defaultModel={apiTester.defaultModel}
                 />
+            )}
+
+            {showConfetti && !localSettings.disableConfetti && (
+                <>
+                    <style>{`
+                        @keyframes confetti-fall {
+                            0% { transform: translate3d(0, -15vh, 0) rotate(0deg); opacity: 1; }
+                            100% { transform: translate3d(0, 110vh, 0) rotate(720deg); opacity: 0; }
+                        }
+                    `}</style>
+                    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
+                        {confettiPieces.map((piece, idx) => (
+                            <span
+                                key={idx}
+                                style={{
+                                    position: 'absolute',
+                                    top: '-10%',
+                                    left: `${piece.left}%`,
+                                    width: `${piece.size}px`,
+                                    height: `${piece.size * 0.4}px`,
+                                    background: piece.color,
+                                    borderRadius: '2px',
+                                    transform: `rotate(${piece.rotate}deg)`,
+                                    animation: `confetti-fall ${piece.duration}s linear ${piece.delay}s forwards`,
+                                    filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))'
+                                }}
+                            />
+                        ))}
+                    </div>
+                </>
             )}
         </>
     );
