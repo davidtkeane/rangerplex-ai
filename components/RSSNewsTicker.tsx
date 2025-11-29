@@ -1,23 +1,43 @@
 // 🎖️ RangerPlex RSS News Ticker Component
-// TV-style scrolling news ticker
+// TV-style scrolling news ticker with notes integration
 
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { rssService } from '../services/rssService';
 import type { RSSItem, RSSSettings } from '../types/rss';
 import { RSS_CATEGORIES } from '../types/rss';
 
+// Study note type for ticker integration
+interface TickerNote {
+    id: string;
+    title: string;
+    content: string;
+    updatedAt: number;
+    pinned?: boolean;
+    priority?: 'high' | 'medium' | 'low';
+}
+
+// Union type for ticker items
+type TickerItem =
+    | { type: 'rss'; data: RSSItem }
+    | { type: 'note'; data: TickerNote };
+
 interface RSSNewsTickerProps {
     settings: RSSSettings;
     onItemClick: (item: RSSItem) => void;
     onSettingsClick: () => void;
+    notes?: TickerNote[];
+    onNoteClick?: (noteId: string) => void;
 }
 
 export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
     settings,
     onItemClick,
     onSettingsClick,
+    notes = [],
+    onNoteClick,
 }) => {
-    const [items, setItems] = useState<RSSItem[]>([]);
+    const [rssItems, setRssItems] = useState<RSSItem[]>([]);
+    const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
     const [isPaused, setIsPaused] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [duration, setDuration] = useState(0);
@@ -59,7 +79,7 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
                 // Limit to max headlines
                 const limited = processedItems.slice(0, settings.maxHeadlines);
 
-                setItems(limited);
+                setRssItems(limited);
             } catch (error) {
                 console.error('Failed to fetch RSS items:', error);
             } finally {
@@ -76,21 +96,56 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
         return () => clearInterval(interval);
     }, [settings.enabledCategories, settings.maxHeadlines, settings.autoRefreshInterval, settings.feedOrder]);
 
+    // Merge RSS items and notes into ticker items
+    useEffect(() => {
+        const combined: TickerItem[] = [];
+
+        // Add RSS items
+        rssItems.forEach(item => {
+            combined.push({ type: 'rss', data: item });
+        });
+
+        // Add notes if enabled
+        if (settings.showNotesInTicker && notes.length > 0) {
+            // Sort notes by updated time, pinned first
+            const sortedNotes = [...notes].sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return b.updatedAt - a.updatedAt;
+            });
+
+            // Interleave notes with RSS items (every 5 items)
+            sortedNotes.forEach((note, index) => {
+                const insertPosition = Math.min((index + 1) * 5, combined.length);
+                combined.splice(insertPosition + index, 0, { type: 'note', data: note });
+            });
+        }
+
+        setTickerItems(combined);
+    }, [rssItems, notes, settings.showNotesInTicker]);
+
     // Measure content width and set animation duration for constant speed
     useLayoutEffect(() => {
-        if (contentRef.current && items.length > 0) {
+        if (contentRef.current && tickerItems.length > 0) {
             const totalWidth = contentRef.current.scrollWidth;
             const halfWidth = totalWidth / 2; // We scroll half the width (one set of items)
             const speed = settings.speed * 30; // Adjust multiplier for reasonable speed (pixels per second)
             const newDuration = halfWidth / speed;
             setDuration(newDuration);
         }
-    }, [items, settings.speed]);
+    }, [tickerItems, settings.speed]);
 
-    // Handle item click
-    const handleItemClick = async (item: RSSItem) => {
+    // Handle RSS item click
+    const handleRssItemClick = async (item: RSSItem) => {
         await rssService.markAsRead(item.id);
         onItemClick(item);
+    };
+
+    // Handle note click - opens notes panel to that note
+    const handleNoteClick = (noteId: string) => {
+        if (onNoteClick) {
+            onNoteClick(noteId);
+        }
     };
 
     // Calculate ticker height
@@ -120,7 +175,7 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
         );
     }
 
-    if (items.length === 0) {
+    if (tickerItems.length === 0) {
         return (
             <div
                 className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-zinc-800 flex items-center justify-between px-4"
@@ -128,7 +183,7 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
             >
                 <div className="flex items-center gap-2 text-zinc-500 text-sm">
                     <i className="fa-solid fa-triangle-exclamation"></i>
-                    <span>No RSS items available</span>
+                    <span>No items available</span>
                 </div>
                 <button
                     onClick={onSettingsClick}
@@ -178,32 +233,73 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
                         }}
                     >
                         {/* Duplicate items for seamless loop */}
-                        {[...items, ...items].map((item, index) => (
-                            <div
-                                key={`${item.id}-${index}`}
-                                className="inline-flex items-center gap-3 px-6 cursor-pointer group"
-                                onClick={() => handleItemClick(item)}
-                            >
-                                {/* Category badge (Neutral) */}
-                                {settings.showCategoryBadges && (
-                                    <span
-                                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${RSS_CATEGORIES[item.category].badgeColor}`}
-                                        title={RSS_CATEGORIES[item.category].name}
+                        {[...tickerItems, ...tickerItems].map((tickerItem, index) => {
+                            if (tickerItem.type === 'note') {
+                                // Render note item
+                                const note = tickerItem.data;
+                                return (
+                                    <div
+                                        key={`note-${note.id}-${index}`}
+                                        className="inline-flex items-center gap-3 px-6 cursor-pointer group"
+                                        onClick={() => handleNoteClick(note.id)}
                                     >
-                                        <i className={`${RSS_CATEGORIES[item.category].icon} mr-1`}></i>
-                                        {item.category}
-                                    </span>
-                                )}
+                                        {/* Note badge with cool icon */}
+                                        {settings.showCategoryBadges && (
+                                            <span
+                                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-amber-900/50 text-amber-400 border border-amber-700/50"
+                                                title="Your Study Note"
+                                            >
+                                                <i className="fa-solid fa-lightbulb mr-1"></i>
+                                                NOTE
+                                                {note.pinned && <i className="fa-solid fa-thumbtack ml-1 text-[8px]"></i>}
+                                            </span>
+                                        )}
 
-                                {/* Headline */}
-                                <span className="text-zinc-400 text-sm font-medium group-hover:text-zinc-200 transition-colors">
-                                    {item.title}
-                                </span>
+                                        {/* Note title */}
+                                        <span className="text-amber-300/80 text-sm font-medium group-hover:text-amber-200 transition-colors">
+                                            {note.title || 'Untitled Note'}
+                                        </span>
 
-                                {/* Separator */}
-                                <span className="text-zinc-800 text-xs">●</span>
-                            </div>
-                        ))}
+                                        {/* Priority indicator */}
+                                        {note.priority === 'high' && (
+                                            <i className="fa-solid fa-fire text-red-500 text-xs" title="High Priority"></i>
+                                        )}
+
+                                        {/* Separator */}
+                                        <span className="text-zinc-800 text-xs">●</span>
+                                    </div>
+                                );
+                            } else {
+                                // Render RSS item
+                                const item = tickerItem.data;
+                                return (
+                                    <div
+                                        key={`rss-${item.id}-${index}`}
+                                        className="inline-flex items-center gap-3 px-6 cursor-pointer group"
+                                        onClick={() => handleRssItemClick(item)}
+                                    >
+                                        {/* Category badge (Neutral) */}
+                                        {settings.showCategoryBadges && (
+                                            <span
+                                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${RSS_CATEGORIES[item.category].badgeColor}`}
+                                                title={RSS_CATEGORIES[item.category].name}
+                                            >
+                                                <i className={`${RSS_CATEGORIES[item.category].icon} mr-1`}></i>
+                                                {item.category}
+                                            </span>
+                                        )}
+
+                                        {/* Headline */}
+                                        <span className="text-zinc-400 text-sm font-medium group-hover:text-zinc-200 transition-colors">
+                                            {item.title}
+                                        </span>
+
+                                        {/* Separator */}
+                                        <span className="text-zinc-800 text-xs">●</span>
+                                    </div>
+                                );
+                            }
+                        })}
                     </div>
                 </div>
             </div>

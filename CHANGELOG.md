@@ -5,6 +5,26 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.8] - 2025-11-29 💡 NOTES IN RSS TICKER
+
+### 💡 Study Notes Integration
+- **Notes in Ticker**: Your study notes can now scroll in the RSS news ticker!
+- **Toggle Setting**: Enable/disable in Settings → RSS → "Show Notes in Ticker"
+- **Cool Badge**: Notes display with amber 💡 lightbulb icon and "NOTE" badge
+- **Priority Indicator**: High priority notes show 🔥 fire icon
+- **Pinned Notes**: Pinned notes show 📌 thumbtack icon in badge
+- **Click to Open**: Click any note in ticker to jump directly to it in Study Notes
+
+### 🎨 Visual Design
+- **Amber Theme**: Notes use warm amber colors to stand out from RSS items
+- **Interleaved Display**: Notes are mixed every 5 RSS items for variety
+- **Smart Sorting**: Pinned notes first, then by most recently updated
+
+### 📦 Version
+- Bumped version to **2.13.8**
+
+---
+
 ## [2.13.7] - 2025-11-29 📁 AI WORKSPACE
 
 ### 📁 MCP Filesystem Workspace (NEW!)

@@ -95,6 +95,34 @@ const App: React.FC = () => {
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
   const [mcpStartedByApp, setMcpStartedByApp] = useState(false);
   const [rssSettings, setRssSettings] = useState<RSSSettings>(DEFAULT_RSS_SETTINGS);
+  const [tickerNotes, setTickerNotes] = useState<Array<{ id: string; title: string; content: string; updatedAt: number; pinned?: boolean; priority?: 'high' | 'medium' | 'low' }>>([]);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null); // For opening specific note
+
+  // Load notes for ticker when user changes
+  useEffect(() => {
+    const loadNotesForTicker = async () => {
+      if (!currentUser) return;
+      try {
+        const storageKey = `study_notes_${currentUser}`;
+        const stored = await dbService.getSetting(storageKey);
+        if (stored && typeof stored === 'object') {
+          const notesData = Array.isArray(stored) ? stored : (stored as { notes?: Array<unknown> }).notes || [];
+          const formattedNotes = notesData.map((note: { id?: string; title?: string; content?: string; updatedAt?: number; pinned?: boolean; priority?: string }) => ({
+            id: note.id || '',
+            title: note.title || '',
+            content: note.content || '',
+            updatedAt: note.updatedAt || Date.now(),
+            pinned: note.pinned,
+            priority: note.priority as 'high' | 'medium' | 'low' | undefined,
+          }));
+          setTickerNotes(formattedNotes);
+        }
+      } catch (err) {
+        console.error('Failed to load notes for ticker:', err);
+      }
+    };
+    loadNotesForTicker();
+  }, [currentUser]);
 
 
   useEffect(() => {
@@ -1488,7 +1516,13 @@ const App: React.FC = () => {
               setSettingsInitialTab('rss');
               setIsSettingsOpen(true);
             }}
-
+            notes={tickerNotes}
+            onNoteClick={(noteId: string) => {
+              // Open notes panel and select the clicked note
+              setSelectedNoteId(noteId);
+              openInTab('notes', 'Study Notes', 'fa-solid fa-book');
+              setActiveSurface('notes');
+            }}
           />
         )}
 

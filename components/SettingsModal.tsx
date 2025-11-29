@@ -2464,6 +2464,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                             </label>
                                         </div>
 
+                                        {/* Show Notes in Ticker */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <span className="text-sm font-bold flex items-center gap-2">
+                                                    <i className="fa-solid fa-lightbulb text-amber-400"></i>
+                                                    Show Notes in Ticker
+                                                </span>
+                                                <span className="text-xs text-zinc-500">Display your study notes in the feed</span>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={rssSettings.showNotesInTicker ?? false}
+                                                    onChange={(e) => {
+                                                        const newSettings = { ...rssSettings, showNotesInTicker: e.target.checked };
+                                                        setRssSettings(newSettings);
+                                                        rssService.saveSettings(newSettings);
+                                                    }}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                                            </label>
+                                        </div>
+
                                         {/* Max Headlines */}
                                         <div>
                                             <label className="block text-sm font-bold mb-2">Max Headlines</label>

@@ -628,5 +628,5 @@ class DBService {
     }
 }
 
-export const CURRENT_VERSION = '2.13.7';
+export const CURRENT_VERSION = '2.13.8';
 export const dbService = new DBService();

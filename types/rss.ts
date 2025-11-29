@@ -44,6 +44,7 @@ export interface RSSSettings {
     enabledCategories: RSSCategory[];
     pauseOnHover: boolean;
     feedOrder: 'newest' | 'random' | 'category';
+    showNotesInTicker: boolean; // Show user study notes in the ticker
 }
 
 export interface RSSFeedTest {
@@ -80,6 +81,7 @@ export const DEFAULT_RSS_SETTINGS: RSSSettings = {
     enabledCategories: ['pentesting', 'malware', 'forensics', 'news', 'dataGov', 'blockchain'],
     pauseOnHover: true,
     feedOrder: 'newest',
+    showNotesInTicker: false, // Off by default
 };
 
 // Category configurations
