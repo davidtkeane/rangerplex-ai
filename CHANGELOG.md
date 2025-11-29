@@ -5,6 +5,22 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.4] - 2025-12-02 🧠 MEMORY MANAGEMENT & CANVAS FIXES
+
+### 🧠 Memory Management
+- **New Memory Tab**: Added a dedicated "Memory" tab in Settings to monitor browser heap usage and database storage size.
+- **Storage Tools**: Added one-click actions to clear LocalStorage, IndexedDB, and export all data.
+- **Developer Notes**: Included in-app developer guide for extending the memory system.
+
+### 🎨 Canvas Persistence
+- **Lazy Loading**: Implemented lazy loading for canvas boards to prevent memory leaks and improve startup performance.
+- **Granular Saving**: Refactored saving logic to only persist modified boards, eliminating race conditions and "empty board" flashes.
+- **Loading States**: Added visual loading indicators to prevent interaction before data is ready.
+
+### 🧹 Housekeeping
+- **Documentation**: Updated `memory-system.md` with new architecture details.
+- **Version**: Synced across app (badge, package files, server banner, sidebar, db metadata) to **2.12.4**.
+
 ## [2.12.3] - 2025-12-02 🛠️ WORDPRESS COMMAND CENTER UX
 
 ### 🎨 UI/UX

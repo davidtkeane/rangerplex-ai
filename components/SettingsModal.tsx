@@ -216,8 +216,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             checkProxyStatus();
             if (settings.elevenLabsApiKey) loadVoices(settings.elevenLabsApiKey);
 
-            // Load sync status and storage stats if on Data tab
-            if (activeTab === 'data') {
+            // Load sync status and storage stats if on Data or Memory tab
+            if (activeTab === 'data' || activeTab === 'memory') {
                 const status = syncService.getConnectionStatus();
                 setSyncStatus(status);
                 loadStorageStats();
