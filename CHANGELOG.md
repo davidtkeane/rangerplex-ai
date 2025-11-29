@@ -5,6 +5,31 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.2] - 2025-12-01 🛡️ CONTEXT GUARDRAILS
+
+### 🚦 Safety
+- Added configurable chat history caps (messages + characters) to keep all providers under token limits; defaults stay at 24 messages / ~120k chars but are now user-tunable in Settings → Params.
+
+### 🛠️ Settings
+- New “Conversation History Guardrails” controls in Params tab to set max messages and character cap per request.
+
+### 🔧 Tech
+- All provider routes (OpenAI/Anthropic/Perplexity/Gemini/Ollama/LM Studio/HF/Grok) now respect the new caps via a shared trimmer.
+
+## [2.12.1] - 2025-11-29 🎨 WORDPRESS COMMAND CENTER POLISH
+
+
+### ✨ UI Refresh
+- WordPress Command Center now matches the sidebar styling (dark zinc base, cyan accents, glassy cards, refined status pills, and new RangerPlex header avatar).
+- Buttons, cards, and loaders updated for a cohesive look; inline header loader keeps the page visible while data streams in.
+
+### ⚡ Performance
+- Docker status checks are batched into a single compose call and gated by a 3s timeout alongside site scanning to reduce spinner time.
+
+### 🧹 Housekeeping
+- Version synced across app: `package.json`, README badge, package-lock, and server banner now read **2.12.1**.
+- Added `docs` to `.gitignore` (memory-system exception still allowed).
+
 ## [2.12.0] - 2025-11-28 🐳 DOCKER MCP INTEGRATION & BROWSER FIXES
 
 ### 🐳 Docker MCP Integration

@@ -3,7 +3,7 @@
  * Displays WordPress sites and management controls (Electron mode only)
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { FEATURES } from '../../utils/features';
 import { wordPressService } from '../../services/wordPressService';
 import type { WordPressSite } from '../../types/electron';
@@ -24,6 +24,7 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
     const [hasAutoStarted, setHasAutoStarted] = useState(false);
 
     const [dockerMissing, setDockerMissing] = useState(false);
+    const navGuardRef = useRef<{ [key: string]: number }>({});
 
     // Check if WordPress features are available
     if (!FEATURES.WORDPRESS_INTEGRATION) {
@@ -95,7 +96,8 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
         }
     };
 
-    const handleOpenAdmin = async (siteUrl: string) => {
+    // Deprecated: kept for backward calls; replaced by guarded openWpPath version
+    const handleOpenAdminLegacy = async (siteUrl: string) => {
         const adminUrl = `${siteUrl}/wp-admin`;
         if (onOpenBrowser) {
             onOpenBrowser(adminUrl);
@@ -133,6 +135,46 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
         }
     };
 
+    const getPreferredBaseUrl = () => {
+        const runningDockerId = [1, 2, 3].find(id => dockerStatuses[id] === 'running');
+        if (runningDockerId) {
+            return `http://localhost:${8080 + runningDockerId}`;
+        }
+
+        const runningLocal = sites.find(site => site.status === 'running' && site.url);
+        if (runningLocal?.url) {
+            return runningLocal.url;
+        }
+
+        if (sites[0]?.url) {
+            return sites[0].url;
+        }
+
+        return 'http://localhost:8081';
+    };
+
+    const openWpPath = (path: string) => {
+        const now = Date.now();
+        if (now - (navGuardRef.current[path] || 0) < 800) return;
+        navGuardRef.current[path] = now;
+
+        const base = getPreferredBaseUrl().replace(/\/$/, '');
+        const targetUrl = `${base}${path}`;
+        onOpenBrowser ? onOpenBrowser(targetUrl) : window.open(targetUrl, '_blank');
+    };
+
+    const handleOpenSettings = () => {
+        openWpPath('/wp-admin/options-general.php');
+    };
+
+    const handleOpenAdmin = () => {
+        openWpPath('/wp-admin/');
+    };
+
+    const handleOpenLogin = () => {
+        openWpPath('/wp-login.php');
+    };
+
     return (
         <div className={styles.dashboard}>
             <header className={styles.header}>
@@ -147,13 +189,20 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
                         <span>Loading WordPress data…</span>
                     </div>
                 )}
-                <button
-                    onClick={() => onOpenBrowser && onOpenBrowser('https://google.com')}
-                    className={styles.newTabButton}
-                >
-                    <i className="fa-solid fa-plus"></i>
-                    New Browser Tab
-                </button>
+                <div className={styles.headerActions}>
+                    <button className={`${styles.newTabButton} ${styles.headerButton}`} onClick={handleOpenLogin}>
+                        <i className={`fa-solid fa-right-to-bracket ${styles.btnIcon}`}></i>
+                        WP Login
+                    </button>
+                    <button className={`${styles.newTabButton} ${styles.headerButton}`} onClick={handleOpenAdmin}>
+                        <i className={`fa-solid fa-gauge-high ${styles.btnIcon}`}></i>
+                        Admin
+                    </button>
+                    <button className={`${styles.newTabButton} ${styles.headerButton}`} onClick={handleOpenSettings}>
+                        <i className={`fa-solid fa-gear ${styles.btnIcon}`}></i>
+                        Settings
+                    </button>
+                </div>
             </header>
 
             {/* Local Sites Section */}
@@ -165,7 +214,8 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
                         disabled={scanning}
                         className={styles.scanButton}
                     >
-                        {scanning ? '🔄 Scanning...' : '🔍 Scan Sites'}
+                        <i className={`fa-solid ${scanning ? 'fa-arrows-rotate' : 'fa-magnifying-glass'} ${styles.btnIcon}`}></i>
+                        {scanning ? 'Scanning...' : 'Scan Sites'}
                     </button>
                 </div>
 
@@ -194,16 +244,19 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
                                 <div className={styles.siteActions}>
                                     {site.status === 'running' ? (
                                         <>
-                                            <button onClick={() => handleOpenAdmin(site.url)}>
-                                                🔗 Open Admin
+                                            <button onClick={() => handleOpenAdminLegacy(site.url)}>
+                                                <i className={`fa-solid fa-up-right-from-square ${styles.btnIcon}`}></i>
+                                                Open Admin
                                             </button>
                                             <button onClick={() => handleStopSite(site.name)}>
-                                                ⏹️ Stop
+                                                <i className={`fa-solid fa-stop ${styles.btnIcon}`}></i>
+                                                Stop
                                             </button>
                                         </>
                                     ) : (
                                         <button onClick={() => handleStartSite(site.name)}>
-                                            ▶️ Start
+                                            <i className={`fa-solid fa-play ${styles.btnIcon}`}></i>
+                                            Start
                                         </button>
                                     )}
                                 </div>
@@ -236,23 +289,27 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
                                 <div className={styles.siteActions}>
                                     {dockerStatuses[siteId] === 'running' ? (
                                         <>
-                                            <button onClick={() => handleOpenAdmin(`http://localhost:${8080 + siteId}`)}>
-                                                🔗 Open Admin
+                                            <button onClick={() => handleOpenAdminLegacy(`http://localhost:${8080 + siteId}`)}>
+                                                <i className={`fa-solid fa-up-right-from-square ${styles.btnIcon}`}></i>
+                                                Open Admin
                                             </button>
                                             <button onClick={() => handleStopDocker(siteId)}>
-                                                🛑 Stop
+                                                <i className={`fa-solid fa-stop ${styles.btnIcon}`}></i>
+                                                Stop
                                             </button>
                                         </>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
                                             <button onClick={() => handleStartDocker(siteId)}>
-                                                ▶️ Start
+                                                <i className={`fa-solid fa-play ${styles.btnIcon}`}></i>
+                                                Start
                                             </button>
                                             <button
                                                 onClick={() => handleUninstallDocker(siteId)}
                                                 className={styles.dangerBtn}
                                             >
-                                                🗑️ Delete / Reinstall
+                                                <i className={`fa-solid fa-trash ${styles.btnIcon}`}></i>
+                                                Delete / Reinstall
                                             </button>
                                         </div>
                                     )}
@@ -275,7 +332,8 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
                             className={styles.playgroundButton}
                             onClick={() => setShowPlayground(true)}
                         >
-                            🚀 Launch Sandbox
+                            <i className={`fa-solid fa-rocket ${styles.btnIcon}`}></i>
+                            Launch Sandbox
                         </button>
                         <p className={styles.hint}>
                             Zero setup, disposable WordPress instance for testing

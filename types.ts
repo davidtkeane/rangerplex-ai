@@ -261,6 +261,8 @@ export interface AppSettings {
   enableDuckDuckGo: boolean;
   enableVoiceResponse: boolean;
   enableCloudSync: boolean;
+  chatHistoryMaxMessages: number;
+  chatHistoryMaxChars: number;
   currency: Currency;
 
   // Media
@@ -514,6 +516,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enableDuckDuckGo: true,
   enableVoiceResponse: false,
   enableCloudSync: true, // ✅ ENABLED by default - saves to server + IndexedDB for data persistence
+  chatHistoryMaxMessages: 24,
+  chatHistoryMaxChars: 120000,
   currency: 'USD',
 
   voiceConfig: {

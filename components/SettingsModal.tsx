@@ -1344,6 +1344,43 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     />
                                 </div>
                             </div>
+
+                            <div className="p-4 border border-inherit rounded bg-opacity-10 bg-black">
+                                <h3 className="font-bold mb-2">Conversation History Guardrails</h3>
+                                <p className="text-xs opacity-70 mb-4">Keep context size under control to avoid model token limits. Lower numbers = cheaper + safer.</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1">Max history messages</label>
+                                        <input
+                                            type="number"
+                                            min={4}
+                                            max={200}
+                                            value={localSettings.chatHistoryMaxMessages}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                setLocalSettings({ ...localSettings, chatHistoryMaxMessages: Math.min(200, Math.max(4, val)) });
+                                            }}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        />
+                                        <p className="text-[10px] opacity-60 mt-1">How many of the latest messages we pass to the model.</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold mb-1">Max history characters</label>
+                                        <input
+                                            type="number"
+                                            min={10000}
+                                            step={1000}
+                                            value={localSettings.chatHistoryMaxChars}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                setLocalSettings({ ...localSettings, chatHistoryMaxChars: Math.max(10000, val) });
+                                            }}
+                                            className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                        />
+                                        <p className="text-[10px] opacity-60 mt-1">Hard cap on characters sent (includes prompts + RAG inserts).</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 

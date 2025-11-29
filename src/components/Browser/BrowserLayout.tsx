@@ -228,6 +228,33 @@ export default function BrowserLayout({ initialUrl, defaultUrl = 'https://google
     if (window.electronAPI) window.electronAPI.createTab(newId, normalized);
   }, [normalizeUrl]);
 
+  const openOrFocusTab = useCallback((url: string) => {
+    const normalized = normalizeUrl(url);
+    setTabs((prev) => {
+      const existing = prev.find((t) => t.url === normalized);
+      if (existing) {
+        setActiveTabId(existing.id);
+        setUrlInput(normalized);
+        if (window.electronAPI) window.electronAPI.switchTab(existing.id);
+        return prev.map((t) =>
+          t.id === existing.id ? { ...t, lastActive: Date.now(), isPhantom: false } : t
+        );
+      }
+      const newId = Date.now().toString();
+      const newTab: Tab = {
+        id: newId,
+        title: 'New Tab',
+        url: normalized,
+        lastActive: Date.now(),
+        isPhantom: false,
+      };
+      setActiveTabId(newId);
+      setUrlInput(normalized);
+      if (window.electronAPI) window.electronAPI.createTab(newId, normalized);
+      return [...prev, newTab];
+    });
+  }, [normalizeUrl]);
+
   const closeTab = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     e.preventDefault();
@@ -279,9 +306,8 @@ export default function BrowserLayout({ initialUrl, defaultUrl = 'https://google
 
   useEffect(() => {
     if (!openRequest || !openRequest.url) return;
-    const url = normalizeUrl(openRequest.url);
-    openNewTab(url);
-  }, [openNewTab, openRequest, normalizeUrl]);
+    openOrFocusTab(openRequest.url);
+  }, [openOrFocusTab, openRequest]);
 
   const handleBack = async () => {
     if (window.electronAPI?.goBack) {
