@@ -47,12 +47,18 @@ if (majorVersion >= 25) {
 // Parse arguments
 const args = process.argv.slice(2);
 const mode = args[0] || ''; // '', '-t', or '-b'
+const skipDocker = args.includes('--skip-docker') || args.includes('-sd');
 
 const SERVER_URL = 'http://localhost:5173';
 
 // --- DOCKER DESKTOP AUTO-START ---
 function ensureDockerRunning() {
     return new Promise((resolve) => {
+        if (skipDocker) {
+            console.log('🐳 Docker check skipped (--skip-docker flag)');
+            resolve();
+            return;
+        }
         console.log('🐳 Checking Docker Desktop status...');
 
         // Check if Docker is running by trying to execute 'docker info'
