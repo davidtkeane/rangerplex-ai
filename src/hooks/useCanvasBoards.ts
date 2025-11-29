@@ -1,105 +1,92 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { BackgroundType } from './useCanvasBackground';
 import { canvasDbService, CanvasBoardRecord } from '../../services/canvasDbService';
-import { queueCanvasBoardsSave, queueCanvasBoardSave } from '../../services/autoSaveService';
+import { queueCanvasBoardSave } from '../../services/autoSaveService';
 
 export interface CanvasBoard {
   id: string;
   name: string;
   background: BackgroundType;
-  color: 'black' | 'gray' | 'white'; // New property
+  color: 'black' | 'gray' | 'white';
   imageData: string; // Base64 encoded canvas data
   created: number;
   modified: number;
 }
 
-const STORAGE_KEY = 'rangerplex_canvas_boards';
 const MAX_BOARDS = 10;
-const ENABLE_CLOUD_SYNC = true; // Enable server sync by default
+const ENABLE_CLOUD_SYNC = true;
 
 export const useCanvasBoards = () => {
-  const [boards, setBoards] = useState<CanvasBoard[]>([]);
+  const [boards, setBoards] = useState<CanvasBoard[]>([]); // These will mostly be headers (empty imageData)
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [activeBoardImageData, setActiveBoardImageData] = useState<string>('');
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
 
-  // Load boards from IndexedDB on mount (with migration from localStorage)
+  // 1. Initial Load (Headers Only)
   useEffect(() => {
-    const loadBoards = async () => {
+    const loadHeaders = async () => {
       try {
-        // Try to migrate from localStorage first (if IndexedDB is empty)
-        const migratedBoards = await canvasDbService.migrateFromLocalStorage(STORAGE_KEY);
+        // Try to migrate if needed (this handles the legacy localStorage -> IDB move)
+        await canvasDbService.migrateFromLocalStorage();
 
-        if (migratedBoards.length > 0) {
-          setBoards(migratedBoards as CanvasBoard[]);
-          setCurrentBoardId(migratedBoards[0].id);
-          console.log('✅ Canvas boards loaded from IndexedDB (migrated from localStorage)');
-        } else {
-          // Load from IndexedDB
-          const loadedBoards = await canvasDbService.loadBoards();
-          if (loadedBoards.length > 0) {
-            setBoards(loadedBoards as CanvasBoard[]);
-            setCurrentBoardId(loadedBoards[0].id);
-            console.log('✅ Canvas boards loaded from IndexedDB');
-          }
+        // Load lightweight headers
+        const headers = await canvasDbService.loadBoardHeaders();
+
+        // Convert to CanvasBoard type (imageData is empty string)
+        const loadedBoards = headers.map(h => ({ ...h, imageData: h.imageData || '' })) as CanvasBoard[];
+
+        setBoards(loadedBoards);
+        if (loadedBoards.length > 0) {
+          setCurrentBoardId(loadedBoards[0].id);
         }
-
-        setIsHydrated(true);
       } catch (error) {
-        console.error('❌ Failed to load canvas boards from IndexedDB:', error);
-        // Fallback to localStorage if IndexedDB fails
-        try {
-          const stored = localStorage.getItem(STORAGE_KEY);
-          if (stored) {
-            const loadedBoards: CanvasBoard[] = JSON.parse(stored);
-            setBoards(loadedBoards);
-            if (loadedBoards.length > 0) {
-              setCurrentBoardId(loadedBoards[0].id);
-            }
-            console.log('⚠️ Canvas boards loaded from localStorage (IndexedDB failed)');
-          }
-        } catch (fallbackError) {
-          console.error('❌ Failed to load canvas boards from localStorage:', fallbackError);
-        }
-        setIsHydrated(true);
+        console.error('❌ Failed to load canvas boards:', error);
+      } finally {
+        setIsLoaded(true);
       }
     };
-    loadBoards();
+    loadHeaders();
   }, []);
 
-
-  // Save boards to 3-tier persistence whenever they change
+  // 2. Lazy Load Image Data when Current Board Changes
   useEffect(() => {
-    if (!isHydrated || boards.length === 0) return;
+    const loadActiveImage = async () => {
+      if (!currentBoardId) {
+        setActiveBoardImageData('');
+        return;
+      }
 
-    // Tier 1: Save to localStorage immediately (fast cache)
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
-    } catch (error) {
-      // If localStorage is full, just log it and continue to Tier 2 (IndexedDB)
-      // We don't want to block the robust save just because the cache is full
-      console.warn('⚠️ LocalStorage quota exceeded, skipping cache update:', error);
-    }
+      // If we already have the data in the boards array (e.g. from creation), use it
+      const existing = boards.find(b => b.id === currentBoardId);
+      if (existing && existing.imageData && existing.imageData.length > 100) {
+        setActiveBoardImageData(existing.imageData);
+        return;
+      }
 
-    // Tier 2 & 3: Queue IndexedDB save + server sync (debounced)
-    try {
-      queueCanvasBoardsSave(
-        boards as CanvasBoardRecord[],
-        ENABLE_CLOUD_SYNC,
-        () => {
-          console.log('✅ Canvas boards saved to IndexedDB and synced to server');
-        }
-      );
-    } catch (error) {
-      console.error('❌ Failed to queue DB save:', error);
-    }
-  }, [boards, isHydrated]);
+      setIsLoadingImage(true);
+      try {
+        const imageData = await canvasDbService.loadBoardImage(currentBoardId);
+        setActiveBoardImageData(imageData || '');
+      } catch (error) {
+        console.error('❌ Failed to load board image:', error);
+        setActiveBoardImageData('');
+      } finally {
+        setIsLoadingImage(false);
+      }
+    };
 
-  // Get current board
-  const getCurrentBoard = useCallback((): CanvasBoard | null => {
-    return boards.find(b => b.id === currentBoardId) || null;
-  }, [boards, currentBoardId]);
+    loadActiveImage();
+  }, [currentBoardId]); // Only re-run if ID changes
 
-  // Generate auto-name for board
+  // Construct the full current board object
+  const currentBoard = useMemo((): CanvasBoard | null => {
+    const board = boards.find(b => b.id === currentBoardId);
+    if (!board) return null;
+    return { ...board, imageData: activeBoardImageData };
+  }, [boards, currentBoardId, activeBoardImageData]);
+
+  // Generate auto-name
   const generateBoardName = useCallback((background: BackgroundType): string => {
     const backgroundNames = {
       blank: 'Blank',
@@ -108,14 +95,12 @@ export const useCanvasBoards = () => {
       dots: 'Dots',
       graph: 'Graph'
     };
-
-    // Count existing boards with this background
     const count = boards.filter(b => b.background === background).length + 1;
     return `${backgroundNames[background]} Board ${count}`;
   }, [boards]);
 
-  // Create new board
-  const createBoard = useCallback((background: BackgroundType, customName?: string, color: 'black' | 'gray' | 'white' = 'white'): string | null => {
+  // Create Board
+  const createBoard = useCallback(async (background: BackgroundType, customName?: string, color: 'black' | 'gray' | 'white' = 'white'): Promise<string | null> => {
     if (boards.length >= MAX_BOARDS) {
       console.error('Maximum number of boards reached');
       return null;
@@ -125,66 +110,109 @@ export const useCanvasBoards = () => {
       id: `board_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: customName || generateBoardName(background),
       background,
-      color, // Store the selected color
-      imageData: '', // Empty canvas
+      color,
+      imageData: '',
       created: Date.now(),
       modified: Date.now()
     };
 
-    setBoards(prev => [...prev, newBoard]);
+    // Optimistic update
+    setBoards(prev => [newBoard, ...prev]);
     setCurrentBoardId(newBoard.id);
+    setActiveBoardImageData(''); // Start empty
+
+    // Save to DB
+    try {
+      await canvasDbService.saveBoard(newBoard);
+    } catch (error) {
+      console.error('Failed to save new board:', error);
+    }
+
     return newBoard.id;
   }, [boards, generateBoardName]);
 
-  // Switch to different board
-  const switchBoard = useCallback((boardId: string): CanvasBoard | null => {
-    const board = boards.find(b => b.id === boardId);
-    if (board) {
+  // Switch Board
+  const switchBoard = useCallback((boardId: string) => {
+    if (boards.some(b => b.id === boardId)) {
       setCurrentBoardId(boardId);
-      return board;
     }
-    return null;
   }, [boards]);
 
-  // Update current board's image data
+  // Update Image (Granular Save)
   const updateBoardImage = useCallback((canvas: HTMLCanvasElement) => {
     if (!currentBoardId) return;
 
     try {
-      // Use JPEG with 0.7 quality to save significant space (vs PNG)
       const imageData = canvas.toDataURL('image/jpeg', 0.7);
-      setBoards(prev => prev.map(board =>
-        board.id === currentBoardId
-          ? { ...board, imageData, modified: Date.now() }
-          : board
-      ));
+      setActiveBoardImageData(imageData);
+
+      // Update modified timestamp in list
+      setBoards(prev => prev.map(b => b.id === currentBoardId ? { ...b, modified: Date.now() } : b));
+
+      // Queue Save (Granular)
+      const boardToSave = boards.find(b => b.id === currentBoardId);
+      if (boardToSave) {
+        queueCanvasBoardSave(
+          { ...boardToSave, imageData, modified: Date.now() },
+          ENABLE_CLOUD_SYNC
+        );
+      }
     } catch (error) {
       console.error('Failed to update board image:', error);
     }
-  }, [currentBoardId]);
+  }, [currentBoardId, boards]);
 
-  // Delete board
-  const deleteBoard = useCallback(async (boardId: string): Promise<boolean> => {
-    if (boards.length <= 1) {
-      console.error('Cannot delete the last board');
+  // Update Background (Metadata Only)
+  const updateBoardBackground = useCallback(async (boardId: string, background: BackgroundType, color?: 'black' | 'gray' | 'white') => {
+    // Optimistic
+    setBoards(prev => prev.map(b =>
+      b.id === boardId
+        ? { ...b, background, color: color ?? b.color, modified: Date.now() }
+        : b
+    ));
+
+    // DB Update
+    try {
+      await canvasDbService.updateBoardMetadata(boardId, { background, color, modified: Date.now() });
+    } catch (error) {
+      console.error('Failed to update board background:', error);
+    }
+  }, []);
+
+  // Rename (Metadata Only)
+  const renameBoard = useCallback(async (boardId: string, newName: string): Promise<boolean> => {
+    const name = newName.trim();
+    if (!name) return false;
+
+    setBoards(prev => prev.map(b => b.id === boardId ? { ...b, name } : b));
+
+    try {
+      await canvasDbService.updateBoardMetadata(boardId, { name });
+      return true;
+    } catch (error) {
+      console.error('Failed to rename board:', error);
       return false;
     }
+  }, []);
+
+  // Delete Board
+  const deleteBoard = useCallback(async (boardId: string): Promise<boolean> => {
+    if (boards.length <= 1) return false;
 
     const boardIndex = boards.findIndex(b => b.id === boardId);
     if (boardIndex === -1) return false;
 
-    // Delete from state
+    // Optimistic
     setBoards(prev => prev.filter(b => b.id !== boardId));
 
-    // Delete from IndexedDB
+    // DB
     try {
       await canvasDbService.deleteBoard(boardId);
-      console.log('✅ Board deleted from IndexedDB');
     } catch (error) {
-      console.error('❌ Failed to delete board from IndexedDB:', error);
+      console.error('Failed to delete board:', error);
     }
 
-    // If deleting current board, switch to another
+    // Switch if needed
     if (currentBoardId === boardId) {
       const nextBoard = boards[boardIndex + 1] || boards[boardIndex - 1];
       if (nextBoard) {
@@ -195,55 +223,22 @@ export const useCanvasBoards = () => {
     return true;
   }, [boards, currentBoardId]);
 
-  const updateBoardBackground = useCallback((boardId: string, background: BackgroundType, color?: 'black' | 'gray' | 'white') => {
-    setBoards(prev => prev.map(b =>
-      b.id === boardId
-        ? { ...b, background, color: color ?? b.color, modified: Date.now() }
-        : b
-    ));
-  }, []);
-
-  // Rename board
-  const renameBoard = useCallback((boardId: string, newName: string): boolean => {
-    const board = boards.find(b => b.id === boardId);
-    if (!board) return false;
-
-    setBoards(prev => prev.map(b =>
-      b.id === boardId ? { ...b, name: newName.trim() || b.name } : b
-    ));
-    return true;
-  }, [boards]);
-
-  // Clear all boards (dangerous!)
+  // Clear All
   const clearAllBoards = useCallback(async () => {
     setBoards([]);
     setCurrentBoardId(null);
-    localStorage.removeItem(STORAGE_KEY);
-
-    // Clear from IndexedDB
+    setActiveBoardImageData('');
     try {
       await canvasDbService.clearAllBoards();
-      console.log('✅ All boards cleared from IndexedDB');
     } catch (error) {
-      console.error('❌ Failed to clear boards from IndexedDB:', error);
+      console.error('Failed to clear boards:', error);
     }
   }, []);
 
-  // Get boards sorted by modified date (most recent first)
-  const getSortedBoards = useCallback((): CanvasBoard[] => {
-    return [...boards].sort((a, b) => {
-      // Current board first
-      if (a.id === currentBoardId) return -1;
-      if (b.id === currentBoardId) return 1;
-      // Then by modified date
-      return b.modified - a.modified;
-    });
-  }, [boards, currentBoardId]);
-
   return {
-    boards: getSortedBoards(),
+    boards,
     currentBoardId,
-    currentBoard: getCurrentBoard(),
+    currentBoard,
     createBoard,
     switchBoard,
     updateBoardImage,
@@ -253,6 +248,8 @@ export const useCanvasBoards = () => {
     clearAllBoards,
     canCreateBoard: boards.length < MAX_BOARDS,
     maxBoards: MAX_BOARDS,
-    boardCount: boards.length
+    boardCount: boards.length,
+    isLoaded,
+    isLoadingImage
   };
 };

@@ -4,6 +4,7 @@ export interface CanvasBoardRecord {
   id: string;
   name: string;
   background: string;
+  color?: 'black' | 'gray' | 'white';
   imageData: string;
   created: number;
   modified: number;
@@ -30,11 +31,36 @@ export const canvasDbService = {
     await db.put(STORE, board);
   },
 
+  // Heavy load - loads everything (Legacy/Full)
   async loadBoards(): Promise<CanvasBoardRecord[]> {
     const db = await dbService.getDB();
     const all = await db.getAll(STORE);
     // Sort by modified desc
     return all.sort((a, b) => b.modified - a.modified);
+  },
+
+  // Lightweight load - loads headers only (no image data)
+  async loadBoardHeaders(): Promise<CanvasBoardRecord[]> {
+    const db = await dbService.getDB();
+    const all = await db.getAll(STORE);
+    // Strip image data to save memory
+    return all.map(b => ({ ...b, imageData: '' })).sort((a, b) => b.modified - a.modified);
+  },
+
+  // Load specific board image data
+  async loadBoardImage(boardId: string): Promise<string | null> {
+    const db = await dbService.getDB();
+    const board = await db.get(STORE, boardId);
+    return board ? board.imageData : null;
+  },
+
+  // Update metadata without overwriting image data
+  async updateBoardMetadata(boardId: string, updates: Partial<Omit<CanvasBoardRecord, 'imageData' | 'id'>>): Promise<void> {
+    const db = await dbService.getDB();
+    const board = await db.get(STORE, boardId);
+    if (board) {
+      await db.put(STORE, { ...board, ...updates, modified: Date.now() });
+    }
   },
 
   async deleteBoard(boardId: string): Promise<void> {

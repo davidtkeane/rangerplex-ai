@@ -59,7 +59,9 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
     updateBoardBackground,
     deleteBoard,
     canCreateBoard,
-    boardCount
+    boardCount,
+    isLoaded,
+    isLoadingImage
   } = useCanvasBoards();
 
   const { isLocked: isBackgroundLocked, markAsDrawn } = useBackgroundLock();
@@ -309,8 +311,8 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
   };
 
   // Board Ops
-  const handleCreateBoard = (bg: BackgroundType, name?: string, color: 'black' | 'gray' | 'white' = 'white') => {
-    const id = createBoard(bg, name, color);
+  const handleCreateBoard = async (bg: BackgroundType, name?: string, color: 'black' | 'gray' | 'white' = 'white') => {
+    const id = await createBoard(bg, name, color);
     if (id) setShowBoardModal(false);
   };
 
@@ -430,6 +432,28 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({
             background: 'transparent' // Important!
           }}
         />
+        {(!isLoaded || isLoadingImage) && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: theme === 'dark' ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            backdropFilter: 'blur(4px)'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <i className="fa-solid fa-circle-notch fa-spin fa-3x" style={{ color: theme === 'tron' ? '#0ff' : '#666' }}></i>
+              <p style={{ marginTop: '1rem', fontWeight: 'bold' }}>
+                {!isLoaded ? 'Loading Boards...' : 'Loading Canvas...'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ flexShrink: 0 }}>

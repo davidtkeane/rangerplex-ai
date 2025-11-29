@@ -5,6 +5,19 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.3] - 2025-12-02 🛠️ WORDPRESS COMMAND CENTER UX
+
+### 🎨 UI/UX
+- WordPress Command Center buttons restyled to match the sidebar (neutral dark surfaces, FA icons) and cards use sidebar-matching backgrounds.
+- Added header shortcuts for WP Login, Admin, and Settings that target the best available site.
+
+### 🏎️ Behavior
+- Browser overlay now reuses an existing tab when opening WordPress pages to prevent duplicate tabs.
+- Single-click guards on WordPress header buttons to avoid accidental double opens.
+
+### 🧹 Housekeeping
+- Version synced across app (badge, package files, server banner, sidebar, db metadata).
+
 ## [2.12.2] - 2025-12-01 🛡️ CONTEXT GUARDRAILS
 
 ### 🚦 Safety
