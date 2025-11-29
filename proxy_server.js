@@ -4167,7 +4167,7 @@ server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎖️  RANGERPLEX AI SERVER v2.12.4                       ║
+║   🎖️  RANGERPLEX AI SERVER v2.12.5                       ║
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║

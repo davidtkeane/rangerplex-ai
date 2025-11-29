@@ -5,6 +5,15 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.5] - 2025-12-04 🧭 SIDEBAR POLISH
+
+### 🎛️ Sidebar
+- Minimized quick-action row restored to three icons by hiding the console button in compact mode.
+- Compact header label now reads **Apps** and the inline version pill was removed for a cleaner toggle area.
+
+### 🧹 Version Sync
+- Bumped version to **2.12.5** across app banner, exports, docs badge, and package manifests.
+
 ## [2.12.4] - 2025-12-03 🧪 ADVANCED API TESTERS
 
 ### 🧪 Advanced API Testing Suite
