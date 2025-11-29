@@ -102,14 +102,14 @@ class SystemInfoService {
         const services: ServiceStatus[] = [];
 
         // Check proxy server
-        services.push(await this.checkServiceStatus('Proxy Server', 'http://localhost:3010/health', 3010));
+        services.push(await this.checkServiceStatus('Proxy Server', 'http://localhost:3000/health', 3000));
 
         // Check Vite dev server
         services.push(await this.checkServiceStatus('Vite Dev Server', 'http://localhost:5173', 5173));
 
         // Check WordPress (if running)
         try {
-            const wpStatus = await fetch('http://localhost:3010/api/wordpress/status');
+            const wpStatus = await fetch('http://localhost:3000/api/wordpress/status');
             const wpData = await wpStatus.json();
             services.push({
                 name: 'WordPress',

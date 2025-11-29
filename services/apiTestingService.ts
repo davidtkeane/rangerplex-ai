@@ -37,8 +37,8 @@ class ApiTestingService {
                     break;
 
                 case 'anthropic':
-                    // Use local proxy to avoid CORS
-                    url = 'http://localhost:3010/v1/messages';
+                    // Use local proxy to avoid CORS (proxy_server.js runs on port 3000)
+                    url = 'http://localhost:3000/v1/messages';
                     headers['x-api-key'] = apiKey;
                     headers['anthropic-version'] = '2023-06-01';
                     body = {

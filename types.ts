@@ -465,10 +465,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   elevenLabsApiKey: import.meta.env.VITE_ELEVENLABS_API_KEY || '',
   huggingFaceApiKey: import.meta.env.VITE_HUGGINGFACE_ACCESS_TOKEN || '',
   xaiApiKey: import.meta.env.VITE_GROK_API_KEY || '',
-  corsProxyUrl: 'http://localhost:3010',
+  corsProxyUrl: 'http://localhost:3000',
   ollamaBaseUrl: 'http://localhost:11434',
-  ollamaModelId: 'llama3',
-  lmstudioBaseUrl: 'http://localhost:3010/api/lmstudio',
+  ollamaModelId: 'llama3.2',
+  lmstudioBaseUrl: 'http://localhost:3000/api/lmstudio',
   lmstudioModelId: 'mistral-7b-instruct',
   disableConfetti: false,
 

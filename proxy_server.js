@@ -1148,6 +1148,116 @@ app.get('/api/radio/stream', async (req, res) => {
     }
 });
 
+// RSS/Podcast feed proxy (to bypass CORS for XML feeds)
+app.get('/api/podcast/feed', async (req, res) => {
+    try {
+        const feedUrl = req.query.url;
+
+        if (!feedUrl) {
+            return res.status(400).json({ error: 'Missing feed URL' });
+        }
+
+        console.log('🎙️ Fetching podcast RSS feed:', feedUrl);
+
+        const response = await fetch(feedUrl, {
+            headers: {
+                'User-Agent': 'RangerPlex/1.0 (Podcast Client)',
+                'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+            }
+        });
+
+        if (!response.ok) {
+            console.error('❌ RSS fetch failed:', response.status, response.statusText);
+            return res.status(response.status).json({
+                error: `Feed unavailable: ${response.statusText}`
+            });
+        }
+
+        const xmlText = await response.text();
+
+        res.set({
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/xml',
+            'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
+        });
+
+        res.send(xmlText);
+        console.log('✅ RSS feed fetched successfully');
+
+    } catch (error) {
+        console.error('❌ RSS proxy error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Podcast audio stream proxy (for MP3 episodes)
+app.get('/api/podcast/stream', async (req, res) => {
+    try {
+        const audioUrl = req.query.url;
+
+        if (!audioUrl) {
+            return res.status(400).json({ error: 'Missing audio URL' });
+        }
+
+        console.log('🎧 Streaming podcast episode:', audioUrl);
+
+        const response = await fetch(audioUrl, {
+            headers: {
+                'User-Agent': 'RangerPlex/1.0 (Podcast Client)',
+                'Accept': 'audio/mpeg, audio/mp3, audio/*;q=0.9, */*;q=0.8',
+                'Range': req.headers.range || 'bytes=0-'
+            }
+        });
+
+        if (!response.ok && response.status !== 206) {
+            console.error('❌ Podcast stream failed:', response.status, response.statusText);
+            return res.status(response.status).json({
+                error: `Stream unavailable: ${response.statusText}`
+            });
+        }
+
+        // Forward relevant headers
+        res.set({
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': response.headers.get('content-type') || 'audio/mpeg',
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'public, max-age=86400' // Cache audio for 24h
+        });
+
+        // Forward content-length and content-range if present
+        if (response.headers.get('content-length')) {
+            res.set('Content-Length', response.headers.get('content-length'));
+        }
+        if (response.headers.get('content-range')) {
+            res.set('Content-Range', response.headers.get('content-range'));
+            res.status(206);
+        }
+
+        // Stream the audio
+        const reader = response.body.getReader();
+        const pump = async () => {
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (!res.write(value)) {
+                        await new Promise(resolve => res.once('drain', resolve));
+                    }
+                }
+                res.end();
+            } catch (error) {
+                console.error('❌ Podcast stream pump error:', error);
+                res.end();
+            }
+        };
+        pump();
+
+    } catch (error) {
+        console.error('❌ Podcast stream error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // VirusTotal Proxy
 app.post('/api/virustotal/scan', async (req, res) => {
     try {
@@ -4295,7 +4405,7 @@ server.listen(PORT, async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎖️  RANGERPLEX AI SERVER v2.12.7                       ║
+║   🎖️  RANGERPLEX AI SERVER v2.13.0                       ║
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║
@@ -4316,7 +4426,7 @@ server.listen(PORT, async () => {
         const result = await blockchainService.start();
 
         if (result.success) {
-            console.log(`🚀 RangerPlex AI Server v2.12.8 running on port ${PORT}`);
+            console.log(`🚀 RangerPlex AI Server v2.12.9 running on port ${PORT}`);
         } else {
             console.error(`❌ RangerBlock failed to start: ${result.message}`);
         }

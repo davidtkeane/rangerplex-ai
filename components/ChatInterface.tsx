@@ -52,6 +52,7 @@ interface ChatInterfaceProps {
     onOpenWordPress?: () => void; // WordPress Dashboard opener
     onOpenStudyClock?: () => void; // Study Clock opener
     onOpenManual?: () => void; // Manual viewer
+    onOpenPodcast?: () => void; // Podcast Hub opener
     saveImageToLocal: (url?: string) => Promise<string | undefined>;
     petBridge?: {
         pet: PetState | null;
@@ -109,6 +110,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     onOpenWordPress, // Destructure WordPress opener
     onOpenStudyClock, // Destructure Study Clock opener
     onOpenManual,
+    onOpenPodcast,
     saveImageToLocal,
     petBridge
 }) => {
@@ -277,7 +279,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         try {
             abortController = new AbortController();
             aliasAbortRef.current = abortController;
-            const response = await fetch('http://localhost:3010/api/alias/execute', {
+            const response = await fetch('http://localhost:3000/api/alias/execute', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -343,7 +345,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const handleViewAliasLogs = async () => {
         setProcessingStatus('Loading alias logs...');
         try {
-            const res = await fetch('http://localhost:3010/api/alias/logs?limit=10');
+            const res = await fetch('http://localhost:3000/api/alias/logs?limit=10');
             const body = await res.json();
             if (!res.ok || !body.success) {
                 throw new Error(body?.error || 'Failed to load logs');
@@ -418,6 +420,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         { name: 'profile', command: '/profile <domain>', usage: '/profile example.com', summary: 'Whois + DNS + SSL + Shodan report with AI summary.', examples: ['/profile example.com'], tags: ['intel', 'domain'] },
         { name: 'wp', command: '/wordpress', usage: '/wordpress', summary: 'Open the WordPress Command Center (local).', examples: ['/wordpress', '/check wordpress'], tags: ['wordpress', 'cms'] },
         { name: 'study', command: '/study', usage: '/study', summary: 'Open Study Clock (Pomodoro).', examples: ['/study'], tags: ['focus', 'timer'] },
+        { name: 'podcasts', command: '/podcasts', usage: '/podcasts', summary: 'Open CyberSec Podcast Hub with curated security content.', examples: ['/podcasts', '/podcast', '/radio'], tags: ['podcast', 'audio', 'video', 'learning'] },
         { name: 'imagine', command: '/imagine <prompt>', usage: '/imagine cyberpunk fox', summary: 'Generate images.', examples: ['/imagine sunset over Dublin'], tags: ['image', 'creative'] },
         { name: 'fun', command: '/joke', usage: '/joke', summary: 'Random joke.', examples: ['/chuck'], tags: ['fun'] },
     ];
@@ -616,6 +619,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             return; // Don't process as normal message
         }
 
+        // 🎧 PODCASTS: Type "/podcasts" or "/podcast" to open CyberSec Podcast Hub
+        if (lowerText.trim() === '/podcasts' || lowerText.trim() === '/podcast' || lowerText.trim() === '/radio') {
+            if (onOpenPodcast) {
+                onOpenPodcast();
+                onUpdateMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: '🎧 **Opening CyberSec Podcast Hub...**\n\nAccess curated cybersecurity podcasts and videos aligned with NCI course topics:\n\n- 🔓 **Pentesting** - Darknet Diaries, 7 Minute Security\n- 🦠 **Malware** - Security Now, SANS StormCast\n- 🔍 **Forensics** - Risky Business, Defensive Security\n- 📰 **News** - CyberWire Daily, Smashing Security\n- ⚖️ **Governance** - Cyberlaw, Privacy Advisor\n- ⛓️ **Blockchain** - Unchained\n\n*Pro Tip: Also available via sidebar button or Settings → PODCAST tab (easter egg!)*',
+                        timestamp: Date.now()
+                    }
+                ]);
+            } else {
+                onUpdateMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uuidv4(),
+                        sender: Sender.AI,
+                        text: '⚠️ Podcast Hub is not available in this context. Try using the sidebar button or Settings → PODCAST tab.',
+                        timestamp: Date.now()
+                    }
+                ]);
+            }
+            return;
+        }
+
         // 🔄 SERVER RESTART: Type "/restart" or "/restart server"
         if (lowerText.trim() === '/restart' || lowerText.trim() === '/restart server') {
             onUpdateMessages((prev) => [
@@ -629,7 +659,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             ]);
 
             // Send restart command to server
-            fetch('http://localhost:3010/api/server/restart', {
+            fetch('http://localhost:3000/api/server/restart', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             }).catch(err => console.log('Server restarting...', err));
@@ -649,7 +679,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
             ]);
 
-            fetch('http://localhost:3010/api/server/check-update')
+            fetch('http://localhost:3000/api/server/check-update')
                 .then(res => res.json())
                 .then(data => {
                     let updateMsg = `### 📦 RangerPlex Update Status\n\n`;
@@ -697,7 +727,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
             ]);
 
-            fetch('http://localhost:3010/api/server/install-update', {
+            fetch('http://localhost:3000/api/server/install-update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             })
@@ -741,7 +771,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
             ]);
 
-            fetch('http://localhost:3010/api/wordpress/status')
+            fetch('http://localhost:3000/api/wordpress/status')
                 .then(res => res.json())
                 .then(data => {
                     let statusMsg = `### 📝 WordPress Status Report\n\n`;
@@ -917,7 +947,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // MCP Command Handler (/mcp)
             if (text.startsWith('/mcp')) {
                 setProcessingStatus("Executing MCP Tool...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 // Parse command: /mcp-tool args OR /mcp tool args
                 let tool = '';
@@ -1063,7 +1093,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/profile')) {
                 setProcessingStatus("Initializing Profiler...");
                 const domain = text.replace('/profile', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     // 1. Whois
@@ -1145,7 +1175,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/sherlock')) {
                 setProcessingStatus("Hunting for Username...");
                 const username = text.replace('/sherlock', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const res = await fetch(`${proxyUrl}/api/tools/sherlock`, {
@@ -1196,7 +1226,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/crypto')) {
                 setProcessingStatus("Fetching Market Data...");
                 const symbol = text.replace('/crypto', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const res = await fetch(`${proxyUrl}/api/tools/crypto`, {
@@ -1234,7 +1264,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/wallet')) {
                 setProcessingStatus("Scanning Blockchain...");
                 const address = text.replace('/wallet', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const res = await fetch(`${proxyUrl}/api/tools/wallet`, {
@@ -1274,7 +1304,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/geoip')) {
                 setProcessingStatus("Locating Target...");
                 const ip = text.replace('/geoip', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const res = await fetch(`${proxyUrl}/api/tools/geoip`, {
@@ -1439,7 +1469,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/phone')) {
                 setProcessingStatus("Analyzing Phone Number...");
                 const number = text.replace('/phone', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     if (!settings.numverifyApiKey) {
@@ -1491,7 +1521,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/email')) {
                 setProcessingStatus("Validating Email...");
                 const email = text.replace('/email', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     if (!settings.abstractEmailApiKey) {
@@ -1550,7 +1580,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/iprecon')) {
                 setProcessingStatus("Analyzing IP Threats...");
                 const ip = text.replace('/iprecon', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     if (!settings.abstractIpApiKey) {
@@ -1613,7 +1643,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 22. System Recon (/sys)
             if (text.startsWith('/sys')) {
                 setProcessingStatus("Analyzing System...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     // 1. Get Client-Side Info
@@ -1678,7 +1708,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/wayback')) {
                 setProcessingStatus("Searching Archives...");
                 const url = text.replace('/wayback', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const res = await fetch(`${proxyUrl}/api/tools/wayback`, {
@@ -1741,7 +1771,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/subdomains')) {
                 setProcessingStatus("Enumerating Subdomains...");
                 const domain = text.replace('/subdomains', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 if (!domain) {
                     onUpdateMessages(prev => [...prev, {
@@ -1822,7 +1852,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // Company Registry Lookup (/company)
             if (text.startsWith('/company')) {
                 setProcessingStatus("Fetching company record...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
                 const raw = text.replace('/company', '').trim();
 
                 if (!raw) {
@@ -2021,7 +2051,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // Privacy Snapshot (/privacy)
             if (text.startsWith('/privacy')) {
                 setProcessingStatus("Collecting privacy snapshot...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const res = await fetch(`${proxyUrl}/api/tools/privacy`, {
@@ -2100,7 +2130,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/reputation')) {
                 setProcessingStatus("Checking Reputation...");
                 const domain = text.replace('/reputation', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 if (!domain) {
                     onUpdateMessages(prev => [...prev, {
@@ -2202,7 +2232,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/screenshot')) {
                 setProcessingStatus("Capturing screenshot...");
                 const url = text.replace('/screenshot', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 if (!url) {
                     onUpdateMessages(prev => [...prev, {
@@ -2260,7 +2290,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/reverse')) {
                 setProcessingStatus("Looking up domains...");
                 const ip = text.replace('/reverse', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 if (!ip) {
                     onUpdateMessages(prev => [...prev, {
@@ -2359,7 +2389,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/asn')) {
                 setProcessingStatus("Looking up ASN...");
                 const query = text.replace('/asn', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 if (!query) {
                     onUpdateMessages(prev => [...prev, {
@@ -2523,7 +2553,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 const urlToScan = text.replace('/scan', '').trim();
 
                 try {
-                    const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                    const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
                     const response = await fetch(`${proxyUrl}/api/virustotal/scan`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -2571,7 +2601,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/dns')) {
                 setProcessingStatus("Resolving DNS...");
                 const domain = text.replace('/dns', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/tools/dns`, {
@@ -2608,7 +2638,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/whois')) {
                 setProcessingStatus("Fetching Whois...");
                 const domain = text.replace('/whois', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/tools/whois`, {
@@ -2657,7 +2687,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                 setProcessingStatus("Checking Breaches...");
                 const email = text.replace('/breach', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/tools/breach`, {
@@ -2709,7 +2739,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                 setProcessingStatus("Scanning Shodan...");
                 const ip = text.replace('/shodan', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/tools/shodan`, {
@@ -2758,7 +2788,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 8. Traceroute (/trace)
             if (text.startsWith('/trace')) {
                 setProcessingStatus("Running traceroute...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
                 const target = text.replace('/trace', '').trim();
 
                 if (!target) {
@@ -2820,7 +2850,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 9. Nmap Port Scanner (/nmap)
             if (text.startsWith('/nmap')) {
                 setProcessingStatus("Running nmap scan...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
                 const args = text.replace('/nmap', '').trim().split(/\s+/);
                 const target = args[0];
                 const flags = args.slice(1).join(' ');
@@ -2901,7 +2931,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 10. Chuck Norris Facts (/chuck)
             if (text.startsWith('/chuck')) {
                 setProcessingStatus("Consulting Chuck Norris...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/fun/chuck`, {
@@ -2950,7 +2980,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 11. Random Jokes (/joke)
             if (text.startsWith('/joke')) {
                 setProcessingStatus("Fetching a joke...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/fun/joke`, {
@@ -3007,7 +3037,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 12. Random Bible Verse (/bible)
             if (text.startsWith('/bible')) {
                 setProcessingStatus("Fetching Bible verse...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/fun/bible`, {
@@ -3057,7 +3087,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 13. Certificate Transparency (/certs)
             if (text.startsWith('/certs')) {
                 setProcessingStatus("Querying Certificate Transparency logs...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
                 const domain = text.replace('/certs', '').trim();
 
                 if (!domain) {
@@ -3144,7 +3174,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // 9. Port Scanner (/ports)
             if (text.startsWith('/ports')) {
                 setProcessingStatus("Scanning ports...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
                 const args = text.replace('/ports', '').trim();
                 const [target, ...portArgs] = args.split(/\s+/).filter(Boolean);
 
@@ -3222,7 +3252,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
 
                 setProcessingStatus("Checking hash...");
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
                 const hash = text.replace('/hash', '').trim();
 
                 if (!hash) {
@@ -3295,7 +3325,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/ssl')) {
                 setProcessingStatus("Checking SSL...");
                 const domain = text.replace('/ssl', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/tools/ssl`, {
@@ -3336,7 +3366,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/headers')) {
                 setProcessingStatus("Auditing Headers...");
                 const url = text.replace('/headers', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     const response = await fetch(`${proxyUrl}/api/tools/headers`, {
@@ -3374,7 +3404,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (text.startsWith('/profile')) {
                 setProcessingStatus("Initializing Profiler...");
                 const domain = text.replace('/profile', '').trim();
-                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+                const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
 
                 try {
                     // Profile command doesn't use document context

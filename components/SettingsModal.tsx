@@ -16,6 +16,7 @@ import pkg from '../package.json';
 import AliasManager from './AliasManager';
 import { WeatherTester } from './Weather/WeatherTester';
 import { ApiTester } from './ApiTester';
+import CyberSecPodcast from './CyberSecPodcast';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -54,7 +55,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, 
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
 
     // Window mode state (normal, fullscreen, minimized)
@@ -77,7 +78,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [promptImportText, setPromptImportText] = useState('');
     const [mcpStatus, setMcpStatus] = useState<'unknown' | 'running' | 'stopped' | 'error'>('unknown');
     const [showAliasManager, setShowAliasManager] = useState(false);
-    const [providerView, setProviderView] = useState<'keys' | 'openai' | 'gemini'>('keys');
+    const [providerView, setProviderView] = useState<'keys' | 'openai' | 'gemini' | 'claude'>('keys');
     const [showConfetti, setShowConfetti] = useState(false);
 
     // Update Checker State
@@ -200,7 +201,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setInstallingUpdate(true);
         setUpdateResult(null);
         try {
-            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/system/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -239,7 +240,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setReloadingServer(true);
         setReloadResult(null);
         try {
-            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/system/reload`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -272,7 +273,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setStoppingServer(true);
         setStopResult(null);
         try {
-            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/system/stop`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -352,7 +353,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Load blockchain status
     const loadBlockchainStatus = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/rangerblock/status`);
             const data = await response.json();
             if (data.success) {
@@ -366,7 +367,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Load blockchain config
     const loadBlockchainConfig = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/rangerblock/config`);
             const data = await response.json();
             if (data.success) {
@@ -380,7 +381,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Save blockchain config
     const saveBlockchainConfig = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/rangerblock/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -400,7 +401,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Start blockchain node
     const startBlockchain = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/rangerblock/start`, {
                 method: 'POST'
             });
@@ -420,7 +421,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Stop blockchain node
     const stopBlockchain = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/rangerblock/stop`, {
                 method: 'POST'
             });
@@ -440,7 +441,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Restart blockchain node
     const restartBlockchain = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3010';
+            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
             const response = await fetch(`${proxyUrl}/api/rangerblock/restart`, {
                 method: 'POST'
             });
@@ -701,6 +702,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         { id: 'o4-mini-deep-research', title: 'o4 Mini Deep Research', desc: 'Cost-efficient deep research pipeline.' },
     ];
 
+    const claudeModelCatalog = [
+        // Claude 4.5 Series (Latest 2025)
+        { id: 'claude-opus-4-5-20251101', title: 'Claude Opus 4.5', desc: 'Maximum intelligence. Best for complex analysis, research, and creative tasks.', tier: 'premium', input: '$5', output: '$25' },
+        { id: 'claude-sonnet-4-5-20250929', title: 'Claude Sonnet 4.5', desc: 'High intelligence with excellent speed. Great balance for most tasks.', tier: 'flagship', input: '$3', output: '$15' },
+        { id: 'claude-haiku-4-5-20251001', title: 'Claude Haiku 4.5', desc: 'Fastest and most cost-effective. Similar coding ability to Sonnet 4.', tier: 'fast', input: '$1', output: '$5' },
+        // Claude 4.1 Series
+        { id: 'claude-opus-4-1-20250805', title: 'Claude Opus 4.1', desc: 'Previous-gen maximum intelligence with deep reasoning.', tier: 'premium', input: '$15', output: '$75' },
+        // Claude 4 Series
+        { id: 'claude-sonnet-4-20250514', title: 'Claude Sonnet 4', desc: 'Reliable intelligence for everyday coding and analysis.', tier: 'standard', input: '$3', output: '$15' },
+        { id: 'claude-opus-4-20250514', title: 'Claude Opus 4', desc: 'High-end reasoning and creative capabilities.', tier: 'premium', input: '$15', output: '$75' },
+        // Claude 3.7 Series
+        { id: 'claude-3-7-sonnet-20250219', title: 'Claude 3.7 Sonnet', desc: 'Enhanced reasoning with extended thinking mode.', tier: 'standard', input: '$3', output: '$15' },
+        // Claude 3.5 Series
+        { id: 'claude-3-5-sonnet-20241022', title: 'Claude 3.5 Sonnet', desc: 'Popular all-rounder with vision support. 200K context.', tier: 'standard', input: '$3', output: '$15' },
+        { id: 'claude-3-5-haiku-20241022', title: 'Claude 3.5 Haiku', desc: 'Fast and affordable with great capabilities.', tier: 'fast', input: '$0.80', output: '$4' },
+        // Claude 3 Series (Legacy)
+        { id: 'claude-3-haiku-20240307', title: 'Claude 3 Haiku', desc: 'Cheapest model. Ultra-fast for simple tasks.', tier: 'budget', input: '$0.25', output: '$1.25' },
+    ];
+
     const updatePrompt = (idx: number, field: keyof SavedPrompt, value: string) => {
         const updated = [...localSettings.savedPrompts];
         updated[idx] = { ...updated[idx], [field]: value };
@@ -863,7 +883,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                     {/* Tabs */}
                     <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                        {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'council', 'prompts', 'security', 'canvas', 'radio', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
+                        {['general', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'council', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -1258,17 +1278,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 <div className="flex items-center justify-between flex-wrap gap-3">
                                     <div>
                                         <h3 className="font-bold text-lg">Provider Console</h3>
-                                        <p className="text-xs opacity-70">Wire up keys or explore OpenAI models in one place.</p>
+                                        <p className="text-xs opacity-70">Wire up API keys or explore model catalogs from OpenAI, Google, and Anthropic.</p>
                                     </div>
                                     <div className="flex gap-2 items-center">
                                         {[
                                             { id: 'keys', label: 'API Keys', icon: 'fa-key' },
                                             { id: 'openai', label: 'OpenAI Models', icon: 'fa-rocket' },
-                                            { id: 'gemini', label: 'Gemini Models', icon: 'fa-brands fa-google' }
+                                            { id: 'gemini', label: 'Gemini Models', icon: 'fa-brands fa-google' },
+                                            { id: 'claude', label: 'Claude Models', icon: 'fa-brain' }
                                         ].map(tab => (
                                             <button
                                                 key={tab.id}
-                                                onClick={() => setProviderView(tab.id as 'keys' | 'openai' | 'gemini')}
+                                                onClick={() => setProviderView(tab.id as 'keys' | 'openai' | 'gemini' | 'claude')}
                                                 className={`px-3 py-1.5 rounded text-xs font-bold border transition-all flex items-center gap-2 ${providerView === tab.id ? 'bg-teal-600 text-white border-transparent shadow-lg' : 'border-inherit hover:bg-white/5'}`}
                                             >
                                                 <i className={`fa-solid ${tab.icon}`}></i>
@@ -1467,6 +1488,81 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                     </div>
                                                 );
                                             })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {providerView === 'claude' && (
+                                    <div className="space-y-4">
+                                        <div className="p-5 rounded-xl border border-orange-500/40 bg-gradient-to-r from-[#0d1b2a] via-[#2d1810] to-[#0d1b2a] text-white shadow-lg">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div>
+                                                    <div className="uppercase text-[11px] tracking-[0.2em] opacity-70">Anthropic</div>
+                                                    <div className="text-xl font-bold">Claude Models in RangerPlex</div>
+                                                    <div className="text-xs opacity-80 mt-1">Detected {localSettings.availableModels.anthropic.length} models • Pricing per million tokens</div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => testConnection('anthropic', localSettings.anthropicApiKey)}
+                                                        className="px-3 py-2 rounded bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-bold flex items-center gap-2"
+                                                    >
+                                                        {connectionStatus['anthropic'] === 'loading' ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-plug"></i>}
+                                                        {connectionStatus['anthropic'] === 'success' ? 'Key OK' : connectionStatus['anthropic'] === 'error' ? 'Test Failed' : 'Test Claude Key'}
+                                                    </button>
+                                                    <a
+                                                        href="https://console.anthropic.com/"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-3 py-2 rounded bg-orange-500 text-white font-bold text-xs hover:bg-orange-400 flex items-center gap-2"
+                                                    >
+                                                        <i className="fa-solid fa-key"></i>
+                                                        Get API Key
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                            {claudeModelCatalog.map(model => {
+                                                const available = localSettings.availableModels.anthropic.includes(model.id);
+                                                const tierColors: Record<string, string> = {
+                                                    premium: 'bg-purple-600',
+                                                    flagship: 'bg-orange-500',
+                                                    standard: 'bg-blue-500',
+                                                    fast: 'bg-green-500',
+                                                    budget: 'bg-gray-500'
+                                                };
+                                                return (
+                                                    <div key={model.id} className={`p-4 rounded-lg border ${available ? 'border-orange-500/50 bg-orange-500/5' : 'border-zinc-700/60 bg-black/40'} shadow-inner`}>
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <span className="text-sm font-bold">{model.title}</span>
+                                                                    {available && <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-600 text-white font-bold">Available</span>}
+                                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${tierColors[model.tier]} text-white font-bold capitalize`}>{model.tier}</span>
+                                                                </div>
+                                                                <div className="text-xs opacity-70 mt-1 leading-snug">{model.desc}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center justify-between mt-2">
+                                                            <div className="text-[11px] opacity-60">ID: <code className="bg-black/30 px-1 rounded">{model.id}</code></div>
+                                                            <div className="text-[10px] opacity-80 font-mono">
+                                                                <span className="text-green-400">{model.input}</span> / <span className="text-red-400">{model.output}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className="p-4 rounded-lg border border-inherit bg-black/20">
+                                            <h4 className="font-bold text-sm mb-2"><i className="fa-solid fa-info-circle mr-2"></i>Cost Optimization Tips</h4>
+                                            <ul className="text-xs opacity-80 space-y-1 list-disc list-inside">
+                                                <li><strong>Batch API:</strong> 50% discount on both input and output tokens</li>
+                                                <li><strong>Prompt Caching:</strong> Up to 90% cost savings on repeated context</li>
+                                                <li><strong>Haiku 4.5:</strong> Same coding ability as Sonnet 4 at 1/3 the cost</li>
+                                                <li><strong>Claude 3 Haiku:</strong> Best budget option for simple tasks</li>
+                                            </ul>
                                         </div>
                                     </div>
                                 )}
@@ -1961,7 +2057,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                 if (localSettings.braveApiKey) secrets.braveApiKey = localSettings.braveApiKey;
                                                 if ((localSettings as any).obsidianApiKey) secrets.obsidianApiKey = (localSettings as any).obsidianApiKey;
                                                 try {
-                                                    await fetch('http://localhost:3010/api/mcp/ensure', {
+                                                    const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+                                                    await fetch(`${proxyUrl}/api/mcp/ensure`, {
                                                         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secrets })
                                                     });
                                                     setMcpStatus('running');
@@ -1974,7 +2071,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <button
                                             onClick={async () => {
                                                 try {
-                                                    await fetch('http://localhost:3010/api/mcp/stop', { method: 'POST' });
+                                                    const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+                                                    await fetch(`${proxyUrl}/api/mcp/stop`, { method: 'POST' });
                                                     setMcpStatus('stopped');
                                                 } catch {
                                                     setMcpStatus('error');
@@ -1985,7 +2083,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <button
                                             onClick={async () => {
                                                 try {
-                                                    const res = await fetch('http://localhost:3010/api/mcp/status');
+                                                    const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+                                                    const res = await fetch(`${proxyUrl}/api/mcp/status`);
                                                     const data = await res.json();
                                                     setMcpStatus(data.running ? 'running' : 'stopped');
                                                 } catch {
@@ -2307,6 +2406,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         All streams are legal and free. Powered by SomaFM - commercial-free radio since 2000.
                                     </p>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* PODCAST TAB - CyberSec Podcast Hub */}
+                        {activeTab === 'podcast' && (
+                            <div className="h-[60vh] -m-6">
+                                <CyberSecPodcast settings={localSettings} />
                             </div>
                         )}
 

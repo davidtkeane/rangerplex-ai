@@ -1,9 +1,10 @@
 {
   "name": "rangerplex-ai",
-  "version": "2.12.8",
+  "version": "2.13.0",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
+    "start": "npm run stop 2>/dev/null; concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
+    "stop": "bash scripts/shutdown.sh",
     "pm2:start": "pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop ecosystem.config.cjs",
     "pm2:restart": "pm2 restart ecosystem.config.cjs",
@@ -16,7 +17,7 @@
     "preview": "vite preview",
     "proxy": "node proxy_server.js",
     "server": "node proxy_server.js",
-    "browser": "node scripts/launch_browser.cjs"
+    "browser": "npm run stop 2>/dev/null; node scripts/launch_browser.cjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

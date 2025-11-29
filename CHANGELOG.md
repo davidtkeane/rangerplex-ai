@@ -5,6 +5,56 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - 2025-11-29 🎧 CYBERSEC PODCAST HUB
+
+### 🎧 Podcast Hub Enhancements
+- **New Governance Category**: Added Data Governance & Privacy category for NCI course alignment
+  - Cyberlaw Podcast (privacy law with former NSA General Counsel)
+  - Privacy Advisor Podcast (IAPP - GDPR, data protection)
+  - She Said Privacy / He Said Security (compliance, risk management)
+  - Data Protection Made Easy (GDPR simplified)
+
+### 📻 Audio Improvements
+- **New Podcasts**: Added 4 new pentesting/malware podcasts
+  - Hacking Humans (social engineering - CyberWire)
+  - Click Here (Recorded Future award-winning stories)
+  - SANS StormCast (daily 5-min threat updates)
+- **Feed Fixes**: Updated broken RSS feeds for Malicious Life and 7 Minute Security
+- **Refresh Button**: Added manual refresh button in podcast header
+
+### 💬 Chat Commands
+- **New `/podcasts` Command**: Open Podcast Hub directly from chat
+  - Also works with `/podcast` or `/radio`
+  - Added to help catalog for discoverability
+
+### 🎮 Easter Egg
+- **Ranger Pic**: Play button shows ranger photo after 5s inactivity (matches Ranger Radio)
+
+### 📦 Version
+- Synced version across badge, package, server banner, sidebar, and DB metadata to **2.13.0**
+
+---
+
+## [2.12.9] - 2025-11-29 🐳 MCP PORT FIX
+
+### 🔧 Fixed
+- **MCP Docker Integration**: Fixed critical port mismatch preventing MCP servers from working
+  - Updated Settings Modal MCP buttons (Start/Stop/Check Status) to use correct port 3000
+  - Fixed App.tsx MCP auto-start to use dynamic proxy URL instead of hardcoded port 3010
+  - Updated default `corsProxyUrl` and `lmstudioBaseUrl` from port 3010 to 3000
+  - All MCP API calls now use `settings.corsProxyUrl` with fallback to port 3000
+
+### 📚 Documentation
+- Created comprehensive diagnostic report: `MCP_PORT_FIX_REPORT.md`
+- Documented port architecture and testing procedures
+- Added troubleshooting guide for common MCP issues
+
+### ✅ Impact
+- MCP gateway controls now fully functional in Settings → MCP tab
+- Auto-start MCP feature works correctly on app launch
+- All `/mcp-*` commands operational (brave_web_search, fetch, youtube_transcript, etc.)
+- Eliminated "Failed to fetch" errors when using MCP tools
+
 ## [2.12.8] - 2025-11-29
 ### Changed
 - **Port Migration**: Migrated backend server from port 3010 to **3000** for better compatibility and standard usage.

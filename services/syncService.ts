@@ -3,7 +3,7 @@
 
 class SyncService {
     private ws: WebSocket | null = null;
-    private serverUrl = 'ws://localhost:3010';
+    private serverUrl = 'ws://localhost:3000';
     private reconnectInterval = 5000;
     private reconnectTimer: NodeJS.Timeout | null = null;
     private isConnected = false;
@@ -160,7 +160,7 @@ class SyncService {
     // Sync methods
     async syncChat(chat: any) {
         try {
-            const response = await fetch('http://localhost:3010/api/sync/chat', {
+            const response = await fetch('http://localhost:3000/api/sync/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(chat)
@@ -182,7 +182,7 @@ class SyncService {
 
     async syncSettings(key: string, value: any) {
         try {
-            const response = await fetch('http://localhost:3010/api/sync/settings', {
+            const response = await fetch('http://localhost:3000/api/sync/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key, value })
@@ -204,7 +204,7 @@ class SyncService {
 
     async getAllChats() {
         try {
-            const response = await fetch('http://localhost:3010/api/chats');
+            const response = await fetch('http://localhost:3000/api/chats');
             if (!response.ok) throw new Error('Fetch failed');
             return await response.json();
         } catch (error) {
@@ -215,7 +215,7 @@ class SyncService {
 
     async getAllSettings() {
         try {
-            const response = await fetch('http://localhost:3010/api/settings');
+            const response = await fetch('http://localhost:3000/api/settings');
             if (!response.ok) throw new Error('Fetch failed');
             return await response.json();
         } catch (error) {
@@ -226,7 +226,7 @@ class SyncService {
 
     async exportData() {
         try {
-            const response = await fetch('http://localhost:3010/api/export');
+            const response = await fetch('http://localhost:3000/api/export');
             if (!response.ok) throw new Error('Export failed');
             return await response.json();
         } catch (error) {
@@ -237,7 +237,7 @@ class SyncService {
 
     async importData(data: any) {
         try {
-            const response = await fetch('http://localhost:3010/api/import', {
+            const response = await fetch('http://localhost:3000/api/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -253,7 +253,7 @@ class SyncService {
 
     async clearAllData() {
         try {
-            const response = await fetch('http://localhost:3010/api/clear', {
+            const response = await fetch('http://localhost:3000/api/clear', {
                 method: 'DELETE'
             });
 

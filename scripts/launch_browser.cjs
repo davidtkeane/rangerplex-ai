@@ -117,6 +117,41 @@ function ensureDockerRunning() {
 }
 // --------------------------
 
+// RangerPlex ports to manage
+const RANGERPLEX_PORTS = [3000, 5173, 5555, 5005];
+
+function cleanupPorts() {
+    return new Promise((resolve) => {
+        if (process.platform !== 'darwin' && process.platform !== 'linux') {
+            resolve(); // Skip on Windows for now (requires different command)
+            return;
+        }
+
+        console.log(`🧹 Cleaning up ports: ${RANGERPLEX_PORTS.join(', ')}...`);
+        // Kill processes on all RangerPlex ports
+        const portList = RANGERPLEX_PORTS.join(',');
+        exec(`lsof -ti:${portList} | xargs kill -9 2>/dev/null`, (error) => {
+            // We ignore errors because if no process is found, lsof returns exit code 1
+            console.log('✅ Port cleanup complete');
+            resolve();
+        });
+    });
+}
+
+function shutdownServers() {
+    console.log('\n🛑 Shutting down RangerPlex servers...');
+
+    if (process.platform === 'darwin' || process.platform === 'linux') {
+        const portList = RANGERPLEX_PORTS.join(',');
+        exec(`lsof -ti:${portList} | xargs kill -9 2>/dev/null`, () => {
+            // Also kill any node processes related to rangerplex
+            exec('pkill -f "proxy_server.js" 2>/dev/null; pkill -f "vite.*rangerplex" 2>/dev/null', () => {
+                console.log('✅ All RangerPlex servers stopped');
+            });
+        });
+    }
+}
+
 function openTab() {
     console.log(`🌐 Opening browser tab: ${SERVER_URL}`);
     const startCommand = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
@@ -154,9 +189,10 @@ function openElectron() {
 
     // Handle Ctrl+C from terminal
     process.on('SIGINT', () => {
-        console.log('Received SIGINT, killing Electron...');
+        console.log('\nReceived SIGINT, shutting down...');
         child.kill();
-        process.exit();
+        shutdownServers();
+        process.exit(0);
     });
 }
 
@@ -180,20 +216,9 @@ switch (mode) {
         break;
 }
 
-function cleanupPorts() {
-    return new Promise((resolve) => {
-        if (process.platform !== 'darwin' && process.platform !== 'linux') {
-            resolve(); // Skip on Windows for now (requires different command)
-            return;
-        }
-
-        console.log('🧹 Cleaning up ports 3010 and 5173...');
-        // Kill processes on port 3010 (Server) and 5173 (Vite)
-        // lsof -ti:3010,5173 returns PIDs. xargs kill -9 kills them.
-        exec('lsof -ti:3010,5173 | xargs kill -9', (error) => {
-            // We ignore errors because if no process is found, lsof returns exit code 1
-            // console.log('Cleanup done');
-            resolve();
-        });
-    });
-}
+// Register shutdown handlers for clean exit
+process.on('exit', shutdownServers);
+process.on('SIGTERM', () => {
+    shutdownServers();
+    process.exit(0);
+});

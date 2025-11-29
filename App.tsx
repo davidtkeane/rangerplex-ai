@@ -38,6 +38,7 @@ import BlockchainChat from './src/components/BlockchainChat'; // Import Blockcha
 import BrowserLayout from './src/components/Browser/BrowserLayout'; // Import BrowserLayout
 import WeatherStation from './components/Weather/WeatherStation'; // Import Weather Station
 import RainNotification from './components/RainNotification'; // Import Rain Notification
+import CyberSecPodcast from './components/CyberSecPodcast'; // Import CyberSec Podcast Hub
 import { weatherService, RainAlert } from './services/weatherService';
 
 const App: React.FC = () => {
@@ -80,8 +81,9 @@ const App: React.FC = () => {
   const [isBlockchainChatOpen, setIsBlockchainChatOpen] = useState(false); // State for Blockchain Chat visibility
   const [initialBrowserUrl, setInitialBrowserUrl] = useState<string | undefined>(undefined);
   const [browserOpenRequest, setBrowserOpenRequest] = useState<{ url?: string; ts: number } | null>(null);
-  const [activeSurface, setActiveSurface] = useState<'chat' | 'browser' | 'notes' | 'training' | 'canvas' | 'wordpress' | 'weather' | 'terminal' | 'editor' | 'blockchain' | 'manual'>('chat');
+  const [activeSurface, setActiveSurface] = useState<'chat' | 'browser' | 'notes' | 'training' | 'canvas' | 'wordpress' | 'weather' | 'terminal' | 'editor' | 'blockchain' | 'manual' | 'podcast'>('chat');
   const [isWeatherOpen, setIsWeatherOpen] = useState(false); // State for Weather Station visibility
+  const [isPodcastOpen, setIsPodcastOpen] = useState(false); // State for CyberSec Podcast Hub visibility
   const [rainAlert, setRainAlert] = useState<RainAlert | null>(null); // State for rain notifications
   const [initialWeatherTab, setInitialWeatherTab] = useState<'dashboard' | 'radar'>('dashboard'); // State for initial weather tab
   const petBridge = usePetState(currentUser || undefined, settings.petName || 'Kitty');
@@ -122,7 +124,7 @@ const App: React.FC = () => {
               if (message.generatedImages) {
                 for (const image of message.generatedImages) {
                   if (image.url && image.url.startsWith('image/')) {
-                    image.url = `http://localhost:3010/${image.url}`;
+                    image.url = `http://localhost:3000/${image.url}`;
                     chatUpdated = true;
                   }
                 }
@@ -142,7 +144,7 @@ const App: React.FC = () => {
               let notesUpdated = false;
               for (const note of stored.notes) {
                 if (note.content && note.content.includes('](image/')) {
-                  note.content = note.content.replace(/\]\(image\//g, '](http://localhost:3010/image/');
+                  note.content = note.content.replace(/\]\(image\//g, '](http://localhost:3000/image/');
                   notesUpdated = true;
                 }
               }
@@ -209,7 +211,8 @@ const App: React.FC = () => {
         if (settings.braveApiKey) secrets.braveApiKey = settings.braveApiKey;
         if ((settings as any).obsidianApiKey) secrets.obsidianApiKey = (settings as any).obsidianApiKey;
 
-        await fetch('http://localhost:3010/api/mcp/ensure', {
+        const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+        await fetch(`${proxyUrl}/api/mcp/ensure`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ secrets })
@@ -224,7 +227,8 @@ const App: React.FC = () => {
 
     return () => {
       if (mcpStartedByApp) {
-        fetch('http://localhost:3010/api/mcp/stop', { method: 'POST' }).catch(() => {});
+        const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+        fetch(`${proxyUrl}/api/mcp/stop`, { method: 'POST' }).catch(() => { });
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -321,7 +325,7 @@ const App: React.FC = () => {
         await dbService.saveSetting(key, value);
       }
 
-      const proxyUrl = settings.corsProxyUrl || 'http://localhost:3010';
+      const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
       const response = await fetch(`${proxyUrl}/api/system/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -736,6 +740,20 @@ const App: React.FC = () => {
     setIsEditorOpen(false);
     setIsStudyClockOpen(false);
     setIsManualOpen(false);
+    setIsPodcastOpen(false);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, []);
+
+  const openPodcast = useCallback(() => {
+    setIsPodcastOpen(true);
+    setActiveSurface('podcast');
+    setIsWeatherOpen(false);
+    setIsWordPressOpen(false);
+    setIsCanvasOpen(false);
+    setIsTrainingOpen(false);
+    setIsStudyNotesOpen(false);
+    setIsEditorOpen(false);
+    setIsStudyClockOpen(false);
     setIsManualOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
@@ -761,7 +779,7 @@ const App: React.FC = () => {
   const saveImageToLocal = useCallback(async (url?: string) => {
     if (!url) return undefined;
     try {
-      const proxy = (settings.corsProxyUrl || 'http://localhost:3010').replace(/\/$/, '');
+      const proxy = (settings.corsProxyUrl || 'http://localhost:3000').replace(/\/$/, '');
       const resp = await fetch(`${proxy}/api/save-image?url=${encodeURIComponent(url)}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
@@ -994,6 +1012,7 @@ const App: React.FC = () => {
           onOpenEditor={() => setIsEditorOpen(true)}
           onOpenBrowser={() => openBrowser()}
           onOpenWeather={openWeather}
+          onOpenPodcast={openPodcast}
           onLock={() => setIsLocked(true)}
           onOpenVisionMode={() => {
             setIsVisionModeOpen(true);
@@ -1054,6 +1073,7 @@ const App: React.FC = () => {
                   onOpenCanvas={openCanvas}
                   onOpenStudyClock={() => setIsStudyClockOpen(true)}
                   onOpenManual={() => setIsManualOpen(true)}
+                  onOpenPodcast={openPodcast}
                   saveImageToLocal={saveImageToLocal}
                   petBridge={petBridge}
                 />
@@ -1114,6 +1134,13 @@ const App: React.FC = () => {
               <div className="absolute inset-0 z-20">
                 <button onClick={() => { setIsWeatherOpen(false); setActiveSurface('chat'); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
                 <WeatherStation isDarkMode={settings.theme !== 'light'} isTron={isTron} initialTab={initialWeatherTab} />
+              </div>
+            )}
+
+            {activeSurface === 'podcast' && (
+              <div className="absolute inset-0 z-20 bg-zinc-900">
+                <button onClick={() => { setIsPodcastOpen(false); setActiveSurface('chat'); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+                <CyberSecPodcast settings={settings} />
               </div>
             )}
 
