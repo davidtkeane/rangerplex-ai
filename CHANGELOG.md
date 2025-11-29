@@ -5,6 +5,55 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.11] - 2025-11-29 🌐 INTERNET BLOCKCHAIN CHAT - HISTORIC MILESTONE!
+
+### 🎉 FIRST INTERNET P2P BLOCKCHAIN CHAT ACHIEVED!
+This is a **HISTORIC RELEASE** marking the first successful P2P blockchain chat over the public internet!
+
+### 📜 Historic Blocks Recorded
+- **BLOCK_001**: First Internet Chat (23:44:25)
+  - M3Pro (Home WiFi 192.168.1.35) ↔ M4Max (iPhone Cellular 172.20.10.5)
+  - Connected via ngrok tunnel: `tcp://2.tcp.eu.ngrok.io:12232`
+  - First P2P message exchange across network boundaries
+
+- **BLOCK_002**: Three Node Network (23:47:28)
+  - M3Pro Genesis (relay) + M4Max (internet) + M1Air (LAN)
+  - Mixed topology: LAN + Internet connections simultaneously
+  - Full mesh P2P communication achieved
+
+### 🌐 ngrok Integration
+- **Added**: Quick preset buttons in relay settings
+  - 🏠 LAN (M3Pro) - Local network: 192.168.1.35:5555
+  - 🌐 ngrok (Internet) - Remote access via tunnel
+- **Added**: `rangerblock/historic_blocks/` folder for blockchain records
+
+### 📋 Chat Transcript (Forever on GitHub's Chain!)
+```
+[23:41:35] 🟢 M3Pro has joined #rangers
+[23:41:41] <🏛️M3 Pro Genesis> hi
+[23:44:25] 🟢 M4Max has joined the network (VIA INTERNET!)
+[23:44:40] <⚡M4 Max Compute> hi
+[23:47:22] 🟢 M1Air has joined the network
+[23:47:28] <🍎M1 Air Peer> hello there@ we have 3 machines chatting !!!!!
+```
+
+### 🎖️ Significance
+- **Master's Thesis**: Practical proof of blockchain P2P communication
+- **24-Hour Session**: David Keane (IrishRanger) + Claude Code (Ranger)
+- **Networks Bridged**: Home WiFi + iPhone Cellular via ngrok
+- **Achievement**: Real-time chat across public internet boundaries
+
+---
+
+## [4.0.10] - 2025-11-29 🌐 NGROK RELAY PRESET
+
+### 🌐 ngrok Internet Connectivity
+- **Added**: ngrok preset button in blockchain chat relay settings
+- **Added**: Quick switch between LAN and Internet modes
+- **Enables**: Remote connections from any network via ngrok tunnel
+
+---
+
 ## [4.0.9] - 2025-11-29 📞 BLOCKCALL & BLOCKVIDEOCALL UI BUTTONS
 
 ### 📞 Future Features UI (Coming Soon!)
