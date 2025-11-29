@@ -66,10 +66,9 @@ const NODE_NETWORK: Record<string, Omit<NodeInfo, 'online' | 'permission' | 'key
     'Windows': { name: 'Windows VM', ip: '192.168.66.3', type: 'peer', emoji: '🪟' }
 };
 
-// WebSocket relay configuration
-const RELAY_HOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'localhost'
-    : '192.168.1.35';  // Default to M3Pro genesis
+// WebSocket relay configuration - ALWAYS connect to M3Pro genesis node
+// The relay server runs on M3Pro (192.168.1.35), so all nodes connect there
+const RELAY_HOST = '192.168.1.35';  // M3Pro genesis - central relay
 const RELAY_PORT = 5555;
 
 const IRC_COLORS = [
