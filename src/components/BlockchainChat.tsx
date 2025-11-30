@@ -36,6 +36,22 @@ interface BlockchainChatProps {
     onClose: () => void;
 }
 
+// Block structure for blockchain explorer
+interface Block {
+    index: number;
+    timestamp: number;
+    data: {
+        type: 'message' | 'join' | 'part' | 'system' | 'genesis';
+        from?: string;
+        fromName?: string;
+        content: string;
+        channel?: string;
+    };
+    previousHash: string;
+    hash: string;
+    nonce: number;
+}
+
 // ==================== CONSTANTS ====================
 
 const PERMISSION_SYMBOLS: Record<PermissionLevel, string> = {
@@ -158,6 +174,18 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
     const [showRelaySettings, setShowRelaySettings] = useState(false);
     const [testStatus, setTestStatus] = useState<{[key: string]: 'idle' | 'testing' | 'success' | 'failed'}>({});
 
+    // Blockchain Explorer state
+    const [showBlockExplorer, setShowBlockExplorer] = useState(false);
+    const [blockchain, setBlockchain] = useState<Block[]>([{
+        index: 0,
+        timestamp: Date.now(),
+        data: { type: 'genesis', content: 'RangerPlexChain Genesis Block - Rangers Lead The Way!' },
+        previousHash: '0',
+        hash: 'genesis_' + Math.random().toString(36).substr(2, 16),
+        nonce: 0
+    }]);
+    const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
+
     // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -182,6 +210,63 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
             second: '2-digit',
             hour12: false
         });
+    };
+
+    // Simple hash function for blocks
+    const calculateHash = (index: number, timestamp: number, data: any, previousHash: string, nonce: number): string => {
+        const str = `${index}${timestamp}${JSON.stringify(data)}${previousHash}${nonce}`;
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash).toString(16).padStart(16, '0');
+    };
+
+    // Add a new block to the blockchain
+    const addBlock = useCallback((data: Block['data']) => {
+        setBlockchain(prev => {
+            const lastBlock = prev[prev.length - 1];
+            const newIndex = lastBlock.index + 1;
+            const timestamp = Date.now();
+            const previousHash = lastBlock.hash;
+            const nonce = Math.floor(Math.random() * 1000);
+            const hash = calculateHash(newIndex, timestamp, data, previousHash, nonce);
+
+            return [...prev, {
+                index: newIndex,
+                timestamp,
+                data,
+                previousHash,
+                hash,
+                nonce
+            }];
+        });
+    }, []);
+
+    // Download block as JSON
+    const downloadBlock = (block: Block) => {
+        const json = JSON.stringify(block, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `block_${block.index}_${block.hash.substring(0, 8)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // Download entire blockchain
+    const downloadBlockchain = () => {
+        const json = JSON.stringify(blockchain, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rangerplexchain_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     const addSystemMessage = useCallback((content: string, type: ChatMessage['type'] = 'system') => {
@@ -541,6 +626,15 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
         setMessages(prev => [...prev, msg]);
         setInputMessage('');
 
+        // Add message to blockchain
+        addBlock({
+            type: 'message',
+            from: currentNode,
+            fromName: NODE_NETWORK[currentNode]?.name || currentNode,
+            content: inputMessage,
+            channel: currentChannel
+        });
+
         // Send via WebSocket broadcast to all peers
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({
@@ -554,7 +648,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                 }
             }));
         }
-    }, [inputMessage, currentNode, currentChannel, executeCommand]);
+    }, [inputMessage, currentNode, currentChannel, executeCommand, addBlock]);
 
     // ==================== KEY HANDLERS ====================
 
@@ -885,6 +979,18 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                             <i className="fa-solid fa-file-arrow-up text-sm"></i>
                         </button>
                         <span className="w-px h-4 bg-blue-500/30"></span>
+                        {/* Blockchain Explorer Button */}
+                        <button
+                            onClick={() => setShowBlockExplorer(true)}
+                            className="p-1.5 text-cyan-500/70 hover:text-cyan-400 hover:bg-cyan-500/20 rounded transition-colors relative"
+                            title="Blockchain Explorer"
+                        >
+                            <i className="fa-solid fa-cubes text-sm"></i>
+                            <span className="absolute -top-1 -right-1 bg-cyan-500 text-[9px] text-black font-bold px-1 rounded-full">
+                                {blockchain.length}
+                            </span>
+                        </button>
+                        <span className="w-px h-4 bg-blue-500/30"></span>
                         <button
                             onClick={() => setShowUserList(!showUserList)}
                             className={`p-1.5 rounded ${showUserList ? 'bg-blue-500/30 text-blue-300' : 'text-blue-500/50 hover:text-blue-400'}`}
@@ -1080,12 +1186,209 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                         <span>🎖️ Rangers Lead The Way!</span>
                         <span>|</span>
                         <span>{nodes.filter(n => n.online).length} online</span>
+                        <span>|</span>
+                        <span className="text-cyan-400">{blockchain.length} blocks</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span>Type /help for commands</span>
                     </div>
                 </div>
             </div>
+
+            {/* ===== BLOCKCHAIN EXPLORER MODAL ===== */}
+            {showBlockExplorer && (
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+                    <div className="bg-[#0a0a15] border-2 border-cyan-500/50 rounded-xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden shadow-2xl shadow-cyan-500/20">
+                        {/* Explorer Header */}
+                        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-cyan-900/40 to-blue-900/20 border-b border-cyan-500/30">
+                            <div className="flex items-center gap-3">
+                                <i className="fa-solid fa-cubes text-cyan-400 text-xl"></i>
+                                <span className="font-mono font-bold text-cyan-300 text-lg">RangerPlexChain Explorer</span>
+                                <span className="px-2 py-0.5 bg-cyan-900/50 text-cyan-300 text-xs rounded font-mono">
+                                    {blockchain.length} BLOCKS
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={downloadBlockchain}
+                                    className="px-3 py-1.5 bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 text-sm font-mono rounded flex items-center gap-2 transition-colors"
+                                >
+                                    <i className="fa-solid fa-download"></i>
+                                    Export Chain
+                                </button>
+                                <button
+                                    onClick={() => { setShowBlockExplorer(false); setSelectedBlock(null); }}
+                                    className="p-2 text-cyan-500/70 hover:text-red-400 hover:bg-red-500/20 rounded transition-colors"
+                                >
+                                    <i className="fa-solid fa-xmark text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Explorer Content */}
+                        <div className="flex-1 flex overflow-hidden">
+                            {/* Block List */}
+                            <div className="w-1/2 border-r border-cyan-500/20 overflow-y-auto p-4">
+                                <div className="text-xs font-mono text-cyan-500/60 mb-3">BLOCKCHAIN VISUALIZATION</div>
+
+                                {/* Chain visualization */}
+                                <div className="space-y-2">
+                                    {[...blockchain].reverse().map((block, idx) => (
+                                        <div key={block.index} className="relative">
+                                            {/* Chain link */}
+                                            {idx < blockchain.length - 1 && (
+                                                <div className="absolute left-6 -bottom-2 w-0.5 h-4 bg-gradient-to-b from-cyan-500/50 to-cyan-500/20"></div>
+                                            )}
+
+                                            {/* Block card */}
+                                            <button
+                                                onClick={() => setSelectedBlock(block)}
+                                                className={`w-full text-left p-3 rounded-lg border transition-all ${
+                                                    selectedBlock?.index === block.index
+                                                        ? 'bg-cyan-900/40 border-cyan-500 shadow-lg shadow-cyan-500/20'
+                                                        : 'bg-[#0d0d1a] border-cyan-500/20 hover:border-cyan-500/50 hover:bg-cyan-900/20'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    {/* Block icon */}
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                                        block.data.type === 'genesis'
+                                                            ? 'bg-gradient-to-br from-yellow-500/30 to-orange-500/30 border border-yellow-500/50'
+                                                            : block.data.type === 'message'
+                                                            ? 'bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-500/50'
+                                                            : 'bg-gradient-to-br from-green-500/30 to-teal-500/30 border border-green-500/50'
+                                                    }`}>
+                                                        {block.data.type === 'genesis' ? '🏛️' :
+                                                         block.data.type === 'message' ? '💬' :
+                                                         block.data.type === 'join' ? '🟢' : '📦'}
+                                                    </div>
+
+                                                    {/* Block info */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-mono font-bold text-cyan-300">
+                                                                Block #{block.index}
+                                                            </span>
+                                                            {block.data.type === 'genesis' && (
+                                                                <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 text-[10px] rounded font-bold">
+                                                                    GENESIS
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-gray-400 truncate mt-0.5">
+                                                            {block.data.type === 'message' ? (
+                                                                <><span className="text-cyan-400">{block.data.fromName}:</span> {block.data.content}</>
+                                                            ) : (
+                                                                block.data.content
+                                                            )}
+                                                        </div>
+                                                        <div className="text-[10px] text-cyan-600 font-mono mt-1">
+                                                            {new Date(block.timestamp).toLocaleString()}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Hash preview */}
+                                                    <div className="text-right">
+                                                        <div className="text-[10px] text-gray-500 font-mono">
+                                                            {block.hash.substring(0, 8)}...
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Block Detail Panel */}
+                            <div className="w-1/2 overflow-y-auto p-4 bg-[#080810]">
+                                {selectedBlock ? (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="font-mono font-bold text-cyan-300 text-lg">
+                                                Block #{selectedBlock.index} Details
+                                            </h3>
+                                            <button
+                                                onClick={() => downloadBlock(selectedBlock)}
+                                                className="px-2 py-1 bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 text-xs font-mono rounded flex items-center gap-1.5 transition-colors"
+                                            >
+                                                <i className="fa-solid fa-download text-[10px]"></i>
+                                                Download JSON
+                                            </button>
+                                        </div>
+
+                                        {/* Block metadata */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-[#0d0d1a] p-3 rounded-lg border border-cyan-500/20">
+                                                <div className="text-[10px] text-cyan-500/60 font-mono mb-1">INDEX</div>
+                                                <div className="text-lg font-mono text-cyan-300">{selectedBlock.index}</div>
+                                            </div>
+                                            <div className="bg-[#0d0d1a] p-3 rounded-lg border border-cyan-500/20">
+                                                <div className="text-[10px] text-cyan-500/60 font-mono mb-1">NONCE</div>
+                                                <div className="text-lg font-mono text-cyan-300">{selectedBlock.nonce}</div>
+                                            </div>
+                                            <div className="bg-[#0d0d1a] p-3 rounded-lg border border-cyan-500/20 col-span-2">
+                                                <div className="text-[10px] text-cyan-500/60 font-mono mb-1">TIMESTAMP</div>
+                                                <div className="font-mono text-cyan-300">
+                                                    {new Date(selectedBlock.timestamp).toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Hashes */}
+                                        <div className="space-y-2">
+                                            <div className="bg-[#0d0d1a] p-3 rounded-lg border border-cyan-500/20">
+                                                <div className="text-[10px] text-cyan-500/60 font-mono mb-1">HASH</div>
+                                                <div className="font-mono text-xs text-green-400 break-all">
+                                                    {selectedBlock.hash}
+                                                </div>
+                                            </div>
+                                            <div className="bg-[#0d0d1a] p-3 rounded-lg border border-cyan-500/20">
+                                                <div className="text-[10px] text-cyan-500/60 font-mono mb-1">PREVIOUS HASH</div>
+                                                <div className="font-mono text-xs text-yellow-400 break-all">
+                                                    {selectedBlock.previousHash}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Block Data */}
+                                        <div className="bg-[#0d0d1a] p-3 rounded-lg border border-cyan-500/20">
+                                            <div className="text-[10px] text-cyan-500/60 font-mono mb-2">BLOCK DATA</div>
+                                            <div className="bg-black/50 p-3 rounded font-mono text-xs overflow-x-auto">
+                                                <pre className="text-gray-300 whitespace-pre-wrap">
+{JSON.stringify(selectedBlock.data, null, 2)}
+                                                </pre>
+                                            </div>
+                                        </div>
+
+                                        {/* Full JSON */}
+                                        <div className="bg-[#0d0d1a] p-3 rounded-lg border border-cyan-500/20">
+                                            <div className="text-[10px] text-cyan-500/60 font-mono mb-2">FULL BLOCK JSON</div>
+                                            <div className="bg-black/50 p-3 rounded font-mono text-[11px] overflow-x-auto max-h-64 overflow-y-auto">
+                                                <pre className="text-cyan-200 whitespace-pre-wrap">
+{JSON.stringify(selectedBlock, null, 2)}
+                                                </pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                                        <i className="fa-solid fa-cube text-4xl mb-3 text-cyan-500/30"></i>
+                                        <div className="font-mono text-sm">Select a block to view details</div>
+                                        <div className="text-xs mt-1 text-gray-600">Click any block on the left</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Explorer Footer */}
+                        <div className="px-4 py-2 bg-cyan-900/20 border-t border-cyan-500/30 text-xs font-mono text-cyan-400/60 flex items-center justify-between">
+                            <span>🎖️ RangerPlexChain - P2P Blockchain Network</span>
+                            <span>Chain Height: {blockchain.length - 1} | Genesis: Block #0</span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
