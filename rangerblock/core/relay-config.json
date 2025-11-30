@@ -11,10 +11,18 @@
     "heartbeatInterval": 30000,
     "peers": [
       {
+        "name": "aws-relay",
+        "host": "44.222.101.125",
+        "port": 5555,
+        "enabled": true,
+        "comment": "AWS EC2 t3.micro free tier"
+      },
+      {
         "name": "gcloud-us-east",
         "host": "34.26.30.249",
         "port": 5555,
-        "enabled": true
+        "enabled": false,
+        "comment": "Old GCloud instance - disabled"
       },
       {
         "name": "ngrok-tunnel",
