@@ -4,8 +4,8 @@
 # ============================================================================
 #  Connect to the RangerBlock P2P Network instantly!
 #  Created by: David Keane (IrishRanger) + Claude Code (Ranger)
-#  Version: 1.1.0 | November 2025
-#  Master's Thesis Project - NCI College, Dublin
+#  Version: 1.0.0 | November 2025
+#  Project: RangerBlock P2P Network
 # ============================================================================
 
 VERSION="1.1.0"
@@ -382,8 +382,8 @@ IDENTITY
     echo -e "${GREEN}╠══════════════════════════════════════════════════════════════════════════════╣${NC}"
     echo -e "${GREEN}║${NC}                                                                              ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${YELLOW}🎖️  Created by: David Keane (IrishRanger) + Claude Code${NC}                   ${GREEN}║${NC}"
-    echo -e "${GREEN}║${NC}   ${YELLOW}🎓  Master's Thesis - Blockchain Technology${NC}                               ${GREEN}║${NC}"
-    echo -e "${GREEN}║${NC}   ${YELLOW}🏫  NCI College, Dublin, Ireland${NC}                                          ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}   ${YELLOW}🚀  Project: RangerBlock P2P Network${NC}                                      ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}   ${YELLOW}🌐  Decentralized Communication System${NC}                                    ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}                                                                              ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${PURPLE}${BOLD}\"Rangers lead the way!\"${NC}                                                  ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}                                                                              ${GREEN}║${NC}"
@@ -651,7 +651,7 @@ show_help() {
     echo -e "  ${GRAY}Protocol:${NC}      ${CYAN}WebSocket + JSON${NC}"
     echo ""
     echo -e "  ${YELLOW}🎖️  Created by David Keane (IrishRanger) + Claude Code${NC}"
-    echo -e "  ${YELLOW}🎓  Master's Thesis - NCI College, Dublin${NC}"
+    echo -e "  ${YELLOW}🚀  Project: RangerBlock P2P Network${NC}"
     echo ""
 }
 
@@ -714,7 +714,7 @@ welcome_menu() {
     echo -e "${WHITE}${BOLD}  Welcome to RangerBlock P2P Chat!${NC}"
     echo ""
     echo -e "${GRAY}  A secure blockchain-based chat network created for${NC}"
-    echo -e "${GRAY}  educational purposes as part of a Master's thesis project.${NC}"
+    echo -e "${GRAY}  educational and research purposes.${NC}"
     echo ""
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${CYAN}║${NC}  ${WHITE}${BOLD}WHAT WOULD YOU LIKE TO DO?${NC}                                  ${CYAN}║${NC}"
