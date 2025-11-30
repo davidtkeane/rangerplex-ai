@@ -63,6 +63,7 @@ Thumbs.db
 docs/
 docs
 !docs/memory-system.md
+!rangerblock/docs/
 
 # 🛡️ PHANTOM PERSISTENCE - PRO FEATURE (KEEP PRIVATE!)
 # This is proprietary technology for RangerPlexOS PRO
