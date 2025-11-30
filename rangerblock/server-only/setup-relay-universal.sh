@@ -1,14 +1,15 @@
 #!/bin/bash
 #
-# RangerBlock Relay Setup Script for Kali Linux (VM or Native)
+# RangerBlock Relay Setup Script - UNIVERSAL
 # ============================================================
-# Works on: Kali UTM (Mac), VMware, VirtualBox, WSL2, AWS, GCP, Native Linux
+# Works on: AWS, GCP, Azure, DigitalOcean, Linode, Vultr, Oracle, Hetzner
+#           + Kali UTM (Mac), VMware, VirtualBox, WSL2, Native Linux
 #
 # Created: November 30, 2025
 # Author: David Keane (IrishRanger) + Claude Code (Ranger)
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
 #
 # Options:
 #   -n, --name        Machine name (default: auto-detect)

@@ -97,7 +97,7 @@ case $choice in
         echo ""
         echo -e "${BOLD}Step 4: SSH into VM and Run:${NC}"
         echo -e "${YELLOW}"
-        echo "   curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-cloud-relay.sh | bash"
+        echo "   curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-simple.sh | bash"
         echo -e "${NC}"
         echo ""
         echo -e "${GREEN}That's it! Your relay will be running 24/7!${NC}"
@@ -135,7 +135,7 @@ case $choice in
             echo ""
 
             # Download and run the setup script with ngrok
-            curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-cloud-relay.sh | bash -s -- --with-ngrok --ngrok-token="$ngrok_token"
+            curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-simple.sh | bash -s -- --with-ngrok --ngrok-token="$ngrok_token"
         else
             echo ""
             echo -e "${BOLD}Step 2: Install without ngrok token (add later)${NC}"
@@ -143,12 +143,12 @@ case $choice in
             read -p "Install now and add ngrok token later? (y/n): " install_now
 
             if [ "$install_now" = "y" ] || [ "$install_now" = "Y" ]; then
-                curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-cloud-relay.sh | bash -s -- --with-ngrok
+                curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-simple.sh | bash -s -- --with-ngrok
             else
                 echo ""
                 echo -e "${YELLOW}To install later, run:${NC}"
                 echo ""
-                echo "curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-cloud-relay.sh | bash -s -- --with-ngrok --ngrok-token=YOUR_TOKEN"
+                echo "curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-simple.sh | bash -s -- --with-ngrok --ngrok-token=YOUR_TOKEN"
                 echo ""
             fi
         fi
@@ -198,10 +198,10 @@ case $choice in
         echo -e "${BOLD}${MAGENTA}=== QUICK ONE-LINERS ===${NC}"
         echo ""
         echo "# Cloud/Linux (no ngrok):"
-        echo -e "${YELLOW}curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-cloud-relay.sh | bash${NC}"
+        echo -e "${YELLOW}curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-simple.sh | bash${NC}"
         echo ""
         echo "# With ngrok:"
-        echo -e "${YELLOW}curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-cloud-relay.sh | bash -s -- --with-ngrok --ngrok-token=YOUR_TOKEN${NC}"
+        echo -e "${YELLOW}curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-simple.sh | bash -s -- --with-ngrok --ngrok-token=YOUR_TOKEN${NC}"
         echo ""
         ;;
 

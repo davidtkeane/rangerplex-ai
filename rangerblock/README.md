@@ -47,7 +47,7 @@ npm run blockchain:chat -- --relay 192.168.1.35:5555
 ### For Cloud Servers (Google Cloud, AWS, etc.)
 ```bash
 # Download and run the server-only files
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
 
 # Start relay
 npm run relay
@@ -210,7 +210,7 @@ rangerblock/
 │   └── SimpleBlockchain.cjs      # Blockchain template
 │
 ├── server-only/                  # For cloud/remote servers
-│   ├── setup-kali-relay.sh       # Kali Linux installer
+│   ├── setup-relay-universal.sh       # Kali Linux installer
 │   ├── setup-windows-relay.ps1   # Windows installer
 │   ├── NETWORK_TOPOLOGY.md       # Network diagram
 │   └── RELAY_BRIDGE_PLAN.md      # Bridge documentation
@@ -239,7 +239,7 @@ rangerblock/
 - `/rangerblock/server-only/RELAY_BRIDGE_PLAN.md` - Bridge architecture
 
 **Setup scripts:**
-- `/rangerblock/server-only/setup-kali-relay.sh` - Kali/Linux setup
+- `/rangerblock/server-only/setup-relay-universal.sh` - Kali/Linux setup
 - `/rangerblock/server-only/setup-windows-relay.ps1` - Windows setup
 
 **Legacy docs (in /move/ folder):**
@@ -255,7 +255,7 @@ rangerblock/
 gcloud compute ssh kali-relay-server
 
 # Run setup
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
 
 # Start relay
 npm run relay

@@ -130,7 +130,7 @@ Kali VM running nmap/metasploit
 ### On Kali VM:
 ```bash
 # One-liner install
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
 
 # With ngrok
 curl -fsSL ... | bash -s -- --with-ngrok --ngrok-token YOUR_TOKEN

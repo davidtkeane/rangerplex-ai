@@ -81,7 +81,7 @@ sudo apt-get install -y nodejs  # Debian
 sudo yum install nodejs npm -y  # Amazon Linux
 
 # Run RangerBlock setup
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash -s -- --name "AWS-Relay"
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash -s -- --name "AWS-Relay"
 
 # Start relay
 cd ~/rangerblock-server
@@ -268,7 +268,7 @@ For simpler setup, try AWS Lightsail:
 
 ```bash
 # After creating Lightsail instance:
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
 ```
 
 ---

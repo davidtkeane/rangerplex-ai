@@ -8,7 +8,7 @@
 ## Step 1: Install RangerBlock (One-Liner)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
 ```
 
 ### Expected Output:
@@ -350,7 +350,7 @@ https://davidtkeane.github.io/rangerplex-ai/rangerblock/just-chat/web-chat.html
 
 ```bash
 # 1. Install (one-liner)
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
 
 # 2. Start relay in background
 cd /root/rangerblock-server

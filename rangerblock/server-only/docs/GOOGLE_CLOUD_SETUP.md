@@ -88,7 +88,7 @@ ssh YOUR_USERNAME@EXTERNAL_IP
 sudo apt update && sudo apt upgrade -y
 
 # Run RangerBlock setup
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash -s -- --name "GCloud-Relay"
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash -s -- --name "GCloud-Relay"
 
 # Start relay
 cd ~/rangerblock-server
@@ -231,7 +231,7 @@ npm run blockchain:chat -- --relay YOUR_GCP_EXTERNAL_IP:5555
 3. Install only what you need:
 ```bash
 # Just install RangerBlock (no Kali conversion)
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
 
 # Install individual pentest tools if needed
 sudo apt install nmap nikto hydra -y

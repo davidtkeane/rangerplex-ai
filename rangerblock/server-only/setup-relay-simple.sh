@@ -1,15 +1,15 @@
 #!/bin/bash
 #
-# RangerBlock Relay Setup Script
+# RangerBlock Relay Setup Script - SIMPLE
 # ================================
-# Lightweight relay server for any Linux server
+# Lightweight relay server with PM2 process manager
 # Includes optional ngrok for internet exposure
 #
 # Created: November 30, 2025
 # Author: David Keane (IrishRanger) + Claude Code (Ranger)
 #
 # Usage:
-#   curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-cloud-relay.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-simple.sh | bash
 #
 # Options:
 #   --with-ngrok       Install ngrok for internet access
