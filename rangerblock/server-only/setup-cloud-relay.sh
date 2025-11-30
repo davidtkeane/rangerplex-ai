@@ -209,12 +209,12 @@ download_files() {
     echo "  Downloading blockchain-ping.cjs..."
     curl -sSL "$REPO_URL/core/blockchain-ping.cjs" -o blockchain-ping.cjs
 
-    # Create package.json
+    # Create minimal package.json (only 2 dependencies!)
     cat > package.json << 'PACKAGE_EOF'
 {
   "name": "rangerblock-server",
   "version": "2.0.0",
-  "description": "RangerBlock P2P Relay Server with Bridge Support",
+  "description": "RangerBlock P2P Relay Server - Lightweight Edition",
   "main": "relay-server.cjs",
   "scripts": {
     "relay": "node relay-server.cjs",
@@ -229,9 +229,8 @@ download_files() {
     "ngrok:start": "pm2 start 'ngrok tcp 5555' --name rangerblock-ngrok"
   },
   "dependencies": {
-    "ws": "^8.14.2",
-    "uuid": "^9.0.0",
-    "express": "^4.19.2"
+    "ws": "^8.18.0",
+    "express": "^4.21.0"
   },
   "author": "David Keane (IrishRanger) + Claude Code",
   "license": "MIT"
