@@ -813,8 +813,29 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
             const ws = new WebSocket(`ws://${relayHost}:${relayPort}`);
             wsRef.current = ws;
 
+            // Timeout after 10 seconds if no connection
+            const connectionTimeout = setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    ws.close();
+                    addSystemMessage(`* Connection timeout - falling back to offline mode`);
+                    const nodeList: NodeInfo[] = Object.entries(NODE_NETWORK).map(([key, info]) => ({
+                        key,
+                        ...info,
+                        online: key === nodeKey,
+                        permission: key === nodeKey ? 'owner' : 'user'
+                    }));
+                    setNodes(nodeList);
+                    setIsConnected(true);
+                    setShowNodeSelector(false);
+                    setIsConnecting(false);
+                }
+            }, 10000);
+
             ws.onopen = () => {
+                clearTimeout(connectionTimeout);
                 addSystemMessage(`* Connected to blockchain relay!`);
+                setIsConnecting(false);
+                setShowNodeSelector(false);
             };
 
             ws.onmessage = (event) => {
@@ -827,6 +848,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
             };
 
             ws.onerror = (err) => {
+                clearTimeout(connectionTimeout);
                 console.error('WebSocket error:', err);
                 addSystemMessage(`* Connection error - relay may not be running`);
                 addSystemMessage(`* Start relay with: npm run blockchain:relay`);
