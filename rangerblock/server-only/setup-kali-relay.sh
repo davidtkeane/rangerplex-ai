@@ -679,15 +679,23 @@ cat << EOF
     External IP:  $EXTERNAL_IP
     Dashboard:    http://$HOST_IP:5556
 
-  QUICK START:
+  QUICK START (Single Terminal):
     cd $INSTALL_DIR
-    npm run relay        # Start the relay server
-    npm run chat         # Terminal chat client
-    npm run diag         # Network diagnostics
+    nohup npm run relay > relay.log 2>&1 &   # Start relay in BACKGROUND
+    npm run chat                              # Chat in foreground!
+    tail -f relay.log                         # View relay logs
 
-  OR USE SCRIPTS:
-    ./start-relay.sh     # Start relay server
-    ./start-chat.sh      # Start chat client
+  BACKGROUND JOB CONTROL:
+    jobs                 # List background jobs
+    fg %1                # Bring relay to foreground
+    Ctrl+Z then bg %1    # Send to background
+    kill %1              # Stop background relay
+    pkill -f relay       # Kill relay by name
+
+  FOR 24/7 RUNNING (recommended):
+    npm install -g pm2
+    pm2 start relay-server.cjs --name relay
+    pm2 save && pm2 startup
 
 EOF
 echo -e "${NC}"
