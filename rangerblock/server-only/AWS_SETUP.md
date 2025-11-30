@@ -88,15 +88,56 @@ cd ~/rangerblock-server
 npm run relay
 ```
 
-### Step 5: Configure Security Group
+### Step 5: Configure Security Group (IMPORTANT!)
 
-In AWS Console → EC2 → Security Groups:
+**You MUST open ports 5555 and 5556 or connections will fail!**
 
-| Type | Port | Source | Description |
-|------|------|--------|-------------|
-| SSH | 22 | Your IP | Admin access |
-| Custom TCP | 5555 | 0.0.0.0/0 | RangerBlock Relay |
-| Custom TCP | 5556 | 0.0.0.0/0 | Dashboard |
+#### Method 1: From Instance Details
+
+1. **Go to EC2 Dashboard**
+   - AWS Console → Services → EC2 → Instances
+
+2. **Select Your Instance**
+   - Click on `rangerblock-relay` instance
+   - Scroll down to "Security" tab
+
+3. **Click Security Group Link**
+   - Click on the security group (e.g., `sg-0abc123def456`)
+
+4. **Edit Inbound Rules**
+   - Click **"Edit inbound rules"** button
+
+5. **Add Rules** (click "Add rule" for each):
+
+   | Type | Port Range | Source | Description |
+   |------|------------|--------|-------------|
+   | SSH | 22 | My IP | Admin SSH access |
+   | Custom TCP | **5555** | 0.0.0.0/0 | RangerBlock Relay |
+   | Custom TCP | **5556** | 0.0.0.0/0 | RangerBlock Dashboard |
+
+6. **Save Rules**
+   - Click **"Save rules"** button
+
+#### Method 2: From Security Groups Menu
+
+1. **EC2 Dashboard** → Left sidebar → **Network & Security** → **Security Groups**
+2. Select your instance's security group
+3. Click **"Edit inbound rules"**
+4. Add the rules above
+5. Click **"Save rules"**
+
+#### Verify Ports Are Open
+
+```bash
+# From your local machine, test the ports:
+nc -zv YOUR_AWS_IP 5555
+nc -zv YOUR_AWS_IP 5556
+
+# Or use curl:
+curl http://YOUR_AWS_IP:5556/api/status
+```
+
+**Expected Result:** Connection successful or JSON status response
 
 ### Step 6: Keep Running (Optional)
 
