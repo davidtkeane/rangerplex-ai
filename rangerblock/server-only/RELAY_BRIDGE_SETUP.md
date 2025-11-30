@@ -322,6 +322,30 @@ cat relay.log
 
 ---
 
+## Just-Chat Client (For Users)
+
+Want to just chat without running a relay? Use the Just-Chat client!
+
+### Terminal Client (One-Liner)
+```bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/just-chat/just-chat.sh -o just-chat.sh && chmod +x just-chat.sh && ./just-chat.sh
+```
+
+### Web Client (Mobile/Browser)
+```
+https://davidtkeane.github.io/rangerplex-ai/rangerblock/just-chat/web-chat.html
+```
+
+### Just-Chat Commands
+| Command | Description |
+|---------|-------------|
+| `./just-chat.sh` | Interactive menu |
+| `./just-chat.sh -c` | Start chatting |
+| `./just-chat.sh -t` | Test connection |
+| `./just-chat.sh -s` | Network status |
+
+---
+
 ## Quick Start Summary
 
 ```bash

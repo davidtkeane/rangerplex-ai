@@ -4,11 +4,11 @@
 # ============================================================================
 #  Connect to the RangerBlock P2P Network instantly!
 #  Created by: David Keane (IrishRanger) + Claude Code (Ranger)
-#  Version: 1.0.0 | November 2025
+#  Version: 1.1.0 | November 2025
 #  Master's Thesis Project - NCI College, Dublin
 # ============================================================================
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 INSTALL_DIR="$HOME/.rangerblock-chat"
 AWS_RELAY="44.222.101.125"
 AWS_PORT="5555"
