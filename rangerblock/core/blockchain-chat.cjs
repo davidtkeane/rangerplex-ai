@@ -99,6 +99,7 @@ function loadIdentity() {
 
 // Get short name from nodeID
 function getShortName(nodeID) {
+    if (!nodeID) return 'Unknown';
     if (nodeID.includes('GENESIS')) return 'M3Pro';
     if (nodeID.includes('RangerNode-002')) return 'M1Air';
     if (nodeID.includes('M1')) return 'M1Air';
