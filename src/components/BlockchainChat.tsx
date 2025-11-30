@@ -195,6 +195,13 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
     }]);
     const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
 
+    // Dynamic Machine Registry state
+    const [dynamicMachines, setDynamicMachines] = useState<any[]>([]);
+    const [pendingJoinRequests, setPendingJoinRequests] = useState<any[]>([]);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [showJoinRequests, setShowJoinRequests] = useState(false);
+    const [machineRegistrationStatus, setMachineRegistrationStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+
     // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -376,6 +383,24 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                 addSystemMessage(`* Registered as ${nodeKey}`);
                 // Request peer list
                 wsRef.current?.send(JSON.stringify({ type: 'getPeers' }));
+                // Request machine registry
+                wsRef.current?.send(JSON.stringify({ type: 'getMachineRegistry' }));
+                // Register this machine with the relay
+                const machineInfo = NODE_NETWORK[nodeKey];
+                if (machineInfo) {
+                    wsRef.current?.send(JSON.stringify({
+                        type: 'machine_register',
+                        machine: {
+                            key: nodeKey,
+                            node_id: nodeKey,
+                            name: machineInfo.name,
+                            type: machineInfo.type,
+                            emoji: machineInfo.emoji,
+                            platform: typeof navigator !== 'undefined' ? navigator.platform : 'Unknown',
+                            hardware: 'RangerPlex Full Install'
+                        }
+                    }));
+                }
                 break;
 
             case 'peerList':
@@ -435,6 +460,77 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
 
             case 'error':
                 addSystemMessage(`* Error: ${msg.message}`);
+                break;
+
+            // ========== MACHINE REGISTRY HANDLERS ==========
+
+            case 'machine_registry':
+                // Received machine list from relay
+                if (msg.machines) {
+                    setDynamicMachines(msg.machines);
+                    // Update NODE_NETWORK with dynamic machines
+                    msg.machines.forEach((m: any) => {
+                        if (m.key && !NODE_NETWORK[m.key]) {
+                            // Add dynamically discovered machine
+                            (NODE_NETWORK as any)[m.key] = {
+                                name: m.name || m.key,
+                                ip: 'dynamic',
+                                type: m.type || 'peer',
+                                emoji: m.emoji || '💻'
+                            };
+                        }
+                    });
+                }
+                if (msg.pending) {
+                    setPendingJoinRequests(msg.pending);
+                }
+                if (msg.isAdmin !== undefined) {
+                    setIsAdmin(msg.isAdmin);
+                }
+                break;
+
+            case 'machine_join_request':
+                // Admin received a join request
+                if (msg.request) {
+                    setPendingJoinRequests(prev => [...prev, msg.request]);
+                    addSystemMessage(`* 🆕 Join request from: ${msg.request.name} (${msg.request.type})`);
+                    // Auto-show the notification
+                    setShowJoinRequests(true);
+                }
+                break;
+
+            case 'machine_registered':
+                // Response to our registration
+                if (msg.status === 'approved') {
+                    setMachineRegistrationStatus('approved');
+                    if (msg.isAdmin) {
+                        setIsAdmin(true);
+                        addSystemMessage(`* 👑 You are a network admin!`);
+                    }
+                    addSystemMessage(`* ✅ ${msg.message || 'Machine registered!'}`);
+                } else if (msg.status === 'pending') {
+                    setMachineRegistrationStatus('pending');
+                    addSystemMessage(`* ⏳ ${msg.message || 'Registration pending approval'}`);
+                } else if (msg.status === 'rejected') {
+                    setMachineRegistrationStatus('rejected');
+                    addSystemMessage(`* ❌ ${msg.message || 'Registration rejected'}`);
+                }
+                break;
+
+            case 'machine_approved':
+                // Confirmation that we approved a machine
+                if (msg.machine) {
+                    addSystemMessage(`* ✅ Approved: ${msg.machine.name}`);
+                    // Remove from pending
+                    setPendingJoinRequests(prev => prev.filter(p => p.key !== msg.machine.key));
+                    // Request updated registry
+                    wsRef.current?.send(JSON.stringify({ type: 'getMachineRegistry' }));
+                }
+                break;
+
+            case 'admin_granted':
+                setIsAdmin(true);
+                addSystemMessage(`* 👑 ${msg.message || 'You are now an admin!'}`);
                 break;
         }
     }, [addSystemMessage, currentChannel]);
@@ -999,6 +1095,25 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                                 {blockchain.length}
                             </span>
                         </button>
+                        {/* Join Requests Button (Admin Only) */}
+                        {isAdmin && pendingJoinRequests.length > 0 && (
+                            <button
+                                onClick={() => setShowJoinRequests(true)}
+                                className="p-1.5 text-orange-500/70 hover:text-orange-400 hover:bg-orange-500/20 rounded transition-colors relative animate-pulse"
+                                title="Pending Join Requests"
+                            >
+                                <i className="fa-solid fa-user-plus text-sm"></i>
+                                <span className="absolute -top-1 -right-1 bg-orange-500 text-[9px] text-black font-bold px-1 rounded-full">
+                                    {pendingJoinRequests.length}
+                                </span>
+                            </button>
+                        )}
+                        {/* Admin Badge */}
+                        {isAdmin && (
+                            <span className="text-[10px] text-yellow-500 bg-yellow-500/20 px-1.5 rounded" title="Network Admin">
+                                👑
+                            </span>
+                        )}
                         <span className="w-px h-4 bg-blue-500/30"></span>
                         <button
                             onClick={() => setShowUserList(!showUserList)}
@@ -1394,6 +1509,93 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                         <div className="px-4 py-2 bg-cyan-900/20 border-t border-cyan-500/30 text-xs font-mono text-cyan-400/60 flex items-center justify-between">
                             <span>🎖️ RangerPlexChain - P2P Blockchain Network</span>
                             <span>Chain Height: {blockchain.length - 1} | Genesis: Block #0</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== JOIN REQUESTS MODAL (ADMIN) ===== */}
+            {showJoinRequests && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-gray-900/95 border border-orange-500/50 rounded-lg shadow-2xl w-full max-w-md mx-4 max-h-[80vh] overflow-hidden">
+                        {/* Header */}
+                        <div className="px-4 py-3 bg-orange-900/30 border-b border-orange-500/30 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <i className="fa-solid fa-user-plus text-orange-400"></i>
+                                <span className="font-mono font-bold text-orange-300">Pending Join Requests</span>
+                                <span className="text-xs bg-orange-500 text-black px-1.5 rounded-full font-bold">
+                                    {pendingJoinRequests.length}
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => setShowJoinRequests(false)}
+                                className="text-orange-400/60 hover:text-orange-400"
+                            >
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        {/* Requests List */}
+                        <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto">
+                            {pendingJoinRequests.length === 0 ? (
+                                <div className="text-center text-gray-500 py-8">
+                                    <i className="fa-solid fa-check-circle text-4xl mb-3 text-green-500/30"></i>
+                                    <div className="font-mono">No pending requests</div>
+                                </div>
+                            ) : (
+                                pendingJoinRequests.map((request, index) => (
+                                    <div
+                                        key={request.key || index}
+                                        className="bg-gray-800/50 border border-orange-500/30 rounded-lg p-3"
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">{request.emoji || '💻'}</span>
+                                                <div>
+                                                    <div className="font-mono text-sm text-orange-300">{request.name}</div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {request.type} | {request.platform || 'Unknown'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-gray-500 mb-2">
+                                            ID: {request.node_id || request.key}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    wsRef.current?.send(JSON.stringify({
+                                                        type: 'machine_approve',
+                                                        machineKey: request.key
+                                                    }));
+                                                }}
+                                                className="flex-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 text-green-400 text-xs py-1.5 rounded font-mono transition-colors"
+                                            >
+                                                <i className="fa-solid fa-check mr-1"></i> Approve
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    wsRef.current?.send(JSON.stringify({
+                                                        type: 'machine_reject',
+                                                        machineKey: request.key,
+                                                        reason: 'Rejected by admin'
+                                                    }));
+                                                    setPendingJoinRequests(prev => prev.filter(p => p.key !== request.key));
+                                                }}
+                                                className="flex-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 text-xs py-1.5 rounded font-mono transition-colors"
+                                            >
+                                                <i className="fa-solid fa-xmark mr-1"></i> Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-4 py-2 bg-orange-900/20 border-t border-orange-500/30 text-xs font-mono text-orange-400/60">
+                            👑 Admin Panel - Approve machines to join the network
                         </div>
                     </div>
                 </div>

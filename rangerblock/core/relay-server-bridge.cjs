@@ -84,6 +84,97 @@ const stats = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+// MACHINE REGISTRY - Dynamic machine tracking with join requests
+// ═══════════════════════════════════════════════════════════════════
+
+// Known machines (approved and connected)
+const machineRegistry = new Map();
+
+// Pending join requests (awaiting approval)
+const pendingMachines = new Map();
+
+// Admin nodes (can approve join requests) - first node or specified admins
+const adminNodes = new Set();
+
+// Load machine registry from file if exists
+const machineRegistryPath = path.join(__dirname, 'machine-registry.json');
+if (fs.existsSync(machineRegistryPath)) {
+    try {
+        const registryData = JSON.parse(fs.readFileSync(machineRegistryPath, 'utf8'));
+        if (registryData.machines) {
+            Object.entries(registryData.machines).forEach(([key, machine]) => {
+                machineRegistry.set(key, { ...machine, online: false });
+            });
+            console.log(`📋 Loaded ${machineRegistry.size} machines from registry`);
+        }
+    } catch (err) {
+        console.log('⚠️  Could not load machine-registry.json');
+    }
+}
+
+// Save machine registry to file
+function saveMachineRegistry() {
+    const machines = {};
+    for (const [key, machine] of machineRegistry) {
+        const { online, ws, ...machineData } = machine;
+        machines[key] = machineData;
+    }
+    const data = {
+        _comment: "RangerBlock Machine Registry - Auto-updated by relay server",
+        _updated: new Date().toISOString(),
+        machines: machines
+    };
+    try {
+        fs.writeFileSync(machineRegistryPath, JSON.stringify(data, null, 2));
+        console.log(`💾 Saved machine registry (${machineRegistry.size} machines)`);
+    } catch (err) {
+        console.error('❌ Could not save machine registry:', err.message);
+    }
+}
+
+// Broadcast machine registry to all nodes
+function broadcastMachineRegistry() {
+    const machineList = Array.from(machineRegistry.entries()).map(([key, m]) => ({
+        key: key,
+        node_id: m.node_id,
+        name: m.name,
+        type: m.type,
+        emoji: m.emoji,
+        platform: m.platform,
+        online: m.online || false,
+        lastSeen: m.lastSeen
+    }));
+
+    const message = JSON.stringify({
+        type: 'machine_registry',
+        machines: machineList,
+        count: machineList.length,
+        timestamp: Date.now()
+    });
+
+    for (const [id, node] of nodes) {
+        if (node.ws.readyState === WebSocket.OPEN) {
+            node.ws.send(message);
+        }
+    }
+}
+
+// Broadcast pending join request to admins
+function broadcastJoinRequest(request) {
+    const message = JSON.stringify({
+        type: 'machine_join_request',
+        request: request,
+        timestamp: Date.now()
+    });
+
+    for (const [id, node] of nodes) {
+        if (adminNodes.has(id) && node.ws.readyState === WebSocket.OPEN) {
+            node.ws.send(message);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // WEBSOCKET SERVER (for local nodes)
 // ═══════════════════════════════════════════════════════════════════
 
@@ -627,6 +718,244 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
                 bridgedTo: bridgeConnections.size,
                 timestamp: Date.now()
             }));
+            break;
+
+        // ═══════════════════════════════════════════════════════════════════
+        // MACHINE REGISTRY MESSAGE HANDLERS
+        // ═══════════════════════════════════════════════════════════════════
+
+        case 'machine_register':
+            // New machine wants to join the network
+            console.log(`\n🆕 Machine registration request: ${msg.machine?.name || 'Unknown'}`);
+
+            const machineKey = msg.machine?.key || msg.machine?.node_id || generateNodeId();
+            const machineInfo = {
+                key: machineKey,
+                node_id: msg.machine?.node_id || machineKey,
+                name: msg.machine?.name || 'Unknown Machine',
+                type: msg.machine?.type || 'peer',
+                emoji: msg.machine?.emoji || '💻',
+                platform: msg.machine?.platform || 'Unknown',
+                hardware: msg.machine?.hardware || 'Unknown',
+                ip: clientIP,
+                requestedAt: Date.now(),
+                requestedBy: nodeId
+            };
+
+            // Check if already in registry
+            if (machineRegistry.has(machineKey)) {
+                // Already approved - update online status
+                const existing = machineRegistry.get(machineKey);
+                existing.online = true;
+                existing.lastSeen = Date.now();
+                existing.nodeId = nodeId;
+                machineRegistry.set(machineKey, existing);
+
+                console.log(`✅ Known machine reconnected: ${machineInfo.name}`);
+                ws.send(JSON.stringify({
+                    type: 'machine_registered',
+                    status: 'approved',
+                    machine: existing,
+                    message: 'Welcome back to the network!',
+                    timestamp: Date.now()
+                }));
+
+                broadcastMachineRegistry();
+            } else {
+                // New machine - add to pending if approval required, or auto-approve
+                // Auto-approve if no admins yet (first machine becomes admin)
+                if (adminNodes.size === 0) {
+                    // First machine - auto-approve and make admin
+                    adminNodes.add(nodeId);
+                    machineInfo.online = true;
+                    machineInfo.lastSeen = Date.now();
+                    machineInfo.nodeId = nodeId;
+                    machineInfo.isAdmin = true;
+                    machineRegistry.set(machineKey, machineInfo);
+                    saveMachineRegistry();
+
+                    console.log(`👑 First machine auto-approved as admin: ${machineInfo.name}`);
+                    ws.send(JSON.stringify({
+                        type: 'machine_registered',
+                        status: 'approved',
+                        isAdmin: true,
+                        machine: machineInfo,
+                        message: 'You are the first node - approved as admin!',
+                        timestamp: Date.now()
+                    }));
+
+                    broadcastMachineRegistry();
+                } else {
+                    // Add to pending and notify admins
+                    pendingMachines.set(machineKey, machineInfo);
+                    console.log(`⏳ Machine pending approval: ${machineInfo.name}`);
+
+                    ws.send(JSON.stringify({
+                        type: 'machine_registered',
+                        status: 'pending',
+                        message: 'Registration pending admin approval',
+                        timestamp: Date.now()
+                    }));
+
+                    broadcastJoinRequest(machineInfo);
+                }
+            }
+            break;
+
+        case 'getMachineRegistry':
+            // Return the current machine registry
+            const machineList = Array.from(machineRegistry.entries()).map(([key, m]) => ({
+                key: key,
+                node_id: m.node_id,
+                name: m.name,
+                type: m.type,
+                emoji: m.emoji,
+                platform: m.platform,
+                online: m.online || false,
+                lastSeen: m.lastSeen
+            }));
+
+            const pendingList = Array.from(pendingMachines.entries()).map(([key, m]) => ({
+                key: key,
+                node_id: m.node_id,
+                name: m.name,
+                type: m.type,
+                emoji: m.emoji,
+                platform: m.platform,
+                requestedAt: m.requestedAt
+            }));
+
+            ws.send(JSON.stringify({
+                type: 'machine_registry',
+                machines: machineList,
+                pending: adminNodes.has(nodeId) ? pendingList : [],
+                count: machineList.length,
+                isAdmin: adminNodes.has(nodeId),
+                timestamp: Date.now()
+            }));
+            break;
+
+        case 'machine_approve':
+            // Admin approves a pending machine
+            if (!adminNodes.has(nodeId)) {
+                ws.send(JSON.stringify({
+                    type: 'error',
+                    message: 'Not authorized - admin only',
+                    timestamp: Date.now()
+                }));
+                break;
+            }
+
+            const approveKey = msg.machineKey;
+            if (pendingMachines.has(approveKey)) {
+                const pendingMachine = pendingMachines.get(approveKey);
+                pendingMachine.online = false;
+                pendingMachine.approvedAt = Date.now();
+                pendingMachine.approvedBy = nodeId;
+                machineRegistry.set(approveKey, pendingMachine);
+                pendingMachines.delete(approveKey);
+                saveMachineRegistry();
+
+                console.log(`✅ Machine approved: ${pendingMachine.name}`);
+
+                // Notify the requesting node if still connected
+                for (const [id, node] of nodes) {
+                    if (id === pendingMachine.requestedBy && node.ws.readyState === WebSocket.OPEN) {
+                        node.ws.send(JSON.stringify({
+                            type: 'machine_registered',
+                            status: 'approved',
+                            machine: pendingMachine,
+                            message: 'Your machine has been approved!',
+                            timestamp: Date.now()
+                        }));
+                    }
+                }
+
+                ws.send(JSON.stringify({
+                    type: 'machine_approved',
+                    machine: pendingMachine,
+                    timestamp: Date.now()
+                }));
+
+                broadcastMachineRegistry();
+            } else {
+                ws.send(JSON.stringify({
+                    type: 'error',
+                    message: 'Machine not found in pending list',
+                    timestamp: Date.now()
+                }));
+            }
+            break;
+
+        case 'machine_reject':
+            // Admin rejects a pending machine
+            if (!adminNodes.has(nodeId)) {
+                ws.send(JSON.stringify({
+                    type: 'error',
+                    message: 'Not authorized - admin only',
+                    timestamp: Date.now()
+                }));
+                break;
+            }
+
+            const rejectKey = msg.machineKey;
+            if (pendingMachines.has(rejectKey)) {
+                const rejectedMachine = pendingMachines.get(rejectKey);
+                pendingMachines.delete(rejectKey);
+
+                console.log(`❌ Machine rejected: ${rejectedMachine.name}`);
+
+                // Notify the requesting node if still connected
+                for (const [id, node] of nodes) {
+                    if (id === rejectedMachine.requestedBy && node.ws.readyState === WebSocket.OPEN) {
+                        node.ws.send(JSON.stringify({
+                            type: 'machine_registered',
+                            status: 'rejected',
+                            message: msg.reason || 'Registration rejected by admin',
+                            timestamp: Date.now()
+                        }));
+                    }
+                }
+
+                ws.send(JSON.stringify({
+                    type: 'machine_rejected',
+                    machineKey: rejectKey,
+                    timestamp: Date.now()
+                }));
+            }
+            break;
+
+        case 'set_admin':
+            // Existing admin can grant admin to another node
+            if (!adminNodes.has(nodeId)) {
+                ws.send(JSON.stringify({
+                    type: 'error',
+                    message: 'Not authorized - admin only',
+                    timestamp: Date.now()
+                }));
+                break;
+            }
+
+            const newAdminId = msg.targetNodeId;
+            if (nodes.has(newAdminId)) {
+                adminNodes.add(newAdminId);
+                console.log(`👑 New admin added by ${nodeId}: ${newAdminId}`);
+
+                const targetNode = nodes.get(newAdminId);
+                if (targetNode.ws.readyState === WebSocket.OPEN) {
+                    targetNode.ws.send(JSON.stringify({
+                        type: 'admin_granted',
+                        message: 'You have been granted admin privileges',
+                        timestamp: Date.now()
+                    }));
+                }
+
+                ws.send(JSON.stringify({
+                    type: 'admin_set',
+                    targetNodeId: newAdminId,
+                    timestamp: Date.now()
+                }));
+            }
             break;
 
         default:
