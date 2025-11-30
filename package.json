@@ -1,6 +1,6 @@
 {
   "name": "rangerplex-ai",
-  "version": "4.0.12",
+  "version": "4.0.14",
   "type": "module",
   "scripts": {
     "start": "npm run stop 2>/dev/null; concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
@@ -21,6 +21,7 @@
     "blockchain:install": "node rangerblock/install-rangerplexblock.cjs",
     "blockchain:setup": "node rangerblock/core/setup_new_user.cjs",
     "blockchain:relay": "node rangerblock/core/relay-server.cjs",
+    "blockchain:relay-bridge": "node rangerblock/core/relay-server-bridge.cjs",
     "blockchain:status": "node -e \"const s=require('./rangerblock/blockchainService.cjs');console.log(JSON.stringify(s.getStatus(),null,2))\"",
     "blockchain:ping": "node rangerblock/core/blockchain-ping.cjs",
     "blockchain:chat": "node rangerblock/core/blockchain-chat.cjs"

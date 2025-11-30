@@ -1,0 +1,28 @@
+{
+  "relay": {
+    "name": "m3pro-genesis",
+    "port": 5555,
+    "dashboardPort": 5556,
+    "region": "ireland"
+  },
+  "bridge": {
+    "enabled": true,
+    "reconnectInterval": 5000,
+    "heartbeatInterval": 30000,
+    "peers": [
+      {
+        "name": "gcloud-us-east",
+        "host": "34.26.30.249",
+        "port": 5555,
+        "enabled": true
+      },
+      {
+        "name": "ngrok-tunnel",
+        "host": "2.tcp.eu.ngrok.io",
+        "port": 12232,
+        "enabled": false,
+        "comment": "Enable when ngrok is running"
+      }
+    ]
+  }
+}
