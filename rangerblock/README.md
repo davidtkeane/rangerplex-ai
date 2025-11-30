@@ -209,16 +209,21 @@ rangerblock/
 │   ├── hardwareDetection.cjs     # Hardware UUID detection
 │   └── SimpleBlockchain.cjs      # Blockchain template
 │
-├── server-only/                  # For cloud/remote servers
-│   ├── setup-relay-universal.sh       # Kali Linux installer
-│   ├── setup-relay-windows.ps1   # Windows installer
-│   ├── NETWORK_TOPOLOGY.md       # Network diagram
-│   └── RELAY_BRIDGE_PLAN.md      # Bridge documentation
+├── server-only/                  # For cloud/remote servers (see below)
+│   ├── setup-relay-universal.sh  # Universal installer (8 cloud providers!)
+│   ├── setup-relay-simple.sh     # Lightweight PM2 installer
+│   ├── setup-relay-windows.ps1   # Windows PowerShell installer
+│   └── docs/                     # Setup documentation
+│
+├── just-chat/                    # Standalone chat client (see below)
+│   ├── just-chat.sh              # One-click chat installer
+│   ├── blockchain-chat.cjs       # Chat client
+│   ├── web-chat.html             # Browser chat client
+│   └── README.md                 # Just-Chat documentation
 │
 ├── .personal/                    # Node identity (DO NOT SHARE!)
 │   ├── genesis_node.json         # Genesis node identity
-│   ├── node_identity.json        # Local node identity
-│   └── *.json                    # Other identity files
+│   └── node_identity.json        # Local node identity
 │
 ├── malware-lab/                  # Master's thesis malware testing
 │   ├── hello_there.py            # Test malware (GUI)
@@ -226,24 +231,110 @@ rangerblock/
 │
 ├── install-rangerplexblock.cjs   # Interactive installer
 ├── blockchainService.cjs         # Service manager
+├── CHANGELOG.md                  # Version history
 └── README.md                     # This file
 ```
 
 ---
 
+## 📁 server-only/ - Cloud Relay Setup
+
+For deploying relay servers on cloud platforms (AWS, GCP, etc.) or VMs.
+
+### Setup Scripts
+
+| Script | Platform | Description |
+|--------|----------|-------------|
+| `setup-relay-universal.sh` | Linux/Cloud | **RECOMMENDED** - Auto-detects 8 cloud providers + VMs |
+| `setup-relay-simple.sh` | Linux | Lightweight with PM2 process manager |
+| `setup-relay-windows.ps1` | Windows | PowerShell installer with batch shortcuts |
+
+### Quick Install (Cloud/Linux)
+```bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
+```
+
+### Files Created After Setup
+When you run the setup script, these files are created on the server:
+```
+~/rangerblock-server/
+├── relay-server.cjs         # Main relay server (downloaded)
+├── blockchain-chat.cjs      # Terminal chat client
+├── blockchain-ping.cjs      # Connectivity test tool
+├── package.json             # NPM package config
+├── relay-config.json        # Bridge/peer configuration
+├── node_modules/            # Installed dependencies
+├── .personal/
+│   └── node_identity.json   # Unique node identity
+├── start-relay.sh           # Start relay helper
+├── start-chat.sh            # Start chat helper
+├── run-background.sh        # Run in background
+├── network-diag.sh          # Network diagnostics
+└── relay.log                # Server logs (when running)
+```
+
+### Documentation
+- `docs/AWS_SETUP.md` - AWS EC2 setup guide
+- `docs/GOOGLE_CLOUD_SETUP.md` - GCP setup guide
+- `docs/NETWORK_TOPOLOGY.md` - Network architecture
+- `docs/RELAY_BRIDGE_SETUP.md` - Bridge configuration
+- `docs/DEPLOY_RELAY.md` - Complete deployment guide
+- `docs/QUICK_START.md` - Fast reference
+
+---
+
+## 📁 just-chat/ - Standalone Chat Client
+
+For users who just want to chat without the full RangerPlex platform.
+
+### One-Click Install
+```bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/just-chat/just-chat.sh -o just-chat.sh && chmod +x just-chat.sh && ./just-chat.sh
+```
+
+### Web Chat (Mobile/Browser)
+```
+http://44.222.101.125:5556/chat
+```
+
+### Features
+- Interactive menu with options
+- Auto-installs Node.js if needed
+- Connects to AWS relay (24/7 uptime)
+- Beautiful ASCII art and animations
+- Commands: `-c` chat, `-t` test, `-s` status, `-h` help
+
+### Files Created After Setup
+```
+~/.rangerblock/
+├── blockchain-chat.cjs      # Chat client
+└── node_identity.json       # Your unique identity
+```
+
+### Terminal Commands
+| Command | Description |
+|---------|-------------|
+| `./just-chat.sh` | Interactive menu |
+| `./just-chat.sh -c` | Start chatting |
+| `./just-chat.sh -t` | Test connection |
+| `./just-chat.sh -s` | Network status |
+| `./just-chat.sh -u` | Update client |
+| `./just-chat.sh -h` | Show help |
+
+---
+
 ## Documentation Files
 
-**Main docs (use these!):**
+**Main docs:**
 - `/rangerblock/README.md` - This file (main documentation)
-- `/rangerblock/server-only/NETWORK_TOPOLOGY.md` - Network diagram
-- `/rangerblock/server-only/RELAY_BRIDGE_PLAN.md` - Bridge architecture
+- `/rangerblock/CHANGELOG.md` - Version history
+- `/rangerblock/server-only/docs/` - Server setup guides
+- `/rangerblock/just-chat/README.md` - Chat client docs
 
 **Setup scripts:**
-- `/rangerblock/server-only/setup-relay-universal.sh` - Kali/Linux setup
-- `/rangerblock/server-only/setup-relay-windows.ps1` - Windows setup
-
-**Legacy docs (in /move/ folder):**
-- Older documentation moved to /rangerblock/move/homework/ for archival
+- `/rangerblock/server-only/setup-relay-universal.sh` - Universal (Linux/Cloud)
+- `/rangerblock/server-only/setup-relay-simple.sh` - Simple (PM2)
+- `/rangerblock/server-only/setup-relay-windows.ps1` - Windows
 
 ---
 
@@ -261,8 +352,17 @@ curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rang
 npm run relay
 ```
 
-### AWS (Coming Soon)
-See AWS_SETUP.md for instructions.
+### AWS (LIVE!)
+```bash
+# AWS Relay is LIVE at:
+# Dashboard: http://44.222.101.125:5556
+# WebSocket: ws://44.222.101.125:5555
+# Web Chat:  http://44.222.101.125:5556/chat
+
+# To deploy your own:
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash
+```
+See `server-only/docs/AWS_SETUP.md` for detailed instructions.
 
 ### ngrok (For behind NAT)
 ```bash
