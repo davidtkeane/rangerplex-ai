@@ -1,29 +1,151 @@
 # RangerBlock Relay & Bridge Setup Guide
 
 **Quick Reference for Running Relay Servers**
+**Updated:** November 30, 2025
 
 ---
 
-## AWS / Cloud Server Commands
-
-### Start Relay (Background) + Chat
+## Step 1: Install RangerBlock (One-Liner)
 
 ```bash
-# 1. Go to install directory
-cd ~/rangerblock-server
-
-# 2. Start relay in BACKGROUND (survives disconnection)
-nohup npm run relay > relay.log 2>&1 &
-
-# 3. Press Enter to get prompt back
-
-# 4. Run chat in foreground
-npm run chat
-
-# 5. Exit chat with Ctrl+C when done
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
 ```
 
-### Background Job Control
+### Expected Output:
+
+```
+ ======================================================================
+       RANGERBLOCK RELAY SERVER - ONE-CLICK INSTALLER
+ ======================================================================
+       🐉 P2P Blockchain Network for Security Professionals 🐉
+       Created by IrishRanger + Claude Code (Ranger)
+       Version 2.2.0 - Multi-Cloud Auto-Detection (8 providers!)
+ ======================================================================
+
+[1/6] Detecting environment...
+  Detecting cloud provider...
+  Platform: aws
+  VM Type: aws-ec2
+  Machine Name: AWS-Relay
+  Network Mode: cloud
+  IP Address: 172.31.65.91
+  Gateway: 172.31.64.1
+
+[2/6] Installing dependencies (automatic)...
+  Updating package lists...
+  Node.js not found - will install
+  Installing Node.js 20.x + npm (this may take a minute)...
+  Downloading NodeSource setup...
+  Installing nodejs from NodeSource...
+  ✅ Node.js installed: v20.19.5
+  ✅ npm installed: 9.2.0
+  ✅ git installed
+  ✅ curl installed
+  Installing jq...
+
+[3/6] Setting up directory...
+  ✅ Directory: /root/rangerblock-server
+
+[4/6] Downloading server files...
+  📥 relay-server-bridge.cjs
+  📥 blockchain-chat.cjs
+  📥 blockchain-ping.cjs
+  ✅ Server files downloaded
+  ✅ Node identity created: AWS-Relay-dc5658f5
+  📦 Installing npm packages...
+  ✅ Dependencies installed
+
+[5/6] Skipping ngrok (use --with-ngrok to install)
+
+[6/6] Creating helper scripts...
+  ✅ Helper scripts created
+
+ ======================================================================
+                    🎉 SETUP COMPLETE! 🎉
+ ======================================================================
+
+  Machine Name: AWS-Relay
+  Platform:     aws (aws-ec2)
+  Install Dir:  /root/rangerblock-server
+
+  YOUR ADDRESSES:
+    Local IP:     172.31.65.91
+    External IP:  44.222.101.125
+    Dashboard:    http://172.31.65.91:5556
+
+  ☁️  AWS EC2 DETECTED:
+     → Security Group: Allow TCP ports 5555 and 5556 (0.0.0.0/0)
+     → Free tier: t3.micro (750 hrs/month)
+
+  🎖️ Rangers lead the way!
+```
+
+---
+
+## Step 2: Start the Relay Server
+
+### Go to Install Directory
+```bash
+cd /root/rangerblock-server
+```
+
+### Check Files Are There
+```bash
+ls
+```
+
+**Expected output:**
+```
+blockchain-chat.cjs  network-diag.sh   package.json       relay-server.cjs  start-relay.sh
+blockchain-ping.cjs  node_modules      package-lock.json  relay-config.json start-chat.sh
+```
+
+### Start Relay in Background
+```bash
+nohup npm run relay > relay.log 2>&1 &
+```
+
+**Expected output:**
+```
+[1] 8250
+```
+(The number is the process ID - yours will be different)
+
+### Press Enter, Then Verify It's Running
+```bash
+ss -tlnp | grep 555
+```
+
+**Expected output (SUCCESS!):**
+```
+LISTEN 0      511                *:5555             *:*    users:(("node",pid=8262,fd=21))
+LISTEN 0      511                *:5556             *:*    users:(("node",pid=8262,fd=22))
+```
+
+If you see both ports 5555 and 5556 LISTENING, your relay is running!
+
+---
+
+## Step 3: Test Connection
+
+### From Your Local Machine (Mac/PC)
+```bash
+curl http://YOUR_EXTERNAL_IP:5556/api/status
+```
+
+**Expected output:**
+```json
+{"status":"online","connections":0,"uptime":123}
+```
+
+### From Inside the Server
+```bash
+curl http://localhost:5556/api/status
+```
+
+---
+
+## Background Job Control
 
 | Command | What it does |
 |---------|--------------|
@@ -36,7 +158,28 @@ npm run chat
 | `tail -f relay.log` | Watch relay logs live |
 | `cat relay.log` | View all relay logs |
 
-### 24/7 Running with PM2 (Recommended)
+### Kill a Wrong Background Job
+If you started relay in wrong folder:
+```bash
+# Kill by job number
+kill %1
+
+# Or kill all relay processes
+pkill -f relay
+
+# Verify it's stopped
+ps aux | grep relay
+```
+
+**Expected output (no relay running):**
+```
+root     7189  0.0  0.2   4080  2160 pts/1    S+   17:04   0:00 grep --color=auto relay
+```
+(Only the grep command shows - no actual relay process)
+
+---
+
+## 24/7 Running with PM2 (Recommended)
 
 ```bash
 # Install PM2 globally
@@ -62,9 +205,45 @@ pm2 delete relay    # Remove from PM2
 
 ---
 
+## AWS Security Group Setup (REQUIRED!)
+
+**You MUST open ports 5555 and 5556 or external connections will fail!**
+
+### Step-by-Step:
+
+1. **AWS Console** → EC2 → Instances
+2. **Click your instance** → Security tab
+3. **Click the security group link** (sg-xxxxx)
+4. **Click "Edit inbound rules"**
+5. **Add 2 rules:**
+
+| Type | Port Range | Source | Description |
+|------|------------|--------|-------------|
+| Custom TCP | **5555** | 0.0.0.0/0 | RangerBlock Relay |
+| Custom TCP | **5556** | 0.0.0.0/0 | RangerBlock Dashboard |
+
+6. **Click "Save rules"**
+
+### Test Ports Are Open
+```bash
+# From your Mac
+nc -zv 44.222.101.125 5555
+nc -zv 44.222.101.125 5556
+```
+
+**Expected output (SUCCESS):**
+```
+Connection to 44.222.101.125 port 5555 [tcp/*] succeeded!
+Connection to 44.222.101.125 port 5556 [tcp/*] succeeded!
+```
+
+**If you see "Operation timed out"** - ports are NOT open in Security Group!
+
+---
+
 ## Bridge Configuration
 
-### File Location
+### File Locations
 - **Mac (RangerPlex)**: `~/rangerplex-ai/rangerblock/core/relay-config.json`
 - **Cloud Server**: `~/rangerblock-server/relay-config.json`
 
@@ -89,80 +268,10 @@ pm2 delete relay    # Remove from PM2
         "port": 5555,
         "enabled": true,
         "comment": "AWS EC2 relay server"
-      },
-      {
-        "name": "home-mac",
-        "host": "192.168.1.35",
-        "port": 5555,
-        "enabled": true,
-        "comment": "Home network Mac"
       }
     ]
   }
 }
-```
-
-### Adding a New Bridge Peer
-
-Edit `relay-config.json` and add to the `peers` array:
-
-```json
-{
-  "name": "new-server",
-  "host": "IP_ADDRESS_HERE",
-  "port": 5555,
-  "enabled": true,
-  "comment": "Description"
-}
-```
-
-Then restart the relay to apply changes.
-
----
-
-## Network Requirements
-
-### Ports to Open
-
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| 5555 | TCP | WebSocket Relay |
-| 5556 | TCP | HTTP Dashboard |
-
-### Cloud Firewall Setup
-
-**AWS EC2:**
-- EC2 → Security Groups → Edit inbound rules
-- Add: TCP 5555 from 0.0.0.0/0
-- Add: TCP 5556 from 0.0.0.0/0
-
-**Google Cloud:**
-- VPC Network → Firewall → Create rule
-- Allow TCP 5555, 5556 from 0.0.0.0/0
-
-**Azure:**
-- Network Security Group → Inbound rules
-- Add rules for TCP 5555, 5556
-
----
-
-## Quick Diagnostic Commands
-
-```bash
-# Check if relay is running
-ps aux | grep relay
-
-# Check listening ports
-ss -tlnp | grep 555
-
-# Test local relay
-curl http://localhost:5556/api/status
-
-# Test remote relay
-curl http://REMOTE_IP:5556/api/status
-
-# Network diagnostics
-./network-diag.sh
 ```
 
 ---
@@ -171,38 +280,35 @@ curl http://REMOTE_IP:5556/api/status
 
 1. Open RangerPlex → Blockchain Chat
 2. Click Settings (gear icon)
-3. Set Relay Host: `IP_ADDRESS`
-4. Set Relay Port: `5555`
+3. Select **"☁️ AWS Cloud (24/7)"** from dropdown
+4. Or set custom: Host: `44.222.101.125`, Port: `5555`
 5. Click Save and Reconnect
 
 ---
 
 ## Troubleshooting
 
-### "Connection refused"
-1. Check relay is running: `ps aux | grep relay`
-2. Check firewall allows port 5555
-3. Check correct IP address
+### "Connection timed out" from Mac
+1. Check AWS Security Group has ports 5555/5556 open
+2. Check relay is running: `ss -tlnp | grep 555`
+3. Verify external IP is correct
 
-### "Bridge not connecting"
-1. Verify both relays are running
-2. Check relay-config.json has correct IPs
-3. Check `enabled: true` for peers
-4. Restart relay after config changes
+### "Port already in use"
+```bash
+pkill -f relay
+# Wait 2 seconds, then restart
+nohup npm run relay > relay.log 2>&1 &
+```
 
 ### "npm not found"
 ```bash
-# Reinstall Node.js
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
-### "Port already in use"
+### Check Relay Logs for Errors
 ```bash
-# Kill process on port 5555
-kill $(lsof -t -i:5555)
-# Or
-pkill -f relay
+cat relay.log
 ```
 
 ---
@@ -211,8 +317,29 @@ pkill -f relay
 
 | Server | IP | Port | Status |
 |--------|-----|------|--------|
-| AWS Relay | 44.222.101.125 | 5555 | Active |
-| M3Pro Genesis | 192.168.1.35 | 5555 | Home |
+| AWS Kali Relay | 44.222.101.125 | 5555 | Active |
+| M3Pro Genesis | 192.168.1.35 | 5555 | Home Network |
+
+---
+
+## Quick Start Summary
+
+```bash
+# 1. Install (one-liner)
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+
+# 2. Start relay in background
+cd /root/rangerblock-server
+nohup npm run relay > relay.log 2>&1 &
+
+# 3. Verify running
+ss -tlnp | grep 555
+
+# 4. Open AWS ports 5555 & 5556 in Security Group
+
+# 5. Test from Mac
+curl http://YOUR_IP:5556/api/status
+```
 
 ---
 

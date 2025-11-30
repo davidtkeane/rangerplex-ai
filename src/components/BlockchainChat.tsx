@@ -82,8 +82,8 @@ const NODE_NETWORK: Record<string, Omit<NodeInfo, 'online' | 'permission' | 'key
     'M1Air': { name: 'M1 Air Peer', ip: '192.168.1.31', type: 'peer', emoji: '🍎' },
     'M4Max': { name: 'M4 Max Compute', ip: '192.168.1.4', type: 'compute', emoji: '⚡' },
     // === CLOUD SERVERS (24/7 Relay) ===
-    'GCloudKali': { name: 'GCloud Kali', ip: '34.26.30.249', type: 'relay', emoji: '☁️' },
-    'AWSKali': { name: 'AWS Kali', ip: 'pending', type: 'relay', emoji: '🌩️' },
+    'AWSKali': { name: 'AWS Kali (24/7)', ip: '44.222.101.125', type: 'relay', emoji: '🌩️' },
+    'GCloudKali': { name: 'GCloud Kali (offline)', ip: '34.26.30.249', type: 'relay', emoji: '☁️' },
     // === WINDOWS MACHINES (Relay-Only) ===
     'LenovoWin11': { name: 'Lenovo Win11', ip: 'dynamic', type: 'peer', emoji: '💻' },
     'MSIVector': { name: 'MSI Vector', ip: 'dynamic', type: 'gaming', emoji: '🎮' },
@@ -105,10 +105,10 @@ const RELAY_PRESETS = {
         description: 'Connect from anywhere via ngrok tunnel'
     },
     cloud: {
-        name: '☁️ Kali Cloud (24/7)',
-        host: '34.26.30.249',
+        name: '☁️ AWS Cloud (24/7)',
+        host: '44.222.101.125',
         port: 5555,
-        description: 'Google Cloud VM - Always online relay'
+        description: 'AWS EC2 Kali - Always online relay'
     },
     lan: {
         name: '🏠 LAN (M3Pro)',
@@ -1348,7 +1348,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                                     key={key}
                                     onClick={() => connectToNetwork(key)}
                                     disabled={isConnecting}
-                                    className="w-full p-3 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/30 hover:border-blue-500 rounded-lg transition-all text-left group"
+                                    className="w-full p-3 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/30 hover:border-blue-500 rounded-lg transition-all text-left group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <div className="flex items-center gap-3">
                                         <span className="text-2xl">{node.emoji}</span>
@@ -1399,13 +1399,13 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                                         >
                                             <option value="ngrok">🌐 ngrok (Internet) - Default</option>
                                             <option value="lan">🏠 LAN (M3Pro) - Local Network</option>
-                                            <option value="cloud">☁️ Cloud (Coming Soon)</option>
+                                            <option value="cloud">☁️ AWS Cloud (24/7)</option>
                                             <option value="custom">⚙️ Custom Server</option>
                                         </select>
                                         <p className="text-[10px] text-blue-400/40 font-mono mt-1">
                                             {relayPreset === 'ngrok' && '→ Connect from anywhere via ngrok tunnel'}
                                             {relayPreset === 'lan' && '→ Local network only - M3Pro must be online'}
-                                            {relayPreset === 'cloud' && '→ 24/7 uptime - Google Cloud VM (setup required)'}
+                                            {relayPreset === 'cloud' && '→ 24/7 uptime - AWS EC2 Kali Linux'}
                                             {relayPreset === 'custom' && '→ Enter your own relay server below'}
                                         </p>
                                     </div>
@@ -1541,7 +1541,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
 
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-            <div className="bg-[#0d0d1a] border border-blue-500/30 rounded-lg shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden">
+            <div className="bg-[#0d0d1a] border border-blue-500/30 rounded-lg shadow-2xl w-full max-w-7xl h-[80vh] flex flex-col overflow-hidden">
 
                 {/* ===== TITLE BAR ===== */}
                 <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-900/40 to-purple-900/20 border-b border-blue-500/30">
