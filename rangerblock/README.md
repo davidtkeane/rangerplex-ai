@@ -56,7 +56,7 @@ npm run relay
 ### For Windows PCs
 ```powershell
 # Run in PowerShell
-irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-windows-relay.ps1 | iex
+irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-windows.ps1 | iex
 ```
 
 ---
@@ -211,7 +211,7 @@ rangerblock/
 │
 ├── server-only/                  # For cloud/remote servers
 │   ├── setup-relay-universal.sh       # Kali Linux installer
-│   ├── setup-windows-relay.ps1   # Windows installer
+│   ├── setup-relay-windows.ps1   # Windows installer
 │   ├── NETWORK_TOPOLOGY.md       # Network diagram
 │   └── RELAY_BRIDGE_PLAN.md      # Bridge documentation
 │
@@ -240,7 +240,7 @@ rangerblock/
 
 **Setup scripts:**
 - `/rangerblock/server-only/setup-relay-universal.sh` - Kali/Linux setup
-- `/rangerblock/server-only/setup-windows-relay.ps1` - Windows setup
+- `/rangerblock/server-only/setup-relay-windows.ps1` - Windows setup
 
 **Legacy docs (in /move/ folder):**
 - Older documentation moved to /rangerblock/move/homework/ for archival

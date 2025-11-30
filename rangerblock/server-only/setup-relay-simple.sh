@@ -37,6 +37,8 @@ NGROK_TOKEN=""
 ENABLE_BRIDGE=false
 MACHINE_NAME=""
 IMPORT_ID=""
+SKIP_MENU=false
+BOLD='\033[1m'
 
 for arg in "$@"; do
     case $arg in
@@ -59,6 +61,10 @@ for arg in "$@"; do
             ;;
         --import-id=*)
             IMPORT_ID="${arg#*=}"
+            shift
+            ;;
+        -y|--yes|--auto)
+            SKIP_MENU=true
             shift
             ;;
     esac
@@ -104,10 +110,110 @@ echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║       🎖️  RangerBlock Relay Server Setup  🎖️                  ║"
 echo "║                                                               ║"
-echo "║       Lightweight P2P Blockchain Relay Server                 ║"
+echo "║       Lightweight P2P Blockchain Relay Server (PM2)           ║"
 echo "║       Created by IrishRanger + Claude Code                    ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
+
+# ═══════════════════════════════════════════════════════════════════
+# INTERACTIVE MENU (skip with -y or --auto flag)
+# ═══════════════════════════════════════════════════════════════════
+
+if [ "$SKIP_MENU" = false ]; then
+    echo -e "${BOLD}What would you like to do?${NC}\n"
+
+    echo -e "${GREEN}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${GREEN}│  ${BOLD}1. 🚀 QUICK INSTALL (Recommended)${NC}${GREEN}                             │${NC}"
+    echo -e "${GREEN}│     Uses PM2 for process management, picks machine name        │${NC}"
+    echo -e "${GREEN}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    echo -e "${BLUE}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${BLUE}│  ${BOLD}2. 🔧 CUSTOM INSTALL${NC}${BLUE}                                            │${NC}"
+    echo -e "${BLUE}│     Choose machine name, enable ngrok, bridge mode              │${NC}"
+    echo -e "${BLUE}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    echo -e "${MAGENTA}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${MAGENTA}│  ${BOLD}3. 📖 SHOW HELP & MANUAL INSTRUCTIONS${NC}${MAGENTA}                        │${NC}"
+    echo -e "${MAGENTA}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+
+    read -p "Enter your choice [1-3] (default: 1): " menu_choice
+    menu_choice=${menu_choice:-1}
+
+    case $menu_choice in
+        1)
+            echo -e "\n${GREEN}🚀 Starting Quick Install with PM2...${NC}\n"
+            ;;
+        2)
+            echo -e "\n${BLUE}🔧 Custom Install${NC}\n"
+            # Machine name will be selected by select_machine() later
+
+            read -p "Install ngrok for internet tunneling? (y/N): " install_ngrok
+            if [ "$install_ngrok" = "y" ] || [ "$install_ngrok" = "Y" ]; then
+                INSTALL_NGROK=true
+                read -p "Enter ngrok authtoken (or press Enter to add later): " ngrok_input
+                if [ -n "$ngrok_input" ]; then
+                    NGROK_TOKEN="$ngrok_input"
+                fi
+            fi
+
+            read -p "Enable bridge mode (connect to other relays)? (Y/n): " bridge_input
+            if [ "$bridge_input" != "n" ] && [ "$bridge_input" != "N" ]; then
+                ENABLE_BRIDGE=true
+            fi
+            echo ""
+            ;;
+        3)
+            clear
+            echo -e "${CYAN}"
+            echo "╔═══════════════════════════════════════════════════════════════════╗"
+            echo "║              📖 MANUAL INSTALLATION GUIDE 📖                      ║"
+            echo "╚═══════════════════════════════════════════════════════════════════╝"
+            echo -e "${NC}"
+
+            echo -e "${BOLD}${GREEN}=== THIS IS THE SIMPLE/PM2 VERSION ===${NC}"
+            echo "  Uses PM2 process manager for auto-restart and monitoring"
+            echo "  Best for: Personal machines, testing, development"
+            echo ""
+            echo -e "${YELLOW}  TIP: For cloud servers, use setup-relay-universal.sh instead!${NC}"
+            echo ""
+
+            echo -e "${BOLD}${BLUE}=== QUICK ONE-LINERS ===${NC}"
+            echo ""
+            echo "# Basic install:"
+            echo -e "${YELLOW}curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-simple.sh | bash${NC}"
+            echo ""
+            echo "# Skip menu:"
+            echo -e "${YELLOW}curl -sSL ... | bash -s -- -y${NC}"
+            echo ""
+            echo "# With machine name:"
+            echo -e "${YELLOW}curl -sSL ... | bash -s -- --machine=M3Pro${NC}"
+            echo ""
+            echo "# With ngrok:"
+            echo -e "${YELLOW}curl -sSL ... | bash -s -- --with-ngrok --ngrok-token=YOUR_TOKEN${NC}"
+            echo ""
+
+            echo -e "${BOLD}${RED}=== FIREWALL PORTS ===${NC}"
+            echo "  • 5555/tcp - WebSocket relay"
+            echo "  • 5556/tcp - HTTP dashboard"
+            echo ""
+
+            read -p "Press Enter to continue with installation, or Ctrl+C to exit..."
+            clear
+            echo -e "${CYAN}"
+            echo "╔═══════════════════════════════════════════════════════════════╗"
+            echo "║       🎖️  RangerBlock Relay Server Setup  🎖️                  ║"
+            echo "║                                                               ║"
+            echo "║       Lightweight P2P Blockchain Relay Server (PM2)           ║"
+            echo "║       Created by IrishRanger + Claude Code                    ║"
+            echo "╚═══════════════════════════════════════════════════════════════╝"
+            echo -e "${NC}"
+            ;;
+        *)
+            echo -e "${RED}Invalid choice. Using Quick Install...${NC}\n"
+            ;;
+    esac
+fi
 
 # ═══════════════════════════════════════════════════════════════════
 # DETECT OS

@@ -43,6 +43,8 @@ UPDATE_ONLY=false
 AUTO_START=false
 FORCE_PLATFORM=""
 INSTALL_DIR="$HOME/rangerblock-server"
+SKIP_MENU=false
+BOLD='\033[1m'
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -75,6 +77,10 @@ while [[ $# -gt 0 ]]; do
             AUTO_START=true
             shift
             ;;
+        -y|--yes|--auto)
+            SKIP_MENU=true
+            shift
+            ;;
         *)
             shift
             ;;
@@ -94,6 +100,131 @@ cat << 'EOF'
  ======================================================================
 EOF
 echo -e "${NC}"
+
+# =====================================================================
+# INTERACTIVE MENU (skip with -y or --auto flag)
+# =====================================================================
+
+if [ "$SKIP_MENU" = false ]; then
+    echo -e "${BOLD}What would you like to do?${NC}\n"
+
+    echo -e "${GREEN}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${GREEN}│  ${BOLD}1. 🚀 QUICK INSTALL (Recommended)${NC}${GREEN}                             │${NC}"
+    echo -e "${GREEN}│     Auto-detects your platform and installs everything         │${NC}"
+    echo -e "${GREEN}│     Works on: AWS, GCP, Azure, DigitalOcean, Linode, Vultr,    │${NC}"
+    echo -e "${GREEN}│               Oracle, Hetzner, VMs, and local Linux/Mac        │${NC}"
+    echo -e "${GREEN}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    echo -e "${BLUE}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${BLUE}│  ${BOLD}2. 🔧 CUSTOM INSTALL${NC}${BLUE}                                            │${NC}"
+    echo -e "${BLUE}│     Choose your machine name and enable ngrok                   │${NC}"
+    echo -e "${BLUE}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    echo -e "${MAGENTA}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${MAGENTA}│  ${BOLD}3. 📖 SHOW HELP & MANUAL INSTRUCTIONS${NC}${MAGENTA}                        │${NC}"
+    echo -e "${MAGENTA}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+
+    read -p "Enter your choice [1-3] (default: 1): " menu_choice
+    menu_choice=${menu_choice:-1}
+
+    case $menu_choice in
+        1)
+            echo -e "\n${GREEN}🚀 Starting Quick Install...${NC}\n"
+            ;;
+        2)
+            echo -e "\n${BLUE}🔧 Custom Install${NC}\n"
+            read -p "Enter machine name (or press Enter for auto-detect): " custom_name
+            if [ -n "$custom_name" ]; then
+                MACHINE_NAME="$custom_name"
+            fi
+
+            read -p "Install ngrok for internet tunneling? (y/N): " install_ngrok
+            if [ "$install_ngrok" = "y" ] || [ "$install_ngrok" = "Y" ]; then
+                WITH_NGROK=true
+                read -p "Enter ngrok authtoken (or press Enter to add later): " ngrok_input
+                if [ -n "$ngrok_input" ]; then
+                    NGROK_TOKEN="$ngrok_input"
+                fi
+            fi
+
+            read -p "Auto-start relay after install? (Y/n): " auto_start_input
+            if [ "$auto_start_input" != "n" ] && [ "$auto_start_input" != "N" ]; then
+                AUTO_START=true
+            fi
+            echo ""
+            ;;
+        3)
+            clear
+            echo -e "${CYAN}"
+            echo "╔═══════════════════════════════════════════════════════════════════╗"
+            echo "║              📖 MANUAL INSTALLATION GUIDE 📖                      ║"
+            echo "╚═══════════════════════════════════════════════════════════════════╝"
+            echo -e "${NC}"
+
+            echo -e "${BOLD}${GREEN}=== SUPPORTED PLATFORMS ===${NC}"
+            echo "  ☁️  Cloud: AWS, GCP, Azure, DigitalOcean, Linode, Vultr, Oracle, Hetzner"
+            echo "  💻 VMs: VirtualBox, VMware, UTM, Parallels, KVM, WSL2, Docker"
+            echo "  🐧 Linux: Debian, Ubuntu, Kali, RedHat, Arch, and more"
+            echo ""
+
+            echo -e "${BOLD}${BLUE}=== QUICK ONE-LINERS ===${NC}"
+            echo ""
+            echo "# Auto-detect everything (recommended):"
+            echo -e "${YELLOW}curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-relay-universal.sh | bash${NC}"
+            echo ""
+            echo "# Skip menu (for scripts/automation):"
+            echo -e "${YELLOW}curl -fsSL ... | bash -s -- -y${NC}"
+            echo ""
+            echo "# With custom name:"
+            echo -e "${YELLOW}curl -fsSL ... | bash -s -- --name \"MyRelay\"${NC}"
+            echo ""
+            echo "# With ngrok:"
+            echo -e "${YELLOW}curl -fsSL ... | bash -s -- --with-ngrok --ngrok-token YOUR_TOKEN${NC}"
+            echo ""
+            echo "# Force platform:"
+            echo -e "${YELLOW}curl -fsSL ... | bash -s -- --platform aws${NC}"
+            echo ""
+
+            echo -e "${BOLD}${MAGENTA}=== MANUAL STEPS ===${NC}"
+            echo ""
+            echo "1. Install Node.js 20.x:"
+            echo -e "${YELLOW}   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
+            echo "   sudo apt install -y nodejs${NC}"
+            echo ""
+            echo "2. Clone and setup:"
+            echo -e "${YELLOW}   git clone https://github.com/davidtkeane/rangerplex-ai.git"
+            echo "   cd rangerplex-ai/rangerblock/core"
+            echo "   npm install ws express${NC}"
+            echo ""
+            echo "3. Start relay:"
+            echo -e "${YELLOW}   node relay-server-bridge.cjs${NC}"
+            echo ""
+
+            echo -e "${BOLD}${RED}=== FIREWALL PORTS ===${NC}"
+            echo "  • 5555/tcp - WebSocket relay"
+            echo "  • 5556/tcp - HTTP dashboard"
+            echo ""
+
+            read -p "Press Enter to continue with installation, or Ctrl+C to exit..."
+            clear
+            echo -e "${CYAN}"
+            cat << 'BANNER'
+ ======================================================================
+       RANGERBLOCK RELAY SERVER - ONE-CLICK INSTALLER
+ ======================================================================
+       🐉 P2P Blockchain Network for Security Professionals 🐉
+       Created by IrishRanger + Claude Code (Ranger)
+       Version 2.2.0 - Multi-Cloud Auto-Detection (8 providers!)
+ ======================================================================
+BANNER
+            echo -e "${NC}"
+            ;;
+        *)
+            echo -e "${RED}Invalid choice. Using Quick Install...${NC}\n"
+            ;;
+    esac
+fi
 
 # =====================================================================
 # CHECK FOR EXISTING INSTALLATION
