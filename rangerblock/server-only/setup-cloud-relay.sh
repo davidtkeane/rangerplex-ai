@@ -302,14 +302,14 @@ PACKAGE_EOF
     "peers": [
       {
         "name": "ngrok-ireland",
-        "host": "2.tcp.eu.ngrok.io",
-        "port": 12232,
+        "host": "YOUR_NGROK_HOST_HERE",
+        "port": 12345,
         "enabled": true,
         "comment": "M3Pro Genesis via ngrok tunnel"
       },
       {
         "name": "kali-cloud",
-        "host": "34.26.30.249",
+        "host": "YOUR_CLOUD_IP_HERE",
         "port": 5555,
         "enabled": true,
         "comment": "Google Cloud 24/7 relay"

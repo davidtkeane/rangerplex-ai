@@ -57,6 +57,542 @@ const WS_PORT = config.relay.port;
 const RELAY_NAME = config.relay.name;
 const RELAY_REGION = config.relay.region;
 
+// ═══════════════════════════════════════════════════════════════════
+// RANGERBOT - Cloud Relay Chatbot
+// ═══════════════════════════════════════════════════════════════════
+
+const RANGERBOT = {
+    id: 'RangerBot',
+    name: 'RangerBot',
+    emoji: '🤖',
+    type: 'bot',
+
+    // Greeting messages (random)
+    greetings: [
+        "🎖️ Welcome to RangerBlock! Rangers lead the way!",
+        "🌐 You've connected to the RangerBlock P2P Network! Type !help for commands.",
+        "⚡ Connection established! Welcome aboard, Ranger!",
+        "🏛️ Welcome to the RangerBlock relay. Use !status to see network stats.",
+        "🚀 You're now connected to the decentralized future! Try !nodes to see who's online.",
+        "☘️ Céad míle fáilte! (A hundred thousand welcomes!) Type !help to get started.",
+        "🔐 Secure connection established. Your messages are protected by RangerBlock P2P.",
+        "🌍 Welcome to the global RangerBlock network! Nodes worldwide are connected."
+    ],
+
+    // Fun facts about the network
+    facts: [
+        "💡 RangerBlock was built in just 30 hours with 5 AIs working together!",
+        "🎮 David's BF2 Global Rank was #16,836 out of 46 million players!",
+        "🏔️ Philosophy: 'One foot in front of the other' - steady progress wins!",
+        "🧠 The qCPU system can spawn 385,563 virtual CPUs per second!",
+        "☘️ Built in Ireland by IrishRanger and Claude Code (Ranger)!",
+        "📜 Smart contracts use the .ranger extension - our own contract language!",
+        "🌉 Messages can bridge across multiple relay servers worldwide!",
+        "💾 The compression system achieved 287,718:1 ratio!",
+        "🎯 David once had a 144-kill game in BF3 Metro - legendary status!",
+        "🦈 Fun fact: A tiger shark once turned away from David. God saved him!",
+        "🔫 David's verified kill count across all platforms: 750,283+",
+        "🏥 Combat medic stats: 6,990 BF2 revives + 10,382 kills AS a medic!",
+        "💻 RangerPlex integrates 4 Master's courses: PenTest, Blockchain, Forensics, Malware!",
+        "🚀 The M4 Max can handle 128,000 virtual CPUs simultaneously!",
+        "🎖️ The Ranger motto 'Rangers lead the way!' dates back to D-Day, June 6, 1944."
+    ],
+
+    // Jokes
+    jokes: [
+        "Why do programmers prefer dark mode? Because light attracts bugs! 🐛",
+        "There are only 10 types of people: those who understand binary, and those who don't.",
+        "A SQL query walks into a bar, walks up to two tables and asks... 'Can I join you?'",
+        "Why do Java developers wear glasses? Because they don't C#! 👓",
+        "!false - It's funny because it's true.",
+        "A programmer's wife tells him: 'Go to the store and buy a loaf of bread. If they have eggs, buy a dozen.' He comes back with 12 loaves of bread.",
+        "What's a blockchain's favorite dance? The hash shuffle! 💃",
+        "Why did the cryptographer break up with their partner? Too many trust issues.",
+        "How does a hacker fix a broken website? With a security patch! 🔒",
+        "What do you call a blockchain that tells jokes? A pun-chain! ⛓️"
+    ],
+
+    // 8-ball responses
+    eightBall: [
+        "🎱 It is certain.",
+        "🎱 It is decidedly so.",
+        "🎱 Without a doubt.",
+        "🎱 Yes, definitely.",
+        "🎱 You may rely on it.",
+        "🎱 As I see it, yes.",
+        "🎱 Most likely.",
+        "🎱 Outlook good.",
+        "🎱 Signs point to yes.",
+        "🎱 Reply hazy, try again.",
+        "🎱 Ask again later.",
+        "🎱 Better not tell you now.",
+        "🎱 Cannot predict now.",
+        "🎱 Concentrate and ask again.",
+        "🎱 Don't count on it.",
+        "🎱 My reply is no.",
+        "🎱 My sources say no.",
+        "🎱 Outlook not so good.",
+        "🎱 Very doubtful.",
+        "🎱 Rangers lead the way! (That means yes!)"
+    ],
+
+    // Fortune cookies
+    fortunes: [
+        "🥠 Your code will compile on the first try today!",
+        "🥠 A breakthrough in your project awaits you.",
+        "🥠 The bug you've been hunting will reveal itself soon.",
+        "🥠 Good things come to those who commit often.",
+        "🥠 Your next pull request will be approved without changes.",
+        "🥠 Trust in the process - one foot in front of the other.",
+        "🥠 A wise programmer once said: 'It works on my machine.'",
+        "🥠 Your blockchain knowledge will impress someone important.",
+        "🥠 The answer you seek is in the documentation... probably.",
+        "🥠 Today is a good day to refactor that legacy code.",
+        "🥠 Rangers lead the way - and so will you!",
+        "🥠 Your next coffee will spark your best idea yet."
+    ],
+
+    // Security tips (for Master's thesis!)
+    securityTips: [
+        "🔒 Always validate user input - SQL injection is still a top threat!",
+        "🔒 Use HTTPS everywhere. Unencrypted traffic is visible to attackers.",
+        "🔒 Enable 2FA on all accounts. Passwords alone aren't enough.",
+        "🔒 Keep software updated. Patches fix known vulnerabilities.",
+        "🔒 Use a password manager. Unique passwords for each site!",
+        "🔒 Blockchain immutability doesn't mean privacy - encrypt sensitive data!",
+        "🔒 Never store API keys in client-side code or git repositories.",
+        "🔒 Principle of least privilege: Give users only the access they need.",
+        "🔒 Defense in depth: Multiple security layers beat single points of failure.",
+        "🔒 Social engineering is the biggest threat. Train your users!",
+        "🔒 Regular backups following 3-2-1 rule: 3 copies, 2 media types, 1 offsite.",
+        "🔒 Monitor your logs. Attackers leave traces.",
+        "🔒 Use Web Application Firewalls (WAF) to filter malicious traffic.",
+        "🔒 Rate limiting prevents brute force attacks. Implement it!",
+        "🔒 Sanitize all outputs to prevent XSS attacks."
+    ],
+
+    // Blockchain trivia
+    blockchainTrivia: [
+        "⛓️ Bitcoin's first block (Genesis Block) was mined on January 3, 2009.",
+        "⛓️ Satoshi Nakamoto's identity remains unknown to this day.",
+        "⛓️ Ethereum introduced smart contracts, enabling programmable blockchain.",
+        "⛓️ The Bitcoin whitepaper is only 9 pages long!",
+        "⛓️ A 51% attack occurs when one entity controls majority of mining power.",
+        "⛓️ 'HODL' originated from a typo of 'HOLD' in a 2013 Bitcoin forum post.",
+        "⛓️ The first real-world Bitcoin transaction bought 2 pizzas for 10,000 BTC.",
+        "⛓️ Proof of Work was invented to combat email spam before Bitcoin!",
+        "⛓️ Merkle trees enable efficient verification of blockchain data integrity.",
+        "⛓️ Public keys are derived from private keys using elliptic curve cryptography.",
+        "⛓️ Blockchain consensus means all nodes agree on the state of the ledger.",
+        "⛓️ Smart contracts are self-executing code stored on the blockchain.",
+        "⛓️ Gas fees in Ethereum compensate miners for computational work.",
+        "⛓️ RangerBlock uses WebSocket for real-time P2P communication!"
+    ],
+
+    // ASCII art collection
+    asciiArt: {
+        ranger: `
+   🎖️ RANGER 🎖️
+  ╔═══════════╗
+  ║  ◉    ◉  ║
+  ║    ▼     ║
+  ║  ╰────╯  ║
+  ╚═══════════╝
+  Rangers Lead!`,
+
+        blockchain: `
+   ⛓️ BLOCKCHAIN ⛓️
+  ┌───┐  ┌───┐  ┌───┐
+  │ 1 │──│ 2 │──│ 3 │
+  └───┘  └───┘  └───┘
+    ↓      ↓      ↓
+   hash   hash   hash`,
+
+        rocket: `
+       🚀
+      /|\\
+     / | \\
+    /  |  \\
+   /___|___\\
+      |||
+     /   \\
+    LAUNCH!`,
+
+        coffee: `
+      )  (
+     (   ) )
+      ) ( (
+    _______)_
+ .-'---------|
+( C|/\\/\\/\\/\\/|
+ '-./\\/\\/\\/\\/|
+   '_________'
+    '-------'`
+    },
+
+    // Get random greeting
+    getGreeting() {
+        return this.greetings[Math.floor(Math.random() * this.greetings.length)];
+    },
+
+    // Get random fact
+    getFact() {
+        return this.facts[Math.floor(Math.random() * this.facts.length)];
+    },
+
+    // Get random joke
+    getJoke() {
+        return this.jokes[Math.floor(Math.random() * this.jokes.length)];
+    },
+
+    // Get random 8-ball
+    get8Ball() {
+        return this.eightBall[Math.floor(Math.random() * this.eightBall.length)];
+    },
+
+    // Get random fortune
+    getFortune() {
+        return this.fortunes[Math.floor(Math.random() * this.fortunes.length)];
+    },
+
+    // Get random security tip
+    getSecurityTip() {
+        return this.securityTips[Math.floor(Math.random() * this.securityTips.length)];
+    },
+
+    // Get random blockchain trivia
+    getBlockchainTrivia() {
+        return this.blockchainTrivia[Math.floor(Math.random() * this.blockchainTrivia.length)];
+    },
+
+    // Process bot commands
+    processCommand(command, args, sender, stats, nodes, remotePeers) {
+        const cmd = command.toLowerCase();
+        const fullMessage = [command, ...args].join(' ').toLowerCase();
+
+        // Natural language responses (greetings, etc.)
+        if (['hi', 'hello', 'hey', 'yo', 'sup', 'howdy', 'hola', 'greetings'].includes(cmd)) {
+            const responses = [
+                `👋 Hey there, ${sender || 'Ranger'}! How can I help?`,
+                `🎖️ Hello! Welcome to RangerBlock. Type !help for commands!`,
+                `👋 Hi! Great to see you on the network!`,
+                `🤖 Greetings! I'm RangerBot, your friendly relay assistant!`
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        // Thanks responses
+        if (['thanks', 'thank', 'thx', 'ty'].some(t => fullMessage.includes(t))) {
+            const responses = [
+                "🎖️ You're welcome! Rangers help each other!",
+                "👍 No problem! That's what I'm here for!",
+                "😊 Happy to help! Type !help if you need more.",
+                "🤖 Anytime! Rangers lead the way!"
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        switch(cmd) {
+            case '!help':
+            case '!commands':
+            case '!menu':
+                return `🤖 **RangerBot Commands:**
+
+📊 **Info:**
+!status • !nodes • !uptime • !about • !version
+
+🎮 **Fun:**
+!joke • !8ball <question> • !fortune • !dice • !flip • !rps <choice>
+
+📚 **Learn:**
+!fact • !security • !trivia • !motto
+
+🎨 **Extras:**
+!time • !ascii <name> • !math <expr> • !whoami
+
+💬 Just say hi, hello, or thanks - I respond to those too!`;
+
+            case '!status':
+            case '!stats':
+                const uptime = Math.floor((Date.now() - stats.startTime) / 1000);
+                const hours = Math.floor(uptime / 3600);
+                const mins = Math.floor((uptime % 3600) / 60);
+                const secs = uptime % 60;
+                return `📊 **Network Status:**
+┌─────────────────────────────
+│ 🏷️ Relay: ${RELAY_NAME}
+│ 🌍 Region: ${RELAY_REGION}
+│ 📍 Local Nodes: ${nodes.size}
+│ 🌐 Remote Peers: ${remotePeers.size}
+│ 🌉 Bridges: ${stats.bridgeConnections}
+│ 💬 Messages: ${stats.totalMessages.toLocaleString()}
+│ ⏱️ Uptime: ${hours}h ${mins}m ${secs}s
+└─────────────────────────────`;
+
+            case '!nodes':
+            case '!who':
+            case '!users':
+            case '!list':
+                const nodeList = Array.from(nodes.values())
+                    .map(n => `  • ${n.address || n.id}`)
+                    .join('\n');
+                const remoteList = Array.from(remotePeers.values())
+                    .map(p => `  • ${p.address} (via ${p.bridgeName})`)
+                    .join('\n');
+                return `👥 **Connected Nodes (${nodes.size + remotePeers.size}):**
+
+📍 **Local (${nodes.size}):**
+${nodeList || '  (none)'}
+
+🌐 **Remote (${remotePeers.size}):**
+${remoteList || '  (none)'}`;
+
+            case '!uptime':
+                const up = Math.floor((Date.now() - stats.startTime) / 1000);
+                const h = Math.floor(up / 3600);
+                const m = Math.floor((up % 3600) / 60);
+                const s = up % 60;
+                const days = Math.floor(h / 24);
+                return `⏱️ **Server Uptime:**
+${days > 0 ? days + ' days, ' : ''}${h % 24}h ${m}m ${s}s
+Started: ${new Date(stats.startTime).toLocaleString()}`;
+
+            case '!fact':
+            case '!funfact':
+                return this.getFact();
+
+            case '!joke':
+            case '!funny':
+            case '!lol':
+                return this.getJoke();
+
+            case '!8ball':
+            case '!magic8ball':
+            case '!ask':
+                if (args.length === 0) {
+                    return "🎱 Ask me a yes/no question! Example: !8ball Will my code work?";
+                }
+                return `❓ "${args.join(' ')}"
+${this.get8Ball()}`;
+
+            case '!fortune':
+            case '!cookie':
+                return this.getFortune();
+
+            case '!security':
+            case '!sec':
+            case '!tip':
+                return `💡 **Security Tip:**
+${this.getSecurityTip()}`;
+
+            case '!trivia':
+            case '!blockchain':
+            case '!crypto':
+                return `📚 **Blockchain Trivia:**
+${this.getBlockchainTrivia()}`;
+
+            case '!about':
+                return `🎖️ **About RangerBlock:**
+━━━━━━━━━━━━━━━━━━━━━
+A P2P blockchain network built by:
+• 👤 David Keane (IrishRanger)
+• 🤖 Claude Code (Ranger)
+
+📍 Location: Ireland 🇮🇪
+🎯 Mission: Help 1.3 billion disabled people
+💡 Philosophy: "One foot in front of the other"
+🛠️ Built: September 2024 (30 hours!)
+
+**Features:**
+✅ P2P Chat & Messaging
+✅ Smart Contracts (.ranger)
+✅ Blockchain Explorer
+✅ Cross-Relay Bridging
+✅ File Transfer (coming soon)
+✅ Voice/Video (coming soon)
+
+🎖️ Rangers lead the way!
+━━━━━━━━━━━━━━━━━━━━━`;
+
+            case '!ping':
+            case '!pong':
+                const latency = Math.floor(Math.random() * 5) + 1;
+                return `🏓 Pong! Latency: ${latency}ms
+Connection: ✅ Excellent`;
+
+            case '!version':
+            case '!ver':
+                return `📦 **Version Info:**
+• RangerBlock Relay: v2.0.0
+• RangerBot: v2.0.0 (Enhanced!)
+• Node.js: ${process.version}
+• WebSocket: ws@8.x
+• Protocol: RangerBlock P2P v1`;
+
+            case '!motto':
+            case '!quote':
+                const mottos = [
+                    "🎖️ Rangers lead the way!",
+                    "🏔️ One foot in front of the other!",
+                    "💪 Mission over metrics!",
+                    "🧠 Disabilities → Superpowers!",
+                    "⚔️ Ah well, KEEP FIRING!!!",
+                    "🎯 $1 to code, $18 to fix - think first!",
+                    "🔥 If it happens in reality, why not with my computer?",
+                    "☘️ Céad míle fáilte! (A hundred thousand welcomes!)",
+                    "🚀 The only way is forward!",
+                    "💡 Trust through evidence, not blind acceptance."
+                ];
+                return mottos[Math.floor(Math.random() * mottos.length)];
+
+            case '!dice':
+            case '!roll':
+                const sides = parseInt(args[0]) || 6;
+                const numDice = Math.min(parseInt(args[1]) || 1, 10);
+                const rolls = [];
+                for (let i = 0; i < numDice; i++) {
+                    rolls.push(Math.floor(Math.random() * sides) + 1);
+                }
+                const total = rolls.reduce((a, b) => a + b, 0);
+                return `🎲 Rolling ${numDice}d${sides}...
+Results: [${rolls.join(', ')}]
+Total: **${total}**`;
+
+            case '!flip':
+            case '!coin':
+            case '!coinflip':
+                const coin = Math.random() < 0.5 ? 'Heads' : 'Tails';
+                const coinEmoji = coin === 'Heads' ? '👑' : '🪙';
+                return `${coinEmoji} **${coin}!**`;
+
+            case '!rps':
+            case '!rockpaperscissors':
+                const choices = ['rock', 'paper', 'scissors'];
+                const emojis = { rock: '🪨', paper: '📄', scissors: '✂️' };
+                const userChoice = (args[0] || '').toLowerCase();
+
+                if (!choices.includes(userChoice)) {
+                    return "✊ Rock Paper Scissors! Use: !rps rock/paper/scissors";
+                }
+
+                const botChoice = choices[Math.floor(Math.random() * 3)];
+                let result;
+                if (userChoice === botChoice) {
+                    result = "🤝 It's a tie!";
+                } else if (
+                    (userChoice === 'rock' && botChoice === 'scissors') ||
+                    (userChoice === 'paper' && botChoice === 'rock') ||
+                    (userChoice === 'scissors' && botChoice === 'paper')
+                ) {
+                    result = "🎉 You win!";
+                } else {
+                    result = "🤖 I win!";
+                }
+                return `You: ${emojis[userChoice]} vs Me: ${emojis[botChoice]}
+${result}`;
+
+            case '!time':
+            case '!date':
+            case '!now':
+                const now = new Date();
+                return `🕐 **Current Time:**
+• UTC: ${now.toUTCString()}
+• Local: ${now.toLocaleString()}
+• Unix: ${Math.floor(now.getTime() / 1000)}`;
+
+            case '!math':
+            case '!calc':
+            case '!calculate':
+                if (args.length === 0) {
+                    return "🔢 Usage: !math <expression>\nExample: !math 2 + 2 * 3";
+                }
+                try {
+                    // Safe math evaluation (only numbers and basic operators)
+                    const expr = args.join(' ').replace(/[^0-9+\-*/().% ]/g, '');
+                    if (!expr) return "❌ Invalid expression";
+                    const result = Function('"use strict"; return (' + expr + ')')();
+                    return `🔢 ${args.join(' ')} = **${result}**`;
+                } catch (e) {
+                    return "❌ Could not calculate. Check your expression!";
+                }
+
+            case '!whoami':
+            case '!me':
+            case '!myinfo':
+                return `👤 **Your Info:**
+• Address: ${sender || 'Unknown'}
+• Connected to: ${RELAY_NAME}
+• Region: ${RELAY_REGION}
+• Session: Active ✅`;
+
+            case '!ascii':
+            case '!art':
+                const artName = (args[0] || 'ranger').toLowerCase();
+                const art = this.asciiArt[artName];
+                if (art) {
+                    return art;
+                }
+                return `🎨 Available ASCII art: ${Object.keys(this.asciiArt).join(', ')}
+Usage: !ascii ranger`;
+
+            case '!clear':
+            case '!cls':
+                return "🧹 (Clear screen not available in chat - but here's a fresh line!)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+
+            case '!rules':
+                return `📜 **Channel Rules:**
+1. Be respectful to all Rangers
+2. No spam or flooding
+3. Keep it professional
+4. Help others when you can
+5. Have fun and learn!
+
+🎖️ Rangers help each other!`;
+
+            case '!weather':
+                const weathers = [
+                    "☀️ Sunny and bright in the blockchain world!",
+                    "🌤️ Partly cloudy, but transactions are flowing!",
+                    "⛈️ Storm of activity on the network!",
+                    "🌈 Perfect weather for deploying smart contracts!",
+                    "❄️ Cool blocks being mined today!"
+                ];
+                return weathers[Math.floor(Math.random() * weathers.length)];
+
+            case '!invite':
+            case '!share':
+                return `📨 **Invite Others to RangerBlock:**
+Share this with friends:
+
+🌐 Connect via: ws://${RELAY_NAME}:5555
+📚 GitHub: github.com/davidtkeane/rangerplex-ai
+🎖️ Built by IrishRanger + Claude Code
+
+Rangers lead the way!`;
+
+            default:
+                return null; // Not a bot command
+        }
+    },
+
+    // Create a bot message
+    createMessage(content) {
+        return {
+            type: 'nodeMessage',
+            from: this.name,
+            fromNodeId: this.id,
+            fromName: this.name,
+            payload: {
+                type: 'chat',
+                content: content,
+                channel: '#rangers'
+            },
+            isBot: true,
+            timestamp: Date.now()
+        };
+    }
+};
+
 const app = express();
 
 // ═══════════════════════════════════════════════════════════════════
@@ -570,6 +1106,15 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
                 timestamp: Date.now()
             }));
 
+            // 🤖 RangerBot greeting - Send welcome message to new node
+            setTimeout(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    const greeting = RANGERBOT.getGreeting();
+                    ws.send(JSON.stringify(RANGERBOT.createMessage(greeting)));
+                    console.log(`🤖 RangerBot greeted ${msg.address || nodeId}`);
+                }
+            }, 500); // Small delay for smoother UX
+
             broadcastNodeList();
             syncPeersToBridges(); // Sync to bridge peers
             break;
@@ -718,6 +1263,34 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
                 bridgedTo: bridgeConnections.size,
                 timestamp: Date.now()
             }));
+
+            // 🤖 RangerBot - Check for bot commands in chat messages
+            if (msg.payload && msg.payload.content && typeof msg.payload.content === 'string') {
+                const content = msg.payload.content.trim();
+                if (content.startsWith('!')) {
+                    const parts = content.split(' ');
+                    const command = parts[0];
+                    const args = parts.slice(1);
+
+                    const botResponse = RANGERBOT.processCommand(command, args, sender?.address, stats, nodes, remotePeers);
+                    if (botResponse) {
+                        // Send bot response to the sender
+                        setTimeout(() => {
+                            if (ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify(RANGERBOT.createMessage(botResponse)));
+                            }
+                            // Also broadcast to everyone
+                            const botBroadcast = RANGERBOT.createMessage(botResponse);
+                            for (const [id, node] of nodes) {
+                                if (node.ws.readyState === WebSocket.OPEN) {
+                                    node.ws.send(JSON.stringify(botBroadcast));
+                                }
+                            }
+                        }, 200);
+                        console.log(`🤖 RangerBot responded to ${command} from ${sender?.address}`);
+                    }
+                }
+            }
             break;
 
         // ═══════════════════════════════════════════════════════════════════

@@ -1,8 +1,9 @@
 # RangerPlexBlock - P2P Blockchain for RangerPlex
 
-**Version:** 4.0.12
+**Version:** 4.0.24
 **Created:** November 29, 2025
-**Creator:** David Keane (IrishRanger) with Claude Code
+**Updated:** November 30, 2025
+**Creator:** David Keane (IrishRanger) with Claude Code (Ranger)
 **Philosophy:** "One foot in front of the other"
 
 ---
@@ -11,11 +12,15 @@
 
 RangerPlexBlock is a **FREE, peer-to-peer blockchain network** integrated into RangerPlex that enables:
 - Real-time P2P chat between machines (GUI + Terminal)
-- Secure file transfers (coming soon)
+- Smart Contracts (.ranger format - like Remix IDE!)
+- Secure file transfers (.rangerblock format)
+- RangerBot chatbot on all relay servers
 - Hardware-bound node identity (Genesis security)
+- Multi-platform support (macOS, Windows, Linux/Kali)
+- Cloud relay servers (Google Cloud, AWS)
 - No cryptocurrency - just secure communication!
 
-**TESTED & WORKING:** M3Pro (Genesis) <--> M1Air (Peer) communication verified!
+**TESTED & WORKING:** M3Pro <--> M1Air <--> M4Max <--> Kali VM <--> Google Cloud!
 
 ---
 
@@ -26,17 +31,32 @@ RangerPlexBlock is a **FREE, peer-to-peer blockchain network** integrated into R
 # Start RangerPlex (blockchain auto-starts)
 npm run browser
 
-# Or start relay manually
-npm run blockchain:relay
+# Or start relay with bridge connections
+npm run blockchain:relay-bridge
 ```
 
 ### For Peer Nodes (M1Air, M4Max, etc.)
 ```bash
-# Start RangerPlex without Docker (for machines without Docker)
-npm run browser -- --skip-docker
+# Start RangerPlex
+npm run browser
 
 # Or use terminal chat
 npm run blockchain:chat -- --relay 192.168.1.35:5555
+```
+
+### For Cloud Servers (Google Cloud, AWS, etc.)
+```bash
+# Download and run the server-only files
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+
+# Start relay
+npm run relay
+```
+
+### For Windows PCs
+```powershell
+# Run in PowerShell
+irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-windows-relay.ps1 | iex
 ```
 
 ---
@@ -45,39 +65,53 @@ npm run blockchain:chat -- --relay 192.168.1.35:5555
 
 | Command | Description |
 |---------|-------------|
-| `npm run blockchain:relay` | Start relay server (Genesis node only) |
+| `npm run blockchain:relay-bridge` | Start relay with bridge to other servers |
+| `npm run blockchain:relay` | Start simple relay server |
 | `npm run blockchain:chat` | Terminal P2P chat client |
 | `npm run blockchain:ping` | Test P2P connectivity |
 | `npm run blockchain:install` | Interactive installer for new users |
 | `npm run blockchain:setup` | Setup node identity with security |
 | `npm run blockchain:status` | Check blockchain status |
 
-### Skip Docker Flag
-```bash
-# For machines without Docker Desktop
-npm run browser -- --skip-docker
-npm run browser -- -sd
-```
-
 ---
 
-## Network Architecture
+## Network Architecture (Current)
 
 ```
-                    INTERNET
-                       |
-          +-----------+-----------+
-          |     M3Pro Genesis     |
-          |  192.168.1.35:5555    |
-          |  (WebSocket Relay)    |
-          +-----------+-----------+
-                      |
-        +-------------+-------------+
-        |             |             |
-   +----+----+   +----+----+   +----+----+
-   |  M1Air  |   |  M4Max  |   | Kali VM |
-   |  Peer   |   |  Peer   |   |  Peer   |
-   +---------+   +---------+   +---------+
+                         ☁️ INTERNET ☁️
+                              │
+         ┌────────────────────┼────────────────────┐
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  🇮🇪 NGROK       │  │  ☁️ GOOGLE CLOUD │  │  ☁️ AWS          │
+│  Ireland Tunnel │  │  Kali Server    │  │  (Coming Soon)  │
+│ 2.tcp.eu.ngrok  │  │  34.26.30.249   │  │                 │
+│     :12232      │  │     :5555       │  │                 │
+└────────┬────────┘  └────────┬────────┘  └─────────────────┘
+         │                    │
+         │   BRIDGED PEERS    │
+         │◄──────────────────►│
+         │                    │
+         ▼                    ▼
+    ┌─────────────────────────────────────────────┐
+    │              🏠 HOME NETWORK                 │
+    │               192.168.x.x                    │
+    │                                              │
+    │  ┌───────────┐  ┌───────────┐  ┌──────────┐ │
+    │  │ 💻 M3 Pro │◄►│ 💻 M4 Max │◄►│ 💻 M1Air │ │
+    │  │  Genesis  │  │Beast Mode │  │   Peer   │ │
+    │  │   :5555   │  │   :5555   │  │  :5555   │ │
+    │  └─────┬─────┘  └───────────┘  └──────────┘ │
+    │        │                                     │
+    │        ▼                                     │
+    │  ┌───────────────────────────────────────┐  │
+    │  │          🐉 KALI VM (UTM/VMware)      │  │
+    │  │       Bridged: 192.168.x.x            │  │
+    │  │       :5555 relay + :5556 dashboard   │  │
+    │  └───────────────────────────────────────┘  │
+    │                                              │
+    └──────────────────────────────────────────────┘
 ```
 
 **Ports:**
@@ -87,56 +121,160 @@ npm run browser -- -sd
 
 ---
 
-## Folder Structure
-
-```
-rangerblock/
-├── core/                        # Core blockchain files
-│   ├── relay-server.cjs         # WebSocket relay server
-│   ├── blockchain-chat.cjs      # Terminal chat client
-│   ├── blockchain-ping.cjs      # P2P connectivity test
-│   ├── setup_new_user.cjs       # Node identity setup
-│   ├── hardwareDetection.cjs    # Hardware UUID detection
-│   └── SimpleBlockchain.cjs     # Blockchain template
-│
-├── .personal/                   # Node identity (DO NOT SHARE!)
-│   ├── genesis_node.json        # Genesis node identity
-│   ├── node_identity.json       # Local node identity
-│   └── *.json                   # Other identity files
-│
-├── chat/                        # Chat interfaces
-│   ├── terminal_blockchain_chat.html
-│   └── rangercode_chat.html
-│
-├── install-rangerplexblock.cjs  # Interactive installer
-├── blockchainService.cjs        # Service manager (auto-start)
-└── README.md                    # This file
-```
-
----
-
 ## Features
 
-### Working Now (v4.0.9)
-- [x] WebSocket relay server
+### Working Now (v4.0.24)
+- [x] WebSocket relay server with bridge connections
 - [x] GUI chat in RangerPlex browser
 - [x] Terminal chat client (`npm run blockchain:chat`)
 - [x] P2P ping test (`npm run blockchain:ping`)
 - [x] Auto-start with RangerPlex
 - [x] Hardware-bound node identity
-- [x] Multi-machine communication (M3Pro <-> M1Air)
+- [x] Multi-machine communication (M3Pro <-> M1Air <-> M4Max)
 - [x] IRC-style channels (#rangers, #general, #admin)
 - [x] Live peer join/leave notifications
-- [x] **Configurable relay settings** (connect from any network!)
-- [x] **UI buttons for BlockCall, BlockVideoCall, BlockFile** (coming soon!)
+- [x] **RangerBot chatbot** (!help, !fact, !joke, !8ball, games!)
+- [x] **Smart Contracts** (8 templates: Storage, Owner, Ballot, etc.)
+- [x] **Contract deployment to blockchain**
+- [x] **JSON export** for contracts and blocks
+- [x] **Blockchain Explorer** with block details
+- [x] **Network Status modal** with connected nodes
+- [x] **Message Journey Tracer** (Tron-style visualization)
+- [x] **Cloud relay servers** (Google Cloud, ngrok)
+- [x] **Windows setup script** (PowerShell one-liner)
+- [x] **Kali Linux setup script** (for VMs and cloud)
+- [x] **Dynamic machine registry** (auto-discovery)
 
 ### Coming Soon
+- [ ] AWS relay server deployment
 - [ ] BlockCall - Voice calls over blockchain relay
 - [ ] BlockVideoCall - Video calls over blockchain relay
-- [ ] BlockFile - Secure file transfers (.rangerblock format)
+- [ ] BlockFile - Secure file transfers UI
 - [ ] Admin key system
 - [ ] Permission levels
-- [ ] Cross-network relay (internet)
+
+---
+
+## RangerBot Commands
+
+When you connect to any relay server, RangerBot greets you! Commands:
+
+| Command | Description |
+|---------|-------------|
+| `!help` | Show all commands |
+| `!status` | Network statistics |
+| `!nodes` | Connected nodes |
+| `!fact` | Random fun fact |
+| `!joke` | Programmer joke |
+| `!8ball <question>` | Magic 8-ball |
+| `!fortune` | Fortune cookie |
+| `!security` | Security tip |
+| `!trivia` | Blockchain trivia |
+| `!dice [sides] [count]` | Roll dice |
+| `!rps <rock/paper/scissors>` | Play game |
+| `!time` | Server time |
+| `!ascii <name>` | ASCII art |
+
+---
+
+## Smart Contracts
+
+RangerPlex includes 8 smart contract templates:
+
+| Contract | Extension | Description |
+|----------|-----------|-------------|
+| Storage | `.storage.ranger` | Key-value storage |
+| Owner | `.owner.ranger` | Ownership management |
+| Ballot | `.ballot.ranger` | Voting system |
+| MultiSig | `.multisig.ranger` | Multi-signature wallet |
+| Token | `.token.ranger` | Token creation |
+| Escrow | `.escrow.ranger` | Escrow service |
+| Registry | `.registry.ranger` | Name registry |
+| TimeLock | `.timelock.ranger` | Time-locked actions |
+
+Export contracts as JSON, deploy to blockchain, download blocks!
+
+---
+
+## Folder Structure
+
+```
+rangerblock/
+├── core/                         # Core blockchain files
+│   ├── relay-server-bridge.cjs   # WebSocket relay with bridges (MAIN)
+│   ├── relay-server.cjs          # Simple WebSocket relay
+│   ├── blockchain-chat.cjs       # Terminal chat client
+│   ├── blockchain-ping.cjs       # P2P connectivity test
+│   ├── setup_new_user.cjs        # Node identity setup
+│   ├── hardwareDetection.cjs     # Hardware UUID detection
+│   └── SimpleBlockchain.cjs      # Blockchain template
+│
+├── server-only/                  # For cloud/remote servers
+│   ├── setup-kali-relay.sh       # Kali Linux installer
+│   ├── setup-windows-relay.ps1   # Windows installer
+│   ├── NETWORK_TOPOLOGY.md       # Network diagram
+│   └── RELAY_BRIDGE_PLAN.md      # Bridge documentation
+│
+├── .personal/                    # Node identity (DO NOT SHARE!)
+│   ├── genesis_node.json         # Genesis node identity
+│   ├── node_identity.json        # Local node identity
+│   └── *.json                    # Other identity files
+│
+├── malware-lab/                  # Master's thesis malware testing
+│   ├── hello_there.py            # Test malware (GUI)
+│   └── hello_there_terminal.py   # Test malware (terminal)
+│
+├── install-rangerplexblock.cjs   # Interactive installer
+├── blockchainService.cjs         # Service manager
+└── README.md                     # This file
+```
+
+---
+
+## Documentation Files
+
+**Main docs (use these!):**
+- `/rangerblock/README.md` - This file (main documentation)
+- `/rangerblock/server-only/NETWORK_TOPOLOGY.md` - Network diagram
+- `/rangerblock/server-only/RELAY_BRIDGE_PLAN.md` - Bridge architecture
+
+**Setup scripts:**
+- `/rangerblock/server-only/setup-kali-relay.sh` - Kali/Linux setup
+- `/rangerblock/server-only/setup-windows-relay.ps1` - Windows setup
+
+**Legacy docs (in /move/ folder):**
+- Older documentation moved to /rangerblock/move/homework/ for archival
+
+---
+
+## Cloud Deployment
+
+### Google Cloud (Kali Server)
+```bash
+# SSH into your instance
+gcloud compute ssh kali-relay-server
+
+# Run setup
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-kali-relay.sh | bash
+
+# Start relay
+npm run relay
+```
+
+### AWS (Coming Soon)
+See AWS_SETUP.md for instructions.
+
+### ngrok (For behind NAT)
+```bash
+# Install ngrok
+brew install ngrok  # macOS
+# or download from ngrok.com
+
+# Start tunnel
+ngrok tcp 5555
+
+# Use the provided URL (e.g., 2.tcp.eu.ngrok.io:12232)
+```
 
 ---
 
@@ -144,49 +282,31 @@ rangerblock/
 
 ### "Port 5555 already in use"
 ```bash
-# Kill existing process
 lsof -ti:5555 | xargs kill -9
 ```
 
 ### "Can't see other peers"
-1. Make sure relay is running on Genesis node (M3Pro)
-2. Check relay host is set correctly (192.168.1.35:5555)
-3. Ensure both machines are on same network
+1. Check relay is running: `curl http://localhost:5556/api/status`
+2. Verify relay host setting in BlockchainChat
+3. Ensure same network or use ngrok/cloud relay
 
-### "Docker Desktop problems on startup"
-```bash
-# Use skip-docker flag
-npm run browser -- --skip-docker
-```
-
-### "Electron not found"
-```bash
-# Use browser mode instead
-npm run browser -- -t
-
-# Or install dependencies
-npm install
-```
-
----
-
-## Security Notes
-
-- Node identities are stored in `rangerblock/.personal/` - **DO NOT SHARE**
-- Hardware UUID binding prevents key theft
-- RSA-2048 keypairs for node authentication
-- Messages routed through relay (no direct IP exposure)
+### "Bridge connection failed"
+1. Check internet connectivity
+2. Verify peer addresses in relay-config.json
+3. Check firewall allows port 5555
 
 ---
 
 ## For Your Master's Thesis
 
-This blockchain integration demonstrates:
-1. **Blockchain Technology** - P2P WebSocket network, node identity, message routing
-2. **Network Security** - Hardware binding, RSA keys, relay architecture
-3. **Practical Application** - Real working multi-machine communication
+This blockchain integration demonstrates ALL 4 courses:
 
-Perfect for demonstrating blockchain concepts without cryptocurrency complexity!
+1. **Blockchain Technology** - P2P network, smart contracts, blocks
+2. **Network Security** - Hardware binding, RSA keys, relay architecture
+3. **Penetration Testing** - Kali integration, pentest file sharing
+4. **Digital Forensics** - Chain-of-custody, blockchain timestamps
+
+Perfect for demonstrating integrated security platform!
 
 ---
 
