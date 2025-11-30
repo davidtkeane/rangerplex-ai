@@ -236,6 +236,9 @@ install() {
             spin $!
             sudo apt-get install -y nodejs > /dev/null 2>&1 &
             spin $!
+            # Refresh PATH to find newly installed node
+            hash -r 2>/dev/null
+            export PATH="/usr/bin:/usr/local/bin:$PATH"
             success "Node.js installed"
         elif [[ "$DISTRO" == "redhat" ]]; then
             info "Installing via NodeSource..."
@@ -243,7 +246,21 @@ install() {
             spin $!
             sudo yum install -y nodejs > /dev/null 2>&1 &
             spin $!
+            # Refresh PATH to find newly installed node
+            hash -r 2>/dev/null
+            export PATH="/usr/bin:/usr/local/bin:$PATH"
             success "Node.js installed"
+        fi
+
+        # Verify node is now accessible
+        if ! command -v node &> /dev/null; then
+            # Try to find it
+            for nodepath in /usr/bin/node /usr/local/bin/node; do
+                if [ -x "$nodepath" ]; then
+                    export PATH="$(dirname $nodepath):$PATH"
+                    break
+                fi
+            done
         fi
 
         NODE_VERSION=$(node --version 2>/dev/null || echo "unknown")
@@ -374,6 +391,13 @@ IDENTITY
     echo ""
     echo -e "  ${WHITE}Ready to chat? Run: ${CYAN}${BOLD}./just-chat.sh -c${NC}"
     echo ""
+
+    # Ask user if they want to start chatting now
+    read -p "  Start chatting now? (Y/n): " start_chat
+    if [[ ! "$start_chat" =~ ^[Nn]$ ]]; then
+        echo ""
+        chat
+    fi
 }
 
 # ============================================================================
