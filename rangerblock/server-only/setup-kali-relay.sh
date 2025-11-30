@@ -12,6 +12,7 @@
 #
 # Options:
 #   -n, --name        Machine name (default: auto-detect)
+#   -p, --platform    Force platform (aws, gcp, azure, digitalocean, linode, vultr, oracle, hetzner)
 #   --fresh           Force fresh install (delete existing)
 #   --update          Update existing installation
 #   --with-ngrok      Install ngrok for internet tunneling
@@ -39,6 +40,7 @@ NGROK_TOKEN=""
 FRESH_INSTALL=false
 UPDATE_ONLY=false
 AUTO_START=false
+FORCE_PLATFORM=""
 INSTALL_DIR="$HOME/rangerblock-server"
 
 # Parse arguments
@@ -46,6 +48,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -n|--name)
             MACHINE_NAME="$2"
+            shift 2
+            ;;
+        -p|--platform)
+            FORCE_PLATFORM="$2"
             shift 2
             ;;
         --fresh)
@@ -83,7 +89,7 @@ cat << 'EOF'
  ======================================================================
        🐉 P2P Blockchain Network for Security Professionals 🐉
        Created by IrishRanger + Claude Code (Ranger)
-       Version 2.1.0 - Fully Automatic Installation
+       Version 2.2.0 - Multi-Cloud Auto-Detection (8 providers!)
  ======================================================================
 EOF
 echo -e "${NC}"
@@ -155,25 +161,129 @@ echo -e "\n${YELLOW}[1/6] Detecting environment...${NC}"
 PLATFORM_TYPE="linux"
 VM_TYPE="native"
 
-# Check for cloud providers (order matters!)
-# AWS check - multiple methods
-if [ -f /sys/hypervisor/uuid ] && grep -qi ec2 /sys/hypervisor/uuid 2>/dev/null; then
+echo -e "${BLUE}  Detecting cloud provider...${NC}"
+
+# =====================================================================
+# CLOUD PROVIDER DETECTION (Top 8 providers)
+# =====================================================================
+
+# Force platform override (--platform flag)
+if [ -n "$FORCE_PLATFORM" ]; then
+    echo -e "${YELLOW}  Using forced platform: $FORCE_PLATFORM${NC}"
+    case $FORCE_PLATFORM in
+        aws)
+            PLATFORM_TYPE="aws"
+            VM_TYPE="aws-ec2"
+            ;;
+        gcp|google)
+            PLATFORM_TYPE="gcp"
+            VM_TYPE="gcp-compute"
+            ;;
+        azure)
+            PLATFORM_TYPE="azure"
+            VM_TYPE="azure-vm"
+            ;;
+        digitalocean|do)
+            PLATFORM_TYPE="digitalocean"
+            VM_TYPE="do-droplet"
+            ;;
+        linode)
+            PLATFORM_TYPE="linode"
+            VM_TYPE="linode-instance"
+            ;;
+        vultr)
+            PLATFORM_TYPE="vultr"
+            VM_TYPE="vultr-instance"
+            ;;
+        oracle|oci)
+            PLATFORM_TYPE="oracle"
+            VM_TYPE="oci-instance"
+            ;;
+        hetzner)
+            PLATFORM_TYPE="hetzner"
+            VM_TYPE="hetzner-cloud"
+            ;;
+        *)
+            echo -e "${RED}  Unknown platform: $FORCE_PLATFORM${NC}"
+            echo -e "${RED}  Valid options: aws, gcp, azure, digitalocean, linode, vultr, oracle, hetzner${NC}"
+            PLATFORM_TYPE="linux"
+            VM_TYPE="native"
+            ;;
+    esac
+# Auto-detect if no force platform
+# 1. AWS EC2 Detection (multiple methods)
+elif [ -f /sys/hypervisor/uuid ] && grep -qi ec2 /sys/hypervisor/uuid 2>/dev/null; then
     PLATFORM_TYPE="aws"
     VM_TYPE="aws-ec2"
 elif [ -f /sys/devices/virtual/dmi/id/product_uuid ] && grep -qi ec2 /sys/devices/virtual/dmi/id/product_uuid 2>/dev/null; then
     PLATFORM_TYPE="aws"
     VM_TYPE="aws-ec2"
-elif curl -s -m 1 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null | grep -q "^i-"; then
+elif [ -f /sys/devices/virtual/dmi/id/bios_vendor ] && grep -qi "Amazon" /sys/devices/virtual/dmi/id/bios_vendor 2>/dev/null; then
     PLATFORM_TYPE="aws"
     VM_TYPE="aws-ec2"
-# GCP check
-elif curl -s -m 1 http://metadata.google.internal/computeMetadata/v1/ -H "Metadata-Flavor: Google" &>/dev/null; then
+elif curl -s -m 2 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null | grep -q "^i-"; then
+    PLATFORM_TYPE="aws"
+    VM_TYPE="aws-ec2"
+
+# 2. Google Cloud Platform (GCP) Detection
+elif curl -s -m 2 http://metadata.google.internal/computeMetadata/v1/instance/id -H "Metadata-Flavor: Google" &>/dev/null; then
     PLATFORM_TYPE="gcp"
     VM_TYPE="gcp-compute"
-# Azure check (only if not AWS)
-elif curl -s -m 1 http://169.254.169.254/metadata/instance?api-version=2021-02-01 -H "Metadata:true" 2>/dev/null | grep -q "azEnvironment"; then
+elif [ -f /sys/devices/virtual/dmi/id/product_name ] && grep -qi "Google" /sys/devices/virtual/dmi/id/product_name 2>/dev/null; then
+    PLATFORM_TYPE="gcp"
+    VM_TYPE="gcp-compute"
+
+# 3. Microsoft Azure Detection
+elif curl -s -m 2 -H "Metadata:true" "http://169.254.169.254/metadata/instance?api-version=2021-02-01" 2>/dev/null | grep -q "azEnvironment"; then
     PLATFORM_TYPE="azure"
     VM_TYPE="azure-vm"
+elif [ -f /sys/devices/virtual/dmi/id/chassis_asset_tag ] && grep -qi "Azure" /sys/devices/virtual/dmi/id/chassis_asset_tag 2>/dev/null; then
+    PLATFORM_TYPE="azure"
+    VM_TYPE="azure-vm"
+
+# 4. DigitalOcean Detection
+elif curl -s -m 2 http://169.254.169.254/metadata/v1/id 2>/dev/null | grep -qE "^[0-9]+$"; then
+    PLATFORM_TYPE="digitalocean"
+    VM_TYPE="do-droplet"
+elif [ -f /sys/devices/virtual/dmi/id/sys_vendor ] && grep -qi "DigitalOcean" /sys/devices/virtual/dmi/id/sys_vendor 2>/dev/null; then
+    PLATFORM_TYPE="digitalocean"
+    VM_TYPE="do-droplet"
+
+# 5. Linode (Akamai) Detection
+elif curl -s -m 2 http://169.254.169.254/v1/instance 2>/dev/null | grep -q "linode"; then
+    PLATFORM_TYPE="linode"
+    VM_TYPE="linode-instance"
+elif [ -f /sys/devices/virtual/dmi/id/product_name ] && grep -qi "Linode" /sys/devices/virtual/dmi/id/product_name 2>/dev/null; then
+    PLATFORM_TYPE="linode"
+    VM_TYPE="linode-instance"
+
+# 6. Vultr Detection
+elif curl -s -m 2 http://169.254.169.254/v1/instanceid 2>/dev/null | grep -qE "^[a-f0-9-]+$"; then
+    # Could be Vultr - check further
+    if curl -s -m 2 http://169.254.169.254/v1.json 2>/dev/null | grep -q "vultr"; then
+        PLATFORM_TYPE="vultr"
+        VM_TYPE="vultr-instance"
+    fi
+elif [ -f /sys/devices/virtual/dmi/id/sys_vendor ] && grep -qi "Vultr" /sys/devices/virtual/dmi/id/sys_vendor 2>/dev/null; then
+    PLATFORM_TYPE="vultr"
+    VM_TYPE="vultr-instance"
+
+# 7. Oracle Cloud (OCI) Detection
+elif curl -s -m 2 http://169.254.169.254/opc/v1/instance/ 2>/dev/null | grep -q "availabilityDomain"; then
+    PLATFORM_TYPE="oracle"
+    VM_TYPE="oci-instance"
+elif [ -f /sys/devices/virtual/dmi/id/chassis_asset_tag ] && grep -qi "OracleCloud" /sys/devices/virtual/dmi/id/chassis_asset_tag 2>/dev/null; then
+    PLATFORM_TYPE="oracle"
+    VM_TYPE="oci-instance"
+
+# 8. Hetzner Cloud Detection
+elif curl -s -m 2 http://169.254.169.254/hetzner/v1/metadata 2>/dev/null | grep -q "instance-id"; then
+    PLATFORM_TYPE="hetzner"
+    VM_TYPE="hetzner-cloud"
+
+# =====================================================================
+# VM/LOCAL DETECTION (if not cloud)
+# =====================================================================
 elif [ -f /sys/class/dmi/id/product_name ]; then
     PRODUCT=$(cat /sys/class/dmi/id/product_name 2>/dev/null || echo "")
     if [[ "$PRODUCT" == *"VirtualBox"* ]]; then
@@ -184,25 +294,45 @@ elif [ -f /sys/class/dmi/id/product_name ]; then
         VM_TYPE="utm"
     elif [[ "$PRODUCT" == *"Parallels"* ]]; then
         VM_TYPE="parallels"
+    elif [[ "$PRODUCT" == *"KVM"* ]]; then
+        VM_TYPE="kvm"
     fi
 fi
 
 # Check for WSL
 if grep -qi microsoft /proc/version 2>/dev/null; then
     VM_TYPE="wsl2"
+    PLATFORM_TYPE="wsl"
+fi
+
+# Check for Docker/Container
+if [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null; then
+    VM_TYPE="docker"
+    PLATFORM_TYPE="container"
 fi
 
 # Auto-generate machine name if not provided
 if [ -z "$MACHINE_NAME" ]; then
     case $VM_TYPE in
-        aws-ec2)    MACHINE_NAME="AWS-Relay" ;;
-        gcp-compute) MACHINE_NAME="GCloud-Relay" ;;
-        azure-vm)   MACHINE_NAME="Azure-Relay" ;;
-        virtualbox) MACHINE_NAME="VBox-Relay" ;;
-        vmware)     MACHINE_NAME="VMware-Relay" ;;
-        utm)        MACHINE_NAME="UTM-Relay" ;;
-        wsl2)       MACHINE_NAME="WSL2-Relay" ;;
-        *)          MACHINE_NAME="Linux-Relay" ;;
+        # Cloud providers
+        aws-ec2)        MACHINE_NAME="AWS-Relay" ;;
+        gcp-compute)    MACHINE_NAME="GCloud-Relay" ;;
+        azure-vm)       MACHINE_NAME="Azure-Relay" ;;
+        do-droplet)     MACHINE_NAME="DigitalOcean-Relay" ;;
+        linode-instance) MACHINE_NAME="Linode-Relay" ;;
+        vultr-instance) MACHINE_NAME="Vultr-Relay" ;;
+        oci-instance)   MACHINE_NAME="Oracle-Relay" ;;
+        hetzner-cloud)  MACHINE_NAME="Hetzner-Relay" ;;
+        # VMs
+        virtualbox)     MACHINE_NAME="VBox-Relay" ;;
+        vmware)         MACHINE_NAME="VMware-Relay" ;;
+        utm)            MACHINE_NAME="UTM-Relay" ;;
+        parallels)      MACHINE_NAME="Parallels-Relay" ;;
+        kvm)            MACHINE_NAME="KVM-Relay" ;;
+        wsl2)           MACHINE_NAME="WSL2-Relay" ;;
+        docker)         MACHINE_NAME="Docker-Relay" ;;
+        # Default
+        *)              MACHINE_NAME="Linux-Relay" ;;
     esac
 fi
 
@@ -563,15 +693,56 @@ EOF
 echo -e "${NC}"
 
 # Cloud-specific instructions
-if [[ "$PLATFORM_TYPE" == "aws" ]]; then
-    echo -e "${YELLOW}  ☁️  AWS EC2 DETECTED:${NC}"
-    echo -e "${YELLOW}     Make sure Security Group allows TCP ports 5555 and 5556${NC}"
-    echo ""
-elif [[ "$PLATFORM_TYPE" == "gcp" ]]; then
-    echo -e "${YELLOW}  ☁️  GOOGLE CLOUD DETECTED:${NC}"
-    echo -e "${YELLOW}     Make sure Firewall Rules allow TCP ports 5555 and 5556${NC}"
-    echo ""
-fi
+case "$PLATFORM_TYPE" in
+    aws)
+        echo -e "${YELLOW}  ☁️  AWS EC2 DETECTED:${NC}"
+        echo -e "${YELLOW}     → Security Group: Allow TCP ports 5555 and 5556 (0.0.0.0/0)${NC}"
+        echo -e "${YELLOW}     → Free tier: t3.micro (750 hrs/month)${NC}"
+        echo ""
+        ;;
+    gcp)
+        echo -e "${YELLOW}  ☁️  GOOGLE CLOUD DETECTED:${NC}"
+        echo -e "${YELLOW}     → Firewall Rules: Create rule for TCP 5555 and 5556${NC}"
+        echo -e "${YELLOW}     → Free tier: e2-micro in us-west1/us-central1/us-east1${NC}"
+        echo ""
+        ;;
+    azure)
+        echo -e "${YELLOW}  ☁️  MICROSOFT AZURE DETECTED:${NC}"
+        echo -e "${YELLOW}     → Network Security Group: Add inbound rules for ports 5555 and 5556${NC}"
+        echo -e "${YELLOW}     → Free tier: B1S VM (750 hrs/month for 12 months)${NC}"
+        echo ""
+        ;;
+    digitalocean)
+        echo -e "${YELLOW}  ☁️  DIGITALOCEAN DETECTED:${NC}"
+        echo -e "${YELLOW}     → Cloud Firewall: Add rules for TCP 5555 and 5556${NC}"
+        echo -e "${YELLOW}     → No free tier - \$4/month basic droplet${NC}"
+        echo ""
+        ;;
+    linode)
+        echo -e "${YELLOW}  ☁️  LINODE (AKAMAI) DETECTED:${NC}"
+        echo -e "${YELLOW}     → Cloud Firewall: Create firewall with TCP 5555 and 5556${NC}"
+        echo -e "${YELLOW}     → No free tier - \$5/month nanode${NC}"
+        echo ""
+        ;;
+    vultr)
+        echo -e "${YELLOW}  ☁️  VULTR DETECTED:${NC}"
+        echo -e "${YELLOW}     → Firewall: Add rules for ports 5555 and 5556${NC}"
+        echo -e "${YELLOW}     → No free tier - \$5/month cloud compute${NC}"
+        echo ""
+        ;;
+    oracle)
+        echo -e "${YELLOW}  ☁️  ORACLE CLOUD (OCI) DETECTED:${NC}"
+        echo -e "${YELLOW}     → Security List: Add ingress rules for TCP 5555 and 5556${NC}"
+        echo -e "${YELLOW}     → Always Free: 2 AMD VMs (1 OCPU, 1GB RAM each) - FOREVER!${NC}"
+        echo ""
+        ;;
+    hetzner)
+        echo -e "${YELLOW}  ☁️  HETZNER CLOUD DETECTED:${NC}"
+        echo -e "${YELLOW}     → Firewall: Create firewall with TCP 5555 and 5556${NC}"
+        echo -e "${YELLOW}     → No free tier - €3.79/month CX11${NC}"
+        echo ""
+        ;;
+esac
 
 echo -e "${GREEN}  🎖️ Rangers lead the way!${NC}"
 echo -e "${NC}"
