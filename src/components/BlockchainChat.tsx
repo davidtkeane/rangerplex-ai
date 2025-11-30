@@ -347,6 +347,9 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                 addSystemMessage('/op <user>     - Give operator status');
                 addSystemMessage('/voice <user>  - Give voice');
                 addSystemMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                addSystemMessage('🏆 EASTER EGG:');
+                addSystemMessage('/block         - View the first internet blockchain chat!');
+                addSystemMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 break;
 
             case '/quit':
@@ -435,6 +438,37 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                 if (args[0]) {
                     addSystemMessage(`* ${currentNode} sets mode: +o ${args[0]}`);
                 }
+                break;
+
+            case '/block':
+            case '/genesis':
+            case '/first':
+                // 🎉 EASTER EGG: The First Internet Blockchain Chat!
+                addSystemMessage('');
+                addSystemMessage('╔═══════════════════════════════════════════════════════════════╗');
+                addSystemMessage('║  🏆 BLOCK_001 - FIRST INTERNET BLOCKCHAIN CHAT 🏆             ║');
+                addSystemMessage('║  November 29, 2025 at 23:44:25 UTC                            ║');
+                addSystemMessage('╠═══════════════════════════════════════════════════════════════╣');
+                addSystemMessage('║                                                               ║');
+                addSystemMessage('║  📜 HISTORIC TRANSCRIPT:                                      ║');
+                addSystemMessage('║  ────────────────────────────────────────────────────────     ║');
+                addSystemMessage('║  [23:41:35] 🟢 M3Pro has joined #rangers                      ║');
+                addSystemMessage('║  [23:41:41] <🏛️M3 Pro Genesis> hi                             ║');
+                addSystemMessage('║  [23:44:25] 🟢 M4Max has joined the network                   ║');
+                addSystemMessage('║  [23:44:40] <⚡M4 Max Compute> hi  ← INTERNET!                ║');
+                addSystemMessage('║  [23:47:22] 🟢 M1Air has joined the network                   ║');
+                addSystemMessage('║  [23:47:28] <🍎M1 Air Peer> hello there@ we have 3 machines!  ║');
+                addSystemMessage('║                                                               ║');
+                addSystemMessage('╠═══════════════════════════════════════════════════════════════╣');
+                addSystemMessage('║  🌐 NETWORK TOPOLOGY:                                         ║');
+                addSystemMessage('║  M3Pro (192.168.1.35) ←─ ngrok ─→ M4Max (iPhone/Cellular)    ║');
+                addSystemMessage('║  tcp://2.tcp.eu.ngrok.io:12232                                ║');
+                addSystemMessage('╠═══════════════════════════════════════════════════════════════╣');
+                addSystemMessage('║  👨‍💻 Created by: David Keane (IrishRanger) + Claude Code       ║');
+                addSystemMessage('║  🎓 Purpose: Master\'s Thesis - Blockchain Technology         ║');
+                addSystemMessage('║  🎖️ "Rangers lead the way!"                                   ║');
+                addSystemMessage('╚═══════════════════════════════════════════════════════════════╝');
+                addSystemMessage('');
                 break;
 
             case '/voice':
