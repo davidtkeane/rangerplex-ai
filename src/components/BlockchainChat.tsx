@@ -74,19 +74,28 @@ const PERMISSION_COLORS: Record<PermissionLevel, string> = {
     banned: 'text-gray-600'
 };
 
+// Machine Registry - All RangerBlock Network Nodes
+// These sync across the network when machines connect
 const NODE_NETWORK: Record<string, Omit<NodeInfo, 'online' | 'permission' | 'key'>> = {
+    // === MACOS MACHINES (RangerPlex Full Install) ===
     'M3Pro': { name: 'M3 Pro Genesis', ip: '192.168.1.35', type: 'genesis', emoji: '🏛️' },
     'M1Air': { name: 'M1 Air Peer', ip: '192.168.1.31', type: 'peer', emoji: '🍎' },
     'M4Max': { name: 'M4 Max Compute', ip: '192.168.1.4', type: 'compute', emoji: '⚡' },
-    'Kali': { name: 'Kali VM Security', ip: '192.168.66.2', type: 'security', emoji: '🔒' },
-    'Windows': { name: 'Windows VM', ip: '192.168.66.3', type: 'peer', emoji: '🪟' }
+    // === CLOUD SERVERS (Relay-Only) ===
+    'KaliCloud': { name: 'Kali Cloud VM', ip: '34.26.30.249', type: 'relay', emoji: '☁️' },
+    // === WINDOWS MACHINES (Relay-Only) ===
+    'LenovoWin11': { name: 'Lenovo Win11', ip: 'dynamic', type: 'peer', emoji: '💻' },
+    'MSIVector': { name: 'MSI Vector', ip: 'dynamic', type: 'gaming', emoji: '🎮' },
+    // === VIRTUAL MACHINES ===
+    'KaliVM': { name: 'Kali VM Security', ip: '192.168.66.2', type: 'security', emoji: '🔒' },
+    'WindowsVM': { name: 'Windows VM', ip: '192.168.66.3', type: 'peer', emoji: '🪟' }
 };
 
 // WebSocket relay configuration
 // Default: ngrok (Internet) for global connectivity
 // Users can switch between servers in Settings panel
 
-// Relay Server Presets
+// Relay Server Presets - Choose your connection method
 const RELAY_PRESETS = {
     ngrok: {
         name: '🌐 ngrok (Internet)',
@@ -94,17 +103,17 @@ const RELAY_PRESETS = {
         port: 12232,
         description: 'Connect from anywhere via ngrok tunnel'
     },
+    cloud: {
+        name: '☁️ Kali Cloud (24/7)',
+        host: '34.26.30.249',
+        port: 5555,
+        description: 'Google Cloud VM - Always online relay'
+    },
     lan: {
         name: '🏠 LAN (M3Pro)',
         host: '192.168.1.35',
         port: 5555,
         description: 'Local network - M3Pro Genesis'
-    },
-    cloud: {
-        name: '☁️ Cloud (Coming Soon)',
-        host: 'rangerplex.example.com',
-        port: 5555,
-        description: 'Google Cloud VM - 24/7 uptime'
     }
 };
 

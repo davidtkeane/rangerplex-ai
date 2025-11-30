@@ -12,9 +12,11 @@
 #   curl -sSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/setup-cloud-relay.sh | bash
 #
 # Options:
-#   --with-ngrok     Install ngrok for internet access
-#   --ngrok-token    Your ngrok authtoken
-#   --bridge         Enable bridge mode (connect to other relays)
+#   --with-ngrok       Install ngrok for internet access
+#   --ngrok-token=XXX  Your ngrok authtoken
+#   --bridge           Enable bridge mode (connect to other relays)
+#   --machine=NAME     Machine name (M3Pro, M1Air, M4Max, KaliCloud, LenovoWin11, MSIVector, etc.)
+#   --import-id=FILE   Import existing node_identity.json file
 #
 # Rangers lead the way!
 
@@ -26,12 +28,15 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m'
 
 # Parse arguments
 INSTALL_NGROK=false
 NGROK_TOKEN=""
 ENABLE_BRIDGE=false
+MACHINE_NAME=""
+IMPORT_ID=""
 
 for arg in "$@"; do
     case $arg in
@@ -48,8 +53,52 @@ for arg in "$@"; do
             ENABLE_BRIDGE=true
             shift
             ;;
+        --machine=*)
+            MACHINE_NAME="${arg#*=}"
+            shift
+            ;;
+        --import-id=*)
+            IMPORT_ID="${arg#*=}"
+            shift
+            ;;
     esac
 done
+
+# Machine selection menu if not provided
+select_machine() {
+    if [ -z "$MACHINE_NAME" ]; then
+        echo -e "\n${MAGENTA}Select your machine:${NC}"
+        echo ""
+        echo -e "  ${GREEN}[1]${NC} M3Pro      - M3 Pro Genesis (macOS)"
+        echo -e "  ${GREEN}[2]${NC} M1Air      - M1 Air Peer (macOS)"
+        echo -e "  ${GREEN}[3]${NC} M4Max      - M4 Max Compute (macOS)"
+        echo -e "  ${GREEN}[4]${NC} KaliCloud  - Kali Cloud VM (Google Cloud)"
+        echo -e "  ${GREEN}[5]${NC} LenovoWin11- Lenovo Windows 11"
+        echo -e "  ${GREEN}[6]${NC} MSIVector  - MSI Vector Gaming"
+        echo -e "  ${GREEN}[7]${NC} KaliVM     - Kali VM (Local)"
+        echo -e "  ${GREEN}[8]${NC} Other      - Enter custom name"
+        echo ""
+        read -p "Enter choice (1-8): " machine_choice
+
+        case $machine_choice in
+            1) MACHINE_NAME="M3Pro" ;;
+            2) MACHINE_NAME="M1Air" ;;
+            3) MACHINE_NAME="M4Max" ;;
+            4) MACHINE_NAME="KaliCloud" ;;
+            5) MACHINE_NAME="LenovoWin11" ;;
+            6) MACHINE_NAME="MSIVector" ;;
+            7) MACHINE_NAME="KaliVM" ;;
+            8)
+                read -p "Enter machine name: " MACHINE_NAME
+                ;;
+            *)
+                MACHINE_NAME="RangerNode-$(hostname | tr -d ' ')"
+                ;;
+        esac
+
+        echo -e "${GREEN}Selected: $MACHINE_NAME${NC}"
+    fi
+}
 
 echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════════════════════════╗"
@@ -237,23 +286,68 @@ download_files() {
 }
 PACKAGE_EOF
 
-    # Create default config
-    cat > relay-config.json << 'CONFIG_EOF'
+    # Create relay config with machine name and bridge peers
+    cat > relay-config.json << CONFIG_EOF
 {
   "relay": {
-    "name": "rangerblock-relay",
+    "name": "${MACHINE_NAME:-rangerblock-relay}",
     "port": 5555,
     "dashboardPort": 5556,
     "region": "local"
   },
   "bridge": {
-    "enabled": false,
+    "enabled": true,
     "reconnectInterval": 5000,
     "heartbeatInterval": 30000,
-    "peers": []
+    "peers": [
+      {
+        "name": "ngrok-ireland",
+        "host": "2.tcp.eu.ngrok.io",
+        "port": 12232,
+        "enabled": true,
+        "comment": "M3Pro Genesis via ngrok tunnel"
+      },
+      {
+        "name": "kali-cloud",
+        "host": "34.26.30.249",
+        "port": 5555,
+        "enabled": true,
+        "comment": "Google Cloud 24/7 relay"
+      }
+    ]
   }
 }
 CONFIG_EOF
+
+    # Handle identity file
+    if [ -n "$IMPORT_ID" ] && [ -f "$IMPORT_ID" ]; then
+        echo -e "${CYAN}  Importing existing identity from: $IMPORT_ID${NC}"
+        cp "$IMPORT_ID" .personal/node_identity.json
+        echo -e "${GREEN}  Identity preserved!${NC}"
+    else
+        # Create new identity with machine name
+        NODE_ID="${MACHINE_NAME:-RangerNode}-$(date +%s | tail -c 5)"
+        cat > .personal/node_identity.json << IDENTITY_EOF
+{
+  "node_id": "$NODE_ID",
+  "node_type": "relay",
+  "node_name": "${MACHINE_NAME:-RangerBlock} Node",
+  "platform": {
+    "system": "$(uname -s)",
+    "machine": "$(hostname)",
+    "processor": "$(uname -m)"
+  },
+  "network": {
+    "relay_port": 5555,
+    "dashboard_port": 5556
+  },
+  "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "philosophy": "One foot in front of the other",
+  "mission": "RangerBlock P2P Network Relay"
+}
+IDENTITY_EOF
+        echo -e "${GREEN}  Created new identity: $NODE_ID${NC}"
+    fi
 
     # Install dependencies
     npm install --production 2>/dev/null || npm install
@@ -305,6 +399,7 @@ print_info() {
     echo "╔═══════════════════════════════════════════════════════════════╗"
     echo "║               🎉 SETUP COMPLETE! 🎉                           ║"
     echo "╠═══════════════════════════════════════════════════════════════╣"
+    echo -e "║  ${GREEN}Machine:     ${MACHINE_NAME}${CYAN}                                       ║"
     echo -e "║  ${GREEN}External IP: ${EXTERNAL_IP}${CYAN}                              ║"
     echo "║  Relay Port: 5555                                             ║"
     echo "║  Dashboard:  5556                                             ║"
@@ -350,6 +445,9 @@ main() {
         echo -e "${RED}Unknown OS. Please install manually.${NC}"
         exit 1
     fi
+
+    # Select machine if not provided via argument
+    select_machine
 
     # Update system (optional for speed)
     echo -e "\n${YELLOW}Updating system packages...${NC}"

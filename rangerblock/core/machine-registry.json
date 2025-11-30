@@ -1,0 +1,160 @@
+{
+  "_comment": "RangerBlock Machine Registry - Syncs across all nodes",
+  "_version": "1.0.0",
+  "_updated": "2025-11-30",
+
+  "machines": {
+    "M3Pro": {
+      "node_id": "M3Pro-Master",
+      "name": "M3 Pro Genesis",
+      "type": "genesis",
+      "emoji": "🏛️",
+      "platform": "macOS",
+      "hardware": "Apple M3 Pro",
+      "install_type": "full",
+      "network": {
+        "lan_ip": "192.168.1.35",
+        "relay_port": 5555,
+        "dashboard_port": 5556
+      },
+      "identity_file": ".personal/node_identity.json",
+      "created": "2025-09-19"
+    },
+    "M1Air": {
+      "node_id": "RangerNode-002-Peer",
+      "name": "M1 Air Peer",
+      "type": "peer",
+      "emoji": "🍎",
+      "platform": "macOS",
+      "hardware": "Apple M1",
+      "install_type": "full",
+      "network": {
+        "lan_ip": "192.168.1.31",
+        "relay_port": 5555,
+        "dashboard_port": 5556
+      },
+      "identity_file": ".personal/m1air_node_identity.json",
+      "created": "2025-09-10"
+    },
+    "M4Max": {
+      "node_id": "M4MAX-COMPUTE-004",
+      "name": "M4 Max Compute",
+      "type": "compute",
+      "emoji": "⚡",
+      "platform": "macOS",
+      "hardware": "Apple M4 Max 128GB",
+      "install_type": "full",
+      "network": {
+        "lan_ip": "192.168.1.4",
+        "relay_port": 5555,
+        "dashboard_port": 5556
+      },
+      "identity_file": ".personal/m4max_node_identity.json",
+      "created": "2025-09-21"
+    },
+    "KaliCloud": {
+      "node_id": "KALI-CLOUD-001",
+      "name": "Kali Cloud VM",
+      "type": "relay",
+      "emoji": "☁️",
+      "platform": "Linux",
+      "hardware": "Google Cloud e2-micro",
+      "install_type": "relay-only",
+      "network": {
+        "external_ip": "34.26.30.249",
+        "relay_port": 5555,
+        "dashboard_port": 5556
+      },
+      "identity_file": ".personal/node_identity.json",
+      "created": "2025-11-30"
+    },
+    "LenovoWin11": {
+      "node_id": "LENOVO-WIN11-001",
+      "name": "Lenovo Win11",
+      "type": "peer",
+      "emoji": "💻",
+      "platform": "Windows",
+      "hardware": "Lenovo Laptop",
+      "install_type": "relay-only",
+      "network": {
+        "lan_ip": "dynamic",
+        "relay_port": 5555,
+        "dashboard_port": 5556
+      },
+      "identity_file": ".personal/node_identity.json",
+      "created": "2025-11-30"
+    },
+    "MSIVector": {
+      "node_id": "MSI-VECTOR-001",
+      "name": "MSI Vector",
+      "type": "gaming",
+      "emoji": "🎮",
+      "platform": "Windows",
+      "hardware": "MSI Vector Gaming Laptop",
+      "install_type": "relay-only",
+      "network": {
+        "lan_ip": "dynamic",
+        "relay_port": 5555,
+        "dashboard_port": 5556
+      },
+      "identity_file": ".personal/node_identity.json",
+      "created": "2025-11-30"
+    },
+    "KaliVM": {
+      "node_id": "KALI-VM-001",
+      "name": "Kali VM Security",
+      "type": "security",
+      "emoji": "🔒",
+      "platform": "Linux",
+      "hardware": "Virtual Machine",
+      "install_type": "relay-only",
+      "network": {
+        "lan_ip": "192.168.66.2",
+        "relay_port": 5555,
+        "dashboard_port": 5556
+      },
+      "identity_file": ".personal/node_identity.json",
+      "created": "2025-09-15"
+    },
+    "WindowsVM": {
+      "node_id": "WINDOWS-VM-001",
+      "name": "Windows VM",
+      "type": "peer",
+      "emoji": "🪟",
+      "platform": "Windows",
+      "hardware": "Virtual Machine",
+      "install_type": "relay-only",
+      "network": {
+        "lan_ip": "192.168.66.3",
+        "relay_port": 5555,
+        "dashboard_port": 5556
+      },
+      "identity_file": ".personal/node_identity.json",
+      "created": "2025-09-15"
+    }
+  },
+
+  "relays": {
+    "ngrok": {
+      "name": "ngrok (Internet)",
+      "host": "2.tcp.eu.ngrok.io",
+      "port": 12232,
+      "type": "tunnel",
+      "available": true
+    },
+    "cloud": {
+      "name": "Kali Cloud (24/7)",
+      "host": "34.26.30.249",
+      "port": 5555,
+      "type": "dedicated",
+      "available": true
+    },
+    "lan": {
+      "name": "LAN (M3Pro)",
+      "host": "192.168.1.35",
+      "port": 5555,
+      "type": "local",
+      "available": true
+    }
+  }
+}
