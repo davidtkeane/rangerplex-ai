@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RangerBlock Chat</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐉</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a1a;
+            --bg-card: #1a1a2e;
+            --bg-input: #0d0d1a;
+            --border: #3b82f6;
+            --border-dim: rgba(59, 130, 246, 0.3);
+            --text: #e0e0ff;
+            --text-dim: #6b7280;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --system: #a855f7;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, #16213e 100%);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 24px;
+        }
+
+        .title {
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--accent);
+        }
+
+        .subtitle {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--bg-dark);
+        }
+
+        .status.connected {
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status.disconnected {
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .status.connecting {
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Messages Area */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .message {
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 85%;
+            word-wrap: break-word;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.own {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+            color: white;
+        }
+
+        .message.other {
+            align-self: flex-start;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+        }
+
+        .message.system {
+            align-self: center;
+            background: transparent;
+            color: var(--system);
+            font-size: 12px;
+            text-align: center;
+            padding: 4px 12px;
+        }
+
+        .message.join {
+            color: var(--success);
+        }
+
+        .message.leave {
+            color: var(--error);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+
+        .message-sender {
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .message.own .message-sender {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .message-time {
+            color: var(--text-dim);
+            font-size: 10px;
+        }
+
+        .message.own .message-time {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .message-content {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* Input Area */
+        .input-area {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-dim);
+            padding: 12px;
+            display: flex;
+            gap: 10px;
+            position: sticky;
+            bottom: 0;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .message-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
+            border-radius: 24px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .message-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .message-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .send-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Connection Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 360px;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-logo {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .modal-subtitle {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent);
+        }
+
+        .connect-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .connect-btn:hover {
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .connect-btn:active {
+            transform: scale(0.98);
+        }
+
+        .connect-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .server-info {
+            text-align: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-dim);
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        /* Online Users */
+        .users-panel {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 8px 12px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--bg-dark);
+            border-radius: 16px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .user-emoji {
+            font-size: 14px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 8px;
+            font-size: 10px;
+            color: var(--text-dim);
+            background: var(--bg-card);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-dim);
+            border-radius: 3px;
+        }
+
+        /* Dark theme for inputs on iOS */
+        input, textarea {
+            -webkit-appearance: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Connection Modal -->
+    <div class="modal-overlay" id="connectModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-logo">🐉</div>
+                <div class="modal-title">RangerBlock Chat</div>
+                <div class="modal-subtitle">P2P Blockchain Network</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Your Nickname</label>
+                <input type="text" class="form-input" id="nickname" placeholder="Enter nickname..." value="">
+            </div>
+
+            <button class="connect-btn" id="connectBtn" onclick="connect()">
+                🚀 Join Network
+            </button>
+
+            <div class="server-info">
+                <div>AWS Relay: 44.222.101.125:5555</div>
+                <div style="margin-top: 4px;">Master's Thesis - University of Galway</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Interface -->
+    <div class="header">
+        <div class="header-left">
+            <span class="logo">🐉</span>
+            <div>
+                <div class="title">RangerBlock</div>
+                <div class="subtitle">#rangers</div>
+            </div>
+        </div>
+        <div class="status disconnected" id="status">
+            <span class="status-dot"></span>
+            <span id="statusText">Disconnected</span>
+        </div>
+    </div>
+
+    <div class="users-panel" id="usersPanel">
+        <div class="user-chip">
+            <span class="user-emoji">👥</span>
+            <span>0 online</span>
+        </div>
+    </div>
+
+    <div class="messages" id="messages">
+        <div class="message system">
+            Welcome to RangerBlock Chat! 🐉
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-wrapper">
+            <input
+                type="text"
+                class="message-input"
+                id="messageInput"
+                placeholder="Type a message..."
+                disabled
+                onkeypress="if(event.key === 'Enter') sendMessage()"
+            >
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+            ➤
+        </button>
+    </div>
+
+    <div class="footer">
+        Created by David Keane (IrishRanger) + Claude Code | Rangers lead the way! 🎖️
+    </div>
+
+    <script>
+        // Configuration
+        const RELAY_HOST = '44.222.101.125';
+        const RELAY_PORT = 5555;
+
+        // State
+        let ws = null;
+        let nickname = '';
+        let nodeId = '';
+        let isConnected = false;
+        const users = new Map();
+
+        // DOM Elements
+        const connectModal = document.getElementById('connectModal');
+        const nicknameInput = document.getElementById('nickname');
+        const connectBtn = document.getElementById('connectBtn');
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusEl = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        const usersPanel = document.getElementById('usersPanel');
+
+        // Generate random ID
+        function generateId() {
+            return 'Web-' + Math.random().toString(36).substr(2, 8);
+        }
+
+        // Get random emoji for user
+        function getEmoji(id) {
+            const emojis = ['🌐', '📱', '💻', '🖥️', '⌨️', '🔮', '🎮', '🎯', '⚡', '🔥'];
+            const hash = id.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+            return emojis[hash % emojis.length];
+        }
+
+        // Format time
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Update status display
+        function updateStatus(state) {
+            statusEl.className = 'status ' + state;
+            switch(state) {
+                case 'connected':
+                    statusText.textContent = 'Connected';
+                    break;
+                case 'connecting':
+                    statusText.textContent = 'Connecting...';
+                    break;
+                case 'disconnected':
+                    statusText.textContent = 'Disconnected';
+                    break;
+            }
+        }
+
+        // Update users panel
+        function updateUsers() {
+            const count = users.size;
+            usersPanel.innerHTML = `
+                <div class="user-chip">
+                    <span class="user-emoji">👥</span>
+                    <span>${count} online</span>
+                </div>
+                ${Array.from(users.values()).map(u => `
+                    <div class="user-chip">
+                        <span class="user-emoji">${u.emoji || getEmoji(u.id)}</span>
+                        <span>${u.name}</span>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Add message to chat
+        function addMessage(type, content, sender = null, timestamp = Date.now()) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+
+            if (type === 'system' || type === 'join' || type === 'leave') {
+                msgDiv.textContent = content;
+            } else {
+                const isOwn = sender === nodeId;
+                msgDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+
+                const senderName = isOwn ? 'You' : (users.get(sender)?.name || sender);
+                const emoji = isOwn ? '🌐' : (users.get(sender)?.emoji || getEmoji(sender));
+
+                msgDiv.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-sender">${emoji} ${senderName}</span>
+                        <span class="message-time">${formatTime(timestamp)}</span>
+                    </div>
+                    <div class="message-content">${escapeHtml(content)}</div>
+                `;
+            }
+
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Connect to relay
+        function connect() {
+            nickname = nicknameInput.value.trim() || 'Anonymous';
+            nodeId = generateId();
+
+            connectBtn.disabled = true;
+            connectBtn.textContent = '⏳ Connecting...';
+            updateStatus('connecting');
+
+            try {
+                ws = new WebSocket(`ws://${RELAY_HOST}:${RELAY_PORT}`);
+
+                ws.onopen = () => {
+                    isConnected = true;
+                    updateStatus('connected');
+                    connectModal.style.display = 'none';
+                    messageInput.disabled = false;
+                    sendBtn.disabled = false;
+                    messageInput.focus();
+
+                    // Register with relay
+                    ws.send(JSON.stringify({
+                        type: 'register',
+                        nodeId: nodeId,
+                        name: nickname,
+                        nodeType: 'web-client',
+                        emoji: '🌐'
+                    }));
+
+                    addMessage('system', `Connected as ${nickname} 🎉`);
+
+                    // Add self to users
+                    users.set(nodeId, { id: nodeId, name: nickname, emoji: '🌐' });
+                    updateUsers();
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleMessage(data);
+                    } catch (e) {
+                        console.error('Parse error:', e);
+                    }
+                };
+
+                ws.onclose = () => {
+                    isConnected = false;
+                    updateStatus('disconnected');
+                    messageInput.disabled = true;
+                    sendBtn.disabled = true;
+                    addMessage('system', 'Disconnected from relay');
+
+                    // Show reconnect
+                    setTimeout(() => {
+                        if (!isConnected) {
+                            connectModal.style.display = 'flex';
+                            connectBtn.disabled = false;
+                            connectBtn.textContent = '🔄 Reconnect';
+                        }
+                    }, 2000);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    addMessage('system', 'Connection error - check if relay is online');
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = '🚀 Try Again';
+                };
+
+            } catch (error) {
+                console.error('Connection error:', error);
+                connectBtn.disabled = false;
+                connectBtn.textContent = '🚀 Try Again';
+                updateStatus('disconnected');
+            }
+        }
+
+        // Handle incoming messages
+        function handleMessage(data) {
+            switch(data.type) {
+                case 'registered':
+                    console.log('Registered:', data);
+                    break;
+
+                case 'peerJoined':
+                    users.set(data.nodeId, {
+                        id: data.nodeId,
+                        name: data.name || data.nodeId,
+                        emoji: data.emoji || getEmoji(data.nodeId)
+                    });
+                    updateUsers();
+                    addMessage('join', `${data.emoji || '🟢'} ${data.name || data.nodeId} joined the chat`);
+                    break;
+
+                case 'peerLeft':
+                    const leftUser = users.get(data.nodeId);
+                    users.delete(data.nodeId);
+                    updateUsers();
+                    if (leftUser) {
+                        addMessage('leave', `${leftUser.emoji || '🔴'} ${leftUser.name} left the chat`);
+                    }
+                    break;
+
+                case 'broadcast':
+                    if (data.payload && data.payload.type === 'chatMessage') {
+                        const payload = data.payload;
+                        if (payload.from !== nodeId) {
+                            addMessage('other', payload.message, payload.from, payload.timestamp);
+                        }
+                    }
+                    break;
+
+                case 'peers':
+                    // Initial peer list
+                    if (data.peers) {
+                        data.peers.forEach(peer => {
+                            if (peer.nodeId !== nodeId) {
+                                users.set(peer.nodeId, {
+                                    id: peer.nodeId,
+                                    name: peer.name || peer.nodeId,
+                                    emoji: peer.emoji || getEmoji(peer.nodeId)
+                                });
+                            }
+                        });
+                        updateUsers();
+                    }
+                    break;
+
+                case 'pong':
+                    // Heartbeat response
+                    break;
+
+                default:
+                    console.log('Unknown message:', data);
+            }
+        }
+
+        // Send message
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text || !isConnected) return;
+
+            // Add to local chat
+            addMessage('own', text, nodeId);
+
+            // Send to relay
+            ws.send(JSON.stringify({
+                type: 'broadcast',
+                payload: {
+                    type: 'chatMessage',
+                    from: nodeId,
+                    message: text,
+                    channel: '#rangers',
+                    timestamp: Date.now()
+                }
+            }));
+
+            messageInput.value = '';
+            messageInput.focus();
+        }
+
+        // Heartbeat
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, 30000);
+
+        // Auto-generate nickname on load
+        const randomNames = ['Ranger', 'Ghost', 'Shadow', 'Phoenix', 'Storm', 'Blaze', 'Cyber', 'Neon', 'Vector', 'Quantum'];
+        nicknameInput.value = randomNames[Math.floor(Math.random() * randomNames.length)] + Math.floor(Math.random() * 100);
+
+        // Focus nickname input
+        nicknameInput.focus();
+        nicknameInput.select();
+
+        // Enter key to connect
+        nicknameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') connect();
+        });
+    </script>
+</body>
+</html>
