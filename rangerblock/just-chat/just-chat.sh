@@ -5,7 +5,7 @@
 #  Connect to the RangerBlock P2P Network instantly!
 #  Created by: David Keane (IrishRanger) + Claude Code (Ranger)
 #  Version: 1.0.0 | November 2025
-#  Master's Thesis Project - University of Galway
+#  Master's Thesis Project - NCI College, Dublin
 # ============================================================================
 
 VERSION="1.0.0"
@@ -366,7 +366,7 @@ IDENTITY
     echo -e "${GREEN}║${NC}                                                                              ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${YELLOW}🎖️  Created by: David Keane (IrishRanger) + Claude Code${NC}                   ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${YELLOW}🎓  Master's Thesis - Blockchain Technology${NC}                               ${GREEN}║${NC}"
-    echo -e "${GREEN}║${NC}   ${YELLOW}🏫  University of Galway, Ireland${NC}                                         ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}   ${YELLOW}🏫  NCI College, Dublin, Ireland${NC}                                          ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}                                                                              ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${PURPLE}${BOLD}\"Rangers lead the way!\"${NC}                                                  ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}                                                                              ${GREEN}║${NC}"
@@ -390,6 +390,34 @@ chat() {
 
     cd "$INSTALL_DIR"
 
+    # Check if Node.js is available
+    if ! command -v node &> /dev/null; then
+        # Try common Node.js locations
+        if [ -x "/usr/bin/node" ]; then
+            NODE_CMD="/usr/bin/node"
+        elif [ -x "/usr/local/bin/node" ]; then
+            NODE_CMD="/usr/local/bin/node"
+        elif [ -x "$HOME/.nvm/versions/node/*/bin/node" ]; then
+            NODE_CMD=$(ls -1 $HOME/.nvm/versions/node/*/bin/node 2>/dev/null | head -1)
+        else
+            echo ""
+            error "Node.js not found in PATH!"
+            echo ""
+            echo -e "  ${YELLOW}To fix, run one of these:${NC}"
+            echo ""
+            echo -e "  ${CYAN}# Debian/Ubuntu:${NC}"
+            echo -e "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
+            echo -e "  sudo apt-get install -y nodejs"
+            echo ""
+            echo -e "  ${CYAN}# Then restart your shell:${NC}"
+            echo -e "  exec bash"
+            echo ""
+            exit 1
+        fi
+    else
+        NODE_CMD="node"
+    fi
+
     echo -e "  ${CYAN}Connecting to RangerBlock Network...${NC}"
     echo -e "  ${GRAY}Relay: ws://$AWS_RELAY:$AWS_PORT${NC}"
     echo ""
@@ -399,7 +427,7 @@ chat() {
 
     # Run the chat client
     if [ -f blockchain-chat.cjs ]; then
-        node blockchain-chat.cjs --relay "$AWS_RELAY:$AWS_PORT"
+        $NODE_CMD blockchain-chat.cjs --relay "$AWS_RELAY:$AWS_PORT"
     else
         error "Chat client not found. Run: ./just-chat.sh to reinstall"
         exit 1
@@ -599,7 +627,7 @@ show_help() {
     echo -e "  ${GRAY}Protocol:${NC}      ${CYAN}WebSocket + JSON${NC}"
     echo ""
     echo -e "  ${YELLOW}🎖️  Created by David Keane (IrishRanger) + Claude Code${NC}"
-    echo -e "  ${YELLOW}🎓  Master's Thesis - University of Galway${NC}"
+    echo -e "  ${YELLOW}🎓  Master's Thesis - NCI College, Dublin${NC}"
     echo ""
 }
 
