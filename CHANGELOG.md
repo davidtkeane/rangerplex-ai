@@ -5,6 +5,32 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.12] - 2025-11-30 📡 SERVER SELECTOR & CLOUD VM GUIDE
+
+### 🎛️ Server Selector Dropdown
+- **Added**: Professional server selector dropdown in settings
+- **Options**: ngrok (Internet), LAN (M3Pro), Cloud (Coming Soon)
+- **Default**: ngrok now default for internet-ready experience!
+- **Feature**: Test connectivity buttons for each server preset
+
+### 🧪 Test Connectivity
+- **Added**: Test buttons for each server preset
+- **Shows**: Success/Failed status with visual feedback
+- **Quick**: One-click connection testing
+
+### ☁️ Google Cloud VM Guide
+- **Added**: Complete guide for FREE 24/7 relay server
+- **Location**: `rangerblock/docs/GOOGLE_CLOUD_VM_SETUP.md`
+- **Cost**: $0/month using Google Cloud Free Tier (e2-micro)
+- **Includes**: Step-by-step setup, PM2, firewall rules
+
+### 📚 Documentation
+- **Released**: 36 Genesis docs now public!
+- **Includes**: Academic whitepaper, architecture docs, design documents
+- **Location**: `rangerblock/docs/Genesis-Docs/`
+
+---
+
 ## [4.0.11] - 2025-11-29 🌐 INTERNET BLOCKCHAIN CHAT - HISTORIC MILESTONE!
 
 ### 🎉 FIRST INTERNET P2P BLOCKCHAIN CHAT ACHIEVED!
