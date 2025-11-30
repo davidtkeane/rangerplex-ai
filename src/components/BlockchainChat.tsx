@@ -1364,26 +1364,23 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                     {/* Node Selection */}
                     <div className="p-4">
                         <p className="text-blue-400/80 text-sm mb-4 font-mono">🔐 SELECT YOUR NODE:</p>
-                        <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
                             {Object.entries(NODE_NETWORK).map(([key, node]) => (
                                 <button
                                     key={key}
                                     onClick={() => connectToNetwork(key)}
                                     disabled={isConnecting}
-                                    className="w-full p-3 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/30 hover:border-blue-500 rounded-lg transition-all text-left group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="p-2 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/30 hover:border-blue-500 rounded-lg transition-all text-left group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{node.emoji}</span>
-                                        <div className="flex-1">
-                                            <div className="text-blue-200 font-mono font-bold group-hover:text-white">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl">{node.emoji}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-blue-200 font-mono text-sm font-bold group-hover:text-white truncate">
                                                 {node.name}
                                             </div>
-                                            <div className="text-xs text-blue-400/60 font-mono">
-                                                {node.ip} • {node.type}
+                                            <div className="text-[10px] text-blue-400/60 font-mono truncate">
+                                                {node.ip}
                                             </div>
-                                        </div>
-                                        <div className="text-blue-500/50 group-hover:text-blue-400">
-                                            <i className="fa-solid fa-chevron-right"></i>
                                         </div>
                                     </div>
                                 </button>
@@ -1437,7 +1434,7 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                                         <label className="text-xs text-blue-400/60 font-mono block mb-2">
                                             🧪 TEST CONNECTIVITY:
                                         </label>
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-3 gap-2">
                                             <button
                                                 onClick={async () => {
                                                     setTestStatus(prev => ({ ...prev, lan: 'testing' }));
@@ -1460,10 +1457,10 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                                                     'bg-blue-900/40 hover:bg-blue-900/60 border-blue-500/30 text-blue-300'
                                                 }`}
                                             >
-                                                {testStatus.lan === 'testing' ? '⏳ Testing...' :
-                                                 testStatus.lan === 'success' ? '✅ LAN OK' :
-                                                 testStatus.lan === 'failed' ? '❌ LAN Fail' :
-                                                 '🏠 Test LAN'}
+                                                {testStatus.lan === 'testing' ? '⏳...' :
+                                                 testStatus.lan === 'success' ? '✅ LAN' :
+                                                 testStatus.lan === 'failed' ? '❌ LAN' :
+                                                 '🏠 LAN'}
                                             </button>
                                             <button
                                                 onClick={async () => {
@@ -1487,10 +1484,37 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
                                                     'bg-purple-900/40 hover:bg-purple-900/60 border-purple-500/30 text-purple-300'
                                                 }`}
                                             >
-                                                {testStatus.ngrok === 'testing' ? '⏳ Testing...' :
-                                                 testStatus.ngrok === 'success' ? '✅ ngrok OK' :
-                                                 testStatus.ngrok === 'failed' ? '❌ ngrok Fail' :
-                                                 '🌐 Test ngrok'}
+                                                {testStatus.ngrok === 'testing' ? '⏳...' :
+                                                 testStatus.ngrok === 'success' ? '✅ ngrok' :
+                                                 testStatus.ngrok === 'failed' ? '❌ ngrok' :
+                                                 '🌐 ngrok'}
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    setTestStatus(prev => ({ ...prev, cloud: 'testing' }));
+                                                    try {
+                                                        const ws = new WebSocket(`ws://${RELAY_PRESETS.cloud.host}:${RELAY_PRESETS.cloud.port}`);
+                                                        await new Promise((resolve, reject) => {
+                                                            ws.onopen = () => { ws.close(); resolve(true); };
+                                                            ws.onerror = reject;
+                                                            setTimeout(() => reject(new Error('timeout')), 5000);
+                                                        });
+                                                        setTestStatus(prev => ({ ...prev, cloud: 'success' }));
+                                                    } catch {
+                                                        setTestStatus(prev => ({ ...prev, cloud: 'failed' }));
+                                                    }
+                                                }}
+                                                className={`py-1.5 px-2 rounded text-xs font-mono border transition-colors ${
+                                                    testStatus.cloud === 'success' ? 'bg-green-900/40 border-green-500/50 text-green-400' :
+                                                    testStatus.cloud === 'failed' ? 'bg-red-900/40 border-red-500/50 text-red-400' :
+                                                    testStatus.cloud === 'testing' ? 'bg-yellow-900/40 border-yellow-500/50 text-yellow-400' :
+                                                    'bg-orange-900/40 hover:bg-orange-900/60 border-orange-500/30 text-orange-300'
+                                                }`}
+                                            >
+                                                {testStatus.cloud === 'testing' ? '⏳...' :
+                                                 testStatus.cloud === 'success' ? '✅ AWS' :
+                                                 testStatus.cloud === 'failed' ? '❌ AWS' :
+                                                 '☁️ AWS'}
                                             </button>
                                         </div>
                                     </div>
