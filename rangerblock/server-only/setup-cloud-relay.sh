@@ -275,7 +275,8 @@ download_files() {
     "logs": "pm2 logs rangerblock-relay",
     "status": "pm2 status",
     "ngrok": "ngrok tcp 5555",
-    "ngrok:start": "pm2 start 'ngrok tcp 5555' --name rangerblock-ngrok"
+    "ngrok:start": "pm2 start 'ngrok tcp 5555' --name rangerblock-ngrok",
+    "background": "screen -dmS relay npm run relay"
   },
   "dependencies": {
     "ws": "^8.18.0",

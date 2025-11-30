@@ -613,6 +613,19 @@ node relay-server.cjs
 SCRIPT_EOF
 chmod +x start-relay.sh
 
+# Create a "Keep Alive" script using screen
+cat > run-background.sh << 'BG_SCRIPT'
+#!/bin/bash
+echo "🚀 Starting RangerBlock in background (screen session 'relay')..."
+screen -dmS relay bash -c 'cd "$(dirname "$0")"; node relay-server.cjs; exec bash'
+echo "✅ Relay is running!"
+echo ""
+echo "commands:"
+echo "  screen -r relay    (View logs/Attach)"
+echo "  Ctrl+A, D          (Detach/Exit view)"
+BG_SCRIPT
+chmod +x run-background.sh
+
 # Start chat script
 cat > start-chat.sh << 'SCRIPT_EOF'
 #!/bin/bash
