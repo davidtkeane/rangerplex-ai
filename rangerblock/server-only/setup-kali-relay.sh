@@ -144,30 +144,51 @@ echo -e "${GREEN}  Gateway: $GATEWAY_IP${NC}"
 
 echo -e "\n${YELLOW}[2/6] Checking dependencies...${NC}"
 
-# Check Node.js
-if command -v node &>/dev/null; then
-    NODE_VERSION=$(node --version)
-    echo -e "${GREEN}  Node.js: $NODE_VERSION${NC}"
+# Check Node.js and npm
+NEED_NODE_INSTALL=false
+
+if ! command -v node &>/dev/null; then
+    echo -e "${YELLOW}  Node.js not found.${NC}"
+    NEED_NODE_INSTALL=true
+elif ! command -v npm &>/dev/null; then
+    echo -e "${YELLOW}  npm not found (Node.js exists but npm missing).${NC}"
+    NEED_NODE_INSTALL=true
 else
-    echo -e "${YELLOW}  Node.js not found. Installing...${NC}"
-
-    # Install Node.js via NodeSource
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    sudo apt-get install -y nodejs
-
     NODE_VERSION=$(node --version)
-    echo -e "${GREEN}  Node.js installed: $NODE_VERSION${NC}"
-fi
-
-# Check npm
-if command -v npm &>/dev/null; then
     NPM_VERSION=$(npm --version)
+    echo -e "${GREEN}  Node.js: $NODE_VERSION${NC}"
     echo -e "${GREEN}  npm: $NPM_VERSION${NC}"
 fi
 
-# Check git (usually pre-installed on Kali)
+if [ "$NEED_NODE_INSTALL" = true ]; then
+    echo -e "${YELLOW}  Installing Node.js + npm via NodeSource...${NC}"
+
+    # Remove any existing nodejs to avoid conflicts
+    sudo apt-get remove -y nodejs npm 2>/dev/null || true
+
+    # Install Node.js via NodeSource (includes npm)
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+
+    # Verify installation
+    if command -v node &>/dev/null && command -v npm &>/dev/null; then
+        NODE_VERSION=$(node --version)
+        NPM_VERSION=$(npm --version)
+        echo -e "${GREEN}  Node.js installed: $NODE_VERSION${NC}"
+        echo -e "${GREEN}  npm installed: $NPM_VERSION${NC}"
+    else
+        echo -e "${RED}  ERROR: Node.js/npm installation failed!${NC}"
+        echo -e "${RED}  Try manually: sudo apt install nodejs npm${NC}"
+        exit 1
+    fi
+fi
+
+# Check git (usually pre-installed)
 if command -v git &>/dev/null; then
     echo -e "${GREEN}  git: $(git --version | cut -d' ' -f3)${NC}"
+else
+    echo -e "${YELLOW}  Installing git...${NC}"
+    sudo apt-get install -y git
 fi
 
 # =====================================================================
