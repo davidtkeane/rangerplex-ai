@@ -67,10 +67,34 @@ const NODE_NETWORK: Record<string, Omit<NodeInfo, 'online' | 'permission' | 'key
 };
 
 // WebSocket relay configuration
-// Default: M3Pro genesis at 192.168.1.35:5555
-// Users can change this in the Settings panel
-const DEFAULT_RELAY_HOST = '192.168.1.35';
-const DEFAULT_RELAY_PORT = 5555;
+// Default: ngrok (Internet) for global connectivity
+// Users can switch between servers in Settings panel
+
+// Relay Server Presets
+const RELAY_PRESETS = {
+    ngrok: {
+        name: '🌐 ngrok (Internet)',
+        host: '2.tcp.eu.ngrok.io',
+        port: 12232,
+        description: 'Connect from anywhere via ngrok tunnel'
+    },
+    lan: {
+        name: '🏠 LAN (M3Pro)',
+        host: '192.168.1.35',
+        port: 5555,
+        description: 'Local network - M3Pro Genesis'
+    },
+    cloud: {
+        name: '☁️ Cloud (Coming Soon)',
+        host: 'rangerplex.example.com',
+        port: 5555,
+        description: 'Google Cloud VM - 24/7 uptime'
+    }
+};
+
+// Default to ngrok for internet connectivity
+const DEFAULT_RELAY_HOST = RELAY_PRESETS.ngrok.host;
+const DEFAULT_RELAY_PORT = RELAY_PRESETS.ngrok.port;
 
 // Get saved relay settings from localStorage
 const getRelaySettings = () => {
@@ -80,19 +104,20 @@ const getRelaySettings = () => {
             const settings = JSON.parse(saved);
             return {
                 host: settings.host || DEFAULT_RELAY_HOST,
-                port: settings.port || DEFAULT_RELAY_PORT
+                port: settings.port || DEFAULT_RELAY_PORT,
+                preset: settings.preset || 'ngrok'
             };
         }
     } catch (e) {
         console.error('Failed to load relay settings:', e);
     }
-    return { host: DEFAULT_RELAY_HOST, port: DEFAULT_RELAY_PORT };
+    return { host: DEFAULT_RELAY_HOST, port: DEFAULT_RELAY_PORT, preset: 'ngrok' };
 };
 
 // Save relay settings to localStorage
-const saveRelaySettings = (host: string, port: number) => {
+const saveRelaySettings = (host: string, port: number, preset?: string) => {
     try {
-        localStorage.setItem('rangerblock_relay_settings', JSON.stringify({ host, port }));
+        localStorage.setItem('rangerblock_relay_settings', JSON.stringify({ host, port, preset: preset || 'custom' }));
     } catch (e) {
         console.error('Failed to save relay settings:', e);
     }
@@ -129,7 +154,9 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
     // Relay settings state
     const [relayHost, setRelayHost] = useState(() => getRelaySettings().host);
     const [relayPort, setRelayPort] = useState(() => getRelaySettings().port);
+    const [relayPreset, setRelayPreset] = useState(() => getRelaySettings().preset || 'ngrok');
     const [showRelaySettings, setShowRelaySettings] = useState(false);
+    const [testStatus, setTestStatus] = useState<{[key: string]: 'idle' | 'testing' | 'success' | 'failed'}>({});
 
     // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -653,68 +680,145 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
 
                             {showRelaySettings && (
                                 <div className="mt-2 p-3 bg-blue-900/20 rounded-lg border border-blue-500/20 space-y-3">
-                                    {/* Quick Presets */}
+                                    {/* Server Selector Dropdown */}
                                     <div>
                                         <label className="text-xs text-blue-400/60 font-mono block mb-2">
-                                            Quick Presets:
+                                            🖥️ SELECT DEFAULT SERVER:
+                                        </label>
+                                        <select
+                                            value={relayPreset}
+                                            onChange={(e) => {
+                                                const preset = e.target.value as keyof typeof RELAY_PRESETS;
+                                                setRelayPreset(preset);
+                                                if (RELAY_PRESETS[preset]) {
+                                                    setRelayHost(RELAY_PRESETS[preset].host);
+                                                    setRelayPort(RELAY_PRESETS[preset].port);
+                                                }
+                                            }}
+                                            className="w-full bg-blue-900/40 border border-blue-500/30 rounded px-2 py-2 text-blue-200 font-mono text-sm focus:border-blue-400 focus:outline-none cursor-pointer"
+                                        >
+                                            <option value="ngrok">🌐 ngrok (Internet) - Default</option>
+                                            <option value="lan">🏠 LAN (M3Pro) - Local Network</option>
+                                            <option value="cloud">☁️ Cloud (Coming Soon)</option>
+                                            <option value="custom">⚙️ Custom Server</option>
+                                        </select>
+                                        <p className="text-[10px] text-blue-400/40 font-mono mt-1">
+                                            {relayPreset === 'ngrok' && '→ Connect from anywhere via ngrok tunnel'}
+                                            {relayPreset === 'lan' && '→ Local network only - M3Pro must be online'}
+                                            {relayPreset === 'cloud' && '→ 24/7 uptime - Google Cloud VM (setup required)'}
+                                            {relayPreset === 'custom' && '→ Enter your own relay server below'}
+                                        </p>
+                                    </div>
+
+                                    {/* Test Buttons */}
+                                    <div>
+                                        <label className="text-xs text-blue-400/60 font-mono block mb-2">
+                                            🧪 TEST CONNECTIVITY:
                                         </label>
                                         <div className="grid grid-cols-2 gap-2">
                                             <button
-                                                onClick={() => {
-                                                    setRelayHost('192.168.1.35');
-                                                    setRelayPort(5555);
+                                                onClick={async () => {
+                                                    setTestStatus(prev => ({ ...prev, lan: 'testing' }));
+                                                    try {
+                                                        const ws = new WebSocket(`ws://${RELAY_PRESETS.lan.host}:${RELAY_PRESETS.lan.port}`);
+                                                        await new Promise((resolve, reject) => {
+                                                            ws.onopen = () => { ws.close(); resolve(true); };
+                                                            ws.onerror = reject;
+                                                            setTimeout(() => reject(new Error('timeout')), 3000);
+                                                        });
+                                                        setTestStatus(prev => ({ ...prev, lan: 'success' }));
+                                                    } catch {
+                                                        setTestStatus(prev => ({ ...prev, lan: 'failed' }));
+                                                    }
                                                 }}
-                                                className="py-1.5 px-2 bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 rounded text-xs font-mono border border-blue-500/30"
+                                                className={`py-1.5 px-2 rounded text-xs font-mono border transition-colors ${
+                                                    testStatus.lan === 'success' ? 'bg-green-900/40 border-green-500/50 text-green-400' :
+                                                    testStatus.lan === 'failed' ? 'bg-red-900/40 border-red-500/50 text-red-400' :
+                                                    testStatus.lan === 'testing' ? 'bg-yellow-900/40 border-yellow-500/50 text-yellow-400' :
+                                                    'bg-blue-900/40 hover:bg-blue-900/60 border-blue-500/30 text-blue-300'
+                                                }`}
                                             >
-                                                🏠 LAN (M3Pro)
+                                                {testStatus.lan === 'testing' ? '⏳ Testing...' :
+                                                 testStatus.lan === 'success' ? '✅ LAN OK' :
+                                                 testStatus.lan === 'failed' ? '❌ LAN Fail' :
+                                                 '🏠 Test LAN'}
                                             </button>
                                             <button
-                                                onClick={() => {
-                                                    setRelayHost('2.tcp.eu.ngrok.io');
-                                                    setRelayPort(12232);
+                                                onClick={async () => {
+                                                    setTestStatus(prev => ({ ...prev, ngrok: 'testing' }));
+                                                    try {
+                                                        const ws = new WebSocket(`ws://${RELAY_PRESETS.ngrok.host}:${RELAY_PRESETS.ngrok.port}`);
+                                                        await new Promise((resolve, reject) => {
+                                                            ws.onopen = () => { ws.close(); resolve(true); };
+                                                            ws.onerror = reject;
+                                                            setTimeout(() => reject(new Error('timeout')), 5000);
+                                                        });
+                                                        setTestStatus(prev => ({ ...prev, ngrok: 'success' }));
+                                                    } catch {
+                                                        setTestStatus(prev => ({ ...prev, ngrok: 'failed' }));
+                                                    }
                                                 }}
-                                                className="py-1.5 px-2 bg-purple-900/40 hover:bg-purple-900/60 text-purple-300 rounded text-xs font-mono border border-purple-500/30"
+                                                className={`py-1.5 px-2 rounded text-xs font-mono border transition-colors ${
+                                                    testStatus.ngrok === 'success' ? 'bg-green-900/40 border-green-500/50 text-green-400' :
+                                                    testStatus.ngrok === 'failed' ? 'bg-red-900/40 border-red-500/50 text-red-400' :
+                                                    testStatus.ngrok === 'testing' ? 'bg-yellow-900/40 border-yellow-500/50 text-yellow-400' :
+                                                    'bg-purple-900/40 hover:bg-purple-900/60 border-purple-500/30 text-purple-300'
+                                                }`}
                                             >
-                                                🌐 ngrok (Internet)
+                                                {testStatus.ngrok === 'testing' ? '⏳ Testing...' :
+                                                 testStatus.ngrok === 'success' ? '✅ ngrok OK' :
+                                                 testStatus.ngrok === 'failed' ? '❌ ngrok Fail' :
+                                                 '🌐 Test ngrok'}
                                             </button>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="text-xs text-blue-400/60 font-mono block mb-1">
-                                            Relay Host:
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={relayHost}
-                                            onChange={(e) => setRelayHost(e.target.value)}
-                                            className="w-full bg-blue-900/30 border border-blue-500/30 rounded px-2 py-1 text-blue-200 font-mono text-sm focus:border-blue-400 focus:outline-none"
-                                            placeholder="192.168.1.35"
-                                        />
+
+                                    {/* Manual Host/Port (for custom) */}
+                                    {relayPreset === 'custom' && (
+                                        <>
+                                            <div>
+                                                <label className="text-xs text-blue-400/60 font-mono block mb-1">
+                                                    Relay Host:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={relayHost}
+                                                    onChange={(e) => setRelayHost(e.target.value)}
+                                                    className="w-full bg-blue-900/30 border border-blue-500/30 rounded px-2 py-1 text-blue-200 font-mono text-sm focus:border-blue-400 focus:outline-none"
+                                                    placeholder="your-server.com"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-blue-400/60 font-mono block mb-1">
+                                                    Relay Port:
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    value={relayPort}
+                                                    onChange={(e) => setRelayPort(parseInt(e.target.value) || 5555)}
+                                                    className="w-full bg-blue-900/30 border border-blue-500/30 rounded px-2 py-1 text-blue-200 font-mono text-sm focus:border-blue-400 focus:outline-none"
+                                                    placeholder="5555"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Current Settings Display */}
+                                    <div className="p-2 bg-black/30 rounded border border-blue-500/20">
+                                        <p className="text-[10px] text-blue-400/60 font-mono">CURRENT RELAY:</p>
+                                        <p className="text-xs text-cyan-400 font-mono">{relayHost}:{relayPort}</p>
                                     </div>
-                                    <div>
-                                        <label className="text-xs text-blue-400/60 font-mono block mb-1">
-                                            Relay Port:
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={relayPort}
-                                            onChange={(e) => setRelayPort(parseInt(e.target.value) || 5555)}
-                                            className="w-full bg-blue-900/30 border border-blue-500/30 rounded px-2 py-1 text-blue-200 font-mono text-sm focus:border-blue-400 focus:outline-none"
-                                            placeholder="5555"
-                                        />
-                                    </div>
+
+                                    {/* Save Button */}
                                     <button
                                         onClick={() => {
-                                            saveRelaySettings(relayHost, relayPort);
-                                            alert(`Relay saved: ${relayHost}:${relayPort}`);
+                                            saveRelaySettings(relayHost, relayPort, relayPreset);
+                                            alert(`✅ Saved!\n\nServer: ${relayPreset}\nRelay: ${relayHost}:${relayPort}`);
                                         }}
-                                        className="w-full py-1.5 bg-green-900/40 hover:bg-green-900/60 text-green-400 rounded text-xs font-mono border border-green-500/30"
+                                        className="w-full py-2 bg-green-900/40 hover:bg-green-900/60 text-green-400 rounded text-sm font-mono border border-green-500/30 font-bold"
                                     >
-                                        💾 SAVE RELAY SETTINGS
+                                        💾 SAVE AS DEFAULT
                                     </button>
-                                    <p className="text-[10px] text-blue-400/40 font-mono">
-                                        LAN: 192.168.1.35:5555 | ngrok: 2.tcp.eu.ngrok.io:12232
-                                    </p>
                                 </div>
                             )}
                         </div>
