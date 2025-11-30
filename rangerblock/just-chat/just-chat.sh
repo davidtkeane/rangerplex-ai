@@ -704,6 +704,71 @@ status() {
 # MAIN
 # ============================================================================
 
+# ============================================================================
+# WELCOME MENU
+# ============================================================================
+
+welcome_menu() {
+    print_banner
+
+    echo -e "${WHITE}${BOLD}  Welcome to RangerBlock P2P Chat!${NC}"
+    echo ""
+    echo -e "${GRAY}  A secure blockchain-based chat network created for${NC}"
+    echo -e "${GRAY}  educational purposes as part of a Master's thesis project.${NC}"
+    echo ""
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}  ${WHITE}${BOLD}WHAT WOULD YOU LIKE TO DO?${NC}                                  ${CYAN}║${NC}"
+    echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[1]${NC} ${WHITE}Install & Chat${NC}  - First time? Start here!              ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[2]${NC} ${WHITE}Start Chatting${NC}  - Already installed? Jump in!          ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[3]${NC} ${WHITE}Test Connection${NC} - Check if AWS relay is online         ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[4]${NC} ${WHITE}Network Status${NC}  - See who's online                     ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[5]${NC} ${WHITE}Help${NC}            - Show all commands                    ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[0]${NC} ${WHITE}Exit${NC}                                                   ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${GRAY}  AWS Relay: ${CYAN}44.222.101.125:5555${NC} ${GRAY}(24/7 uptime)${NC}"
+    echo ""
+
+    read -p "  Enter choice [1-5, 0 to exit]: " choice
+
+    case "$choice" in
+        1)
+            install
+            ;;
+        2)
+            chat
+            ;;
+        3)
+            test_connection
+            ;;
+        4)
+            status
+            ;;
+        5)
+            show_help
+            ;;
+        0|q|Q)
+            echo ""
+            echo -e "  ${PURPLE}Rangers lead the way! 🎖️${NC}"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo ""
+            warning "Invalid choice. Please enter 1-5 or 0."
+            sleep 1
+            welcome_menu
+            ;;
+    esac
+}
+
+# ============================================================================
+# MAIN
+# ============================================================================
+
 case "${1:-}" in
     -c|-chat|--chat)
         chat
@@ -720,12 +785,15 @@ case "${1:-}" in
     -s|-status|--status)
         status
         ;;
+    -i|-install|--install)
+        install
+        ;;
     -getoffmymachine|--getoffmymachine|-uninstall|--uninstall)
         uninstall
         ;;
     "")
-        # No args = install
-        install
+        # No args = show welcome menu
+        welcome_menu
         ;;
     *)
         echo ""
