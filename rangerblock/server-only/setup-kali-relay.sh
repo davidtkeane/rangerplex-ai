@@ -155,14 +155,23 @@ echo -e "\n${YELLOW}[1/6] Detecting environment...${NC}"
 PLATFORM_TYPE="linux"
 VM_TYPE="native"
 
-# Check for cloud providers
+# Check for cloud providers (order matters!)
+# AWS check - multiple methods
 if [ -f /sys/hypervisor/uuid ] && grep -qi ec2 /sys/hypervisor/uuid 2>/dev/null; then
     PLATFORM_TYPE="aws"
     VM_TYPE="aws-ec2"
+elif [ -f /sys/devices/virtual/dmi/id/product_uuid ] && grep -qi ec2 /sys/devices/virtual/dmi/id/product_uuid 2>/dev/null; then
+    PLATFORM_TYPE="aws"
+    VM_TYPE="aws-ec2"
+elif curl -s -m 1 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null | grep -q "^i-"; then
+    PLATFORM_TYPE="aws"
+    VM_TYPE="aws-ec2"
+# GCP check
 elif curl -s -m 1 http://metadata.google.internal/computeMetadata/v1/ -H "Metadata-Flavor: Google" &>/dev/null; then
     PLATFORM_TYPE="gcp"
     VM_TYPE="gcp-compute"
-elif curl -s -m 1 http://169.254.169.254/metadata/instance?api-version=2021-02-01 -H "Metadata:true" &>/dev/null; then
+# Azure check (only if not AWS)
+elif curl -s -m 1 http://169.254.169.254/metadata/instance?api-version=2021-02-01 -H "Metadata:true" 2>/dev/null | grep -q "azEnvironment"; then
     PLATFORM_TYPE="azure"
     VM_TYPE="azure-vm"
 elif [ -f /sys/class/dmi/id/product_name ]; then
@@ -263,10 +272,19 @@ if [ "$NEED_NODE_INSTALL" = true ]; then
 
     # Remove any existing nodejs to avoid conflicts
     sudo apt-get remove -y nodejs npm 2>/dev/null || true
+    sudo apt-get autoremove -y 2>/dev/null || true
 
-    # Install Node.js via NodeSource (includes npm)
-    curl -fsSL https://deb.nodesource.com/setup_20.x 2>/dev/null | sudo -E bash - >/dev/null 2>&1
-    sudo apt-get install -y nodejs >/dev/null 2>&1
+    # Try NodeSource first
+    echo -e "${BLUE}  Downloading NodeSource setup...${NC}"
+    if curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -; then
+        echo -e "${BLUE}  Installing nodejs from NodeSource...${NC}"
+        sudo apt-get install -y nodejs
+    else
+        # Fallback: install from default repos
+        echo -e "${YELLOW}  NodeSource failed, trying default repos...${NC}"
+        sudo apt-get update
+        sudo apt-get install -y nodejs npm
+    fi
 
     # Verify installation
     if command -v node &>/dev/null && command -v npm &>/dev/null; then
@@ -275,9 +293,20 @@ if [ "$NEED_NODE_INSTALL" = true ]; then
         echo -e "${GREEN}  ✅ Node.js installed: $NODE_VERSION${NC}"
         echo -e "${GREEN}  ✅ npm installed: $NPM_VERSION${NC}"
     else
-        echo -e "${RED}  ❌ ERROR: Node.js/npm installation failed!${NC}"
-        echo -e "${RED}     Try manually: sudo apt install nodejs npm${NC}"
-        exit 1
+        # Last resort fallback
+        echo -e "${YELLOW}  Trying alternative install method...${NC}"
+        sudo apt-get update
+        sudo apt-get install -y nodejs npm || {
+            echo -e "${RED}  ❌ ERROR: Node.js/npm installation failed!${NC}"
+            echo -e "${RED}     Try manually:${NC}"
+            echo -e "${RED}     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -${NC}"
+            echo -e "${RED}     sudo apt install -y nodejs${NC}"
+            exit 1
+        }
+        NODE_VERSION=$(node --version 2>/dev/null || echo "unknown")
+        NPM_VERSION=$(npm --version 2>/dev/null || echo "unknown")
+        echo -e "${GREEN}  ✅ Node.js installed: $NODE_VERSION${NC}"
+        echo -e "${GREEN}  ✅ npm installed: $NPM_VERSION${NC}"
     fi
 fi
 
