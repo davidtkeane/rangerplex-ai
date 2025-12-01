@@ -25,6 +25,9 @@ class RSSService {
     private failedFeeds: Map<string, number> = new Map();
     private readonly FAILED_FEED_QUIET_PERIOD = 5 * 60 * 1000; // 5 minutes
 
+    // Track if cleanup has been run this session
+    private cleanupDone = false;
+
     constructor() {
         this.cache = new Map();
         this.initializeDatabase();
@@ -90,6 +93,61 @@ class RSSService {
         });
     }
 
+    // Known broken feeds to auto-remove (URLs that no longer work)
+    private readonly BROKEN_FEED_URLS = [
+        'https://gbhackers.com/feed/',
+        'https://www.yourticketstatus.com/GBHackers/feed/',
+        'https://www.yourticketstatus.com/rss.xml',
+        'https://www.yourticketstatus.com/feed/',
+        'https://www.yourticketstatus.com/blog/feed/',
+        'https://www.yourticketstatus.com/rss/',
+        'https://www.yourticketstatus.com/blog/rss.xml',
+        'https://www.yourticketstatus.com/blog/',
+        'https://www.yourticketstatus.com/',
+        'https://www.yourticketstatus.com/blog/rss/',
+        'https://www.yourticketstatus.com/blog/feed',
+        'https://www.yourticketstatus.com/rss.xml/',
+        'https://www.yourticketstatus.com/rss',
+        'https://www.yourticketstatus.com/feed',
+        'https://www.yourticketstatus.com/blog/rss',
+        'https://www.yourticketstatus.com/blog/feed/',
+        'https://www.yourticketstatus.com/blog/rss.xml/',
+        'https://www.yourticketstatus.com/blog/rss/',
+        'https://www.yourticketstatus.com/blog/feed',
+        'https://www.yourticketstatus.com/blog/',
+        'https://www.yourticketstatus.com/blog',
+        'https://www.yourticketstatus.com/blog/rss',
+        'https://www.yourticketstatus.com/blog/rss.xml',
+        'https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/rss.xml',
+        'https://www.kitploit.com/feeds/posts/default',
+        'https://www.volexity.com/blog/feed/',
+        'https://nakedsecurity.sophos.com/feed/',
+        'https://pen-testing.sans.org/blog/feed/',
+        'https://www.yourticketstatus.com/hack',
+        'https://www.yourticketstatus.com/hack/',
+        'https://www.yourticketstatus.com/hack/feed/',
+        'https://www.yourticketstatus.com/hack/rss.xml',
+        'https://www.yourticketstatus.com/hack/rss/',
+        'https://www.yourticketstatus.com/hack/feed',
+        'https://www.yourticketstatus.com/hack/rss',
+        'https://www.yourticketstatus.com/hack/rss.xml/',
+        'https://www.yourticketstatus.com/hack/feed/',
+        'https://www.hackingarticles.in/feed/',
+        'https://packetstormsecurity.com/feeds/files/',
+    ];
+
+    // Known broken feed names to auto-remove
+    private readonly BROKEN_FEED_NAMES = [
+        'GBHackers on Security',
+        'Trustwave SpiderLabs',
+        'KitPloit',
+        'Volexity',
+        'Sophos Naked Security',
+        'SANS Penetration Testing',
+        'Hacking Articles',
+        'Packet Storm',
+    ];
+
     /**
      * Initialize default feeds on first run
      */
@@ -102,6 +160,41 @@ class RSSService {
             }
             console.log(`✅ Initialized ${DEFAULT_RSS_FEEDS.length} default feeds`);
         }
+    }
+
+    /**
+     * Remove known broken feeds from IndexedDB
+     * This runs on startup to clean up old/broken feeds
+     */
+    async cleanupBrokenFeeds(): Promise<number> {
+        const feeds = await this.getAllFeeds();
+        let removedCount = 0;
+
+        for (const feed of feeds) {
+            const isBrokenUrl = this.BROKEN_FEED_URLS.some(url =>
+                feed.url.toLowerCase().includes(url.toLowerCase()) ||
+                url.toLowerCase().includes(feed.url.toLowerCase())
+            );
+            const isBrokenName = this.BROKEN_FEED_NAMES.some(name =>
+                feed.name.toLowerCase() === name.toLowerCase()
+            );
+
+            if (isBrokenUrl || isBrokenName) {
+                try {
+                    await this.removeFeed(feed.id);
+                    console.log(`🗑️ Removed broken feed: ${feed.name}`);
+                    removedCount++;
+                } catch (error) {
+                    console.warn(`Failed to remove broken feed: ${feed.name}`, error);
+                }
+            }
+        }
+
+        if (removedCount > 0) {
+            console.log(`📡 RSS Cleanup: Removed ${removedCount} broken feeds`);
+        }
+
+        return removedCount;
     }
 
     /**
@@ -287,7 +380,21 @@ class RSSService {
      * Fetch all enabled feeds
      */
     async fetchAllFeeds(): Promise<RSSItem[]> {
-        const feeds = await this.getAllFeeds();
+        // Auto-cleanup broken feeds on first fetch (once per session)
+        if (!this.cleanupDone) {
+            await this.cleanupBrokenFeeds();
+            this.cleanupDone = true;
+        }
+
+        let feeds = await this.getAllFeeds();
+
+        // Auto-initialize default feeds if none exist
+        if (feeds.length === 0) {
+            console.log('📡 No feeds found - auto-initializing defaults...');
+            await this.initializeDefaultFeeds();
+            feeds = await this.getAllFeeds();
+        }
+
         const enabledFeeds = feeds.filter(f => f.enabled);
 
         console.log(`📡 Fetching ${enabledFeeds.length} enabled RSS feeds...`);
@@ -396,7 +503,31 @@ class RSSService {
             const request = store.get('rss_settings');
 
             request.onsuccess = () => {
-                resolve(request.result || DEFAULT_RSS_SETTINGS);
+                const savedSettings = request.result;
+                console.log('📡 RSS loadSettings: savedSettings from IndexedDB:', savedSettings);
+
+                if (!savedSettings) {
+                    console.log('📡 RSS loadSettings: No saved settings, using defaults');
+                    resolve(DEFAULT_RSS_SETTINGS);
+                    return;
+                }
+                // Merge saved settings with defaults to ensure all fields exist
+                // This fixes issues where old settings don't have enabledCategories
+                const merged: RSSSettings = {
+                    ...DEFAULT_RSS_SETTINGS,
+                    ...savedSettings,
+                    // Ensure enabledCategories is never empty (use defaults if empty/missing)
+                    enabledCategories: (savedSettings.enabledCategories && savedSettings.enabledCategories.length > 0)
+                        ? savedSettings.enabledCategories
+                        : DEFAULT_RSS_SETTINGS.enabledCategories,
+                };
+                console.log('📡 RSS loadSettings: merged settings:', {
+                    enabled: merged.enabled,
+                    enabledCategories: merged.enabledCategories,
+                    displayMode: merged.displayMode,
+                    showNotesInTicker: merged.showNotesInTicker
+                });
+                resolve(merged);
             };
             request.onerror = () => reject(request.error);
         });
@@ -547,6 +678,148 @@ class RSSService {
             .replace(/<[^>]*>/g, '') // Remove HTML tags
             .replace(/\s+/g, ' ') // Normalize whitespace
             .trim();
+    }
+
+    /**
+     * Reset RSS settings to defaults
+     */
+    async resetSettings(): Promise<void> {
+        await this.saveSettings(DEFAULT_RSS_SETTINGS);
+        this.cache.clear();
+        this.failedFeeds.clear();
+        console.log('📡 RSS settings reset to defaults');
+    }
+
+    /**
+     * Clear all RSS cache (in-memory)
+     */
+    clearCache(): void {
+        this.cache.clear();
+        this.failedFeeds.clear();
+        console.log('📡 RSS cache cleared');
+    }
+
+    /**
+     * Clear all RSS data from IndexedDB (full reset)
+     */
+    async clearAllData(): Promise<void> {
+        const db = await this.getDB();
+
+        // Clear all stores
+        await Promise.all([
+            new Promise<void>((resolve, reject) => {
+                const tx = db.transaction([this.FEEDS_STORE], 'readwrite');
+                tx.objectStore(this.FEEDS_STORE).clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            }),
+            new Promise<void>((resolve, reject) => {
+                const tx = db.transaction([this.ITEMS_STORE], 'readwrite');
+                tx.objectStore(this.ITEMS_STORE).clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            }),
+            new Promise<void>((resolve, reject) => {
+                const tx = db.transaction([this.SETTINGS_STORE], 'readwrite');
+                tx.objectStore(this.SETTINGS_STORE).clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            }),
+        ]);
+
+        // Clear memory cache
+        this.cache.clear();
+        this.failedFeeds.clear();
+
+        console.log('📡 All RSS data cleared from IndexedDB');
+    }
+
+    /**
+     * Get IndexedDB statistics
+     */
+    async getStats(): Promise<{
+        feedCount: number;
+        itemCount: number;
+        enabledFeedCount: number;
+        cacheSize: number;
+        failedFeedCount: number;
+        dbSizeEstimate: string;
+    }> {
+        const db = await this.getDB();
+
+        const feedCount = await new Promise<number>((resolve, reject) => {
+            const tx = db.transaction([this.FEEDS_STORE], 'readonly');
+            const req = tx.objectStore(this.FEEDS_STORE).count();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+
+        const itemCount = await new Promise<number>((resolve, reject) => {
+            const tx = db.transaction([this.ITEMS_STORE], 'readonly');
+            const req = tx.objectStore(this.ITEMS_STORE).count();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+
+        const feeds = await this.getAllFeeds();
+        const enabledFeedCount = feeds.filter(f => f.enabled).length;
+
+        // Estimate storage using Storage API if available
+        let dbSizeEstimate = 'Unknown';
+        if (navigator.storage && navigator.storage.estimate) {
+            const estimate = await navigator.storage.estimate();
+            if (estimate.usage) {
+                dbSizeEstimate = this.formatBytes(estimate.usage);
+            }
+        }
+
+        return {
+            feedCount,
+            itemCount,
+            enabledFeedCount,
+            cacheSize: this.cache.size,
+            failedFeedCount: this.failedFeeds.size,
+            dbSizeEstimate,
+        };
+    }
+
+    /**
+     * Format bytes to human readable
+     */
+    private formatBytes(bytes: number): string {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    /**
+     * Refresh all feeds (force re-fetch)
+     */
+    async refreshAllFeeds(): Promise<{ success: number; failed: number }> {
+        // Clear cache first
+        this.cache.clear();
+        this.failedFeeds.clear();
+
+        // Re-fetch all feeds
+        const feeds = await this.getAllFeeds();
+        const enabledFeeds = feeds.filter(f => f.enabled);
+
+        let success = 0;
+        let failed = 0;
+
+        for (const feed of enabledFeeds) {
+            try {
+                await this.fetchFeed(feed);
+                success++;
+            } catch {
+                failed++;
+            }
+        }
+
+        console.log(`📡 RSS refresh complete: ${success} success, ${failed} failed`);
+        return { success, failed };
     }
 }
 

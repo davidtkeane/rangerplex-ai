@@ -45,6 +45,8 @@ export interface RSSSettings {
     pauseOnHover: boolean;
     feedOrder: 'newest' | 'random' | 'category';
     showNotesInTicker: boolean; // Show user study notes in the ticker
+    displayMode: 'all' | 'rss-only' | 'notes-only' | 'single-category'; // What to show in ticker
+    singleCategoryFilter?: RSSCategory; // Used when displayMode is 'single-category'
 }
 
 export interface RSSFeedTest {
@@ -82,6 +84,8 @@ export const DEFAULT_RSS_SETTINGS: RSSSettings = {
     pauseOnHover: true,
     feedOrder: 'newest',
     showNotesInTicker: false, // Off by default
+    displayMode: 'all', // Show both RSS and notes
+    singleCategoryFilter: undefined, // No filter by default
 };
 
 // Category configurations
@@ -140,20 +144,20 @@ export const RSS_CATEGORIES: Record<RSSCategory, RSSCategoryConfig> = {
 export const DEFAULT_RSS_FEEDS: Omit<RSSFeed, 'id' | 'lastFetched' | 'lastError' | 'itemCount'>[] = [
     // PENETRATION TESTING (20 feeds)
     { name: 'Pen Test Partners', url: 'https://www.pentestpartners.com/feed/', category: 'pentesting', enabled: true },
-    { name: 'GBHackers on Security', url: 'https://gbhackers.com/feed/', category: 'pentesting', enabled: true },
+    { name: 'Reddit NetSec', url: 'https://www.reddit.com/r/netsec/.rss', category: 'pentesting', enabled: true },
     { name: 'PentesterLab Blog', url: 'https://blog.pentesterlab.com/feed', category: 'pentesting', enabled: true },
     { name: 'MDSec', url: 'https://www.mdsec.co.uk/feed/', category: 'pentesting', enabled: true },
-    { name: 'SANS Penetration Testing', url: 'https://www.sans.org/blog/rss/', category: 'pentesting', enabled: true },
-    { name: 'KitPloit', url: 'https://www.kitploit.com/feeds/posts/default', category: 'pentesting', enabled: true },
+    { name: 'SANS ISC', url: 'https://isc.sans.edu/rssfeed.xml', category: 'pentesting', enabled: true },
+    { name: 'Rapid7 Blog', url: 'https://blog.rapid7.com/rss/', category: 'pentesting', enabled: true },
     { name: 'Kali Linux', url: 'https://www.kali.org/rss.xml', category: 'pentesting', enabled: true },
-    { name: 'Hacking Articles', url: 'https://www.hackingarticles.in/feed/', category: 'pentesting', enabled: true },
+    { name: 'Checkpoint Research', url: 'https://research.checkpoint.com/feed/', category: 'pentesting', enabled: true },
     { name: 'Offensive Security', url: 'https://www.offensive-security.com/feed/', category: 'pentesting', enabled: true },
     { name: 'Dark Reading', url: 'https://www.darkreading.com/rss.xml', category: 'pentesting', enabled: true },
     { name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews', category: 'pentesting', enabled: true },
     { name: 'Krebs on Security', url: 'https://krebsonsecurity.com/feed/', category: 'pentesting', enabled: true },
     { name: 'Schneier on Security', url: 'https://www.schneier.com/feed/atom/', category: 'pentesting', enabled: true },
     { name: 'ExploitDB', url: 'https://www.exploit-db.com/rss.xml', category: 'pentesting', enabled: true },
-    { name: 'Packet Storm', url: 'https://packetstormsecurity.com/feeds/news/', category: 'pentesting', enabled: true },
+    { name: 'Cisco Talos', url: 'https://blog.talosintelligence.com/rss/', category: 'pentesting', enabled: true },
     { name: 'Google Security Blog', url: 'https://security.googleblog.com/feeds/posts/default', category: 'pentesting', enabled: true },
     { name: 'Threatpost', url: 'https://threatpost.com/feed/', category: 'pentesting', enabled: true },
     { name: 'CISA Advisories', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml', category: 'pentesting', enabled: true },
@@ -166,11 +170,11 @@ export const DEFAULT_RSS_FEEDS: Omit<RSSFeed, 'id' | 'lastFetched' | 'lastError'
     { name: 'Malware Traffic Analysis', url: 'https://www.malware-traffic-analysis.net/blog-entries.rss', category: 'malware', enabled: true },
     { name: 'Kaspersky Securelist', url: 'https://securelist.com/feed/', category: 'malware', enabled: true },
     { name: 'Malwarebytes Labs', url: 'https://blog.malwarebytes.com/feed/', category: 'malware', enabled: true },
-    { name: 'Sophos Naked Security', url: 'https://nakedsecurity.sophos.com/feed/', category: 'malware', enabled: true },
+    { name: 'SentinelOne Labs', url: 'https://www.sentinelone.com/labs/feed/', category: 'malware', enabled: true },
     { name: 'ESET WeLiveSecurity', url: 'https://www.welivesecurity.com/feed/', category: 'malware', enabled: true },
     { name: 'McAfee Labs', url: 'https://www.mcafee.com/blogs/rss/', category: 'malware', enabled: true },
-    { name: 'Trustwave SpiderLabs', url: 'https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/rss/', category: 'malware', enabled: true },
-    { name: 'Volexity', url: 'https://www.volexity.com/blog/feed/', category: 'malware', enabled: true },
+    { name: 'Unit42 Palo Alto', url: 'https://unit42.paloaltonetworks.com/feed/', category: 'malware', enabled: true },
+    { name: 'CrowdStrike Blog', url: 'https://www.crowdstrike.com/blog/feed/', category: 'malware', enabled: true },
     { name: 'Google Threat Analysis', url: 'https://blog.google/threat-analysis-group/rss/', category: 'malware', enabled: true },
     { name: 'Zero Day Initiative', url: 'https://www.zerodayinitiative.com/blog?format=rss', category: 'malware', enabled: true },
     { name: 'Threatpost Malware', url: 'https://threatpost.com/category/malware-2/feed/', category: 'malware', enabled: true },
@@ -185,7 +189,7 @@ export const DEFAULT_RSS_FEEDS: Omit<RSSFeed, 'id' | 'lastFetched' | 'lastError'
     // DIGITAL FORENSICS (20 feeds)
     { name: 'Forensic Focus', url: 'https://www.forensicfocus.com/feed/', category: 'forensics', enabled: true },
     { name: 'The DFIR Report', url: 'https://thedfirreport.com/feed/', category: 'forensics', enabled: true },
-    { name: 'SANS DFIR', url: 'https://www.sans.org/blog/rss/', category: 'forensics', enabled: true },
+    { name: 'Huntress Blog', url: 'https://www.huntress.com/blog/rss.xml', category: 'forensics', enabled: true },
     { name: 'CrowdStrike DFIR', url: 'https://www.crowdstrike.com/blog/category/dfir/feed/', category: 'forensics', enabled: true },
     { name: 'Intezer Blog', url: 'https://www.intezer.com/blog/feed/', category: 'forensics', enabled: true },
     { name: 'DFIR Diva', url: 'https://dfirdiva.com/feed/', category: 'forensics', enabled: true },

@@ -2795,24 +2795,189 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                             </select>
                                         </div>
 
-                                        {/* Initialize Default Feeds */}
-                                        <div className="pt-4 border-t border-zinc-700">
-                                            <button
-                                                onClick={async () => {
-                                                    try {
-                                                        await rssService.initializeDefaultFeeds();
-                                                        alert('✅ Default feeds initialized! (120 feeds)\n\nGo to "Manage Feeds" to see them.');
-                                                    } catch (error) {
-                                                        alert('❌ Failed to initialize feeds: ' + (error as Error).message);
-                                                    }
+                                        {/* Display Mode */}
+                                        <div>
+                                            <label className="block text-sm font-bold mb-2">Display Mode</label>
+                                            <select
+                                                value={rssSettings.displayMode || 'all'}
+                                                onChange={(e) => {
+                                                    const newSettings = { ...rssSettings, displayMode: e.target.value as any };
+                                                    setRssSettings(newSettings);
+                                                    rssService.saveSettings(newSettings);
                                                 }}
-                                                className="w-full px-4 py-3 bg-green-600 hover:bg-green-500 text-white rounded font-medium transition-colors"
+                                                className={inputClass}
                                             >
-                                                Initialize Default Feeds (120 feeds)
-                                            </button>
-                                            <p className="text-xs opacity-50 mt-2 text-center">
-                                                This will add all pre-configured RSS feeds if not already added
-                                            </p>
+                                                <option value="all">All (RSS + Notes)</option>
+                                                <option value="rss-only">RSS Feeds Only</option>
+                                                <option value="notes-only">Notes Only</option>
+                                                <option value="single-category">Single Category</option>
+                                            </select>
+                                            <p className="text-xs opacity-50 mt-1">Choose what content appears in the ticker</p>
+                                        </div>
+
+                                        {/* Single Category Filter (only shows when displayMode is 'single-category') */}
+                                        {rssSettings.displayMode === 'single-category' && (
+                                            <div>
+                                                <label className="block text-sm font-bold mb-2">Filter by Category</label>
+                                                <select
+                                                    value={rssSettings.singleCategoryFilter || 'pentesting'}
+                                                    onChange={(e) => {
+                                                        const newSettings = { ...rssSettings, singleCategoryFilter: e.target.value as any };
+                                                        setRssSettings(newSettings);
+                                                        rssService.saveSettings(newSettings);
+                                                    }}
+                                                    className={inputClass}
+                                                >
+                                                    <option value="pentesting">🔒 Penetration Testing</option>
+                                                    <option value="malware">🦠 Malware Analysis</option>
+                                                    <option value="forensics">🔍 Digital Forensics</option>
+                                                    <option value="news">📰 Cybersecurity News</option>
+                                                    <option value="dataGov">🛡️ Data Governance</option>
+                                                    <option value="blockchain">⛓️ Blockchain & Crypto</option>
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        {/* Quick Actions */}
+                                        <div className="pt-4 border-t border-zinc-700">
+                                            <h4 className="font-bold mb-3 text-sm flex items-center gap-2">
+                                                <i className="fa-solid fa-bolt text-yellow-400"></i>
+                                                Quick Actions
+                                            </h4>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const result = await rssService.refreshAllFeeds();
+                                                            alert(`✅ Refreshed!\n\n✓ ${result.success} success\n✗ ${result.failed} failed`);
+                                                        } catch (error) {
+                                                            alert('❌ Failed: ' + (error as Error).message);
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <i className="fa-solid fa-sync text-xs"></i>
+                                                    Refresh Feeds
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            await rssService.initializeDefaultFeeds();
+                                                            alert('✅ 120 default feeds added!');
+                                                        } catch (error) {
+                                                            alert('❌ Failed: ' + (error as Error).message);
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <i className="fa-solid fa-plus text-xs"></i>
+                                                    Init Defaults
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const stats = await rssService.getStats();
+                                                            alert(`📊 Stats\n\n📡 Feeds: ${stats.feedCount} (${stats.enabledFeedCount} enabled)\n📰 Items: ${stats.itemCount}\n💾 Cache: ${stats.cacheSize}\n⚠️ Failed: ${stats.failedFeedCount}\n💿 Storage: ${stats.dbSizeEstimate}`);
+                                                        } catch (error) {
+                                                            alert('❌ Error: ' + (error as Error).message);
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <i className="fa-solid fa-chart-bar text-xs"></i>
+                                                    View Stats
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        rssService.clearCache();
+                                                        alert('✅ Cache cleared!');
+                                                    }}
+                                                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <i className="fa-solid fa-broom text-xs"></i>
+                                                    Clear Cache
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Reset Options */}
+                                        <div className="pt-4 border-t border-zinc-700">
+                                            <h4 className="font-bold mb-3 text-sm flex items-center gap-2">
+                                                <i className="fa-solid fa-rotate-left text-orange-400"></i>
+                                                Reset Options
+                                            </h4>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (confirm('Reset RSS settings to defaults?\n\nKeeps your feeds.')) {
+                                                            await rssService.resetSettings();
+                                                            const newSettings = await rssService.loadSettings();
+                                                            setRssSettings(newSettings);
+                                                            alert('✅ Settings reset!');
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <i className="fa-solid fa-rotate-left text-xs"></i>
+                                                    Reset Settings
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (confirm('⚠️ DELETE all RSS data?\n\nThis cannot be undone!')) {
+                                                            await rssService.clearAllData();
+                                                            const newSettings = await rssService.loadSettings();
+                                                            setRssSettings(newSettings);
+                                                            alert('✅ All RSS data deleted!');
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <i className="fa-solid fa-trash text-xs"></i>
+                                                    Delete All
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Browser Storage */}
+                                        <div className="pt-4 border-t border-zinc-700">
+                                            <h4 className="font-bold mb-3 text-sm flex items-center gap-2">
+                                                <i className="fa-solid fa-hard-drive text-purple-400"></i>
+                                                Browser Storage
+                                            </h4>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (confirm('Clear localStorage?\n\nResets app preferences.')) {
+                                                            localStorage.clear();
+                                                            alert('✅ localStorage cleared!');
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <i className="fa-solid fa-eraser text-xs"></i>
+                                                    Clear Local
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            if (navigator.storage && navigator.storage.estimate) {
+                                                                const estimate = await navigator.storage.estimate();
+                                                                const used = estimate.usage ? (estimate.usage / 1024 / 1024).toFixed(2) : '?';
+                                                                const quota = estimate.quota ? (estimate.quota / 1024 / 1024).toFixed(2) : '?';
+                                                                const dbs = await indexedDB.databases();
+                                                                const dbList = dbs.map(db => `• ${db.name}`).join('\n');
+                                                                alert(`💾 Storage: ${used}/${quota} MB\n\n📦 DBs:\n${dbList || 'None'}`);
+                                                            }
+                                                        } catch (error) {
+                                                            alert('❌ Error: ' + (error as Error).message);
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <i className="fa-solid fa-info text-xs"></i>
+                                                    Storage Info
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 )}

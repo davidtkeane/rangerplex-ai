@@ -5,12 +5,91 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.1.3] - 2025-12-01 📻 RADIO FORMAT ERROR FIX
-### 🐛 Bug Fix
+## [4.1.4] - 2025-12-01 🧹 RSS AUTO-CLEANUP & DEBUG
+
+### 🗑️ Auto-Cleanup Broken Feeds
+- **NEW**: Automatic removal of known broken RSS feeds on startup
+- **Runs once per session** - efficient, doesn't slow down refreshes
+- **Removes 8 broken feeds by name**:
+  - GBHackers on Security
+  - Trustwave SpiderLabs
+  - KitPloit
+  - Volexity
+  - Sophos Naked Security
+  - SANS Penetration Testing
+  - Hacking Articles
+  - Packet Storm
+- **Problem solved**: These feeds were being restored from cloud sync even after clearing local storage
+
+### 🔍 Debug Logging Added
+- Comprehensive RSS data flow logging for troubleshooting
+- `📡 RSS loadSettings`: Shows what's loaded from IndexedDB
+- `📡 RSS Ticker`: Shows fetch counts, category filtering, merge results
+- **Safety fallbacks**: If category filter results in 0 items, shows all items instead
+
+### 🔧 Technical Changes
+- `rssService.cleanupBrokenFeeds()` - New method to remove known broken feeds
+- `BROKEN_FEED_NAMES` list for easy maintenance
+- Session flag prevents cleanup from running multiple times
+
+### 📦 Version Updates
+- Sidebar.tsx: 4.1.4
+- package.json: 4.1.4
+- package-lock.json: 4.1.4
+- dbService.ts: 4.1.4
+- proxy_server.js: 4.1.4
+- README.md badge: 4.1.4
+
+---
+
+## [4.1.3] - 2025-12-01 📻 RADIO & RSS MEGA UPDATE
+### 🐛 Radio Bug Fix
 - **Fixed**: "MEDIA_ELEMENT_ERROR: Format error" when playing radio streams
 - **Root Cause**: JavaScript `const` variable was being reassigned in `proxy_server.js:1568`
 - **Symptom**: Browser received `{"error":"Assignment to constant variable."}` instead of audio data
 - **Solution**: Changed `const streamUrl` to `let streamUrl` to allow ice1→ice2 redirect logic to work
+
+### 📰 RSS Ticker Fixes
+- **Fixed**: RSS items not showing in ticker (only notes displayed)
+- **Root Cause**: `loadSettings()` returned saved settings with empty `enabledCategories` array
+- **Solution**: Properly merge saved settings with defaults, ensuring `enabledCategories` is never empty
+
+### 🔄 Replaced Broken RSS Feeds
+| Old Feed (Broken) | New Feed (Working) | Reason |
+|-------------------|-------------------|--------|
+| GBHackers on Security | Reddit NetSec | Cloudflare blocking |
+| SANS Penetration Testing | SANS ISC | 404 Not Found |
+| KitPloit | Rapid7 Blog | XML parse error |
+| Hacking Articles | Checkpoint Research | 403 Forbidden |
+| Packet Storm | Cisco Talos | Connection failed |
+| Sophos Naked Security | SentinelOne Labs | XML parse error |
+| Trustwave SpiderLabs | Unit42 Palo Alto | 403 Forbidden |
+| Volexity | CrowdStrike Blog | Feed disabled by site |
+| SANS DFIR | Huntress Blog | 404 Not Found |
+
+### 🎛️ NEW RSS Settings Features
+- **Display Mode**: Choose what shows in ticker
+  - `All` - RSS feeds + Notes together
+  - `RSS Only` - Only RSS headlines
+  - `Notes Only` - Only your study notes
+  - `Single Category` - Filter to one topic (e.g., Malware only)
+- **Single Category Filter**: When in single-category mode, pick which topic to show
+- **Refresh All Feeds**: Force re-fetch all enabled RSS feeds immediately
+- **View Database Stats**: See feed counts, item counts, cache size, storage usage
+
+### 🧹 NEW Reset & Clear Options
+- **Clear RSS Cache**: Clears in-memory cache (feeds re-fetch on refresh)
+- **Reset RSS Settings**: Restore default settings without deleting feeds
+- **Delete All RSS Data**: Nuclear option - clears all RSS data from IndexedDB
+- **Clear localStorage**: Reset browser preferences
+- **View Storage Info**: See IndexedDB databases and storage usage
+
+### 🔧 RSS Service Enhancements
+- `rssService.resetSettings()` - Reset settings to defaults
+- `rssService.clearCache()` - Clear in-memory cache
+- `rssService.clearAllData()` - Delete all RSS data from IndexedDB
+- `rssService.getStats()` - Get database statistics
+- `rssService.refreshAllFeeds()` - Force re-fetch all feeds
 
 ### 📦 Version
 - Bumped version to **4.1.3**

@@ -49,12 +49,61 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
         const fetchItems = async () => {
             try {
                 setIsLoading(true);
-                const allItems = await rssService.fetchAllFeeds();
 
-                // Filter by enabled categories
-                let processedItems = allItems.filter(item =>
-                    settings.enabledCategories.includes(item.category)
-                );
+                // Debug logging
+                console.log('📡 RSS Ticker settings:', {
+                    displayMode: settings.displayMode,
+                    enabledCategories: settings.enabledCategories,
+                    showNotesInTicker: settings.showNotesInTicker
+                });
+
+                // Skip fetching RSS if display mode is notes-only
+                if (settings.displayMode === 'notes-only') {
+                    setRssItems([]);
+                    setIsLoading(false);
+                    return;
+                }
+
+                const allItems = await rssService.fetchAllFeeds();
+                console.log('📡 RSS Ticker: fetched', allItems.length, 'items');
+
+                // Debug: Show sample items and their categories
+                if (allItems.length > 0) {
+                    const categories = [...new Set(allItems.map(i => i.category))];
+                    console.log('📡 RSS Ticker: Item categories found:', categories);
+                    console.log('📡 RSS Ticker: First 3 items:', allItems.slice(0, 3).map(i => ({ title: i.title.substring(0, 50), category: i.category })));
+                }
+
+                // Filter by enabled categories or single category
+                let processedItems: RSSItem[];
+
+                if (settings.displayMode === 'single-category' && settings.singleCategoryFilter) {
+                    // Show only the selected category
+                    processedItems = allItems.filter(item =>
+                        item.category === settings.singleCategoryFilter
+                    );
+                    console.log('📡 RSS Ticker: Single category filter:', settings.singleCategoryFilter, '-> matches:', processedItems.length);
+                } else {
+                    // Show all enabled categories
+                    console.log('📡 RSS Ticker: Enabled categories:', settings.enabledCategories);
+
+                    // Safety check: if enabledCategories is empty or undefined, use all items
+                    if (!settings.enabledCategories || settings.enabledCategories.length === 0) {
+                        console.log('📡 RSS Ticker: WARNING - enabledCategories is empty, showing all items');
+                        processedItems = allItems;
+                    } else {
+                        processedItems = allItems.filter(item =>
+                            settings.enabledCategories.includes(item.category)
+                        );
+
+                        // Fallback: if nothing matches, show all items
+                        if (processedItems.length === 0 && allItems.length > 0) {
+                            console.log('📡 RSS Ticker: WARNING - No items match enabled categories, showing all items as fallback');
+                            processedItems = allItems;
+                        }
+                    }
+                    console.log('📡 RSS Ticker: After category filter:', processedItems.length, 'items');
+                }
 
                 // Apply sorting/ordering
                 if (settings.feedOrder === 'random') {
@@ -78,6 +127,7 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
 
                 // Limit to max headlines
                 const limited = processedItems.slice(0, settings.maxHeadlines);
+                console.log('📡 RSS Ticker: After limit (' + settings.maxHeadlines + '):', limited.length, 'items -> calling setRssItems');
 
                 setRssItems(limited);
             } catch (error) {
@@ -94,19 +144,31 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
         const interval = setInterval(fetchItems, intervalMs);
 
         return () => clearInterval(interval);
-    }, [settings.enabledCategories, settings.maxHeadlines, settings.autoRefreshInterval, settings.feedOrder]);
+    }, [settings.enabledCategories, settings.maxHeadlines, settings.autoRefreshInterval, settings.feedOrder, settings.displayMode, settings.singleCategoryFilter]);
 
     // Merge RSS items and notes into ticker items
     useEffect(() => {
+        console.log('📡 RSS Ticker MERGE: rssItems count:', rssItems.length, 'notes count:', notes.length);
+        console.log('📡 RSS Ticker MERGE: displayMode:', settings.displayMode, 'showNotesInTicker:', settings.showNotesInTicker);
+
         const combined: TickerItem[] = [];
+        const displayMode = settings.displayMode || 'all';
 
-        // Add RSS items
-        rssItems.forEach(item => {
-            combined.push({ type: 'rss', data: item });
-        });
+        // Add RSS items (unless notes-only mode)
+        if (displayMode !== 'notes-only') {
+            rssItems.forEach(item => {
+                combined.push({ type: 'rss', data: item });
+            });
+            console.log('📡 RSS Ticker MERGE: Added RSS items, combined count now:', combined.length);
+        } else {
+            console.log('📡 RSS Ticker MERGE: Skipping RSS items (notes-only mode)');
+        }
 
-        // Add notes if enabled
-        if (settings.showNotesInTicker && notes.length > 0) {
+        // Add notes if enabled (or if notes-only mode)
+        const shouldShowNotes = displayMode === 'notes-only' ||
+            (displayMode !== 'rss-only' && settings.showNotesInTicker);
+
+        if (shouldShowNotes && notes.length > 0) {
             // Sort notes by updated time, pinned first
             const sortedNotes = [...notes].sort((a, b) => {
                 if (a.pinned && !b.pinned) return -1;
@@ -114,15 +176,23 @@ export const RSSNewsTicker: React.FC<RSSNewsTickerProps> = ({
                 return b.updatedAt - a.updatedAt;
             });
 
-            // Interleave notes with RSS items (every 5 items)
-            sortedNotes.forEach((note, index) => {
-                const insertPosition = Math.min((index + 1) * 5, combined.length);
-                combined.splice(insertPosition + index, 0, { type: 'note', data: note });
-            });
+            if (displayMode === 'notes-only') {
+                // In notes-only mode, just add all notes
+                sortedNotes.forEach(note => {
+                    combined.push({ type: 'note', data: note });
+                });
+            } else {
+                // Interleave notes with RSS items (every 5 items)
+                sortedNotes.forEach((note, index) => {
+                    const insertPosition = Math.min((index + 1) * 5, combined.length);
+                    combined.splice(insertPosition + index, 0, { type: 'note', data: note });
+                });
+            }
         }
 
+        console.log('📡 RSS Ticker MERGE: Final tickerItems count:', combined.length, '(RSS:', combined.filter(i => i.type === 'rss').length, ', Notes:', combined.filter(i => i.type === 'note').length, ')');
         setTickerItems(combined);
-    }, [rssItems, notes, settings.showNotesInTicker]);
+    }, [rssItems, notes, settings.showNotesInTicker, settings.displayMode]);
 
     // Measure content width and set animation duration for constant speed
     useLayoutEffect(() => {
