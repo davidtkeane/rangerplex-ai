@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔗 RangerPlexBlock Upgrade
 - **Upgraded**: Switched default relay server to `relay-server-bridge.cjs` (v2.0).
+- **Fixed**: Resolved WebSocket connection issue in Web Chat (`relay-server-bridge.cjs`) by using dynamic hostname.
 - **Fixed**: Resolved "Unknown message type" warnings for `machine_register` and `getMachineRegistry`.
 - **Enabled**: Full machine registry and bridge mode support now active by default.
 

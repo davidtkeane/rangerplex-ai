@@ -292,7 +292,7 @@ const RANGERBOT = {
             return responses[Math.floor(Math.random() * responses.length)];
         }
 
-        switch(cmd) {
+        switch (cmd) {
             case '!help':
             case '!commands':
             case '!menu':
@@ -1622,7 +1622,7 @@ app.get('/', (req, res) => {
             ${Array.from(nodes.values()).map(n => `
                 <div class="peer">
                     <strong>${n.address || n.id}</strong><br>
-                    <small>IP: ${n.ip}:${n.port} | Height: ${n.blockchainHeight} | ${Math.floor((Date.now()-n.lastSeen)/1000)}s ago</small>
+                    <small>IP: ${n.ip}:${n.port} | Height: ${n.blockchainHeight} | ${Math.floor((Date.now() - n.lastSeen) / 1000)}s ago</small>
                 </div>
             `).join('') || '<div style="color:#0dd;padding:10px;">No local nodes</div>'}
         </div>
@@ -1632,7 +1632,7 @@ app.get('/', (req, res) => {
             ${Array.from(bridgeConnections.values()).map(b => `
                 <div class="peer bridge">
                     <strong>${b.name}</strong> (${b.region || 'unknown'})<br>
-                    <small>${b.host || 'inbound'}:${b.port || ''} | ${b.outbound ? 'Outbound' : 'Inbound'} | ${Math.floor((Date.now()-b.lastSeen)/1000)}s ago</small>
+                    <small>${b.host || 'inbound'}:${b.port || ''} | ${b.outbound ? 'Outbound' : 'Inbound'} | ${Math.floor((Date.now() - b.lastSeen) / 1000)}s ago</small>
                 </div>
             `).join('') || '<div style="color:#0dd;padding:10px;">No bridge connections</div>'}
         </div>
@@ -1887,7 +1887,11 @@ app.get('/chat', (req, res) => {
             connectBtn.disabled = true; connectBtn.textContent = '⏳ Connecting...';
             updateStatus('connecting');
             try {
-                ws = new WebSocket('ws://' + RELAY_HOST + ':' + RELAY_PORT);
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsHost = window.location.hostname;
+                // Use the WS_PORT injected from the server, or default to 5555 if running locally
+                const wsPort = typeof RELAY_PORT !== 'undefined' ? RELAY_PORT : 5555;
+                ws = new WebSocket(wsProtocol + '//' + wsHost + ':' + wsPort);
                 ws.onopen = () => {
                     isConnected = true; updateStatus('connected');
                     connectModal.style.display = 'none';
