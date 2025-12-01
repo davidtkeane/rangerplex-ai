@@ -55,6 +55,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed**: Corrected `docker mcp secret set` command syntax in backend and documentation.
 - **Updated**: Documentation (`DOCKER_MCP_QUICK_REF.md`, `DOCKER_MCP_MANUAL.md`) reflects new port and commands.
 
+### 🤖 RangerBot AI & Deployment
+- **New**: `rangerbot-ai.cjs` - AI-powered chatbot using **Gemini 2.0 Flash**.
+- **New**: `deploy-bot.sh` - Automated deployment script for remote servers.
+- **Moved**: Bot scripts moved to `.personal/` for security.
+- **Cleanup**: Removed `setup-relay-simple.sh` (deprecated).
+- **Enhanced**: `setup-relay-universal.sh` now supports `systemd` service creation on Linux.
+
 ### 🔗 RangerPlexBlock Upgrade
 - **Upgraded**: Switched default relay server to `relay-server-bridge.cjs` (v2.0).
 - **Fixed**: Resolved "Unknown message type" warnings for `machine_register` and `getMachineRegistry`.

@@ -795,9 +795,98 @@ echo -e "${GREEN}  ✅ Helper scripts created${NC}"
 # =====================================================================
 
 # Try to open firewall ports automatically
-if command -v ufw &>/dev/null; then
-    if sudo ufw status 2>/dev/null | grep -q "Status: active"; then
-        sudo ufw allow 5555/tcp >/dev/null 2>&1 || true
+# =====================================================================
+# SYSTEMD SERVICE SETUP (LINUX ONLY)
+# =====================================================================
+
+if [ "$PLATFORM_TYPE" != "mac" ] && [ "$PLATFORM_TYPE" != "windows" ] && command -v systemctl &>/dev/null; then
+    echo -e "\n${YELLOW}[7/6] Setting up background service...${NC}"
+    
+    SERVICE_NAME="rangerblock-relay"
+    SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+    NODE_PATH=$(command -v node)
+    USER_NAME=$(whoami)
+    
+    # Ask user if they want to enable the service
+    read -p "Do you want to enable RangerBlock as a system service (starts on boot)? (Y/n): " enable_service
+    if [ "$enable_service" != "n" ] && [ "$enable_service" != "N" ]; then
+        
+        echo -e "${BLUE}  Creating service file at ${SERVICE_FILE}...${NC}"
+        
+        # Create service file content
+        cat > /tmp/${SERVICE_NAME}.service << SERVICE_EOF
+[Unit]
+Description=RangerBlock Relay Server
+After=network.target
+
+[Service]
+Type=simple
+User=${USER_NAME}
+WorkingDirectory=${INSTALL_DIR}
+ExecStart=${NODE_PATH} relay-server.cjs
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+SERVICE_EOF
+
+        # Install service file (requires sudo)
+        if sudo mv /tmp/${SERVICE_NAME}.service ${SERVICE_FILE}; then
+            echo -e "${GREEN}  ✅ Service file created${NC}"
+            
+            # Reload daemon
+            sudo systemctl daemon-reload
+            
+            # Enable service
+            sudo systemctl enable ${SERVICE_NAME}
+            echo -e "${GREEN}  ✅ Service enabled on boot${NC}"
+            
+            # Start service?
+            if [ "$AUTO_START" = true ]; then
+                sudo systemctl start ${SERVICE_NAME}
+                echo -e "${GREEN}  ✅ Service started${NC}"
+            else
+                read -p "Start the service now? (Y/n): " start_now
+                if [ "$start_now" != "n" ] && [ "$start_now" != "N" ]; then
+                    sudo systemctl start ${SERVICE_NAME}
+                    echo -e "${GREEN}  ✅ Service started${NC}"
+                fi
+            fi
+            
+            # Show status
+            if systemctl is-active --quiet ${SERVICE_NAME}; then
+                echo -e "${GREEN}  ✅ Status: ACTIVE${NC}"
+            else
+                echo -e "${YELLOW}  ⚠️  Status: INACTIVE (check logs with: journalctl -u ${SERVICE_NAME})${NC}"
+            fi
+            
+        else
+            echo -e "${RED}  ❌ Failed to install service file (sudo required)${NC}"
+        fi
+    else
+        echo -e "${BLUE}  Skipping service setup.${NC}"
+    fi
+fi
+
+echo -e "\n${GREEN}======================================================================${NC}"
+echo -e "${GREEN}   🎉 INSTALLATION COMPLETE! 🎉${NC}"
+echo -e "${GREEN}======================================================================${NC}"
+echo ""
+echo -e "  📍 Installed to: ${BOLD}$INSTALL_DIR${NC}"
+echo -e "  🆔 Node ID:      ${BOLD}$NODE_ID${NC}"
+echo ""
+echo -e "${BOLD}Commands:${NC}"
+echo -e "  ${YELLOW}./start-relay.sh${NC}   - Start relay manually"
+echo -e "  ${YELLOW}./start-chat.sh${NC}    - Start chat client"
+echo -e "  ${YELLOW}./network-diag.sh${NC}  - Check network status"
+if [ "$PLATFORM_TYPE" != "mac" ] && [ "$PLATFORM_TYPE" != "windows" ] && command -v systemctl &>/dev/null; then
+    echo -e "  ${YELLOW}sudo systemctl status rangerblock-relay${NC} - Check service status"
+fi
+echo ""
+echo -e "${GREEN}Rangers lead the way! 🎖️${NC}"
+echo ""
         sudo ufw allow 5556/tcp >/dev/null 2>&1 || true
         echo -e "${GREEN}  ✅ Firewall configured (ports 5555, 5556)${NC}"
     fi

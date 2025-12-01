@@ -107,7 +107,12 @@ Tip: type `/manual` in chat to open the built-in manual with a back button and n
 *   **Screenshot Capture** 📸: Capture live screenshots of websites using `/screenshot <url>`. High-quality 1920x1080 captures with Puppeteer (headless Chrome) for evidence collection, change detection, and phishing documentation. No API key required.
 *   **Wayback Machine** 🕰️: Query Internet Archive for historical website snapshots using `/wayback <url>`. View past versions, track changes, and recover deleted content.
 
-### 🎖️ RangerBlock P2P Blockchain (v4.0.7!)
+### 🤖 RangerBot AI
+- **AI-Powered Chat**: Integrated Google **Gemini 2.0 Flash** chatbot.
+- **Helpful Assistant**: Responds to `@RangerBot` mentions and `!ask` commands.
+- **Remote Deployment**: Automated scripts to deploy bots to cloud instances (AWS/GCP).
+
+### 🔗 RangerBlock P2P Networkchain (v4.0.7!)
 *   **Peer-to-Peer Blockchain Network**: Fully integrated local blockchain with automatic peer discovery!
     *   **🌐 GUI Chat (NEW!)**: Real-time WebSocket chat directly in RangerPlex browser UI
     *   **💬 Terminal Chat**: Run `npm run blockchain:chat` for CLI-based P2P messaging
