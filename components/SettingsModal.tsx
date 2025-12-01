@@ -3015,6 +3015,72 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 </div>
 
                                 <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                    <h4 className="font-bold text-sm mb-2">Advanced Stream Settings</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold mb-1 opacity-80">Retry Delay (ms)</label>
+                                            <input
+                                                type="number"
+                                                min="1000"
+                                                step="500"
+                                                value={localSettings.radioRetryDelay || 2000}
+                                                onChange={(e) => setLocalSettings({ ...localSettings, radioRetryDelay: parseInt(e.target.value) })}
+                                                className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                            />
+                                            <p className="text-[10px] opacity-60 mt-1">
+                                                Time to wait before reconnecting (default: 2000ms).
+                                                <br />
+                                                <span className="text-teal-400">Tip:</span> Increase this if you have a spotty connection.
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold mb-1 opacity-80">Buffer Size (KB)</label>
+                                            <input
+                                                type="number"
+                                                min="64"
+                                                step="32"
+                                                value={(localSettings.radioBufferHighWaterMark || 131072) / 1024}
+                                                onChange={(e) => setLocalSettings({ ...localSettings, radioBufferHighWaterMark: parseInt(e.target.value) * 1024 })}
+                                                className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                            />
+                                            <p className="text-[10px] opacity-60 mt-1">
+                                                Stream buffer size (default: 128KB).
+                                                <br />
+                                                <span className="text-teal-400">Tip:</span> Increase (e.g. 256KB) to fix skipping, or decrease (64KB) for less startup lag.
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold mb-1 opacity-80">Connection Timeout (ms)</label>
+                                            <input
+                                                type="number"
+                                                min="2000"
+                                                step="1000"
+                                                value={localSettings.radioConnectionTimeout || 10000}
+                                                onChange={(e) => setLocalSettings({ ...localSettings, radioConnectionTimeout: parseInt(e.target.value) })}
+                                                className={`w-full rounded px-3 py-2 text-sm ${inputClass}`}
+                                            />
+                                            <p className="text-[10px] opacity-60 mt-1">
+                                                Max time to wait for stream (default: 10000ms).
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center pt-6">
+                                            <label className="flex items-center gap-3 text-sm font-bold cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={localSettings.radioPreferLowQuality}
+                                                    onChange={e => setLocalSettings({ ...localSettings, radioPreferLowQuality: e.target.checked })}
+                                                    className="accent-teal-500 w-5 h-5"
+                                                />
+                                                <div>
+                                                    <div>Low Bandwidth Mode (64kbps AAC)</div>
+                                                    <div className="text-[10px] opacity-60 font-normal">Saves data and reduces skipping on slow networks.</div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 border border-inherit rounded bg-opacity-5">
                                     <h4 className="font-bold text-sm mb-2">Station Categories (50+ Channels)</h4>
                                     <p className="text-xs opacity-70 mb-3">
                                         Complete SomaFM collection organized by genre:

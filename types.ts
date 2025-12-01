@@ -314,6 +314,10 @@ export interface AppSettings {
   radioVolume: number; // 0.0 to 1.0
   radioLastStation: string | null; // station ID
   radioMinimized: boolean;
+  radioRetryDelay: number; // ms
+  radioBufferHighWaterMark: number; // bytes
+  radioPreferLowQuality: boolean; // Prefer 64kbps AAC over 128kbps MP3
+  radioConnectionTimeout: number; // ms to wait for connection
 
   // Notifications
   saveStatusNotifications: boolean;
@@ -600,6 +604,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   radioVolume: 0.3,
   radioLastStation: 'soma-defcon', // 💻 DEF CON Radio - Music for hacking and coding
   radioMinimized: true,
+  radioRetryDelay: 2000,
+  radioBufferHighWaterMark: 128 * 1024,
+  radioPreferLowQuality: false,
+  radioConnectionTimeout: 10000,
 
   saveStatusNotifications: true,
   saveStatusDurationMs: 5000,

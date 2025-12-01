@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       host: '0.0.0.0',
+      open: false,
     },
     plugins: [react()],
     define: {

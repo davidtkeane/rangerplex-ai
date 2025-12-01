@@ -306,6 +306,7 @@ const App: React.FC = () => {
   // Update Weather Service when settings change
   useEffect(() => {
     weatherService.updateSettings(settings);
+    rssService.updateSettings(settings);
   }, [settings]);
 
   // Load RSS settings on startup

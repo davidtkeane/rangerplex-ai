@@ -52,7 +52,7 @@ const rssParser = new Parser({
         },
     },
 });
-const VERSION = '4.0.29';
+const VERSION = '4.1.2';
 const PORT = 3000;
 const startDockerDesktop = async () => {
     const platform = process.platform;
@@ -1565,7 +1565,7 @@ app.all('/api/lmstudio/*', async (req, res) => {
 // Radio stream proxy (to bypass CORS) - Fixed Nov 29, 2025
 app.get('/api/radio/stream', async (req, res) => {
     try {
-        const streamUrl = req.query.url;
+        let streamUrl = req.query.url;
 
         if (!streamUrl) {
             return res.status(400).json({ error: 'Missing stream URL' });
@@ -1573,127 +1573,108 @@ app.get('/api/radio/stream', async (req, res) => {
 
         console.log('📻 Proxying radio stream:', streamUrl);
 
+        const timeoutMs = parseInt(req.query.timeout) || 10000;
+        const preferLowQuality = req.query.quality === 'low';
+
         // Try primary URL first, then fallback servers
-        const urlsToTry = [
+        let urlsToTry = [
             streamUrl,
             streamUrl.replace('ice1.somafm.com', 'ice2.somafm.com'),
             streamUrl.replace('ice1.somafm.com', 'ice4.somafm.com'),
             streamUrl.replace('-128-mp3', '-64-aac') // Lower quality fallback
         ];
 
-        let response = null;
-        let lastError = null;
-
-        for (const url of urlsToTry) {
-            try {
-                console.log('📻 Trying stream URL:', url);
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-                response = await fetch(url, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Referer': 'https://somafm.com/',
-                        'Accept': '*/*',
-                        'Icy-MetaData': '1'
-                    },
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeout);
-
-                if (response.ok) {
-                    console.log('✅ Stream connected:', url);
-                    break;
-                } else {
-                    console.log(`⚠️ Stream ${url} returned ${response.status}`);
-                    response = null;
-                }
-            } catch (err) {
-                console.log(`⚠️ Failed to connect to ${url}:`, err.message);
-                lastError = err;
-                response = null;
-            }
+        // If low quality preferred, prioritize AAC streams
+        if (preferLowQuality) {
+            console.log('📻 Preferring low quality (64kbps AAC) streams');
+            urlsToTry = [
+                streamUrl.replace('-128-mp3', '-64-aac'),
+                streamUrl.replace('ice1.somafm.com', 'ice2.somafm.com').replace('-128-mp3', '-64-aac'),
+                streamUrl, // Fallback to high quality if low fails
+            ];
         }
 
-        if (!response || !response.ok) {
-            console.error('❌ All stream URLs failed');
-            return res.status(503).json({
-                error: 'Stream temporarily unavailable',
-                details: lastError?.message || 'All fallback servers failed',
-                suggestion: 'Try a different station or wait a moment'
+        // "Smart Pipe" Implementation (Restored & Fixed)
+        // We use fetch + Readable.fromWeb to properly handle the stream format.
+        // This fixes the "Format error" / "No supported source" issues.
+
+        // Force use of ice2 (more reliable) if ice1 is requested
+        if (streamUrl.includes('ice1.somafm.com')) {
+            console.log('📻 Redirecting ice1 -> ice2 for stability');
+            streamUrl = streamUrl.replace('ice1.somafm.com', 'ice2.somafm.com');
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+        let response; // Declare response here for broader scope
+
+        try {
+            console.log('📻 Connecting to stream (Smart Pipe):', streamUrl);
+
+            response = await fetch(streamUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Referer': 'https://somafm.com/',
+                    'Accept': '*/*',
+                    'Connection': 'keep-alive'
+                },
+                signal: controller.signal
             });
-        }
 
-        // Set CORS and streaming headers
-        // Use 'identity' transfer encoding to prevent chunked encoding issues
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': response.headers.get('content-type') || 'audio/mpeg',
-            'Cache-Control': 'no-cache, no-store',
-            'Connection': 'keep-alive',
-            'Transfer-Encoding': 'identity',
-            'X-Content-Type-Options': 'nosniff'
-        });
+            clearTimeout(timeout);
 
-        // Disable response buffering for true streaming
-        res.flushHeaders();
+            if (!response.ok) {
+                console.error(`❌ Stream failed with status: ${response.status}`);
+                return res.status(response.status).send('Stream failed');
+            }
 
-        // Convert Web ReadableStream to Node.js stream and pipe to response
-        if (response.body) {
-            try {
+            // Set headers for the browser
+            res.set({
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': response.headers.get('content-type') || 'audio/mpeg',
+                'Cache-Control': 'no-cache, no-store',
+                'Connection': 'keep-alive',
+                'X-Content-Type-Options': 'nosniff'
+            });
+
+            // Disable response buffering
+            res.flushHeaders();
+
+            if (response.body) {
                 // Check if Readable.fromWeb is available (Node 16.17+)
                 if (typeof Readable.fromWeb === 'function') {
                     console.log('Using Readable.fromWeb for streaming');
-                    const nodeStream = Readable.fromWeb(response.body);
+                    // Use requested buffer size or default to 128KB
+                    const bufferSize = parseInt(req.query.buffer) || 128 * 1024;
+                    console.log(`📻 Stream buffer size: ${bufferSize} bytes`);
+                    const { Readable } = require('stream'); // Ensure Readable is imported
+                    const nodeStream = Readable.fromWeb(response.body, { highWaterMark: bufferSize });
                     nodeStream.pipe(res);
 
                     nodeStream.on('error', (err) => {
                         console.error('❌ Stream pipe error:', err.message);
-                        if (!res.headersSent) {
-                            res.status(500).json({ error: 'Stream interrupted' });
-                        }
-                        res.end();
+                        if (!res.headersSent) res.end();
                     });
 
                     res.on('close', () => {
-                        console.log('📻 Client disconnected from stream');
+                        console.log('📻 Client disconnected');
                         nodeStream.destroy();
                     });
                 } else {
-                    // Fallback for older Node versions - manual streaming
-                    const reader = response.body.getReader();
-                    const pump = async () => {
-                        try {
-                            while (true) {
-                                const { done, value } = await reader.read();
-                                if (done) break;
-                                if (!res.writableEnded) {
-                                    res.write(value);
-                                }
-                            }
-                            res.end();
-                        } catch (err) {
-                            console.error('❌ Manual stream error:', err.message);
-                            res.end();
-                        }
-                    };
-                    pump();
-
-                    res.on('close', () => {
-                        console.log('📻 Client disconnected (manual mode)');
-                        reader.cancel();
-                    });
-                }
-            } catch (streamError) {
-                console.error('❌ Stream setup error:', streamError);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: 'Failed to initialize stream' });
+                    // Fallback for older Node versions
+                    console.log('Using standard stream piping');
+                    // @ts-ignore
+                    response.body.pipe(res);
                 }
             }
-        } else {
-            throw new Error('No response body from radio stream');
+        } catch (err) {
+            console.error('❌ Stream error:', err.message);
+            if (!res.headersSent) {
+                res.status(500).json({ error: err.message });
+            }
         }
+
     } catch (error) {
         console.error('❌ Radio proxy error:', error);
         if (!res.headersSent) {

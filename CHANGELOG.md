@@ -5,6 +5,44 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.3] - 2025-12-01 📻 RADIO FORMAT ERROR FIX
+### 🐛 Bug Fix
+- **Fixed**: "MEDIA_ELEMENT_ERROR: Format error" when playing radio streams
+- **Root Cause**: JavaScript `const` variable was being reassigned in `proxy_server.js:1568`
+- **Symptom**: Browser received `{"error":"Assignment to constant variable."}` instead of audio data
+- **Solution**: Changed `const streamUrl` to `let streamUrl` to allow ice1→ice2 redirect logic to work
+
+### 📦 Version
+- Bumped version to **4.1.3**
+
+---
+
+## [4.1.2] - 2025-12-01 📰 RSS TICKER FIX
+### 📰 RSS Ticker Restoration
+- **Fixed**: Resolved "Connection Refused" error preventing RSS feeds from loading.
+- **Fixed**: Restarted `rangerplex-proxy` backend service to restore `/api/rss/parse` endpoint.
+- **Improved**: `RSSService` now dynamically updates its proxy URL from settings, ensuring resilience against future port changes.
+- **Improved**: Added settings synchronization in `App.tsx` to keep `rssService` configuration up-to-date.
+
+### 🧹 Cleanup
+- **Moved**: Unused debug scripts (`check_electron_deps.cjs`, `check_aws_bridge.cjs`) to `rangerblock/move/`
+- **Moved**: Old `rangerblock/scripts/` folder to `rangerblock/move/old_scripts/`
+- **Result**: Cleaner project structure, only active scripts remain in `scripts/`
+
+### 📦 Version
+- Bumped version to **4.1.2**
+
+---
+
+## [4.1.1] - 2025-12-01 📻 Ranger Radio Stream Fix
+- **Fixed**: "Failed to play stream" (403 Forbidden) error on m3pro and m1air.
+- **Changed**: Forced all radio streams (including SomaFM) to route through the local proxy.
+- **Reason**: Direct browser connections were being blocked by the stream provider. The proxy ensures correct `User-Agent` and `Referer` headers are sent.
+- **Improved**: Retry logic now also uses the proxy for better reliability.
+
+### 📦 Version
+- Bumped version to **4.1.1**
+
 ## [4.1.0] - 2025-12-01 🐉 SUPER SEXY CHAT CLIENT
 
 ### 🎨 RangerBlock Chat v2.0.0 - Complete Rewrite

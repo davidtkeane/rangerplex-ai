@@ -375,19 +375,19 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
     if (proxyBaseUrl.includes(':3010')) {
       proxyBaseUrl = proxyBaseUrl.replace(':3010', ':3000');
     }
-    return `${proxyBaseUrl}/api/radio/stream?url=${encodeURIComponent(originalUrl)}`;
+    const bufferSize = settings.radioBufferHighWaterMark || 128 * 1024;
+    const timeout = settings.radioConnectionTimeout || 10000;
+    const quality = settings.radioPreferLowQuality ? 'low' : 'high';
+    return `${proxyBaseUrl}/api/radio/stream?url=${encodeURIComponent(originalUrl)}&buffer=${bufferSize}&timeout=${timeout}&quality=${quality}`;
   };
 
   // Memoize the stream URL so it only changes when station changes
   // SomaFM already has CORS headers, so we can use direct streaming for better stability
   const memoizedStreamUrl = useMemo(() => {
-    // SomaFM streams have Access-Control-Allow-Origin: * - use direct URL
-    if (currentStation.url.includes('somafm.com')) {
-      return currentStation.url;
-    }
-    // For other streams, use proxy
+    // Always use proxy to ensure correct headers (User-Agent, Referer) are sent
+    // This fixes 403 Forbidden errors from SomaFM and ensures stability
     return getProxiedUrl(currentStation.url);
-  }, [currentStation.url]); // Only recalculate when station URL changes
+  }, [currentStation.url, settings.radioBufferHighWaterMark, settings.radioConnectionTimeout, settings.radioPreferLowQuality]); // Recalculate when station or settings change
 
   // 🎸 Reset inactivity timer (called on any user interaction)
   const resetInactivityTimer = () => {
@@ -547,18 +547,13 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
       // Force reload the stream with a cache-buster
       setTimeout(() => {
         if (audioRef.current && currentStation) {
-          // Use direct URL for SomaFM, proxy for others
-          let retryUrl: string;
-          if (currentStation.url.includes('somafm.com')) {
-            retryUrl = `${currentStation.url}?_t=${Date.now()}`;
-          } else {
-            retryUrl = `${getProxiedUrl(currentStation.url)}&_t=${Date.now()}`;
-          }
+          // Always use proxy for retries
+          const retryUrl = `${getProxiedUrl(currentStation.url)}&_t=${Date.now()}`;
           audioRef.current.src = retryUrl;
           audioRef.current.load();
-          audioRef.current.play().catch(() => {});
+          audioRef.current.play().catch(() => { });
         }
-      }, 1000);
+      }, settings.radioRetryDelay || 2000);
       return;
     }
 

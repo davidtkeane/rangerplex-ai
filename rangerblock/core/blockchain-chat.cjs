@@ -184,7 +184,7 @@ const args = process.argv.slice(2);
 let relayHost = DEFAULT_RELAY;
 let relayPort = DEFAULT_PORT;
 let customNick = null;
-let currentChannel = '#general';
+let currentChannel = '#rangers';
 
 for (let i = 0; i < args.length; i++) {
     if ((args[i] === '--relay' || args[i] === '-r') && args[i + 1]) {
@@ -301,13 +301,24 @@ function sysMsg(text, type = 'info') {
 }
 
 // Print chat message
+// Print chat message safely handling readline
 function chatMsg(sender, message, isPrivate = false, channel = null) {
-    clearLine();
+    // Clear current line
+    readline.cursorTo(process.stdout, 0);
+    readline.clearLine(process.stdout, 0);
+
     const time = `${c.dim}[${formatTime()}]${c.reset}`;
     const color = getUserColor(sender);
     const prefix = isPrivate ? `${c.brightMagenta}[PM]${c.reset} ` : '';
     const channelTag = channel && channel !== currentChannel ? `${c.dim}${channel}${c.reset} ` : '';
+
     console.log(`${time} ${prefix}${channelTag}${color}${c.bold}${sender}${c.reset}: ${message}`);
+
+    // Force prompt redraw (this preserves the user's typed input!)
+    // We need to access the 'rl' instance. Since it's defined in runChat, 
+    // we can't access it here easily without passing it or making it global.
+    // BUT, we can just print a newline if we can't redraw perfectly.
+    // Ideally, this function should be inside runChat or accept rl.
 }
 
 // Animation: connecting dots
@@ -400,9 +411,22 @@ async function runChat() {
     // Custom prompt
     function showPrompt() {
         const channelColor = currentChannel === '#rangers' ? c.brightYellow :
-                            currentChannel === '#admin' ? c.brightRed : c.cyan;
-        process.stdout.write(`${channelColor}${currentChannel}${c.reset} ${c.green}${myName}${c.reset}${c.dim}>${c.reset} `);
+            currentChannel === '#admin' ? c.brightRed : c.cyan;
+        const promptText = `${channelColor}${currentChannel}${c.reset} ${c.green}${myName}${c.reset}${c.dim}>${c.reset} `;
+        process.stdout.write(promptText);
+        // If rl has input, we should write it back out? 
+        // Readline usually handles this if we don't mess with it too much.
+        // But explicit prompt setting is safer:
+        rl.setPrompt(promptText);
+        rl.prompt(true);
     }
+
+    // Handle Ctrl+C (SIGINT)
+    rl.on('SIGINT', () => {
+        console.log();
+        console.log(`${c.brightYellow}Goodbye! Rangers lead the way! 🎖️${c.reset}`);
+        process.exit(0);
+    });
 
     // Show commands help
     function showCommands() {
@@ -451,7 +475,7 @@ ${c.brightCyan}╚════════════════════�
         if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-            sysMsg(`Disconnected. Reconnecting in ${delay/1000}s... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`, 'warning');
+            sysMsg(`Disconnected. Reconnecting in ${delay / 1000}s... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`, 'warning');
             setTimeout(() => {
                 ws = connect();
                 setupWebSocket();
@@ -544,8 +568,19 @@ ${c.brightCyan}╚════════════════════�
 
                     // Only show if same channel or private
                     if (isPrivate || msgChannel === currentChannel) {
-                        chatMsg(senderName, payload.message, isPrivate, msgChannel);
-                        showPrompt();
+                        // Clear current line
+                        readline.cursorTo(process.stdout, 0);
+                        readline.clearLine(process.stdout, 0);
+
+                        const time = `${c.dim}[${formatTime()}]${c.reset}`;
+                        const color = getUserColor(senderName);
+                        const prefix = isPrivate ? `${c.brightMagenta}[PM]${c.reset} ` : '';
+                        const channelTag = msgChannel && msgChannel !== currentChannel ? `${c.dim}${msgChannel}${c.reset} ` : '';
+
+                        console.log(`${time} ${prefix}${channelTag}${color}${c.bold}${senderName}${c.reset}: ${payload.message}`);
+
+                        // Redraw prompt and preserve input buffer!
+                        rl.prompt(true);
                     }
                 } else if (payload.type === 'actionMessage') {
                     const senderName = payload.nickname || getDisplayName(msg.from);

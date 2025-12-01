@@ -1,6 +1,6 @@
 {
   "name": "rangerplex-ai",
-  "version": "4.0.29",
+  "version": "4.1.3",
   "type": "module",
   "scripts": {
     "start": "npm run stop 2>/dev/null; concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
@@ -12,7 +12,7 @@
     "pm2:logs": "pm2 logs",
     "pm2:status": "pm2 status",
     "pm2:update": "pm2 update",
-    "dev": "vite --host",
+    "dev": "BROWSER=none vite --host",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "proxy": "node proxy_server.js",

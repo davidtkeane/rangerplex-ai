@@ -19,7 +19,7 @@ class RSSService {
     private readonly FEEDS_STORE = 'feeds';
     private readonly ITEMS_STORE = 'items';
     private readonly SETTINGS_STORE = 'settings';
-    private readonly PROXY_URL = 'http://localhost:3000';
+    private PROXY_URL = 'http://localhost:3000';
 
     // Track failed feeds to avoid spamming console with same errors
     private failedFeeds: Map<string, number> = new Map();
@@ -28,6 +28,19 @@ class RSSService {
     constructor() {
         this.cache = new Map();
         this.initializeDatabase();
+    }
+
+    /**
+     * Update service settings
+     */
+    public updateSettings(settings: any) {
+        if (settings.corsProxyUrl) {
+            this.PROXY_URL = settings.corsProxyUrl;
+            // Ensure no trailing slash
+            if (this.PROXY_URL.endsWith('/')) {
+                this.PROXY_URL = this.PROXY_URL.slice(0, -1);
+            }
+        }
     }
 
     /**

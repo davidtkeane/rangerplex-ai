@@ -25,6 +25,11 @@ All notable changes to RangerBlock will be documented here.
 - **First 4-way multi-cloud chat**: M3Pro + M1Air + Google Cloud + AWS
 - Chat log saved to `move/historic_blocks/chat_session_2025-12-01_00-28.json`
 
+### Cleanup
+- **Moved**: `scripts/` folder to `move/old_scripts/` (contained deprecated files)
+- **Files archived**: `RangerBlockNode.cjs`, `START_RANGERBLOCKCORE.sh`, `UNIVERSAL_MENU_TEMPLATE.sh`
+- **Reason**: These were replaced by `core/relay-server-bridge.cjs` and npm scripts
+
 ---
 
 ## [4.1.0] - 2025-11-30
