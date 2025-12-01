@@ -30,7 +30,7 @@ function createWindow() {
     });
 
     // Load the app
-    const startUrl = `http://127.0.0.1:${SERVER_PORT}`;
+    const startUrl = `http://localhost:${SERVER_PORT}`;
     console.log(`Loading RangerPlex from: ${startUrl}`);
     mainWindow.loadURL(startUrl);
 
@@ -555,8 +555,8 @@ function startServer() {
 function waitForServer(port) {
     return new Promise((resolve) => {
         const tryConnect = () => {
-            console.log(`Checking server at http://127.0.0.1:${port}...`);
-            const req = http.get(`http://127.0.0.1:${port}`, (res) => {
+            console.log(`Checking server at http://localhost:${port}...`);
+            const req = http.get(`http://localhost:${port}`, (res) => {
                 if (res.statusCode === 200) {
                     console.log('Server is ready!');
                     resolve();
@@ -577,7 +577,7 @@ function waitForServer(port) {
 
 function checkServerRunning(port) {
     return new Promise((resolve) => {
-        const req = http.get(`http://127.0.0.1:${port}`, (res) => {
+        const req = http.get(`http://localhost:${port}`, (res) => {
             resolve(true);
             req.destroy();
         });

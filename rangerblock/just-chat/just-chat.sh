@@ -8,7 +8,7 @@
 #  Project: RangerBlock P2P Network
 # ============================================================================
 
-VERSION="1.1.0"
+VERSION="2.0.0"
 INSTALL_DIR="$HOME/.rangerblock-chat"
 AWS_RELAY="44.222.101.125"
 AWS_PORT="5555"
@@ -442,16 +442,56 @@ chat() {
         NODE_CMD="node"
     fi
 
+    # Check for saved nickname or prompt for one
+    NICK_FILE="$INSTALL_DIR/.nickname"
+    if [ -f "$NICK_FILE" ]; then
+        SAVED_NICK=$(cat "$NICK_FILE")
+    else
+        SAVED_NICK=""
+    fi
+
+    # Ask for nickname on first run or if user wants to change
+    if [ -z "$SAVED_NICK" ]; then
+        echo ""
+        echo -e "  ${CYAN}╔════════════════════════════════════════════════╗${NC}"
+        echo -e "  ${CYAN}║${NC}  ${WHITE}${BOLD}CHOOSE YOUR NICKNAME${NC}                          ${CYAN}║${NC}"
+        echo -e "  ${CYAN}╚════════════════════════════════════════════════╝${NC}"
+        echo ""
+        echo -e "  ${GRAY}This is how others will see you in chat.${NC}"
+        echo -e "  ${GRAY}Max 15 characters. Letters, numbers, and - _ allowed.${NC}"
+        echo ""
+        read -p "  Enter nickname: " USER_NICK
+
+        # Validate and clean nickname
+        USER_NICK=$(echo "$USER_NICK" | tr -cd '[:alnum:]-_' | cut -c1-15)
+
+        if [ -z "$USER_NICK" ]; then
+            # Generate random nickname if empty
+            USER_NICK="Ranger-$(head -c 4 /dev/urandom | xxd -p)"
+        fi
+
+        # Save nickname
+        echo "$USER_NICK" > "$NICK_FILE"
+        echo ""
+        success "Nickname saved: ${CYAN}$USER_NICK${NC}"
+        echo -e "  ${GRAY}(Change later with: /nick NewName)${NC}"
+        echo ""
+        sleep 1
+    else
+        USER_NICK="$SAVED_NICK"
+        echo -e "  ${GRAY}Chatting as: ${CYAN}$USER_NICK${NC}"
+    fi
+
     echo -e "  ${CYAN}Connecting to RangerBlock Network...${NC}"
     echo -e "  ${GRAY}Relay: ws://$AWS_RELAY:$AWS_PORT${NC}"
     echo ""
-    echo -e "  ${YELLOW}Commands: /help, /who, /quit${NC}"
+    echo -e "  ${YELLOW}Commands: /help, /who, /nick, /quit${NC}"
     echo -e "  ${GRAY}────────────────────────────────────────────────────${NC}"
     echo ""
 
-    # Run the chat client
+    # Run the chat client with nickname
     if [ -f blockchain-chat.cjs ]; then
-        $NODE_CMD blockchain-chat.cjs --relay "$AWS_RELAY:$AWS_PORT"
+        $NODE_CMD blockchain-chat.cjs --relay "$AWS_RELAY:$AWS_PORT" --nick "$USER_NICK"
     else
         error "Chat client not found. Run: ./just-chat.sh to reinstall"
         exit 1

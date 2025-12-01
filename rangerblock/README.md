@@ -1,8 +1,8 @@
 # RangerPlexBlock - P2P Blockchain for RangerPlex
 
-**Version:** 4.0.24
+**Version:** 4.2.0
 **Created:** November 29, 2025
-**Updated:** November 30, 2025
+**Updated:** December 1, 2025
 **Creator:** David Keane (IrishRanger) with Claude Code (Ranger)
 **Philosophy:** "One foot in front of the other"
 

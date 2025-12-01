@@ -72,7 +72,7 @@ docker mcp tools call search
 # Start the HTTP gateway
 docker mcp gateway run
 
-# This creates an HTTP endpoint at http://localhost:3000
+# This creates an HTTP endpoint at http://localhost:8808
 # WordPress can make HTTP requests to access all MCP tools
 ```
 
@@ -85,7 +85,7 @@ docker mcp gateway run
 docker mcp secret set <server-name> <key-name> "your-api-key"
 
 # Example: Set Brave API key
-docker mcp secret set brave BRAVE_API_KEY "your-brave-api-key"
+docker mcp secret set BRAVE_API_KEY="your-brave-api-key"
 
 # List all secrets
 docker mcp secret list

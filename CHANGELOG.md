@@ -5,6 +5,70 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2025-12-01 🐉 SUPER SEXY CHAT CLIENT
+
+### 🎨 RangerBlock Chat v2.0.0 - Complete Rewrite
+- **Rainbow ASCII Art Banner**: Beautiful multi-color RANGERBLOCK logo on startup
+- **Color-Coded Usernames**: Each user gets a unique color in chat
+- **Animated Connecting Spinner**: `⠋ ⠙ ⠹ ⠸...` while connecting
+- **System Message Icons**: `✓ ✗ → ← ⚠ ℹ 🤖` for different message types
+- **Timestamps**: All messages show `[HH:MM]` format
+
+### 💬 New Chat Commands
+- `/nick <name>` - Change your nickname on the fly
+- `/join #channel` - Switch between channels (#general, #rangers, #admin)
+- `/msg user message` - Send private messages
+- `/me action` - IRC-style action messages (*David waves*)
+- `/channels` - List available channels
+- `/who` or `/peers` - Show online users with colors
+- Short flags: `-r`, `-n`, `-c`, `-h`, `-v`
+
+### 🔧 Technical Improvements
+- **Auto-reconnect**: Exponential backoff with 5 retry attempts
+- **Default AWS Relay**: Connects to 44.222.101.125:5555 automatically
+- **Graceful Ctrl+C**: Clean shutdown with goodbye message
+- **Better Identity Detection**: Checks multiple paths for node identity
+
+### 📝 Just-Chat Updates
+- **Nickname Prompt**: First-time users now prompted to choose nickname
+- **Nickname Persistence**: Saved to `~/.rangerblock-chat/.nickname`
+- **Version 2.0.0**: Updated just-chat.sh with new features
+
+### 🏆 Historic Achievement
+- **First 4-way multi-cloud chat**: M3Pro + M1Air + Google Cloud + AWS all connected!
+- **Chat log saved**: `rangerblock/move/historic_blocks/chat_session_2025-12-01_00-28.json`
+
+### 📦 Version
+- Bumped version to **4.1.0** across all components
+
+---
+
+## [4.0.26] - 2025-11-30 🛠️ STARTUP & MCP FIXES
+
+### 🛠️ Startup Reliability
+- **Fixed**: "Connection Refused" loop on startup by updating Electron to use `localhost` instead of `127.0.0.1`.
+  - Solves IPv4/IPv6 resolution mismatches with Vite on macOS.
+- **Improved**: Smoother launch sequence for Browser, UI, and MCP Gateway.
+
+### 🐳 MCP Gateway Enhancements
+- **Fixed**: MCP Gateway now runs on port **8808** (was conflicting on 3000).
+- **Fixed**: Corrected `docker mcp secret set` command syntax in backend and documentation.
+- **Updated**: Documentation (`DOCKER_MCP_QUICK_REF.md`, `DOCKER_MCP_MANUAL.md`) reflects new port and commands.
+
+### 🔗 RangerPlexBlock Upgrade
+- **Upgraded**: Switched default relay server to `relay-server-bridge.cjs` (v2.0).
+- **Fixed**: Resolved "Unknown message type" warnings for `machine_register` and `getMachineRegistry`.
+- **Enabled**: Full machine registry and bridge mode support now active by default.
+
+### 🧹 Log Cleanup
+- **Silenced**: Suppressed common RSS parsing errors (timeouts, malformed XML) from console logs.
+- **Result**: Much cleaner terminal output during operation.
+
+### 📦 Version
+- Bumped version to **4.0.26** across all components.
+
+---
+
 ## [4.0.12] - 2025-11-30 📡 SERVER SELECTOR & CLOUD VM GUIDE
 
 ### 🎛️ Server Selector Dropdown

@@ -4,6 +4,29 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [4.2.0] - 2025-12-01
+
+### Added - Super Sexy Chat Client v2.0.0
+- **Rainbow ASCII Art Banner**: Beautiful multi-color RANGERBLOCK logo
+- **Color-Coded Usernames**: Each user gets a unique color
+- **Animated Connecting Spinner**: `⠋ ⠙ ⠹ ⠸...` while connecting
+- **System Message Icons**: `✓ ✗ → ← ⚠ ℹ 🤖`
+- **Timestamps**: All messages show `[HH:MM]` format
+- **New Commands**: `/nick`, `/join`, `/msg`, `/me`, `/channels`, `/who`
+- **Auto-reconnect**: Exponential backoff with 5 retry attempts
+- **Nickname Persistence**: Saved to `~/.rangerblock-chat/.nickname`
+
+### Changed
+- **just-chat.sh v2.0.0**: Now prompts for nickname on first run
+- **blockchain-chat.cjs v2.0.0**: Complete rewrite with sexy UI
+- Default relay changed to AWS (44.222.101.125:5555)
+
+### Historic Achievement
+- **First 4-way multi-cloud chat**: M3Pro + M1Air + Google Cloud + AWS
+- Chat log saved to `move/historic_blocks/chat_session_2025-12-01_00-28.json`
+
+---
+
 ## [4.1.0] - 2025-11-30
 
 ### Added

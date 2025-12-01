@@ -174,7 +174,7 @@ class BlockchainService {
         }
 
         // Start relay server
-        const relayPath = path.join(this.coreDir, 'relay-server.cjs');
+        const relayPath = path.join(this.coreDir, 'relay-server-bridge.cjs');
         if (!fs.existsSync(relayPath)) {
             console.log('Relay server not found:', relayPath);
             return { success: false, message: 'Relay server not found' };

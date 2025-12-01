@@ -52,7 +52,7 @@ const rssParser = new Parser({
         },
     },
 });
-const VERSION = '4.0.0';
+const VERSION = '4.1.0';
 const PORT = 3000;
 const startDockerDesktop = async () => {
     const platform = process.platform;
@@ -652,15 +652,15 @@ app.post('/api/mcp/ensure', async (req, res) => {
     const { secrets = {} } = req.body || {};
     try {
         const secretCmds = [];
-        if (secrets.braveApiKey) secretCmds.push(`docker mcp secret set brave BRAVE_API_KEY \"${secrets.braveApiKey}\"`);
-        if (secrets.obsidianApiKey) secretCmds.push(`docker mcp secret set obsidian OBSIDIAN_API_KEY \"${secrets.obsidianApiKey}\"`);
+        if (secrets.braveApiKey) secretCmds.push(`docker mcp secret set BRAVE_API_KEY="${secrets.braveApiKey}"`);
+        if (secrets.obsidianApiKey) secretCmds.push(`docker mcp secret set OBSIDIAN_API_KEY="${secrets.obsidianApiKey}"`);
         for (const cmd of secretCmds) {
             try { await execAsync(cmd); } catch (err) { console.warn('MCP secret set failed:', cmd, err?.message); }
         }
         if (mcpGatewayProc && !mcpGatewayProc.killed) {
             return res.json({ success: true, status: 'running' });
         }
-        const child = spawn('docker', ['mcp', 'gateway', 'run'], {
+        const child = spawn('docker', ['mcp', 'gateway', 'run', '--port', '8808', '--transport', 'sse'], {
             detached: true,
             stdio: 'ignore'
         });
@@ -859,11 +859,16 @@ app.post('/api/rss/parse', async (req, res) => {
         // Don't spam logs for common feed failures
         const errorMsg = error.message || 'Failed to parse RSS feed';
         const isCommonError = errorMsg.includes('ECONNREFUSED') ||
-                              errorMsg.includes('ETIMEDOUT') ||
-                              errorMsg.includes('ENOTFOUND') ||
-                              errorMsg.includes('403') ||
-                              errorMsg.includes('404') ||
-                              errorMsg.includes('timed out');
+            errorMsg.includes('ETIMEDOUT') ||
+            errorMsg.includes('ENOTFOUND') ||
+            errorMsg.includes('403') ||
+            errorMsg.includes('404') ||
+            errorMsg.includes('timed out') ||
+            errorMsg.includes('Unexpected close tag') ||
+            errorMsg.includes('Attribute without value') ||
+            errorMsg.includes('Invalid character') ||
+            errorMsg.includes('Feed not recognized') ||
+            errorMsg.includes('Status code');
 
         if (!isCommonError) {
             console.error(`[RSS] Parse Error for ${url}:`, errorMsg);

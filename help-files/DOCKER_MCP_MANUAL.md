@@ -163,7 +163,7 @@ docker mcp gateway run
 ### For Brave Search
 ```bash
 # Set Brave API key
-docker mcp secret set brave BRAVE_API_KEY "your-api-key-here"
+docker mcp secret set BRAVE_API_KEY="your-api-key-here"
 
 # Get free API key at: https://brave.com/search/api/
 ```
@@ -183,7 +183,7 @@ docker mcp config set obsidian vault_path "/path/to/vault"
    ```bash
    docker mcp gateway run
    ```
-2. Gateway exposes HTTP endpoint (typically `http://localhost:3000`)
+2. Gateway exposes HTTP endpoint (typically `http://localhost:8808`)
 3. WordPress can make HTTP requests to access all MCP tools
 4. Perfect for custom WordPress plugins
 
