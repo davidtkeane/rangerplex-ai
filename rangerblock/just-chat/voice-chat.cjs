@@ -29,7 +29,8 @@ const { spawn } = require('child_process');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '2.0.0';
+const VERSION = '2.1.0';
+const DEBUG_VOICE = true; // Show voice debug info
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
 const DEFAULT_CHANNEL = '#rangers';
@@ -248,23 +249,29 @@ class RingTone {
     start(callerName) {
         this.ringing = true;
         this.count = 0;
+        this.callerName = callerName;
 
         const ring = () => {
             if (!this.ringing) return;
             this.count++;
             clearLine();
 
-            if (this.count % 2 === 0) {
-                console.log(`\n${c.bgRed}${c.bold}  INCOMING CALL from ${callerName}!  ${c.reset}`);
-                console.log(`${c.brightGreen}    /answer${c.reset} to accept  |  ${c.brightRed}/reject${c.reset} to decline\n`);
-            } else {
-                console.log(`\n${c.brightRed}${c.bold}  ${callerName} is calling!   ${c.reset}`);
-                console.log(`${c.brightGreen}    /answer${c.reset} to accept  |  ${c.brightRed}/reject${c.reset} to decline\n`);
-            }
+            // Make it VERY visible
+            console.log('\n');
+            console.log(`${c.bgRed}${c.bold}                                                    ${c.reset}`);
+            console.log(`${c.bgRed}${c.bold}   INCOMING CALL FROM: ${callerName.toUpperCase()}   ${c.reset}`);
+            console.log(`${c.bgRed}${c.bold}                                                    ${c.reset}`);
+            console.log('');
+            console.log(`   ${c.brightGreen}${c.bold}>>> Type 'a' to ANSWER <<<${c.reset}`);
+            console.log(`   ${c.brightRed}>>> Type 'r' to REJECT <<<${c.reset}`);
+            console.log('');
+
+            // Also beep on terminal (works on most systems)
+            process.stdout.write('\x07'); // Terminal bell
         };
 
         ring();
-        this.interval = setInterval(ring, 3000);
+        this.interval = setInterval(ring, 2000); // Ring every 2 seconds
     }
 
     stop() {
@@ -447,7 +454,16 @@ async function main() {
             // CALL SIGNALING
             // ─────────────────────────────────────────────────────────────
             case 'callRequest':
-                if (payload.target === nickname) {
+                if (DEBUG_VOICE) {
+                    console.log(`${c.dim}[DEBUG] Call request: target="${payload.target}" me="${nickname}" match=${payload.target === nickname || payload.target.toLowerCase().startsWith(nickname.toLowerCase())}${c.reset}`);
+                }
+                // Match if target equals nickname OR starts with nickname (for partial matches like "MSI" matching "MSI-123")
+                const isForMe = payload.target === nickname ||
+                                payload.target.toLowerCase() === nickname.toLowerCase() ||
+                                payload.target.toLowerCase().startsWith(nickname.toLowerCase()) ||
+                                nickname.toLowerCase().startsWith(payload.target.toLowerCase());
+
+                if (isForMe) {
                     if (callState === CALL_STATE.IDLE) {
                         incomingCaller = senderName;
                         callState = CALL_STATE.RINGING;
@@ -508,10 +524,21 @@ async function main() {
                     (callState === CALL_STATE.IN_CALL && senderName === callPartner) ||
                     (callState === CALL_STATE.IN_GROUP);
 
+                if (DEBUG_VOICE) {
+                    console.log(`${c.dim}[DEBUG] Voice from ${senderName}, state=${callState}, partner=${callPartner}, shouldPlay=${shouldPlay}, muted=${isMuted}${c.reset}`);
+                }
+
                 if (shouldPlay && !isMuted) {
-                    const compressedAudio = Buffer.from(payload.audio, 'base64');
-                    const audioBuffer = decompressAudio(compressedAudio);
-                    audioPlayback.play(audioBuffer);
+                    try {
+                        const compressedAudio = Buffer.from(payload.audio, 'base64');
+                        const audioBuffer = decompressAudio(compressedAudio);
+                        if (DEBUG_VOICE) {
+                            console.log(`${c.dim}[DEBUG] Playing ${audioBuffer.length} bytes${c.reset}`);
+                        }
+                        audioPlayback.play(audioBuffer);
+                    } catch (err) {
+                        console.log(`${c.red}[ERROR] Playback failed: ${err.message}${c.reset}`);
+                    }
                 }
                 break;
 
@@ -571,9 +598,10 @@ async function main() {
             return;
         }
 
-        // Find peer
+        // Find peer - match by nickname or address prefix
         const peer = peers.find(p =>
             (p.nickname && p.nickname.toLowerCase() === targetName.toLowerCase()) ||
+            (p.nickname && p.nickname.toLowerCase().startsWith(targetName.toLowerCase())) ||
             (p.address && p.address.toLowerCase().startsWith(targetName.toLowerCase()))
         );
 
@@ -582,9 +610,14 @@ async function main() {
             return;
         }
 
-        const target = peer.nickname || peer.address;
+        // Use the short nickname for the call target, not the full address
+        const target = peer.nickname || targetName;
         callState = CALL_STATE.CALLING;
         callPartner = target;
+
+        if (DEBUG_VOICE) {
+            console.log(`${c.dim}[DEBUG] Calling target="${target}" (found peer: nickname=${peer.nickname}, address=${peer.address})${c.reset}`);
+        }
 
         callMsg(`${c.yellow}Calling ${target}...${c.reset}`);
 
@@ -896,6 +929,19 @@ ${c.yellow}=== OTHER ===${c.reset}
         const text = input.trim();
 
         if (!text) {
+            showPrompt(callState, nickname, callPartner);
+            return;
+        }
+
+        // Quick keys for incoming call
+        if (text.toLowerCase() === 'a' && callState === CALL_STATE.RINGING) {
+            answerCall();
+            showPrompt(callState, nickname, callPartner);
+            return;
+        }
+
+        if (text.toLowerCase() === 'r' && callState === CALL_STATE.RINGING) {
+            rejectCall();
             showPrompt(callState, nickname, callPartner);
             return;
         }
