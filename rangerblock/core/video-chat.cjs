@@ -50,7 +50,7 @@ const BIT_DEPTH = 16;
 // Video settings
 const VIDEO_WIDTH = 320;
 const VIDEO_HEIGHT = 240;
-const VIDEO_FPS = 10;
+const VIDEO_FPS = 30; // macOS cameras require 15-30fps minimum!
 const VIDEO_QUALITY = 30; // JPEG quality (lower = smaller)
 
 // Device selection
@@ -594,9 +594,23 @@ class VideoCapture {
             }
         });
 
-        this.process.stderr.on('data', () => {}); // Ignore ffmpeg info
-        this.process.on('error', () => { this.capturing = false; });
-        this.process.on('close', () => { this.capturing = false; });
+        this.process.stderr.on('data', (data) => {
+            // Log ffmpeg errors if debug mode
+            const msg = data.toString();
+            if (msg.includes('Error') || msg.includes('error')) {
+                console.log(`\n   ${c.red}ffmpeg error: ${msg.trim()}${c.reset}\n`);
+            }
+        });
+        this.process.on('error', (err) => {
+            console.log(`\n   ${c.red}Video capture error: ${err.message}${c.reset}\n`);
+            this.capturing = false;
+        });
+        this.process.on('close', (code) => {
+            if (code !== 0 && code !== null) {
+                console.log(`\n   ${c.yellow}Video capture stopped (code: ${code})${c.reset}\n`);
+            }
+            this.capturing = false;
+        });
     }
 
     stopCapture() {
@@ -652,31 +666,32 @@ class VideoDisplay {
             fs.mkdirSync(this.outputDir, { recursive: true });
         }
         this.frameCount = 0;
-        this.lastFrameFile = null;
+        this.viewerOpened = false;
+        this.liveFile = path.join(this.outputDir, 'live_video.jpg');
     }
 
     displayFrame(jpegBuffer, senderName) {
         try {
-            // Save frame to temp file
             this.frameCount++;
-            const frameFile = path.join(this.outputDir, `frame_${senderName}_${this.frameCount}.jpg`);
-            fs.writeFileSync(frameFile, jpegBuffer);
 
-            // Clean up old frame
-            if (this.lastFrameFile && fs.existsSync(this.lastFrameFile)) {
-                try { fs.unlinkSync(this.lastFrameFile); } catch (e) {}
-            }
-            this.lastFrameFile = frameFile;
+            // Always save to the same file for live viewing
+            fs.writeFileSync(this.liveFile, jpegBuffer);
 
-            // On first frame, open in default viewer
-            if (this.frameCount === 1) {
+            // On first frame, open viewer
+            if (!this.viewerOpened) {
+                this.viewerOpened = true;
                 const platform = os.platform();
+
+                console.log(`\n   ${c.brightBlue}📺 Opening video viewer for ${senderName}...${c.reset}`);
+                console.log(`   ${c.dim}File: ${this.liveFile}${c.reset}\n`);
+
                 if (platform === 'darwin') {
-                    spawn('open', [frameFile]);
+                    // Use Preview which auto-refreshes
+                    spawn('open', ['-a', 'Preview', this.liveFile]);
                 } else if (platform === 'win32') {
-                    spawn('start', [frameFile], { shell: true });
+                    spawn('start', ['', this.liveFile], { shell: true });
                 } else {
-                    spawn('xdg-open', [frameFile]);
+                    spawn('xdg-open', [this.liveFile]);
                 }
             }
 
@@ -687,10 +702,37 @@ class VideoDisplay {
     }
 
     // Save video stream to file for playback
-    saveStreamFrame(jpegBuffer) {
-        const streamFile = path.join(this.outputDir, 'live_stream.jpg');
-        fs.writeFileSync(streamFile, jpegBuffer);
-        return streamFile;
+    saveStreamFrame(jpegBuffer, senderName) {
+        try {
+            fs.writeFileSync(this.liveFile, jpegBuffer);
+
+            // Open viewer on first frame
+            if (!this.viewerOpened) {
+                this.viewerOpened = true;
+                const platform = os.platform();
+
+                console.log(`\n   ${c.brightBlue}📺 Receiving video from ${senderName}!${c.reset}`);
+                console.log(`   ${c.dim}Opening viewer: ${this.liveFile}${c.reset}\n`);
+
+                if (platform === 'darwin') {
+                    spawn('open', ['-a', 'Preview', this.liveFile]);
+                } else if (platform === 'win32') {
+                    spawn('start', ['', this.liveFile], { shell: true });
+                } else {
+                    spawn('xdg-open', [this.liveFile]);
+                }
+            }
+
+            this.frameCount++;
+            return this.liveFile;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    resetViewer() {
+        this.viewerOpened = false;
+        this.frameCount = 0;
     }
 }
 
@@ -1127,7 +1169,7 @@ async function main() {
                     try {
                         const compressedFrame = Buffer.from(payload.frame, 'base64');
                         const frameBuffer = decompressData(compressedFrame);
-                        videoDisplay.saveStreamFrame(frameBuffer);
+                        videoDisplay.saveStreamFrame(frameBuffer, senderName);
                         if (DEBUG_MODE) {
                             videoMsg(`Frame from ${senderName} (${frameBuffer.length} bytes)`);
                         }
