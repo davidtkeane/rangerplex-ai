@@ -595,6 +595,19 @@ else
     echo -e "${GREEN}  ✅ SoX installed (voice chat ready)${NC}"
 fi
 
+# Install ffmpeg for video chat
+if ! command -v ffmpeg &>/dev/null; then
+    echo -e "${BLUE}  Installing ffmpeg (for video chat)...${NC}"
+    sudo apt-get install -y ffmpeg >/dev/null 2>&1
+    if command -v ffmpeg &>/dev/null; then
+        echo -e "${GREEN}  ✅ ffmpeg installed (video chat ready)${NC}"
+    else
+        echo -e "${YELLOW}  ⚠️  ffmpeg install failed - video chat won't work${NC}"
+    fi
+else
+    echo -e "${GREEN}  ✅ ffmpeg installed (video chat ready)${NC}"
+fi
+
 # =====================================================================
 # SETUP DIRECTORY
 # =====================================================================
@@ -631,20 +644,25 @@ curl -fsSL "$REPO_URL/core/blockchain-ping.cjs" -o blockchain-ping.cjs
 echo -e "${BLUE}  📥 voice-chat.cjs${NC}"
 curl -fsSL "$REPO_URL/core/voice-chat.cjs" -o voice-chat.cjs
 
+# Download video chat
+echo -e "${BLUE}  📥 video-chat.cjs${NC}"
+curl -fsSL "$REPO_URL/core/video-chat.cjs" -o video-chat.cjs
+
 echo -e "${GREEN}  ✅ Server files downloaded${NC}"
 
 # Create package.json
 cat > package.json << 'PACKAGE_EOF'
 {
   "name": "rangerblock-server",
-  "version": "2.2.0",
-  "description": "RangerBlock P2P Relay Server with Voice Chat",
+  "version": "2.3.0",
+  "description": "RangerBlock P2P Relay Server with Voice & Video Chat",
   "main": "relay-server.cjs",
   "scripts": {
     "relay": "node relay-server.cjs",
     "start": "node relay-server.cjs",
     "chat": "node blockchain-chat.cjs",
     "voice": "node voice-chat.cjs",
+    "video": "node video-chat.cjs",
     "ping": "node blockchain-ping.cjs",
     "ngrok": "ngrok tcp 5555",
     "status": "curl -s http://localhost:5556/api/status | jq .",
@@ -795,6 +813,18 @@ echo ""
 node voice-chat.cjs
 SCRIPT_EOF
 chmod +x start-voice.sh
+
+# Start video script
+cat > start-video.sh << 'SCRIPT_EOF'
+#!/bin/bash
+cd "$(dirname "$0")"
+echo "📹 Starting RangerBlock Video Chat..."
+echo "   Requires ffmpeg: apt install ffmpeg"
+echo "   Requires SoX for audio: apt install sox libsox-fmt-all"
+echo ""
+node video-chat.cjs
+SCRIPT_EOF
+chmod +x start-video.sh
 
 # Network diagnostic script
 cat > network-diag.sh << 'SCRIPT_EOF'

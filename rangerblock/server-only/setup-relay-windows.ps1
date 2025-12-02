@@ -95,6 +95,28 @@ if ($soxVersion) {
     }
 }
 
+# Check for ffmpeg (video chat)
+Write-Color "`n[1.6/5] Checking ffmpeg (for video chat)..." "Yellow"
+
+$ffmpegVersion = $null
+try {
+    $ffmpegVersion = ffmpeg -version 2>$null
+} catch {}
+
+if ($ffmpegVersion) {
+    Write-Color "ffmpeg already installed (video chat ready)" "Green"
+} else {
+    Write-Color "ffmpeg not found. Installing via winget..." "Yellow"
+    try {
+        winget install Gyan.FFmpeg --accept-package-agreements --accept-source-agreements
+        Write-Color "ffmpeg installed! Video chat ready." "Green"
+    } catch {
+        Write-Color "Could not install ffmpeg automatically." "Yellow"
+        Write-Color "For video chat, download from: https://ffmpeg.org/download.html" "Yellow"
+        Write-Color "Or run: choco install ffmpeg" "Yellow"
+    }
+}
+
 # =====================================================================
 # SETUP DIRECTORY
 # =====================================================================
@@ -136,17 +158,22 @@ Invoke-WebRequest -Uri "$RepoUrl/core/blockchain-ping.cjs" -OutFile "blockchain-
 Write-Color "  Downloading voice-chat.cjs..." "Gray"
 Invoke-WebRequest -Uri "$RepoUrl/core/voice-chat.cjs" -OutFile "voice-chat.cjs"
 
+# Download video chat
+Write-Color "  Downloading video-chat.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/core/video-chat.cjs" -OutFile "video-chat.cjs"
+
 # Create package.json
 $packageJson = @"
 {
   "name": "rangerblock-server",
-  "version": "2.2.0",
-  "description": "RangerBlock P2P Relay Server - Windows Edition with Voice Chat",
+  "version": "2.3.0",
+  "description": "RangerBlock P2P Relay Server - Windows Edition with Voice & Video Chat",
   "main": "relay-server.cjs",
   "scripts": {
     "relay": "node relay-server.cjs",
     "chat": "node blockchain-chat.cjs",
     "voice": "node voice-chat.cjs",
+    "video": "node video-chat.cjs",
     "ping": "node blockchain-ping.cjs",
     "ngrok": "ngrok tcp 5555"
   },
@@ -288,6 +315,17 @@ node voice-chat.cjs
 pause
 "@ | Out-File -FilePath "Start-Voice.bat" -Encoding ascii
 
+@"
+@echo off
+cd /d "%~dp0"
+echo Starting RangerBlock Video Chat...
+echo Requires ffmpeg - install via: winget install Gyan.FFmpeg
+echo Requires SoX for audio - install via: winget install sox.sox
+echo.
+node video-chat.cjs
+pause
+"@ | Out-File -FilePath "Start-Video.bat" -Encoding ascii
+
 if ($WithNgrok) {
 @"
 @echo off
@@ -321,12 +359,14 @@ Write-Color @"
     npm run relay     - Start relay server
     npm run chat      - Terminal chat client
     npm run voice     - Voice chat (requires SoX)
+    npm run video     - Video chat (requires ffmpeg + SoX)
     npm run ping      - Test connectivity
 
   BATCH FILES:
     Start-Relay.bat   - Double-click to start relay
     Start-Chat.bat    - Double-click to start chat
     Start-Voice.bat   - Double-click for voice chat
+    Start-Video.bat   - Double-click for video chat
 
   FIREWALL (run as Administrator):
     netsh advfirewall firewall add rule name="RangerBlock" dir=in action=allow protocol=TCP localport=5555,5556

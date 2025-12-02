@@ -267,6 +267,70 @@ install() {
         success "Node.js version: ${GREEN}$NODE_VERSION${NC}"
     fi
 
+    # ===== STEP 2.5: Install SoX (for voice chat) =====
+    step "🎤 STEP 2.5/5: Installing SoX (Voice Chat)"
+    sleep 0.5
+
+    if command -v sox &> /dev/null; then
+        success "SoX already installed: ${GREEN}$(sox --version 2>&1 | head -1)${NC}"
+    else
+        warning "SoX not found - installing..."
+        echo ""
+
+        if [[ "$OS" == "macos" ]]; then
+            if command -v brew &> /dev/null; then
+                info "Installing via Homebrew..."
+                brew install sox 2>/dev/null &
+                spin $!
+                success "SoX installed via Homebrew"
+            else
+                warning "Install Homebrew first or: brew install sox"
+            fi
+        elif [[ "$DISTRO" == "debian" ]]; then
+            info "Installing via apt..."
+            sudo apt-get install -y sox libsox-fmt-all > /dev/null 2>&1 &
+            spin $!
+            success "SoX installed"
+        elif [[ "$DISTRO" == "redhat" ]]; then
+            info "Installing via yum..."
+            sudo yum install -y sox > /dev/null 2>&1 &
+            spin $!
+            success "SoX installed"
+        fi
+    fi
+
+    # ===== STEP 2.6: Install ffmpeg (for video chat) =====
+    step "📹 STEP 2.6/5: Installing ffmpeg (Video Chat)"
+    sleep 0.5
+
+    if command -v ffmpeg &> /dev/null; then
+        success "ffmpeg already installed: ${GREEN}$(ffmpeg -version 2>&1 | head -1)${NC}"
+    else
+        warning "ffmpeg not found - installing..."
+        echo ""
+
+        if [[ "$OS" == "macos" ]]; then
+            if command -v brew &> /dev/null; then
+                info "Installing via Homebrew..."
+                brew install ffmpeg 2>/dev/null &
+                spin $!
+                success "ffmpeg installed via Homebrew"
+            else
+                warning "Install Homebrew first or: brew install ffmpeg"
+            fi
+        elif [[ "$DISTRO" == "debian" ]]; then
+            info "Installing via apt..."
+            sudo apt-get install -y ffmpeg > /dev/null 2>&1 &
+            spin $!
+            success "ffmpeg installed"
+        elif [[ "$DISTRO" == "redhat" ]]; then
+            info "Installing via yum..."
+            sudo yum install -y ffmpeg > /dev/null 2>&1 &
+            spin $!
+            success "ffmpeg installed"
+        fi
+    fi
+
     # ===== STEP 3: Download Chat Client =====
     step "📥 STEP 3/5: Downloading Chat Client"
     sleep 0.5
@@ -282,6 +346,8 @@ install() {
     FILES=(
         "core/blockchain-chat.cjs"
         "core/blockchain-ping.cjs"
+        "core/voice-chat.cjs"
+        "core/video-chat.cjs"
     )
 
     for i in "${!FILES[@]}"; do
@@ -298,10 +364,12 @@ install() {
     cat > package.json << 'PKGJSON'
 {
   "name": "rangerblock-chat",
-  "version": "1.0.0",
-  "description": "RangerBlock P2P Blockchain Chat Client",
+  "version": "2.0.0",
+  "description": "RangerBlock P2P Blockchain Chat, Voice & Video Client",
   "scripts": {
     "chat": "node blockchain-chat.cjs",
+    "voice": "node voice-chat.cjs",
+    "video": "node video-chat.cjs",
     "ping": "node blockchain-ping.cjs"
   },
   "dependencies": {
@@ -374,6 +442,8 @@ IDENTITY
     echo -e "${GREEN}║${NC}   ${CYAN}QUICK COMMANDS:${NC}                                                           ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}                                                                              ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${WHITE}./just-chat.sh -c${NC}              ${GRAY}Start chatting${NC}                          ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}   ${WHITE}./just-chat.sh -v${NC}              ${GRAY}Start voice chat${NC}                        ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}   ${WHITE}./just-chat.sh -video${NC}          ${GRAY}Start video chat${NC}                        ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${WHITE}./just-chat.sh -t${NC}              ${GRAY}Test connection${NC}                         ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${WHITE}./just-chat.sh -u${NC}              ${GRAY}Update to latest version${NC}                ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}   ${WHITE}./just-chat.sh -h${NC}              ${GRAY}Show help${NC}                               ${GREEN}║${NC}"
@@ -499,6 +569,111 @@ chat() {
 }
 
 # ============================================================================
+# VOICE CHAT
+# ============================================================================
+
+voice() {
+    print_small_banner
+
+    if [ ! -d "$INSTALL_DIR" ]; then
+        error "RangerBlock not installed! Run: ./just-chat.sh (no args) to install"
+        exit 1
+    fi
+
+    cd "$INSTALL_DIR"
+
+    # Check if Node.js is available
+    if ! command -v node &> /dev/null; then
+        error "Node.js not found in PATH!"
+        exit 1
+    fi
+
+    # Check for SoX
+    if ! command -v sox &> /dev/null; then
+        warning "SoX not installed! Voice chat requires SoX."
+        echo ""
+        echo -e "  ${CYAN}Install with:${NC}"
+        echo -e "    macOS:  brew install sox"
+        echo -e "    Debian: sudo apt install sox libsox-fmt-all"
+        echo ""
+        exit 1
+    fi
+
+    echo -e "  ${CYAN}Starting Voice Chat...${NC}"
+    echo -e "  ${GRAY}Relay: ws://$AWS_RELAY:$AWS_PORT${NC}"
+    echo ""
+    echo -e "  ${YELLOW}Commands: /voice on, /voice off, /call <user>, /help${NC}"
+    echo -e "  ${GRAY}────────────────────────────────────────────────────${NC}"
+    echo ""
+
+    # Run voice chat client
+    if [ -f voice-chat.cjs ]; then
+        node voice-chat.cjs --relay "$AWS_RELAY:$AWS_PORT"
+    else
+        error "Voice chat client not found. Run: ./just-chat.sh -u to update"
+        exit 1
+    fi
+}
+
+# ============================================================================
+# VIDEO CHAT
+# ============================================================================
+
+video() {
+    print_small_banner
+
+    if [ ! -d "$INSTALL_DIR" ]; then
+        error "RangerBlock not installed! Run: ./just-chat.sh (no args) to install"
+        exit 1
+    fi
+
+    cd "$INSTALL_DIR"
+
+    # Check if Node.js is available
+    if ! command -v node &> /dev/null; then
+        error "Node.js not found in PATH!"
+        exit 1
+    fi
+
+    # Check for ffmpeg
+    if ! command -v ffmpeg &> /dev/null; then
+        warning "ffmpeg not installed! Video chat requires ffmpeg."
+        echo ""
+        echo -e "  ${CYAN}Install with:${NC}"
+        echo -e "    macOS:  brew install ffmpeg"
+        echo -e "    Debian: sudo apt install ffmpeg"
+        echo ""
+        exit 1
+    fi
+
+    # Check for SoX (for audio)
+    if ! command -v sox &> /dev/null; then
+        warning "SoX not installed! Audio in video chat requires SoX."
+        echo ""
+        echo -e "  ${CYAN}Install with:${NC}"
+        echo -e "    macOS:  brew install sox"
+        echo -e "    Debian: sudo apt install sox libsox-fmt-all"
+        echo ""
+        exit 1
+    fi
+
+    echo -e "  ${CYAN}Starting Video Chat...${NC}"
+    echo -e "  ${GRAY}Relay: ws://$AWS_RELAY:$AWS_PORT${NC}"
+    echo ""
+    echo -e "  ${YELLOW}Commands: /video on, /video off, /voice on, /call <user>, /help${NC}"
+    echo -e "  ${GRAY}────────────────────────────────────────────────────${NC}"
+    echo ""
+
+    # Run video chat client
+    if [ -f video-chat.cjs ]; then
+        node video-chat.cjs --relay "$AWS_RELAY:$AWS_PORT"
+    else
+        error "Video chat client not found. Run: ./just-chat.sh -u to update"
+        exit 1
+    fi
+}
+
+# ============================================================================
 # TEST CONNECTION
 # ============================================================================
 
@@ -587,6 +762,8 @@ update() {
     FILES=(
         "core/blockchain-chat.cjs"
         "core/blockchain-ping.cjs"
+        "core/voice-chat.cjs"
+        "core/video-chat.cjs"
     )
 
     for file in "${FILES[@]}"; do
@@ -669,6 +846,9 @@ show_help() {
     echo -e "  ${CYAN}./just-chat.sh${NC}                   ${GRAY}Install RangerBlock Chat${NC}"
     echo -e "  ${CYAN}./just-chat.sh -c${NC}                ${GRAY}Start chatting${NC}"
     echo -e "  ${CYAN}./just-chat.sh -chat${NC}             ${GRAY}Start chatting (alias)${NC}"
+    echo -e "  ${CYAN}./just-chat.sh -v${NC}                ${GRAY}Start voice chat${NC}"
+    echo -e "  ${CYAN}./just-chat.sh -voice${NC}            ${GRAY}Start voice chat (alias)${NC}"
+    echo -e "  ${CYAN}./just-chat.sh -video${NC}            ${GRAY}Start video chat${NC}"
     echo -e "  ${CYAN}./just-chat.sh -t${NC}                ${GRAY}Test connection${NC}"
     echo -e "  ${CYAN}./just-chat.sh -test${NC}             ${GRAY}Test connection (alias)${NC}"
     echo -e "  ${CYAN}./just-chat.sh -u${NC}                ${GRAY}Update to latest version${NC}"
@@ -682,6 +862,9 @@ show_help() {
     echo -e "  ${CYAN}/who${NC}       ${GRAY}List online users${NC}"
     echo -e "  ${CYAN}/nick${NC}      ${GRAY}Change nickname${NC}"
     echo -e "  ${CYAN}/msg${NC}       ${GRAY}Private message${NC}"
+    echo -e "  ${CYAN}/voice${NC}     ${GRAY}Toggle voice chat (on/off)${NC}"
+    echo -e "  ${CYAN}/video${NC}     ${GRAY}Toggle video chat (on/off)${NC}"
+    echo -e "  ${CYAN}/call${NC}      ${GRAY}Private call to user${NC}"
     echo -e "  ${CYAN}/quit${NC}      ${GRAY}Leave chat${NC}"
     echo ""
     echo -e "  ${WHITE}${BOLD}NETWORK INFO:${NC}"
@@ -761,10 +944,12 @@ welcome_menu() {
     echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
     echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
     echo -e "${CYAN}║${NC}   ${GREEN}[1]${NC} ${WHITE}Install & Chat${NC}  - First time? Start here!              ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC}   ${GREEN}[2]${NC} ${WHITE}Start Chatting${NC}  - Already installed? Jump in!          ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC}   ${GREEN}[3]${NC} ${WHITE}Test Connection${NC} - Check if AWS relay is online         ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC}   ${GREEN}[4]${NC} ${WHITE}Network Status${NC}  - See who's online                     ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC}   ${GREEN}[5]${NC} ${WHITE}Help${NC}            - Show all commands                    ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[2]${NC} ${WHITE}Start Chatting${NC}  - Text chat                            ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[3]${NC} ${WHITE}Voice Chat${NC}      - Talk with voice! 🎤                   ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[4]${NC} ${WHITE}Video Chat${NC}      - Video + Voice + Text! 📹             ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[5]${NC} ${WHITE}Test Connection${NC} - Check if AWS relay is online         ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[6]${NC} ${WHITE}Network Status${NC}  - See who's online                     ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}   ${GREEN}[7]${NC} ${WHITE}Help${NC}            - Show all commands                    ${CYAN}║${NC}"
     echo -e "${CYAN}║${NC}   ${GREEN}[0]${NC} ${WHITE}Exit${NC}                                                   ${CYAN}║${NC}"
     echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
@@ -772,7 +957,7 @@ welcome_menu() {
     echo -e "${GRAY}  AWS Relay: ${CYAN}44.222.101.125:5555${NC} ${GRAY}(24/7 uptime)${NC}"
     echo ""
 
-    read -p "  Enter choice [1-5, 0 to exit]: " choice
+    read -p "  Enter choice [1-7, 0 to exit]: " choice
 
     case "$choice" in
         1)
@@ -782,12 +967,18 @@ welcome_menu() {
             chat
             ;;
         3)
-            test_connection
+            voice
             ;;
         4)
-            status
+            video
             ;;
         5)
+            test_connection
+            ;;
+        6)
+            status
+            ;;
+        7)
             show_help
             ;;
         0|q|Q)
@@ -798,7 +989,7 @@ welcome_menu() {
             ;;
         *)
             echo ""
-            warning "Invalid choice. Please enter 1-5 or 0."
+            warning "Invalid choice. Please enter 1-7 or 0."
             sleep 1
             welcome_menu
             ;;
@@ -812,6 +1003,12 @@ welcome_menu() {
 case "${1:-}" in
     -c|-chat|--chat)
         chat
+        ;;
+    -v|-voice|--voice)
+        voice
+        ;;
+    -video|--video)
+        video
         ;;
     -t|-test|--test)
         test_connection
