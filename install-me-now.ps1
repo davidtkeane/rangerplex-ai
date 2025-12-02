@@ -1,13 +1,57 @@
 # RangerPlex AI Installer for Windows (PowerShell)
-# Version: 2.5.33
+# Version: 2.5.34
 # One-command setup for Windows. Installs Node.js 22, PM2, npm deps, and guides API key setup.
 #
-# USAGE: Right-click PowerShell -> Run as Administrator (if needed)
-#        Or: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
-#        Then: .\install-me-now.ps1
+# USAGE: Right-click PowerShell -> Run as Administrator
+#        Or: .\install-me-now.ps1 (will auto-elevate if needed)
 
 $ErrorActionPreference = "Continue"
 $Host.UI.RawUI.WindowTitle = "RangerPlex AI Installer"
+
+# Check if running as Administrator and offer to elevate
+function Test-AdminEarly {
+    $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+if (-not (Test-AdminEarly)) {
+    Write-Host ""
+    Write-Host "============================================================" -ForegroundColor Yellow
+    Write-Host "  NOT RUNNING AS ADMINISTRATOR" -ForegroundColor Yellow
+    Write-Host "============================================================" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "This installer works best with Administrator privileges." -ForegroundColor Cyan
+    Write-Host "nvm-windows requires admin to switch Node versions." -ForegroundColor Cyan
+    Write-Host ""
+
+    $elevate = Read-Host "Restart as Administrator? (Y/n)"
+    if ($elevate -notmatch "^[Nn]") {
+        Write-Host ""
+        Write-Host "Restarting as Administrator..." -ForegroundColor Green
+
+        # Get the script path
+        $scriptPath = $PSCommandPath
+        if (-not $scriptPath) {
+            $scriptPath = $MyInvocation.MyCommand.Path
+        }
+        if (-not $scriptPath) {
+            $scriptPath = Join-Path (Get-Location) "install-me-now.ps1"
+        }
+
+        # Relaunch as admin
+        Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -File `"$scriptPath`"" -Verb RunAs
+        Write-Host ""
+        Write-Host "A new Administrator window should open." -ForegroundColor Cyan
+        Write-Host "Please continue the installation there." -ForegroundColor Cyan
+        Write-Host ""
+        exit 0
+    } else {
+        Write-Host ""
+        Write-Warn "Continuing without admin. Some features may fail."
+        Write-Host ""
+    }
+}
 
 # Colors
 function Write-Step { param($msg) Write-Host "[>] " -ForegroundColor Cyan -NoNewline; Write-Host $msg }
@@ -90,55 +134,481 @@ function Get-ProjectRoot {
     return $scriptPath
 }
 
-function Install-NodeJS {
-    Write-Step "Checking Node.js..."
+function Refresh-Path {
+    # Refresh PATH from registry
+    $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = "$machinePath;$userPath"
 
-    if (Test-Command "node") {
-        $nodeVersion = & node -v 2>$null
-        $majorVersion = [int]($nodeVersion -replace 'v(\d+)\..*', '$1')
+    # Also add common nvm-windows paths directly
+    $nvmHome = "$env:APPDATA\nvm"
+    $nvmSymlink = "$env:ProgramFiles\nodejs"
 
-        if ($majorVersion -eq 22) {
-            Write-Ok "Node.js $nodeVersion detected (meets requirement)."
+    if ($nvmHome -and ($env:Path -notlike "*$nvmHome*")) {
+        $env:Path = "$nvmHome;$env:Path"
+    }
+    if ($nvmSymlink -and ($env:Path -notlike "*$nvmSymlink*")) {
+        $env:Path = "$nvmSymlink;$env:Path"
+    }
+
+    # Set NVM_HOME and NVM_SYMLINK if not set
+    if (-not $env:NVM_HOME) {
+        $env:NVM_HOME = $nvmHome
+    }
+    if (-not $env:NVM_SYMLINK) {
+        $env:NVM_SYMLINK = $nvmSymlink
+    }
+}
+
+function Test-NvmWindows {
+    # Refresh PATH first
+    Refresh-Path
+
+    # Check multiple locations for nvm
+    $nvmExe = "$env:APPDATA\nvm\nvm.exe"
+    if (Test-Path $nvmExe) {
+        return $true
+    }
+
+    # Check if nvm command works
+    try {
+        $nvmOut = & "$env:APPDATA\nvm\nvm.exe" version 2>$null
+        if ($nvmOut) { return $true }
+    } catch {}
+
+    try {
+        $nvmOut = & nvm version 2>$null
+        if ($nvmOut) { return $true }
+    } catch {}
+
+    return $false
+}
+
+function Run-Nvm {
+    param($arguments)
+
+    $nvmExe = "$env:APPDATA\nvm\nvm.exe"
+    if (Test-Path $nvmExe) {
+        $argArray = $arguments -split ' '
+        & $nvmExe $argArray
+        return $LASTEXITCODE -eq 0
+    }
+
+    # Fallback to nvm in PATH
+    try {
+        $argArray = $arguments -split ' '
+        & nvm $argArray
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    }
+}
+
+function Install-NvmWindows {
+    Write-Host ""
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host "  Installing nvm-windows (Node Version Manager)" -ForegroundColor Cyan
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host ""
+
+    if (-not (Test-Command "winget")) {
+        Write-Fail "winget is not available!"
+        Write-Host ""
+        Write-Host "Please install nvm-windows manually:" -ForegroundColor Yellow
+        Write-Host "  1. Download from: https://github.com/coreybutler/nvm-windows/releases/latest" -ForegroundColor Cyan
+        Write-Host "  2. Run nvm-setup.exe" -ForegroundColor Cyan
+        Write-Host "  3. Close and reopen PowerShell" -ForegroundColor Cyan
+        Write-Host "  4. Re-run this script" -ForegroundColor Cyan
+        Write-Host ""
+        Start-Process "https://github.com/coreybutler/nvm-windows/releases/latest"
+        Read-Host "Press ENTER to exit"
+        exit 1
+    }
+
+    Write-Step "Installing nvm-windows via winget..."
+    & winget install CoreyButler.NVMforWindows --accept-package-agreements --accept-source-agreements
+
+    # Wait for install to complete
+    Start-Sleep -Seconds 3
+
+    # Refresh PATH
+    Refresh-Path
+
+    # Check if it worked
+    if (Test-NvmWindows) {
+        Write-Ok "nvm-windows installed successfully!"
+        return $true
+    } else {
+        Write-Warn "nvm-windows installed but not in PATH yet."
+        return $false
+    }
+}
+
+function Test-Admin {
+    $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Install-Node22-Via-Nvm {
+    Write-Host ""
+    Write-Step "Installing Node.js 22 via nvm..."
+
+    # Check if running as admin (required for nvm use to create symlinks)
+    $isAdmin = Test-Admin
+    if (-not $isAdmin) {
+        Write-Warn "Not running as Administrator!"
+        Write-Host "  nvm use requires admin privileges to create symlinks." -ForegroundColor DarkGray
+        Write-Host "  Will attempt anyway, but may need to restart as Admin." -ForegroundColor DarkGray
+        Write-Host ""
+    }
+
+    # Try to run nvm install 22
+    $nvmExe = "$env:APPDATA\nvm\nvm.exe"
+
+    if (Test-Path $nvmExe) {
+        Write-Host "  Found nvm at: $nvmExe" -ForegroundColor DarkGray
+        Write-Host ""
+
+        Write-Host "  Running: nvm install 22" -ForegroundColor Cyan
+        $installOutput = & $nvmExe install 22 2>&1
+        Write-Host $installOutput
+        Start-Sleep -Seconds 3
+
+        Write-Host ""
+        Write-Host "  Running: nvm use 22" -ForegroundColor Cyan
+        $useOutput = & $nvmExe use 22 2>&1
+        Write-Host $useOutput
+        Start-Sleep -Seconds 2
+
+        # Check if nvm use failed due to permissions
+        if ($useOutput -match "exit status 1|Access is denied|permission") {
+            Write-Warn "nvm use failed - need Administrator privileges!"
+            Write-Host ""
+
+            if (-not $isAdmin) {
+                Write-Host "Restarting script as Administrator..." -ForegroundColor Yellow
+                $scriptPath = $PSCommandPath
+                if (-not $scriptPath) {
+                    $scriptPath = Join-Path (Get-ProjectRoot) "install-me-now.ps1"
+                }
+
+                Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -File `"$scriptPath`"" -Verb RunAs
+                Write-Host ""
+                Write-Host "A new Administrator window should open." -ForegroundColor Cyan
+                Write-Host "Please continue the installation there." -ForegroundColor Cyan
+                Write-Host ""
+                Read-Host "Press ENTER to exit this window"
+                exit 0
+            }
+        }
+
+        # Refresh PATH to pick up new Node
+        Refresh-Path
+
+        # Also try to find node in nvm's directory
+        $nvmNodePath = "$env:APPDATA\nvm\v22*"
+        $nodeDirs = Get-ChildItem -Path "$env:APPDATA\nvm" -Directory -Filter "v22*" -ErrorAction SilentlyContinue
+        if ($nodeDirs) {
+            $latestNode22 = $nodeDirs | Sort-Object Name -Descending | Select-Object -First 1
+            $nodeExePath = Join-Path $latestNode22.FullName "node.exe"
+            if (Test-Path $nodeExePath) {
+                $nodeVer = & $nodeExePath -v 2>$null
+                if ($nodeVer -match "^v22\.") {
+                    Write-Ok "Node.js $nodeVer installed!"
+
+                    # Make sure this is the active version
+                    & $nvmExe use 22 2>$null
+
+                    # Update PATH to include this version
+                    $env:Path = "$($latestNode22.FullName);$env:Path"
+
+                    return $true
+                }
+            }
+        }
+
+        # Standard check
+        $nodeVer = & node -v 2>$null
+        if ($nodeVer -match "^v22\.") {
+            Write-Ok "Node.js $nodeVer installed and active!"
             return $true
-        } elseif ($majorVersion -ge 25) {
-            Write-Fail "Node.js $nodeVersion detected - TOO NEW!"
-            Write-Host "  Node v25+ breaks native modules (better-sqlite3)." -ForegroundColor Red
-            Write-Host "  Please downgrade to Node v22." -ForegroundColor DarkGray
-        } else {
-            Write-Warn "Node.js $nodeVersion detected; v22.x is recommended."
         }
     }
 
+    # If direct exe didn't work, try nvm command
+    try {
+        Write-Host "  Trying nvm from PATH..." -ForegroundColor DarkGray
+        & nvm install 22
+        Start-Sleep -Seconds 2
+        & nvm use 22
+        Start-Sleep -Seconds 2
+        Refresh-Path
+
+        $nodeVer = & node -v 2>$null
+        if ($nodeVer -match "^v22\.") {
+            Write-Ok "Node.js $nodeVer installed and active!"
+            return $true
+        }
+    } catch {
+        Write-Host "  nvm command not available in PATH" -ForegroundColor DarkGray
+    }
+
+    return $false
+}
+
+function Show-NodeManualInstructions {
     Write-Host ""
-    Write-Host "Node.js 22 is required. Install options:" -ForegroundColor Yellow
-    Write-Host "  1. Download from: https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi" -ForegroundColor Cyan
-    Write-Host "  2. Use winget: winget install OpenJS.NodeJS.LTS" -ForegroundColor Cyan
-    Write-Host "  3. Use nvm-windows: https://github.com/coreybutler/nvm-windows" -ForegroundColor Cyan
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host "        MANUAL NODE.JS VERSION MANAGEMENT (Windows)" -ForegroundColor Cyan
+    Write-Host "============================================================" -ForegroundColor Cyan
     Write-Host ""
+    Write-Host "Using nvm-windows (RECOMMENDED):" -ForegroundColor Yellow
+    Write-Host "  # Install nvm-windows first from:" -ForegroundColor DarkGray
+    Write-Host "  # https://github.com/coreybutler/nvm-windows/releases" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  nvm install 22          # Install Node 22" -ForegroundColor Cyan
+    Write-Host "  nvm use 22              # Switch to Node 22" -ForegroundColor Cyan
+    Write-Host "  nvm list                # See installed versions" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "To return to Node 25 later:" -ForegroundColor Yellow
+    Write-Host "  nvm install 25          # Install Node 25 (if not installed)" -ForegroundColor Cyan
+    Write-Host "  nvm use 25              # Switch back to Node 25" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Alternative - Direct Download:" -ForegroundColor Yellow
+    Write-Host "  Node 22: https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi" -ForegroundColor Green
+    Write-Host "  Node 25: https://nodejs.org/dist/v25.0.0/node-v25.0.0-x64.msi" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host ""
+}
 
-    # Try winget if available
-    if (Test-Command "winget") {
-        $install = Read-Host "Install Node.js 22 via winget? (y/N)"
-        if ($install -match "^[Yy]") {
-            Write-Step "Installing Node.js via winget..."
-            & winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
+function Install-NodeJS {
+    Write-Step "Checking Node.js..."
 
-            # Refresh PATH
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    # Get project root for messages
+    $projectRoot = Get-ProjectRoot
 
-            if (Test-Command "node") {
-                Write-Ok "Node.js installed successfully!"
+    # Refresh PATH to detect any recently installed tools
+    Refresh-Path
+
+    $hasNvm = Test-NvmWindows
+    $currentVersion = $null
+    $majorVersion = 0
+
+    if (Test-Command "node") {
+        $currentVersion = & node -v 2>$null
+        $majorVersion = [int]($currentVersion -replace 'v(\d+)\..*', '$1')
+
+        if ($majorVersion -eq 22) {
+            Write-Ok "Node.js $currentVersion detected (meets requirement)."
+            return $true
+        } elseif ($majorVersion -ge 23) {
+            Write-Host ""
+            Write-Fail "Node.js $currentVersion detected - TOO NEW!"
+            Write-Host ""
+            Write-Host "  Node v23+ breaks native modules like better-sqlite3." -ForegroundColor Red
+            Write-Host "  RangerPlex requires Node.js v22.x (LTS)." -ForegroundColor Red
+            Write-Host ""
+
+            # If nvm-windows is available, offer automatic downgrade
+            if ($hasNvm) {
+                Write-Host "Good news! nvm-windows is installed." -ForegroundColor Green
+                Write-Host ""
+                $downgrade = Read-Host "Automatically downgrade to Node 22? (Y/n)"
+
+                if ($downgrade -notmatch "^[Nn]") {
+                    Write-Step "Installing Node.js 22 via nvm..."
+                    & nvm install 22
+
+                    Write-Step "Switching to Node.js 22..."
+                    & nvm use 22
+
+                    # Refresh PATH
+                    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+                    # Verify
+                    Start-Sleep -Seconds 2
+                    $newVersion = & node -v 2>$null
+                    if ($newVersion -match "^v22\.") {
+                        Write-Ok "Successfully downgraded to Node.js $newVersion!"
+                        Write-Host ""
+                        Write-Host "To return to Node $majorVersion later:" -ForegroundColor Yellow
+                        Write-Host "  nvm use $majorVersion" -ForegroundColor Cyan
+                        Write-Host ""
+                        return $true
+                    } else {
+                        Write-Warn "nvm switch may require a new terminal."
+                        Write-Host "Close PowerShell, reopen, and run: nvm use 22" -ForegroundColor DarkGray
+                    }
+                }
+            } else {
+                # nvm not installed - THIS IS REQUIRED to downgrade
+                Write-Host ""
+                Write-Host "============================================================" -ForegroundColor Red
+                Write-Host "  nvm-windows is REQUIRED to downgrade Node.js" -ForegroundColor Red
+                Write-Host "============================================================" -ForegroundColor Red
+                Write-Host ""
+                Write-Host "nvm-windows lets you install and switch between Node versions." -ForegroundColor Cyan
+                Write-Host "This is the ONLY way to downgrade from Node $majorVersion to Node 22." -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "winget CANNOT downgrade Node - it only upgrades!" -ForegroundColor Red
+                Write-Host ""
+
+                # Step 1: Install nvm-windows
+                $nvmInstalled = Install-NvmWindows
+
+                if ($nvmInstalled -or (Test-NvmWindows)) {
+                    # Step 2: Install Node 22 via nvm
+                    if (Install-Node22-Via-Nvm) {
+                        return $true
+                    }
+                }
+
+                # If we get here, nvm installed but Node switch needs restart
+                # Create a helper script for after restart
+                $helperScript = @"
+# RangerPlex Node Setup Helper
+# Run this after restarting PowerShell
+
+Write-Host "Setting up Node.js 22 via nvm..." -ForegroundColor Cyan
+nvm install 22
+nvm use 22
+Write-Host ""
+Write-Host "Verifying Node version..." -ForegroundColor Cyan
+node -v
+Write-Host ""
+Write-Host "If you see v22.x.x above, run:" -ForegroundColor Green
+Write-Host "  .\install-me-now.ps1" -ForegroundColor Yellow
+"@
+                $helperPath = Join-Path $projectRoot "setup-node22.ps1"
+                $helperScript | Out-File -FilePath $helperPath -Encoding UTF8
+                Write-Ok "Created helper script: setup-node22.ps1"
+
+                Write-Host ""
+                Write-Host "============================================================" -ForegroundColor Yellow
+                Write-Host "  RESTART POWERSHELL REQUIRED" -ForegroundColor Yellow
+                Write-Host "============================================================" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "nvm-windows was installed but PowerShell needs to restart" -ForegroundColor Cyan
+                Write-Host "to recognize the new PATH settings." -ForegroundColor Cyan
+                Write-Host ""
+                Write-Host "AFTER RESTARTING PowerShell, run:" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "  cd $projectRoot" -ForegroundColor White
+                Write-Host "  .\setup-node22.ps1" -ForegroundColor Cyan
+                Write-Host ""
+                Write-Host "Or manually run:" -ForegroundColor DarkGray
+                Write-Host "  nvm install 22" -ForegroundColor DarkGray
+                Write-Host "  nvm use 22" -ForegroundColor DarkGray
+                Write-Host "  .\install-me-now.ps1" -ForegroundColor DarkGray
+                Write-Host ""
+                Write-Host "============================================================" -ForegroundColor Yellow
+                Write-Host ""
+                Read-Host "Press ENTER to exit (then restart PowerShell)"
+                exit 0
+            }
+
+            # This point should not be reached, but just in case
+            return $false
+
+        } else {
+            Write-Warn "Node.js $currentVersion detected; v22.x is recommended."
+            $upgrade = Read-Host "Upgrade to Node 22? (Y/n)"
+            if ($upgrade -notmatch "^[Nn]") {
+                if ($hasNvm) {
+                    & nvm install 22
+                    & nvm use 22
+                    Write-Ok "Switched to Node 22!"
+                    return $true
+                }
+            } else {
                 return $true
             }
         }
     }
 
-    # Open download page
-    $open = Read-Host "Open Node.js download page in browser? (y/N)"
-    if ($open -match "^[Yy]") {
-        Start-Process "https://nodejs.org/en/download/"
-        Write-Host "Please install Node.js 22, then re-run this script." -ForegroundColor DarkGray
-        exit 0
+    # No Node.js installed at all
+    Write-Host ""
+    Write-Host "Node.js is not installed." -ForegroundColor Yellow
+    Write-Host ""
+
+    if ($hasNvm) {
+        Write-Host "nvm-windows detected! Installing Node 22..." -ForegroundColor Green
+        & nvm install 22
+        & nvm use 22
+        Write-Ok "Node.js 22 installed and activated!"
+        return $true
+    }
+
+    Write-Host "Install Options:" -ForegroundColor Yellow
+    Write-Host "  1. nvm-windows (RECOMMENDED - manage multiple versions)" -ForegroundColor Green
+    Write-Host "     https://github.com/coreybutler/nvm-windows/releases" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  2. Direct download (single version only)" -ForegroundColor Cyan
+    Write-Host "     https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  3. winget install OpenJS.NodeJS.LTS" -ForegroundColor Cyan
+    Write-Host ""
+
+    $choice = Read-Host "Install via [1] nvm-windows, [2] direct download, [3] winget, or [S]kip? (1/2/3/S)"
+
+    switch ($choice) {
+        "1" {
+            Install-NvmWindows
+            return $false
+        }
+        "2" {
+            Start-Process "https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi"
+            Write-Host "Install Node.js 22, then re-run this script." -ForegroundColor DarkGray
+            exit 0
+        }
+        "3" {
+            if (Test-Command "winget") {
+                Write-Warn "WARNING: winget cannot DOWNGRADE Node.js versions!"
+                Write-Host "  If you have Node 23+ installed, winget will NOT work." -ForegroundColor Red
+                Write-Host "  Use nvm-windows instead (option 1)." -ForegroundColor Yellow
+                Write-Host ""
+
+                $proceed = Read-Host "Try winget anyway? (y/N)"
+                if ($proceed -match "^[Yy]") {
+                    Write-Step "Installing Node.js via winget..."
+                    $wingetOutput = & winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements 2>&1
+
+                    # Check if winget actually changed anything
+                    if ($wingetOutput -match "No available upgrade found|No newer package") {
+                        Write-Fail "winget could not downgrade Node.js!"
+                        Write-Host "  winget only installs/upgrades, it cannot downgrade." -ForegroundColor Red
+                        Write-Host "  You MUST use nvm-windows to switch to Node 22." -ForegroundColor Yellow
+                        Write-Host ""
+                        Write-Host "  Install nvm-windows: winget install CoreyButler.NVMforWindows" -ForegroundColor Cyan
+                        Write-Host "  Then: nvm install 22 && nvm use 22" -ForegroundColor Cyan
+                        return $false
+                    }
+
+                    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+                    # Verify the version is actually 22
+                    if (Test-Command "node") {
+                        $newVer = & node -v 2>$null
+                        if ($newVer -match "^v22\.") {
+                            Write-Ok "Node.js $newVer installed!"
+                            return $true
+                        } else {
+                            Write-Fail "Node.js is still $newVer (not v22.x)!"
+                            Write-Host "  winget cannot downgrade. Use nvm-windows instead." -ForegroundColor Yellow
+                            return $false
+                        }
+                    }
+                }
+            } else {
+                Write-Fail "winget not available."
+            }
+        }
+        default {
+            Write-Warn "Skipping Node.js installation."
+            return $false
+        }
     }
 
     return $false

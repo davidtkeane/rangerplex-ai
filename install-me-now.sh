@@ -20,7 +20,6 @@
 #   VITE_ELEVENLABS_API_KEY      - ElevenLabs (voice synthesis)
 
 set -euo pipefail
-preflight_downloads
 
 ###############
 # UI Helpers  #
@@ -177,6 +176,9 @@ log "${bold}Hello there!${reset} Let's get your RangerPlex AI workstation ready.
 log "${dim}We'll check OS, install Node.js 22, fetch npm deps, and collect API keys for .env.${reset}"
 log
 
+# Offer to download core apps first
+preflight_downloads
+
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ ! -f "$PROJECT_ROOT/package.json" ]; then
   fail "Run this script from the project root (package.json not found)."
@@ -283,78 +285,203 @@ verify_ports() {
 ########################
 # Node.js via nvm      #
 ########################
+
+show_node_manual_instructions() {
+  log
+  log "${cyan}════════════════════════════════════════════════════════════${reset}"
+  log "${bold}        MANUAL NODE.JS VERSION MANAGEMENT (macOS/Linux)${reset}"
+  log "${cyan}════════════════════════════════════════════════════════════${reset}"
+  log
+  log "${bold}${yellow}Using nvm (RECOMMENDED):${reset}"
+  log "${dim}  # Install nvm first (if not installed):${reset}"
+  log "  ${green}curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash${reset}"
+  log "  ${dim}source ~/.nvm/nvm.sh${reset}"
+  log
+  log "${cyan}  nvm install 22          ${dim}# Install Node 22${reset}"
+  log "${cyan}  nvm use 22              ${dim}# Switch to Node 22${reset}"
+  log "${cyan}  nvm alias default 22    ${dim}# Make Node 22 the default${reset}"
+  log "${cyan}  nvm list                ${dim}# See installed versions${reset}"
+  log
+  log "${bold}${yellow}To return to Node 25 later:${reset}"
+  log "${cyan}  nvm install 25          ${dim}# Install Node 25 (if not installed)${reset}"
+  log "${cyan}  nvm use 25              ${dim}# Switch back to Node 25${reset}"
+  log "${cyan}  nvm alias default 25    ${dim}# Make Node 25 the default${reset}"
+  log
+  log "${bold}${yellow}Alternative - Homebrew (macOS only):${reset}"
+  log "${cyan}  brew install node@22${reset}"
+  log "${cyan}  brew link --overwrite node@22${reset}"
+  log
+  log "${cyan}════════════════════════════════════════════════════════════${reset}"
+  log
+}
+
 install_nvm() {
-  warn "nvm not found. Install nvm? (recommended) (y/N)"
+  warn "nvm not found. Install nvm? (recommended for managing Node versions) (Y/n)"
   read -r reply
-  if [[ ! "$reply" =~ ^[Yy]$ ]]; then
-    fail "nvm required to install Node.js 22 safely. Please install manually."
+  if [[ "$reply" =~ ^[Nn]$ ]]; then
+    fail "nvm is required to manage Node.js versions safely."
+    show_node_manual_instructions
     exit 1
   fi
-  spinner "Installing nvm..." bash -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash"
+
+  log "${dim}Installing nvm (Node Version Manager)...${reset}"
+  spinner "Downloading nvm..." bash -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash"
+
   # shellcheck source=/dev/null
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-  
+
   # Verify nvm is now available
   if ! command -v nvm >/dev/null 2>&1; then
     fail "nvm installation completed but nvm command not found."
     log "${dim}Try opening a new terminal and running this script again.${reset}"
+    log "${dim}Or run: ${bold}source ~/.nvm/nvm.sh${reset}"
     exit 1
   fi
-  ok "nvm installed."
+  ok "nvm installed successfully!"
+}
+
+load_nvm() {
+  # Try to load nvm if it exists but isn't in current shell
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+}
+
+downgrade_node_with_nvm() {
+  local current_major="$1"
+
+  log
+  log "${green}${bold}Good news! nvm is available for automatic downgrade.${reset}"
+  log
+  warn "Automatically downgrade from Node $current_major to Node 22? (Y/n)"
+  read -r reply
+
+  if [[ "$reply" =~ ^[Nn]$ ]]; then
+    show_node_manual_instructions
+    return 1
+  fi
+
+  step "Installing Node.js v22 via nvm..."
+  if ! nvm install 22; then
+    fail "Failed to install Node 22 via nvm."
+    return 1
+  fi
+
+  step "Switching to Node.js v22..."
+  nvm use 22
+  nvm alias default 22
+
+  # Verify the switch worked
+  local new_ver
+  new_ver="$(node -v 2>/dev/null)"
+
+  if [[ "$new_ver" == v22.* ]]; then
+    ok "Successfully downgraded to Node.js $new_ver!"
+    log
+    log "${yellow}To return to Node $current_major later:${reset}"
+    log "  ${cyan}nvm use $current_major${reset}"
+    log "  ${cyan}nvm alias default $current_major${reset}"
+    log
+    return 0
+  else
+    warn "nvm switch may require a new terminal session."
+    log "${dim}Close this terminal, reopen, and run:${reset}"
+    log "  ${cyan}nvm use 22${reset}"
+    log "  ${dim}Then re-run this installer.${reset}"
+    return 1
+  fi
 }
 
 ensure_node() {
-  # Prefer Node 22.x
+  # Try to load nvm first
+  load_nvm
+
+  # Check current Node version
   if command -v node >/dev/null 2>&1; then
     local ver
     ver="$(node -v | sed 's/^v//')"
     local major_ver="${ver%%.*}"
 
     if [[ "$ver" == 22.* ]]; then
-      ok "Node.js $ver detected (meets requirement)."
+      ok "Node.js v$ver detected (meets requirement)."
       return
-    elif [[ "$major_ver" -ge 25 ]]; then
+    elif [[ "$major_ver" -ge 23 ]]; then
+      # Node is too new - needs downgrade
+      log
       fail "Node.js v$ver detected - TOO NEW!"
-      log "${red}${bold}Node v25+ breaks native modules (better-sqlite3).${reset}"
-      log "${dim}This is a known incompatibility. You MUST downgrade to v22.${reset}"
-      warn "Install Node v22 with nvm? (REQUIRED) (y/N)"
-      read -r reply
-      if [[ ! "$reply" =~ ^[Yy]$ ]]; then
-        fail "Cannot continue with Node v$ver. Please install Node v22."
-        exit 1
+      log
+      log "${red}${bold}Node v23+ breaks native modules like better-sqlite3.${reset}"
+      log "${red}RangerPlex requires Node.js v22.x (LTS).${reset}"
+      log
+
+      # Check if nvm is available
+      if command -v nvm >/dev/null 2>&1; then
+        if downgrade_node_with_nvm "$major_ver"; then
+          return
+        fi
+      else
+        # nvm not installed - offer to install
+        warn "nvm is NOT installed."
+        log "${dim}nvm lets you easily switch between Node versions.${reset}"
+        log
+
+        printf "${yellow}Install nvm to manage Node versions? (Y/n): ${reset}"
+        read -r reply
+
+        if [[ ! "$reply" =~ ^[Nn]$ ]]; then
+          install_nvm
+          if downgrade_node_with_nvm "$major_ver"; then
+            return
+          fi
+        fi
       fi
-    else
-      warn "Node.js v$ver detected; v22.x is recommended. Install v22 with nvm? (y/N)"
+
+      # If we get here, automatic downgrade failed or was declined
+      show_node_manual_instructions
+
+      printf "${yellow}Continue anyway with Node v$major_ver? (may cause errors) (y/N): ${reset}"
       read -r reply
-      if [[ ! "$reply" =~ ^[Yy]$ ]]; then
-        warn "Continuing with Node $ver (may break native modules like better-sqlite3)."
-        log "${dim}We'll rebuild native modules to be safe...${reset}"
+      if [[ "$reply" =~ ^[Yy]$ ]]; then
+        warn "Continuing with Node v$ver - native modules may fail!"
+        return
+      fi
+
+      fail "Cannot continue without Node v22. Please downgrade manually."
+      exit 1
+
+    else
+      # Node version is older than 22
+      warn "Node.js v$ver detected; v22.x is recommended."
+      printf "${yellow}Upgrade to Node 22? (Y/n): ${reset}"
+      read -r reply
+
+      if [[ "$reply" =~ ^[Nn]$ ]]; then
+        warn "Continuing with Node v$ver (may have compatibility issues)."
         return
       fi
     fi
   fi
 
+  # Need to install Node 22
   if ! command -v nvm >/dev/null 2>&1; then
     install_nvm
-  else
-    # shellcheck source=/dev/null
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
   fi
 
-  spinner "Installing Node.js v22 (via nvm)..." nvm install 22
+  step "Installing Node.js v22 via nvm..."
+  nvm install 22
   nvm use 22
   nvm alias default 22
-  
+
   # Verify Node is now available and correct version
   if ! command -v node >/dev/null 2>&1; then
     fail "Node.js installation completed but node command not found."
     log "${dim}Try opening a new terminal and running this script again.${reset}"
+    log "${dim}Or run: ${bold}source ~/.nvm/nvm.sh && nvm use 22${reset}"
     exit 1
   fi
-  
+
   local installed_ver
   installed_ver="$(node -v)"
   if [[ ! "$installed_ver" == v22.* ]]; then
@@ -362,7 +489,7 @@ ensure_node() {
     log "${dim}Attempting to switch to Node 22...${reset}"
     nvm use 22
   fi
-  
+
   ok "Node.js $(node -v) ready."
 }
 
