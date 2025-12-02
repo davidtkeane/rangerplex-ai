@@ -4,6 +4,37 @@ All notable changes to Just-Chat will be documented here.
 
 ---
 
+## [1.6.0] - 2025-12-02
+
+### Added - Visual Audio Meter & Better UX (v2.4.0)
+
+#### Live Audio Visualization
+- **Audio Level Meter**: Real-time visual bar showing your voice level
+- **Color-Coded Levels**:
+  - 🔈 Green = quiet/normal speech
+  - 🔉 Yellow = louder speech
+  - 🔊 Red = very loud/clipping
+- **Live Counter**: Shows compression ratio and packet count
+
+#### Improved User Experience
+- **TRANSMITTING Banner**: Big green banner shows who you're talking to
+- **Clear Instructions**: "Type s + Enter to stop talking"
+- **Headphone Reminder**: Tips to avoid echo/feedback
+- **Connected Banner**: Nice box showing call connected with command hints
+- **Stop Talking Display**: Shows next available actions (t = talk, /hangup = end)
+
+#### Windows Audio Fix
+- Fixed SoX recording on Windows (uses `-t waveaudio default`)
+- Fixed SoX playback on Windows
+- Better Windows microphone detection
+
+### Technical
+- `getAudioLevel()`: Analyzes 16-bit PCM samples for amplitude
+- `drawAudioMeter()`: Creates colored bar visualization
+- Cross-platform audio driver selection
+
+---
+
 ## [1.5.0] - 2025-12-02
 
 ### Added - Microphone Selection (v2.3.0)

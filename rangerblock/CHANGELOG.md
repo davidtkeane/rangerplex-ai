@@ -4,6 +4,33 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [4.7.0] - 2025-12-02
+
+### Added - Visual Audio Meter & Better UX (voice-chat.cjs v2.4.0)
+
+#### 🎉 VOICE CHAT WORKING! M3Pro ↔ MSI Windows Communication Achieved!
+
+#### Live Audio Visualization
+- **Audio Level Meter**: Real-time visual bar `[████████░░░░]` showing voice level
+- **Color-Coded Levels**:
+  - 🔈 Green = quiet/normal
+  - 🔉 Yellow = louder
+  - 🔊 Red = loud/clipping
+- **Live Stats**: Shows compression ratio + packet count
+
+#### Improved UX
+- **TRANSMITTING Banner**: Shows who you're talking to
+- **Clear Instructions**: "Type s + Enter to stop talking"
+- **Headphone Reminder**: Tips to avoid echo/feedback loops
+- **Connected Banner**: Nice formatted box with command hints
+- **Better Stop Display**: Shows next actions available
+
+#### Windows Fixes
+- Fixed SoX audio on Windows (uses `-t waveaudio default`)
+- Fixed mic detection on Windows with better PowerShell queries
+
+---
+
 ## [4.6.0] - 2025-12-02
 
 ### Added - Microphone Selection (voice-chat.cjs v2.3.0)
