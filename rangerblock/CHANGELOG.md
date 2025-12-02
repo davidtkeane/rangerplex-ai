@@ -4,6 +4,24 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [4.5.0] - 2025-12-02
+
+### Added - More Slash Commands (voice-chat.cjs v2.2.0)
+
+#### New Info Commands
+- **`/relay`**: Show relay server info (host, port, URL, dashboard, status)
+- **`/status`**: Show your current status (state, call partner, talking, muted, peers)
+- **`/info`**: Show your node info (nickname, node ID, IP, channel, version)
+- **`/ping`**: Test relay connection
+- **`/clear`**: Clear screen
+- **`/debug`**: Toggle debug mode ON/OFF
+
+### Changed
+- Debug mode now starts OFF by default (toggle with `/debug`)
+- Version bumped to v2.2.0
+
+---
+
 ## [4.4.0] - 2025-12-02
 
 ### Added - Private Calls & Group Voice (voice-chat.cjs v2.1.0)

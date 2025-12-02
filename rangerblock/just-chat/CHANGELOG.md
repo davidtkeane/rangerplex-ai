@@ -4,6 +4,23 @@ All notable changes to Just-Chat will be documented here.
 
 ---
 
+## [1.4.0] - 2025-12-02
+
+### Added - More Slash Commands (v2.2.0)
+
+#### New Info Commands
+- **`/relay`**: Show relay server info (host, port, dashboard, connection status)
+- **`/status`**: Show your status (state, call partner, talking, muted, peers online)
+- **`/info`**: Show node info (nickname, node ID, IP, channel, version)
+- **`/ping`**: Test relay connection
+- **`/clear`**: Clear screen
+- **`/debug`**: Toggle debug mode ON/OFF
+
+### Changed
+- Debug mode OFF by default (use `/debug` to enable)
+
+---
+
 ## [1.3.0] - 2025-12-02
 
 ### Added - Private Calls & Group Voice (v2.1.0)
