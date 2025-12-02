@@ -129,19 +129,52 @@ const PROXY_PORT = 3000;
 
 function cleanupPorts() {
     return new Promise((resolve) => {
-        if (process.platform !== 'darwin' && process.platform !== 'linux') {
-            resolve(); // Skip on Windows for now (requires different command)
-            return;
-        }
-
         console.log(`🧹 Cleaning up ports: ${RANGERPLEX_PORTS.join(', ')}...`);
-        // Kill processes on all RangerPlex ports
-        const portList = RANGERPLEX_PORTS.join(',');
-        exec(`lsof -ti:${portList} | xargs kill -9 2>/dev/null`, (error) => {
-            // We ignore errors because if no process is found, lsof returns exit code 1
-            console.log('✅ Port cleanup complete');
-            resolve();
-        });
+
+        if (process.platform === 'win32') {
+            // Windows: Use netstat and taskkill
+            let killedCount = 0;
+            let processedCount = 0;
+
+            RANGERPLEX_PORTS.forEach((port, index) => {
+                exec(`netstat -ano | findstr :${port}`, (error, stdout) => {
+                    if (!error && stdout) {
+                        const lines = stdout.trim().split('\n');
+                        lines.forEach(line => {
+                            const parts = line.trim().split(/\s+/);
+                            const pid = parts[parts.length - 1];
+                            if (pid && pid.match(/^\d+$/)) {
+                                exec(`taskkill /PID ${pid} /F 2>nul`, () => {
+                                    killedCount++;
+                                });
+                            }
+                        });
+                    }
+                    processedCount++;
+                    if (processedCount === RANGERPLEX_PORTS.length) {
+                        setTimeout(() => {
+                            console.log(`✅ Port cleanup complete (${killedCount} processes killed)`);
+                            resolve();
+                        }, 500);
+                    }
+                });
+            });
+
+            // Fallback timeout
+            setTimeout(() => {
+                if (processedCount < RANGERPLEX_PORTS.length) {
+                    console.log('✅ Port cleanup timed out, continuing...');
+                    resolve();
+                }
+            }, 3000);
+        } else {
+            // Unix/macOS: Use lsof
+            const portList = RANGERPLEX_PORTS.join(',');
+            exec(`lsof -ti:${portList} | xargs kill -9 2>/dev/null`, (error) => {
+                console.log('✅ Port cleanup complete');
+                resolve();
+            });
+        }
     });
 }
 
@@ -211,6 +244,44 @@ function startMcpGatewayDelayed() {
     });
 }
 
+function startServers() {
+    console.log('🚀 Starting RangerPlex servers...');
+    const proxyPath = path.join(__dirname, '..', 'proxy_server.js');
+    const vitePath = path.join(__dirname, '..', 'node_modules', 'vite', 'bin', 'vite.js');
+
+    // Start proxy server
+    const proxyServer = spawn('node', [proxyPath], {
+        stdio: 'inherit',
+        cwd: path.join(__dirname, '..')
+    });
+
+    proxyServer.on('error', (err) => {
+        console.error(`❌ Failed to start proxy server: ${err.message}`);
+    });
+
+    // Start Vite dev server
+    setTimeout(() => {
+        const viteServer = spawn('node', [vitePath, '--host'], {
+            stdio: 'inherit',
+            cwd: path.join(__dirname, '..'),
+            env: { ...process.env, BROWSER: 'none' }
+        });
+
+        viteServer.on('error', (err) => {
+            console.error(`❌ Failed to start Vite server: ${err.message}`);
+        });
+    }, 1000);
+
+    // Handle Ctrl+C
+    process.on('SIGINT', () => {
+        console.log('\n🛑 Shutting down servers...');
+        proxyServer.kill();
+        process.exit(0);
+    });
+
+    console.log('✅ Servers starting...');
+}
+
 function openTab() {
     console.log(`🌐 Opening browser tab: ${SERVER_URL}`);
     const startCommand = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
@@ -259,13 +330,16 @@ console.log(`🚀 Launch Mode: ${mode || 'Default (Electron Only)'}`);
 console.log('📋 Startup sequence: Docker → Port cleanup → UI → MCP Gateway\n');
 
 switch (mode) {
-    case '-t': // Tab Only (browser tab) - needs servers started first
+    case '-t': // Tab Only (browser tab) - start servers and open browser
         ensureDockerRunning()
             .then(cleanupPorts)
             .then(() => {
-                console.log('\n🎉 Opening browser tab...\n');
-                console.log('⚠️  Note: Run "npm start" in another terminal for servers\n');
-                openTab();
+                console.log('\n🎉 Starting servers and opening browser...\n');
+                startServers();
+                setTimeout(() => {
+                    openTab();
+                    startMcpGateway();
+                }, 3000); // Wait for servers to start
             });
         break;
     case '-b': // Both (browser + Electron)

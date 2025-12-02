@@ -39,13 +39,16 @@ module.exports = {
     },
     {
       name: 'rangerplex-vite',
-      script: 'node_modules/.bin/vite',
+      script: './node_modules/vite/bin/vite.js',
+      args: '--host',
+      interpreter: 'node',
       instances: 1,
       autorestart: true,
       watch: false,
       max_memory_restart: '512M',
       env: {
-        NODE_ENV: 'development'
+        NODE_ENV: 'development',
+        BROWSER: 'none'
       },
       // Logging
       error_file: './logs/pm2-vite-error.log',
