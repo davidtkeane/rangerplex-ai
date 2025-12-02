@@ -201,7 +201,15 @@ class AudioCapture {
     startRecording(onData) {
         if (this.recording) return;
 
-        const args = ['-d', '-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', '-'];
+        let args;
+        if (os.platform() === 'win32') {
+            // Windows: use waveaudio driver
+            args = ['-t', 'waveaudio', 'default', '-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', '-'];
+        } else {
+            // macOS/Linux: use default device
+            args = ['-d', '-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', '-'];
+        }
+
         this.process = spawn('sox', args);
         this.recording = true;
 
@@ -216,7 +224,11 @@ class AudioCapture {
 
     stopRecording() {
         if (this.process) {
-            this.process.kill('SIGTERM');
+            if (os.platform() === 'win32') {
+                this.process.kill(); // Windows doesn't support SIGTERM well
+            } else {
+                this.process.kill('SIGTERM');
+            }
             this.process = null;
         }
         this.recording = false;
@@ -229,7 +241,14 @@ class AudioCapture {
 
 class AudioPlayback {
     play(audioBuffer) {
-        const args = ['-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', '-', '-d'];
+        let args;
+        if (os.platform() === 'win32') {
+            // Windows: use waveaudio driver for output
+            args = ['-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', '-', '-t', 'waveaudio', 'default'];
+        } else {
+            // macOS/Linux: use default device
+            args = ['-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', '-', '-d'];
+        }
         const player = spawn('sox', args);
         player.stdin.write(audioBuffer);
         player.stdin.end();
@@ -312,23 +331,52 @@ function listMicrophones() {
                 mics.push({ name: 'Built-in Microphone', id: 0, device: 'default', isDefault: true });
             }
         } else if (platform === 'win32') {
-            // Windows - try PowerShell
+            // Windows - try multiple methods to find audio input devices
             try {
-                const output = execSync('powershell -Command "Get-WmiObject Win32_SoundDevice | Select-Object Name | Format-List"', { encoding: 'utf8' });
+                // Method 1: Get audio endpoint devices (more accurate)
+                const psCmd = `
+                    Get-CimInstance Win32_PnPEntity |
+                    Where-Object { $_.PNPClass -eq 'AudioEndpoint' -or $_.PNPClass -eq 'MEDIA' } |
+                    Where-Object { $_.Name -match 'Microphone|Input|Audio|Capture' } |
+                    Select-Object -Property Name -Unique |
+                    Format-List
+                `.replace(/\n/g, ' ');
+                const output = execSync(`powershell -Command "${psCmd}"`, { encoding: 'utf8' });
                 const lines = output.split('\n');
                 for (const line of lines) {
                     if (line.includes('Name') && line.includes(':')) {
-                        const name = line.split(':')[1]?.trim();
-                        if (name && name.length > 0) {
-                            mics.push({ name: name, id: mics.length });
+                        const name = line.split(':').slice(1).join(':').trim();
+                        if (name && name.length > 0 && !mics.find(m => m.name === name)) {
+                            mics.push({
+                                name: name,
+                                id: mics.length,
+                                device: 'default',
+                                isDefault: mics.length === 0
+                            });
                         }
                     }
                 }
             } catch (e) {}
 
-            // Fallback
+            // Method 2: Fallback to Win32_SoundDevice
             if (mics.length === 0) {
-                mics.push({ name: 'Default Microphone', id: 0, device: 'default' });
+                try {
+                    const output = execSync('powershell -Command "Get-WmiObject Win32_SoundDevice | Select-Object Name | Format-List"', { encoding: 'utf8' });
+                    const lines = output.split('\n');
+                    for (const line of lines) {
+                        if (line.includes('Name') && line.includes(':')) {
+                            const name = line.split(':').slice(1).join(':').trim();
+                            if (name && name.length > 0) {
+                                mics.push({ name: name, id: mics.length, device: 'default', isDefault: mics.length === 0 });
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // Final fallback
+            if (mics.length === 0) {
+                mics.push({ name: 'Default Microphone', id: 0, device: 'default', isDefault: true });
             }
         } else {
             // Linux - use arecord
@@ -358,13 +406,20 @@ function listMicrophones() {
 
 function testMicrophone(callback) {
     // Record 3 seconds of audio
-    const testFile = os.tmpdir() + '/rangerblock_mic_test.raw';
+    const testFile = os.tmpdir() + (os.platform() === 'win32' ? '\\rangerblock_mic_test.raw' : '/rangerblock_mic_test.raw');
     const duration = 3;
 
     console.log(`\n${c.brightCyan}=== MICROPHONE TEST ===${c.reset}`);
     console.log(`${c.yellow}Recording for ${duration} seconds... Say "Hello There!"${c.reset}\n`);
 
-    const args = ['-d', '-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', testFile, 'trim', '0', String(duration)];
+    let args;
+    if (os.platform() === 'win32') {
+        // Windows: use waveaudio driver
+        args = ['-t', 'waveaudio', 'default', '-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', testFile, 'trim', '0', String(duration)];
+    } else {
+        // macOS/Linux
+        args = ['-d', '-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', testFile, 'trim', '0', String(duration)];
+    }
 
     const recorder = spawn('sox', args);
 
@@ -384,7 +439,12 @@ function testMicrophone(callback) {
             console.log(`${c.yellow}Playing back...${c.reset}\n`);
 
             // Play it back
-            const playArgs = ['-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', testFile, '-d'];
+            let playArgs;
+            if (os.platform() === 'win32') {
+                playArgs = ['-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', testFile, '-t', 'waveaudio', 'default'];
+            } else {
+                playArgs = ['-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', testFile, '-d'];
+            }
             const player = spawn('sox', playArgs);
 
             player.on('close', () => {
