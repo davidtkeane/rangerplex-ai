@@ -1,0 +1,21 @@
+{
+  "name": "@rangerplex/hello-world",
+  "version": "1.0.0",
+  "description": "First C++ native module for RangerPlex - Learning project",
+  "main": "index.js",
+  "scripts": {
+    "build": "cmake-js compile",
+    "clean": "cmake-js clean",
+    "rebuild": "npm run clean && npm run build",
+    "test": "node test.js"
+  },
+  "keywords": ["native", "addon", "cpp", "learning"],
+  "author": "RangerPlex Team",
+  "license": "MIT",
+  "dependencies": {
+    "node-addon-api": "^8.0.0"
+  },
+  "devDependencies": {
+    "cmake-js": "^7.3.0"
+  }
+}
