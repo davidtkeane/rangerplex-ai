@@ -304,13 +304,18 @@ async function main() {
                 case 'help':
                 case 'h':
                     console.log(`
-${c.brightCyan}Commands:${c.reset}
+${c.brightCyan}═══ CHAT COMMANDS ═══${c.reset}
   ${c.green}/help${c.reset}              Show this help
   ${c.green}/peers${c.reset}             List online users
   ${c.green}/nick <name>${c.reset}       Change nickname
   ${c.green}/me <action>${c.reset}       Action message
   ${c.green}/clear${c.reset}             Clear screen
   ${c.green}/quit${c.reset}              Exit chat
+
+${c.brightCyan}═══ COMING SOON ═══${c.reset}
+  ${c.dim}/voice${c.reset}             ${c.dim}Start voice chat (v1.1)${c.reset}
+  ${c.dim}/send <file>${c.reset}       ${c.dim}Send file (v1.2)${c.reset}
+  ${c.dim}/encrypt${c.reset}           ${c.dim}Toggle E2E encryption (v2.0)${c.reset}
 `);
                     break;
 
@@ -368,6 +373,45 @@ ${c.brightCyan}Commands:${c.reset}
                     ws.close();
                     rl.close();
                     process.exit(0);
+                    break;
+
+                // ═══════════════════════════════════════════════════════════
+                // FUTURE FEATURES - PLACEHOLDERS
+                // ═══════════════════════════════════════════════════════════
+
+                case 'voice':
+                case 'call':
+                    // PLACEHOLDER: Voice chat integration (v1.1)
+                    // TODO: Launch voice-chat.cjs or integrate voice module
+                    systemMsg(`${c.yellow}Voice chat coming in v1.1!${c.reset}`);
+                    systemMsg(`${c.dim}Will support: push-to-talk, mute, David's 73→27→73 compression${c.reset}`);
+                    break;
+
+                case 'send':
+                case 'file':
+                    // PLACEHOLDER: File transfer (v1.2)
+                    // TODO: Launch file-transfer.cjs or integrate file module
+                    if (args.length > 0) {
+                        systemMsg(`${c.yellow}File transfer coming in v1.2!${c.reset}`);
+                        systemMsg(`${c.dim}Will support: .mp4, .docx, .pdf with IPDT compression${c.reset}`);
+                    } else {
+                        systemMsg('Usage: /send <filename>');
+                    }
+                    break;
+
+                case 'encrypt':
+                case 'secure':
+                    // PLACEHOLDER: E2E encryption (v2.0)
+                    // TODO: Implement AES-256-GCM encryption layer
+                    systemMsg(`${c.yellow}E2E encryption coming in v2.0!${c.reset}`);
+                    systemMsg(`${c.dim}Will support: AES-256-GCM, key exchange, perfect forward secrecy${c.reset}`);
+                    break;
+
+                case 'verify':
+                    // PLACEHOLDER: Peer verification (v2.0)
+                    // TODO: Implement challenge-response authentication
+                    systemMsg(`${c.yellow}Peer verification coming in v2.0!${c.reset}`);
+                    systemMsg(`${c.dim}Will support: digital signatures, identity verification${c.reset}`);
                     break;
 
                 default:

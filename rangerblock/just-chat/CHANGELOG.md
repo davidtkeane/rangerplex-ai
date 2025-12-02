@@ -4,6 +4,39 @@ All notable changes to Just-Chat will be documented here.
 
 ---
 
+## [1.2.0] - 2025-12-02
+
+### Added - Voice Chat Module
+
+#### voice-chat.cjs v1.0.0
+- **Push-to-talk Voice Chat**: Press SPACE to transmit
+- **SoX Audio Integration**: Cross-platform mic/speaker support
+- **David's 73→27→73 Compression**: zlib compression for bandwidth efficiency
+- **Mute/Unmute**: Toggle with 'M' key
+- **Peer Status Display**: See who's online and talking
+- **Commands**: `/peers`, `/volume`, `/mute`, `/unmute`, `/quit`
+
+#### COMMS_ARCHITECTURE.md
+- Full documentation of unified communications system
+- Module specifications for Chat, Voice, Files
+- Message protocol definitions
+- Security placeholder infrastructure
+
+### Changed
+- **blockchain-chat.cjs v3.0.0**: Complete rewrite
+  - Fixed message receiving (proper `nodeMessage` handling)
+  - Added placeholder commands: `/voice`, `/send`, `/encrypt`, `/verify`
+  - Username prompt on startup
+  - Improved connection status display
+
+### Requirements
+- **SoX**: Required for voice chat
+  - macOS: `brew install sox`
+  - Linux: `sudo apt-get install sox libsox-fmt-all`
+  - Windows: `winget install sox.sox`
+
+---
+
 ## [1.1.0] - 2025-11-30
 
 ### Added
@@ -52,7 +85,7 @@ All notable changes to Just-Chat will be documented here.
 
 - [ ] Add private messaging in terminal client
 - [ ] Add file transfer support
-- [ ] Add voice chat integration
+- [x] Add voice chat integration (v1.2.0 - 2025-12-02)
 - [ ] Add more relay servers (EU, US-West)
 - [ ] Add encryption for messages
 

@@ -4,6 +4,42 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [4.3.0] - 2025-12-02
+
+### Added - Voice Chat & Unified Communications System
+
+#### Voice Chat v1.0.0 (voice-chat.cjs)
+- **Push-to-talk**: Press SPACE to transmit, release to stop
+- **Mute/Unmute**: Toggle with 'M' key
+- **David's 73→27→73 Compression**: zlib compression targeting 27% ratio
+- **SoX Integration**: Cross-platform audio capture and playback
+- **Peer Status**: See who's online and talking
+- **Commands**: `/peers`, `/volume`, `/mute`, `/unmute`, `/quit`
+
+#### Communications Architecture
+- **COMMS_ARCHITECTURE.md**: Full documentation of unified system
+- **Modular Design**: Chat, Voice, Files (future) as separate modules
+- **Placeholder Commands**: `/voice`, `/send`, `/encrypt`, `/verify` in chat client
+- **Security Ready**: Infrastructure for future encryption and verification
+
+#### Install Scripts Updated
+- **setup-relay-universal.sh**: Now installs SoX, downloads voice-chat.cjs
+- **setup-relay-windows.ps1**: Now installs SoX via winget, creates Start-Voice.bat
+- **New npm command**: `npm run voice` to start voice chat
+- **New helper scripts**: `start-voice.sh` (Linux/Mac), `Start-Voice.bat` (Windows)
+
+### Changed
+- **blockchain-chat.cjs v3.0.0**: Added placeholder commands for voice/file/encryption
+- Updated package.json in install scripts to include voice command
+
+### Technical
+- SoX used for audio recording (rec) and playback (play)
+- Audio format: 16-bit, 16kHz mono PCM
+- WebSocket protocol extended for voice packets
+- Compression uses Node.js zlib module
+
+---
+
 ## [4.2.0] - 2025-12-01
 
 ### Added - Super Sexy Chat Client v2.0.0
@@ -149,6 +185,7 @@ rangerblock-server/
 ```
 ~/.rangerblock/
 ├── blockchain-chat.cjs      # Chat client
+├── voice-chat.cjs           # Voice chat client
 └── node_identity.json       # Your identity
 ```
 

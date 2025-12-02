@@ -582,6 +582,19 @@ for pkg in git curl jq; do
     fi
 done
 
+# Install SoX for voice chat
+if ! command -v sox &>/dev/null; then
+    echo -e "${BLUE}  Installing SoX (for voice chat)...${NC}"
+    sudo apt-get install -y sox libsox-fmt-all >/dev/null 2>&1
+    if command -v sox &>/dev/null; then
+        echo -e "${GREEN}  ✅ SoX installed (voice chat ready)${NC}"
+    else
+        echo -e "${YELLOW}  ⚠️  SoX install failed - voice chat won't work${NC}"
+    fi
+else
+    echo -e "${GREEN}  ✅ SoX installed (voice chat ready)${NC}"
+fi
+
 # =====================================================================
 # SETUP DIRECTORY
 # =====================================================================
@@ -614,19 +627,24 @@ curl -fsSL "$REPO_URL/core/blockchain-chat.cjs" -o blockchain-chat.cjs
 echo -e "${BLUE}  📥 blockchain-ping.cjs${NC}"
 curl -fsSL "$REPO_URL/core/blockchain-ping.cjs" -o blockchain-ping.cjs
 
+# Download voice chat
+echo -e "${BLUE}  📥 voice-chat.cjs${NC}"
+curl -fsSL "$REPO_URL/core/voice-chat.cjs" -o voice-chat.cjs
+
 echo -e "${GREEN}  ✅ Server files downloaded${NC}"
 
 # Create package.json
 cat > package.json << 'PACKAGE_EOF'
 {
   "name": "rangerblock-server",
-  "version": "2.1.0",
-  "description": "RangerBlock P2P Relay Server",
+  "version": "2.2.0",
+  "description": "RangerBlock P2P Relay Server with Voice Chat",
   "main": "relay-server.cjs",
   "scripts": {
     "relay": "node relay-server.cjs",
     "start": "node relay-server.cjs",
     "chat": "node blockchain-chat.cjs",
+    "voice": "node voice-chat.cjs",
     "ping": "node blockchain-ping.cjs",
     "ngrok": "ngrok tcp 5555",
     "status": "curl -s http://localhost:5556/api/status | jq .",
@@ -766,6 +784,17 @@ echo "💬 Starting RangerBlock Chat Client..."
 node blockchain-chat.cjs
 SCRIPT_EOF
 chmod +x start-chat.sh
+
+# Start voice script
+cat > start-voice.sh << 'SCRIPT_EOF'
+#!/bin/bash
+cd "$(dirname "$0")"
+echo "🎤 Starting RangerBlock Voice Chat..."
+echo "   Requires SoX: apt install sox libsox-fmt-all"
+echo ""
+node voice-chat.cjs
+SCRIPT_EOF
+chmod +x start-voice.sh
 
 # Network diagnostic script
 cat > network-diag.sh << 'SCRIPT_EOF'

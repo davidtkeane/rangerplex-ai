@@ -73,6 +73,28 @@ if ($nodeVersion) {
     }
 }
 
+# Check for SoX (voice chat)
+Write-Color "`n[1.5/5] Checking SoX (for voice chat)..." "Yellow"
+
+$soxVersion = $null
+try {
+    $soxVersion = sox --version 2>$null
+} catch {}
+
+if ($soxVersion) {
+    Write-Color "SoX already installed (voice chat ready)" "Green"
+} else {
+    Write-Color "SoX not found. Installing via winget..." "Yellow"
+    try {
+        winget install sox.sox --accept-package-agreements --accept-source-agreements
+        Write-Color "SoX installed! Voice chat ready." "Green"
+    } catch {
+        Write-Color "Could not install SoX automatically." "Yellow"
+        Write-Color "For voice chat, download from: https://sox.sourceforge.net/" "Yellow"
+        Write-Color "Or run: choco install sox" "Yellow"
+    }
+}
+
 # =====================================================================
 # SETUP DIRECTORY
 # =====================================================================
@@ -110,16 +132,21 @@ Invoke-WebRequest -Uri "$RepoUrl/core/blockchain-chat.cjs" -OutFile "blockchain-
 Write-Color "  Downloading blockchain-ping.cjs..." "Gray"
 Invoke-WebRequest -Uri "$RepoUrl/core/blockchain-ping.cjs" -OutFile "blockchain-ping.cjs"
 
+# Download voice chat
+Write-Color "  Downloading voice-chat.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/core/voice-chat.cjs" -OutFile "voice-chat.cjs"
+
 # Create package.json
 $packageJson = @"
 {
   "name": "rangerblock-server",
-  "version": "2.0.0",
-  "description": "RangerBlock P2P Relay Server - Windows Edition",
+  "version": "2.2.0",
+  "description": "RangerBlock P2P Relay Server - Windows Edition with Voice Chat",
   "main": "relay-server.cjs",
   "scripts": {
     "relay": "node relay-server.cjs",
     "chat": "node blockchain-chat.cjs",
+    "voice": "node voice-chat.cjs",
     "ping": "node blockchain-ping.cjs",
     "ngrok": "ngrok tcp 5555"
   },
@@ -251,6 +278,16 @@ node blockchain-chat.cjs
 pause
 "@ | Out-File -FilePath "Start-Chat.bat" -Encoding ascii
 
+@"
+@echo off
+cd /d "%~dp0"
+echo Starting RangerBlock Voice Chat...
+echo Requires SoX - install via: winget install sox.sox
+echo.
+node voice-chat.cjs
+pause
+"@ | Out-File -FilePath "Start-Voice.bat" -Encoding ascii
+
 if ($WithNgrok) {
 @"
 @echo off
@@ -283,11 +320,13 @@ Write-Color @"
   COMMANDS:
     npm run relay     - Start relay server
     npm run chat      - Terminal chat client
+    npm run voice     - Voice chat (requires SoX)
     npm run ping      - Test connectivity
 
   BATCH FILES:
     Start-Relay.bat   - Double-click to start relay
     Start-Chat.bat    - Double-click to start chat
+    Start-Voice.bat   - Double-click for voice chat
 
   FIREWALL (run as Administrator):
     netsh advfirewall firewall add rule name="RangerBlock" dir=in action=allow protocol=TCP localport=5555,5556
