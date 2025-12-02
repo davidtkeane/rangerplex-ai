@@ -883,26 +883,35 @@ async function main() {
 
     function showHelp() {
         console.log(`
+${c.brightGreen}╔════════════════════════════════════════════════════════════╗
+║                    RANGERBLOCK VOICE v2.1                  ║
+╚════════════════════════════════════════════════════════════╝${c.reset}
+
 ${c.brightGreen}=== PRIVATE CALL ===${c.reset}
   ${c.green}/call <user>${c.reset}     Call a specific user (e.g., /call M3Pro)
-  ${c.green}/answer${c.reset}          Answer incoming call
-  ${c.green}/reject${c.reset}          Reject incoming call
+  ${c.green}/answer${c.reset} or ${c.green}a${c.reset}    Answer incoming call
+  ${c.green}/reject${c.reset} or ${c.green}r${c.reset}    Reject incoming call
   ${c.green}/hangup${c.reset}          End current call
 
 ${c.brightMagenta}=== GROUP VOICE ===${c.reset}
-  ${c.green}/voice${c.reset}           Join group voice channel (everyone hears you)
+  ${c.green}/voice${c.reset}           Join group voice (everyone hears you)
   ${c.green}/leave${c.reset}           Leave group voice
 
-${c.brightCyan}=== WHILE IN CALL ===${c.reset}
+${c.brightCyan}=== VOICE CONTROLS ===${c.reset}
   ${c.green}t${c.reset}                Start talking (push-to-talk)
   ${c.green}s${c.reset}                Stop talking
   ${c.green}/mute${c.reset}            Mute incoming audio
-  ${c.green}/unmute${c.reset}          Unmute audio
+  ${c.green}/unmute${c.reset}          Unmute incoming audio
 
-${c.yellow}=== OTHER ===${c.reset}
+${c.brightYellow}=== CHAT ===${c.reset}
+  ${c.dim}Just type any message and press Enter to send chat${c.reset}
+
+${c.yellow}=== INFO ===${c.reset}
   ${c.green}/peers${c.reset}           List online users
+  ${c.green}/help${c.reset}            Show this help
   ${c.green}/quit${c.reset}            Exit
-  ${c.dim}(or just type to send chat messages)${c.reset}
+
+${c.dim}Quick Keys: a=answer, r=reject, t=talk, s=stop${c.reset}
 `);
     }
 
