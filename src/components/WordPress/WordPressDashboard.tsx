@@ -12,10 +12,11 @@ import styles from './WordPressDashboard.module.css';
 
 interface WordPressDashboardProps {
     onOpenBrowser?: (url: string) => void;
+    onOpenFullScreen?: (url: string) => void;
     autoStart?: boolean;
 }
 
-export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBrowser, autoStart = false }) => {
+export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBrowser, onOpenFullScreen, autoStart = false }) => {
     const [sites, setSites] = useState<WordPressSite[]>([]);
     const [dockerStatuses, setDockerStatuses] = useState<{ [key: number]: string }>({});
     const [loading, setLoading] = useState(true);
@@ -175,6 +176,16 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
         openWpPath('/wp-login.php');
     };
 
+    const handleOpenSitePanel = () => {
+        const base = getPreferredBaseUrl().replace(/\/$/, '');
+        onOpenBrowser ? onOpenBrowser(base) : window.open(base, '_blank');
+    };
+
+    const handleOpenSiteFullScreen = () => {
+        const base = getPreferredBaseUrl().replace(/\/$/, '');
+        onOpenFullScreen ? onOpenFullScreen(base) : window.open(base, '_blank');
+    };
+
     return (
         <div className={styles.dashboard}>
             <header className={styles.header}>
@@ -190,6 +201,14 @@ export const WordPressDashboard: React.FC<WordPressDashboardProps> = ({ onOpenBr
                     </div>
                 )}
                 <div className={styles.headerActions}>
+                    <button className={`${styles.newTabButton} ${styles.headerButton}`} onClick={handleOpenSiteFullScreen} title="Open WordPress site in full screen">
+                        <i className={`fa-solid fa-expand ${styles.btnIcon}`}></i>
+                        Full Screen
+                    </button>
+                    <button className={`${styles.newTabButton} ${styles.headerButton}`} onClick={handleOpenSitePanel} title="Open WordPress site in browser panel">
+                        <i className={`fa-solid fa-window-restore ${styles.btnIcon}`}></i>
+                        View Site
+                    </button>
                     <button className={`${styles.newTabButton} ${styles.headerButton}`} onClick={handleOpenLogin}>
                         <i className={`fa-solid fa-right-to-bracket ${styles.btnIcon}`}></i>
                         WP Login

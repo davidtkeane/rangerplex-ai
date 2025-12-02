@@ -5,6 +5,38 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.5] - 2025-12-01 🛠️ SIDEBAR & WORDPRESS FIXES
+
+### 🐛 Code Button Fix
+- **Fixed**: Code button in sidebar was not properly closing WordPress when opening Editor
+- **Root Cause**: `onOpenEditor` was an inline function that only set `isEditorOpen(true)` without closing other surfaces
+- **Solution**: Created proper `openEditor` function that:
+  - Opens Code Editor
+  - Closes WordPress Command Center
+  - Closes all other open surfaces (Weather, Podcast, Canvas, etc.)
+  - Sets `activeSurface` to `'editor'`
+
+### ✨ WordPress Command Center Enhancements
+- **NEW**: "Full Screen" button - Opens WordPress site in full-screen browser mode
+  - Closes Command Center and opens browser with WordPress URL
+  - Icon: `fa-expand`
+- **NEW**: "View Site" button - Opens WordPress site in browser panel
+  - Keeps Command Center open (like WP Login button)
+  - Icon: `fa-window-restore`
+
+### 🔧 Technical Changes
+- `App.tsx`: Added `openEditor` function (lines 873-885)
+- `App.tsx`: Added `openBrowserFullScreen` function (lines 475-481)
+- `WordPressDashboard.tsx`: Added `onOpenFullScreen` prop
+- `WordPressDashboard.tsx`: Added `handleOpenSitePanel` and `handleOpenSiteFullScreen` handlers
+- `WordPressDashboard.tsx`: Added two new header buttons
+
+### 📦 Files Modified
+- `App.tsx`
+- `src/components/WordPress/WordPressDashboard.tsx`
+
+---
+
 ## [4.1.4] - 2025-12-01 🧹 RSS AUTO-CLEANUP & DEBUG
 
 ### 🗑️ Auto-Cleanup Broken Feeds

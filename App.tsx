@@ -472,6 +472,14 @@ const App: React.FC = () => {
     setActiveSurface('browser');
   }, []);
 
+  // Open browser in full screen (closing WordPress Command Center)
+  const openBrowserFullScreen = useCallback((url?: string) => {
+    setIsWordPressOpen(false);
+    setBrowserOpenRequest({ url, ts: Date.now() });
+    setInitialBrowserUrl(url);
+    setActiveSurface('browser');
+  }, []);
+
   const closeBrowserOverlay = useCallback(() => {
     setActiveSurface('chat');
     setInitialBrowserUrl(undefined);
@@ -870,6 +878,20 @@ const App: React.FC = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
+  const openEditor = useCallback(() => {
+    setIsEditorOpen(true);
+    setActiveSurface('editor');
+    setIsWordPressOpen(false);
+    setIsWeatherOpen(false);
+    setIsPodcastOpen(false);
+    setIsCanvasOpen(false);
+    setIsTrainingOpen(false);
+    setIsStudyNotesOpen(false);
+    setIsStudyClockOpen(false);
+    setIsManualOpen(false);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, []);
+
   // Listen for "request-open-url" from Main Process (for external links)
   useEffect(() => {
     if (window.electronAPI?.on) {
@@ -1121,7 +1143,7 @@ const App: React.FC = () => {
           onOpenCanvas={openCanvas}
           onOpenWordPress={openWordPress}
           onOpenBlockchainChat={() => setIsBlockchainChatOpen(true)}
-          onOpenEditor={() => setIsEditorOpen(true)}
+          onOpenEditor={openEditor}
           onOpenBrowser={() => openBrowser()}
           onOpenWeather={openWeather}
           onOpenPodcast={openPodcast}
@@ -1253,7 +1275,7 @@ const App: React.FC = () => {
             {activeSurface === 'wordpress' && (
               <div className="absolute inset-0 z-20 bg-gray-50 dark:bg-zinc-900">
                 <button onClick={() => { setIsWordPressOpen(false); setActiveSurface('chat'); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
-                <WordPressDashboard onOpenBrowser={openBrowser} autoStart={true} />
+                <WordPressDashboard onOpenBrowser={openBrowser} onOpenFullScreen={openBrowserFullScreen} autoStart={true} />
               </div>
             )}
 
