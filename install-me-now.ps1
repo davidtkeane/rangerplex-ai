@@ -699,27 +699,102 @@ function Install-Dependencies {
 
     # Check for existing node_modules
     if (Test-Path "node_modules") {
-        $reinstall = Read-Host "Existing node_modules detected. Reinstall? (y/N)"
-        if ($reinstall -match "^[Yy]") {
-            Write-Host "Removing old node_modules..." -ForegroundColor DarkGray
+        # Check if installation is incomplete
+        $criticalPackages = @("vite", "pm2", "better-sqlite3", "express", "react")
+        $missingPackages = @()
+
+        foreach ($pkg in $criticalPackages) {
+            if (-not (Test-Path "node_modules\$pkg")) {
+                $missingPackages += $pkg
+            }
+        }
+
+        if ($missingPackages.Count -gt 0) {
+            Write-Warn "Incomplete installation detected! Missing: $($missingPackages -join ', ')"
+            Write-Host "Will remove and reinstall..." -ForegroundColor Yellow
             Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+            Remove-Item -Force "package-lock.json" -ErrorAction SilentlyContinue
+        } else {
+            $reinstall = Read-Host "Existing node_modules detected. Reinstall? (y/N)"
+            if ($reinstall -match "^[Yy]") {
+                Write-Host "Removing old node_modules..." -ForegroundColor DarkGray
+                Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+                Remove-Item -Force "package-lock.json" -ErrorAction SilentlyContinue
+            }
         }
     }
 
-    Write-Host "Running npm install (this may take a few minutes)..." -ForegroundColor DarkGray
-    & npm install
+    # Create .npmrc to skip problematic native modules on Windows
+    if (-not (Test-Path ".npmrc")) {
+        Write-Step "Creating .npmrc for Windows compatibility..."
+        @"
+# Skip building node-pty on Windows (requires Visual Studio Build Tools)
+# Terminal features will be disabled but app will run
+node-pty:ignore-scripts=true
+"@ | Out-File -FilePath ".npmrc" -Encoding UTF8
+        Write-Ok "Created .npmrc"
+    }
+
+    Write-Host "Running npm install (this may take 5-10 minutes)..." -ForegroundColor DarkGray
+    Write-Host "Building native modules like better-sqlite3..." -ForegroundColor DarkGray
+    Write-Host "Note: Skipping node-pty (requires Visual Studio Build Tools)" -ForegroundColor DarkGray
+    & npm install --ignore-scripts
 
     if ($LASTEXITCODE -eq 0) {
+        # Verify critical packages are installed
+        $criticalPackages = @("vite", "pm2", "better-sqlite3", "express", "react")
+        $missingPackages = @()
+
+        foreach ($pkg in $criticalPackages) {
+            if (-not (Test-Path "node_modules\$pkg")) {
+                $missingPackages += $pkg
+            }
+        }
+
+        if ($missingPackages.Count -gt 0) {
+            Write-Warn "Installation incomplete! Missing: $($missingPackages -join ', ')"
+            Write-Host ""
+            Write-Host "Retrying with --force flag..." -ForegroundColor Yellow
+            & npm install --force
+
+            # Check again
+            $stillMissing = @()
+            foreach ($pkg in $missingPackages) {
+                if (-not (Test-Path "node_modules\$pkg")) {
+                    $stillMissing += $pkg
+                }
+            }
+
+            if ($stillMissing.Count -gt 0) {
+                Write-Fail "Failed to install: $($stillMissing -join ', ')"
+                Write-Host "Manual fix needed. See WINDOWS_SETUP.md" -ForegroundColor Red
+                return $false
+            }
+        }
+
         Write-Ok "Dependencies installed successfully!"
 
-        # Rebuild native modules
-        Write-Step "Rebuilding native modules..."
-        & npm rebuild 2>$null
+        # Rebuild native modules (Windows-specific)
+        Write-Step "Rebuilding native modules for Windows..."
+        & npm rebuild better-sqlite3 2>$null
+        & npm rebuild node-pty 2>$null
         Write-Ok "Native modules rebuilt."
+
+        # Count installed packages
+        $packageCount = (Get-ChildItem "node_modules" -Directory).Count
+        Write-Host "Installed $packageCount packages." -ForegroundColor DarkGray
+
         return $true
     } else {
         Write-Fail "npm install failed!"
-        Write-Host "Try: Remove-Item -Recurse node_modules; npm install" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "Common Windows issues:" -ForegroundColor Yellow
+        Write-Host "  1. Node.js v23+ breaks better-sqlite3 (use v22.x)" -ForegroundColor DarkGray
+        Write-Host "  2. Missing Windows Build Tools" -ForegroundColor DarkGray
+        Write-Host "  3. Antivirus blocking npm" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "Try: Remove-Item -Recurse node_modules; npm install" -ForegroundColor Cyan
+        Write-Host "See: WINDOWS_SETUP.md for detailed troubleshooting" -ForegroundColor Cyan
         return $false
     }
 }
