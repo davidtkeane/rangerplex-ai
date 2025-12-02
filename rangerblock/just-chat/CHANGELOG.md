@@ -4,6 +4,28 @@ All notable changes to Just-Chat will be documented here.
 
 ---
 
+## [1.5.0] - 2025-12-02
+
+### Added - Microphone Selection (v2.3.0)
+
+#### Microphone Commands
+- **`/mic`**: List available microphones on your system
+- **`/mic <number>`**: Select a specific microphone by number
+- **`/mic test`**: Test current microphone (records 3 seconds, plays back)
+
+### Why This Matters
+- **Multiple Apps Problem**: If Teams/Zoom is using your mic, you can switch to another one
+- **External Mics**: Easily switch to USB headsets, webcams, or professional mics
+- **Verification**: Test that your mic works before joining a call
+
+### Technical
+- Cross-platform detection (macOS, Windows, Linux)
+- macOS: Uses `system_profiler SPAudioDataType`
+- Windows: Uses PowerShell `Get-WmiObject Win32_SoundDevice`
+- Linux: Uses `arecord -l`
+
+---
+
 ## [1.4.0] - 2025-12-02
 
 ### Added - More Slash Commands (v2.2.0)

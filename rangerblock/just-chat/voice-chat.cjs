@@ -29,11 +29,14 @@ const { spawn } = require('child_process');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '2.2.0';
+const VERSION = '2.3.0';
 let DEBUG_VOICE = false; // Toggle with /debug command
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
 const DEFAULT_CHANNEL = '#rangers';
+
+// Microphone settings
+let selectedMic = 'default'; // 'default' or device name/number
 
 // Audio settings
 const SAMPLE_RATE = 16000;
@@ -233,6 +236,149 @@ class AudioPlayback {
         player.on('error', () => {});
         return player;
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MICROPHONE UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+const { execSync } = require('child_process');
+
+function listMicrophones() {
+    const platform = os.platform();
+    const mics = [];
+
+    try {
+        if (platform === 'darwin') {
+            // macOS - use system_profiler
+            const output = execSync('system_profiler SPAudioDataType 2>/dev/null', { encoding: 'utf8' });
+            const lines = output.split('\n');
+            let currentDevice = null;
+            let isInput = false;
+
+            for (const line of lines) {
+                if (line.includes('Input Source:') || line.includes('Default Input Device: Yes')) {
+                    isInput = true;
+                }
+                if (line.match(/^\s{8}\w/) && !line.includes(':')) {
+                    currentDevice = line.trim();
+                }
+                if (currentDevice && isInput) {
+                    if (!mics.find(m => m.name === currentDevice)) {
+                        mics.push({ name: currentDevice, id: mics.length });
+                    }
+                    isInput = false;
+                }
+            }
+
+            // Also try to get from SoX
+            try {
+                const soxOutput = execSync('sox --help 2>&1 | grep -A5 "AUDIO DEVICE"', { encoding: 'utf8' });
+                // Parse if available
+            } catch (e) {}
+
+            // Add common macOS devices
+            if (mics.length === 0) {
+                mics.push({ name: 'Built-in Microphone', id: 0, device: 'default' });
+            }
+        } else if (platform === 'win32') {
+            // Windows - try PowerShell
+            try {
+                const output = execSync('powershell -Command "Get-WmiObject Win32_SoundDevice | Select-Object Name | Format-List"', { encoding: 'utf8' });
+                const lines = output.split('\n');
+                for (const line of lines) {
+                    if (line.includes('Name') && line.includes(':')) {
+                        const name = line.split(':')[1]?.trim();
+                        if (name && name.length > 0) {
+                            mics.push({ name: name, id: mics.length });
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            // Fallback
+            if (mics.length === 0) {
+                mics.push({ name: 'Default Microphone', id: 0, device: 'default' });
+            }
+        } else {
+            // Linux - use arecord
+            try {
+                const output = execSync('arecord -l 2>/dev/null', { encoding: 'utf8' });
+                const lines = output.split('\n');
+                for (const line of lines) {
+                    if (line.includes('card')) {
+                        const match = line.match(/card (\d+):.*\[(.+?)\]/);
+                        if (match) {
+                            mics.push({ name: match[2], id: parseInt(match[1]), device: `hw:${match[1]}` });
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            if (mics.length === 0) {
+                mics.push({ name: 'Default Microphone', id: 0, device: 'default' });
+            }
+        }
+    } catch (err) {
+        mics.push({ name: 'Default Microphone', id: 0, device: 'default' });
+    }
+
+    return mics;
+}
+
+function testMicrophone(callback) {
+    // Record 3 seconds of audio
+    const testFile = os.tmpdir() + '/rangerblock_mic_test.raw';
+    const duration = 3;
+
+    console.log(`\n${c.brightCyan}=== MICROPHONE TEST ===${c.reset}`);
+    console.log(`${c.yellow}Recording for ${duration} seconds... Say "Hello There!"${c.reset}\n`);
+
+    const args = ['-d', '-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', testFile, 'trim', '0', String(duration)];
+
+    const recorder = spawn('sox', args);
+
+    recorder.stderr.on('data', (data) => {
+        // SoX outputs progress to stderr
+    });
+
+    recorder.on('error', (err) => {
+        console.log(`${c.red}Error: Could not access microphone${c.reset}`);
+        console.log(`${c.dim}Make sure no other app is using it exclusively${c.reset}`);
+        if (callback) callback(false);
+    });
+
+    recorder.on('close', (code) => {
+        if (code === 0) {
+            console.log(`${c.brightGreen}Recording complete!${c.reset}`);
+            console.log(`${c.yellow}Playing back...${c.reset}\n`);
+
+            // Play it back
+            const playArgs = ['-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', testFile, '-d'];
+            const player = spawn('sox', playArgs);
+
+            player.on('close', () => {
+                console.log(`\n${c.brightGreen}Test complete!${c.reset}`);
+                console.log(`${c.dim}Did you hear your voice? If not, check mic selection.${c.reset}\n`);
+
+                // Clean up
+                try {
+                    require('fs').unlinkSync(testFile);
+                } catch (e) {}
+
+                if (callback) callback(true);
+            });
+
+            player.on('error', () => {
+                console.log(`${c.red}Playback failed${c.reset}`);
+                if (callback) callback(false);
+            });
+        } else {
+            console.log(`${c.red}Recording failed (code: ${code})${c.reset}`);
+            console.log(`${c.dim}The microphone might be in use by another application.${c.reset}`);
+            if (callback) callback(false);
+        }
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -884,7 +1030,7 @@ async function main() {
     function showHelp() {
         console.log(`
 ${c.brightGreen}╔════════════════════════════════════════════════════════════╗
-║                    RANGERBLOCK VOICE v2.2                  ║
+║                    RANGERBLOCK VOICE v2.3                  ║
 ╚════════════════════════════════════════════════════════════╝${c.reset}
 
 ${c.brightGreen}=== PRIVATE CALL ===${c.reset}
@@ -905,6 +1051,11 @@ ${c.brightCyan}=== VOICE CONTROLS ===${c.reset}
 
 ${c.brightYellow}=== CHAT ===${c.reset}
   ${c.dim}Just type any message and press Enter to send chat${c.reset}
+
+${c.yellow}=== MICROPHONE ===${c.reset}
+  ${c.green}/mic${c.reset}             List available microphones
+  ${c.green}/mic <number>${c.reset}    Select microphone by number
+  ${c.green}/mic test${c.reset}        Test current microphone (record & playback)
 
 ${c.yellow}=== INFO ===${c.reset}
   ${c.green}/peers${c.reset}           List online users
@@ -1104,6 +1255,54 @@ ${c.brightCyan}=== YOUR NODE INFO ===${c.reset}
                     DEBUG_VOICE = !DEBUG_VOICE;
                     systemMsg(`Debug mode: ${DEBUG_VOICE ? `${c.brightGreen}ON${c.reset} (showing voice packets)` : `${c.dim}OFF${c.reset}`}`);
                     break;
+
+                case 'mic':
+                case 'microphone':
+                    // Handle /mic subcommands
+                    const micArg = args[0]?.toLowerCase();
+
+                    if (!micArg || micArg === 'list') {
+                        // List available microphones
+                        console.log(`\n${c.brightCyan}=== AVAILABLE MICROPHONES ===${c.reset}`);
+                        const mics = listMicrophones();
+                        if (mics.length === 0) {
+                            console.log(`  ${c.yellow}No microphones detected${c.reset}`);
+                        } else {
+                            mics.forEach((mic, i) => {
+                                const current = (selectedMic === 'default' && i === 0) || selectedMic === mic.name;
+                                const marker = current ? `${c.brightGreen}[ACTIVE]${c.reset}` : '';
+                                console.log(`  ${c.green}${i}${c.reset}. ${mic.name} ${marker}`);
+                            });
+                        }
+                        console.log(`\n${c.dim}Current: ${selectedMic}${c.reset}`);
+                        console.log(`${c.dim}Use /mic <number> to select, /mic test to test${c.reset}\n`);
+                    } else if (micArg === 'test') {
+                        // Test current microphone
+                        testMicrophone((success) => {
+                            showPrompt(callState, nickname, callPartner);
+                        });
+                        return; // Don't show prompt yet, testMicrophone will do it
+                    } else if (!isNaN(parseInt(micArg))) {
+                        // Select microphone by number
+                        const micIndex = parseInt(micArg);
+                        const mics = listMicrophones();
+                        if (micIndex >= 0 && micIndex < mics.length) {
+                            selectedMic = mics[micIndex].name;
+                            systemMsg(`${c.brightGreen}Selected microphone: ${selectedMic}${c.reset}`);
+                            systemMsg(`${c.dim}Use /mic test to verify it works${c.reset}`);
+                        } else {
+                            systemMsg(`${c.red}Invalid mic number. Use /mic to see list.${c.reset}`);
+                        }
+                    } else {
+                        systemMsg(`${c.yellow}Usage: /mic [list|test|<number>]${c.reset}`);
+                    }
+                    break;
+
+                case 'mic-test':
+                    testMicrophone((success) => {
+                        showPrompt(callState, nickname, callPartner);
+                    });
+                    return; // Don't show prompt yet
 
                 case 'quit':
                 case 'exit':

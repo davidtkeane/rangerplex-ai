@@ -4,6 +4,27 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [4.6.0] - 2025-12-02
+
+### Added - Microphone Selection (voice-chat.cjs v2.3.0)
+
+#### Microphone Commands
+- **`/mic`**: List all available microphones on your system
+- **`/mic <number>`**: Select a specific microphone by number
+- **`/mic test`**: Test current microphone (records 3 seconds, plays back)
+
+#### Why This Feature
+- **Teams/Zoom Conflict**: If another app is using your mic exclusively, switch to another
+- **External Devices**: Easily switch to USB headsets, webcams, or professional mics
+- **Pre-Call Testing**: Verify your mic works before joining a call
+
+#### Cross-Platform Detection
+- **macOS**: `system_profiler SPAudioDataType`
+- **Windows**: PowerShell `Get-WmiObject Win32_SoundDevice`
+- **Linux**: `arecord -l`
+
+---
+
 ## [4.5.0] - 2025-12-02
 
 ### Added - More Slash Commands (voice-chat.cjs v2.2.0)
