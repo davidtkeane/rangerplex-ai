@@ -615,11 +615,12 @@ class VideoCapture {
 
         let args;
         if (platform === 'darwin') {
-            args = ['-f', 'avfoundation', '-framerate', '1', '-i', cameraInput, '-frames:v', '1', '-y', testFile];
+            // macOS cameras require 15-30fps minimum, can't use 1fps
+            args = ['-f', 'avfoundation', '-framerate', '30', '-i', cameraInput, '-frames:v', '1', '-update', '1', '-y', testFile];
         } else if (platform === 'win32') {
-            args = ['-f', 'dshow', '-i', cameraInput, '-frames:v', '1', '-y', testFile];
+            args = ['-f', 'dshow', '-framerate', '30', '-i', cameraInput, '-frames:v', '1', '-update', '1', '-y', testFile];
         } else {
-            args = ['-f', 'v4l2', '-i', cameraInput, '-frames:v', '1', '-y', testFile];
+            args = ['-f', 'v4l2', '-framerate', '30', '-i', cameraInput, '-frames:v', '1', '-update', '1', '-y', testFile];
         }
 
         const proc = spawn('ffmpeg', args);
