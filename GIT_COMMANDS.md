@@ -10,8 +10,11 @@
 7. [Branches](#branches)
 8. [Handling Merge Conflicts](#handling-merge-conflicts)
 9. [Syncing Between Machines](#syncing-between-machines-m3pro--m4max)
-10. [Emergency Commands](#emergency-commands)
-11. [Quick Reference](#quick-reference)
+10. [Multi-File Commits with Detailed Messages](#multi-file-commits-with-detailed-messages)
+11. [Checking Remote Status](#checking-remote-status)
+12. [Clean Up](#clean-up)
+13. [Emergency Commands](#emergency-commands)
+14. [Quick Reference](#quick-reference)
 
 ---
 
@@ -560,6 +563,412 @@ git add .
 git commit -m "Merge M4Max and M3Pro changes"
 git push
 ```
+
+---
+
+## Multi-File Commits with Detailed Messages
+
+When committing multiple related files with detailed explanations (like documentation updates, feature additions, or large refactors):
+
+### Pattern: Staging Specific Files
+
+```bash
+# Check what's changed first
+git status
+
+# Stage specific files (more control than 'git add .')
+git add file1.md file2.js file3.cpp
+
+# Or stage entire directories
+git add docs/ src/
+
+# Verify what's staged
+git status
+```
+
+**Why stage specific files?**
+- More control over what goes in each commit
+- Keep commits focused on one logical change
+- Easier to review and understand commit history
+
+### Pattern: Multi-line Commit Messages with Heredoc
+
+For commits with detailed descriptions:
+
+```bash
+git commit -m "$(cat <<'EOF'
+Short summary line (50 chars or less)
+
+Detailed explanation of what changed and why. This can be multiple
+paragraphs explaining the context, the problem being solved, and
+the approach taken.
+
+New Features:
+- Feature 1 description
+- Feature 2 description
+- Feature 3 description
+
+Modified Files:
+- file1.js: Description of changes
+- file2.ts: Description of changes
+
+Testing:
+- All tests passing
+- Verified on Windows 11 and macOS
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Heredoc Syntax Breakdown:**
+```bash
+git commit -m "$(cat <<'EOF'
+               ↑    ↑   ↑
+               |    |   └── Start marker (must match end marker)
+               |    └────── Here-document operator
+               └─────────── Command substitution (runs cat)
+# Your multi-line message here
+EOF
+)"
+↑
+└── End marker (must match start marker)
+```
+
+**Key Points:**
+- `'EOF'` (with quotes) prevents variable expansion
+- Message can contain special characters, quotes, emoji
+- Easier to write multi-paragraph messages than using multiple `-m` flags
+- Great for comprehensive commit messages with lists and sections
+
+### Pattern: Handling "Push Rejected" Errors
+
+```
+! [rejected]        main -> main (fetch first)
+error: failed to push some refs
+hint: Updates were rejected because the remote contains work that you do not have locally.
+```
+
+**What it means:**
+- Someone else (or you on another machine) pushed commits to GitHub
+- Your local branch is behind the remote branch
+- You need to pull first, then push
+
+**Solution 1: Pull with Rebase (Clean History)**
+```bash
+# Pull and rebase your commits on top of remote changes
+git pull --rebase
+
+# If successful, push
+git push
+```
+
+**Benefits of rebase:**
+- ✅ Creates linear history (no merge commits)
+- ✅ Cleaner git log
+- ✅ Easier to understand project history
+
+**Solution 2: Pull with Merge (Safer)**
+```bash
+# Pull and create a merge commit
+git pull --no-rebase
+
+# Push the merge
+git push
+```
+
+**When to use each:**
+
+| Use Rebase When | Use Merge When |
+|-----------------|----------------|
+| Working on personal branches | Working on shared branches with team |
+| Want clean linear history | Want to preserve exact timeline |
+| Commits are not yet public | Commits are already public |
+| Comfortable with git | New to git (safer) |
+
+### Pattern: Check Before Push
+
+```bash
+# See if remote has new commits
+git fetch
+
+# Compare your branch to remote
+git status
+# Shows: "Your branch is ahead/behind/diverged"
+
+# See what commits are different
+git log main..origin/main --oneline  # Remote commits you don't have
+git log origin/main..main --oneline  # Your commits not on remote
+
+# See actual code differences
+git diff origin/main
+
+# If behind, pull first
+git pull --rebase
+
+# Then push
+git push
+```
+
+### Complete Workflow Example: Windows Compatibility Update
+
+This was the actual workflow from the Windows 11 compatibility session:
+
+```bash
+# 1. Check what files changed
+git status
+
+# Output showed:
+# Untracked files:
+#   .npmrc
+#   BROWSER_FIX.md
+#   INSTALL_SUMMARY.md
+#   scripts/shutdown.ps1
+#   scripts/open-browser.cjs
+#   ...
+
+# 2. Stage specific files (not everything)
+git add .npmrc BROWSER_FIX.md INSTALL_SUMMARY.md START_WINDOWS.md \
+        WINDOWS_SETUP.md scripts/open-browser.cjs scripts/shutdown.ps1 \
+        setup-node22.ps1 .gitignore
+
+# 3. Verify staging
+git status
+
+# 4. Commit with detailed message using heredoc
+git commit -m "$(cat <<'EOF'
+Add Windows 11 compatibility files and documentation
+
+Added Windows-specific scripts, configuration, and comprehensive documentation
+to ensure smooth installation and operation on Windows 11.
+
+New Files:
+- .npmrc: Skip node-pty build on Windows (requires VS Build Tools)
+- scripts/shutdown.ps1: PowerShell port cleanup script
+- scripts/open-browser.cjs: Cross-platform browser auto-launcher
+- setup-node22.ps1: Helper script for Node.js 22 setup via nvm
+- WINDOWS_SETUP.md: Detailed Windows troubleshooting guide
+- START_WINDOWS.md: Quick start guide for Windows users
+- INSTALL_SUMMARY.md: Complete technical fix documentation
+- BROWSER_FIX.md: Browser command fix technical details
+
+Modified:
+- .gitignore: Exclude .env.bak and *.bak.* backup files
+
+These changes enable full Windows 11 support alongside existing macOS/Linux
+compatibility, with comprehensive documentation for troubleshooting.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+
+# Output:
+# [main d84488c] Add Windows 11 compatibility files and documentation
+#  9 files changed, 899 insertions(+)
+
+# 5. Try to push
+git push
+
+# Error! Remote has new commits
+# ! [rejected]        main -> main (fetch first)
+
+# 6. Pull with rebase to maintain clean history
+git pull --rebase
+
+# Output:
+# From https://github.com/davidtkeane/rangerplex-ai
+#    d84488c..edf8470  main       -> origin/main
+# Rebasing (1/1)
+# Successfully rebased and updated refs/heads/main.
+
+# 7. Now push successfully
+git push
+
+# Output:
+# To https://github.com/davidtkeane/rangerplex-ai.git
+#    edf8470..c0639c0  main -> main
+```
+
+### Pattern: Short Status for Quick Checks
+
+```bash
+# Compact status view
+git status --short
+
+# Output format:
+# ?? untracked-file.md      (new file, not staged)
+# M  modified-file.js       (modified, staged)
+#  M modified-file2.js      (modified, not staged)
+# A  added-file.cpp         (new file, staged)
+# D  deleted-file.txt       (deleted)
+# R  old.md -> new.md       (renamed)
+```
+
+**Status Symbols:**
+- `??` = Untracked (new file Git doesn't know about)
+- `A` = Added (new file staged)
+- `M` = Modified (file changed)
+- `D` = Deleted
+- `R` = Renamed
+- First column = staging area status
+- Second column = working directory status
+
+### Pattern: View Recent Commits
+
+```bash
+# See last 5 commits (one line each)
+git log --oneline -5
+
+# Output:
+# c0639c0 Add C++ companion project framework
+# edf8470 Resolved merge conflict - Combined Windows 11 fixes
+# d84488c Add Windows 11 compatibility files
+# f6befd0 Merge branch 'main' of https://github.com/...
+# b887dd6 fixed the windows install script
+
+# See last 3 commits with more detail
+git log -3
+
+# See commits with file changes
+git log --oneline --stat -3
+
+# See commits with actual diff
+git log -p -2
+```
+
+### Real-World Example: C++ Project Addition
+
+```bash
+# 1. Create new files
+mkdir -p cpp/modules/hello-world
+# ... created multiple files ...
+
+# 2. Check what's new
+git status --short
+# ?? CPP_PROJECT.md
+# ?? CPP_ROADMAP.md
+# ?? CPP_SETUP.md
+# ?? cpp/
+
+# 3. Stage all new C++ files
+git add CPP_PROJECT.md CPP_ROADMAP.md CPP_SETUP.md cpp/
+
+# 4. Verify staging
+git status
+# Changes to be committed:
+#   new file:   CPP_PROJECT.md
+#   new file:   CPP_ROADMAP.md
+#   new file:   CPP_SETUP.md
+#   new file:   cpp/modules/hello-world/CMakeLists.txt
+#   ... etc ...
+
+# 5. Commit with comprehensive message
+git commit -m "$(cat <<'EOF'
+Add C++ companion project framework and learning path
+
+Created comprehensive C++ development framework for RangerPlex to support
+applying C++ and Assembly language class concepts to real-world projects.
+
+New Documentation (3 files):
+- CPP_ROADMAP.md: 3-phase development plan (Native Modules → Tools → Embedded)
+- CPP_SETUP.md: Complete Windows 11 C++ environment setup guide
+- CPP_PROJECT.md: Quick reference and daily development guide
+
+Starter Project - hello-world Native Module (6 files):
+- hello.cpp: First C++ N-API module with 3 example functions
+- CMakeLists.txt: Cross-platform build configuration
+- package.json: npm integration for native modules
+- index.js: JavaScript wrapper for C++ module
+- test.js: Comprehensive test suite
+- README.md: Step-by-step tutorial
+
+This framework allows applying C++ class knowledge to enhance RangerPlex
+with high-performance native modules.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+
+# 6. View the commit
+git log --oneline -1
+# 57ad28e Add C++ companion project framework and learning path
+
+# 7. Try to push
+git push
+# Error: rejected (remote has changes)
+
+# 8. Pull with rebase
+git pull --rebase
+# Successfully rebased and updated refs/heads/main.
+
+# 9. Push successfully
+git push
+# To https://github.com/davidtkeane/rangerplex-ai.git
+#    edf8470..c0639c0  main -> main
+```
+
+### Tips for Better Commits
+
+**DO:**
+- ✅ Write clear, descriptive commit messages
+- ✅ Use present tense ("Add feature" not "Added feature")
+- ✅ Group related changes in one commit
+- ✅ Stage specific files for focused commits
+- ✅ Pull before push to avoid conflicts
+- ✅ Use heredoc for multi-line messages
+- ✅ Include "why" not just "what" in message
+
+**DON'T:**
+- ❌ Commit with generic messages like "update" or "fix"
+- ❌ Mix unrelated changes in one commit
+- ❌ Forget to pull before starting work
+- ❌ Force push without understanding consequences
+- ❌ Commit sensitive data (API keys, passwords)
+- ❌ Commit generated files (dist/, build/, node_modules/)
+
+### Commit Message Template
+
+```bash
+git commit -m "$(cat <<'EOF'
+<type>: <short summary in present tense>
+
+<Detailed description of what changed and why>
+
+<Optional sections:>
+- New Features:
+- Bug Fixes:
+- Breaking Changes:
+- Documentation:
+- Testing:
+- Performance:
+
+<Optional footer:>
+Fixes #123
+Closes #456
+Related to #789
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Common types:**
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation changes
+- `style:` Code formatting (no functional changes)
+- `refactor:` Code restructuring (no functional changes)
+- `test:` Adding or updating tests
+- `chore:` Maintenance tasks (dependencies, config)
+- `perf:` Performance improvements
 
 ---
 
