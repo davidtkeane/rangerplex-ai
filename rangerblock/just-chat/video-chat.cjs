@@ -36,7 +36,7 @@ const { spawn, execSync } = require('child_process');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 let DEBUG_MODE = false;
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
@@ -53,8 +53,11 @@ const VIDEO_HEIGHT = 240;
 const VIDEO_FPS = 10;
 const VIDEO_QUALITY = 30; // JPEG quality (lower = smaller)
 
-// Microphone settings
+// Device selection
 let selectedMic = 'default';
+let selectedCamera = 'default';
+let availableCameras = [];
+let availableMics = [];
 
 // Call states
 const CALL_STATE = {
@@ -201,6 +204,253 @@ function decompressData(compressedBuffer) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// DEVICE DETECTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function listCameras() {
+    return new Promise((resolve) => {
+        const platform = os.platform();
+        const cameras = [];
+
+        if (platform === 'darwin') {
+            // macOS: Use ffmpeg to list avfoundation devices
+            const proc = spawn('ffmpeg', ['-f', 'avfoundation', '-list_devices', 'true', '-i', '']);
+            let output = '';
+
+            proc.stderr.on('data', (data) => {
+                output += data.toString();
+            });
+
+            proc.on('close', () => {
+                // Parse video devices from ffmpeg output
+                const lines = output.split('\n');
+                let inVideoSection = false;
+                let index = 0;
+
+                for (const line of lines) {
+                    if (line.includes('AVFoundation video devices:')) {
+                        inVideoSection = true;
+                        continue;
+                    }
+                    if (line.includes('AVFoundation audio devices:')) {
+                        inVideoSection = false;
+                        continue;
+                    }
+                    if (inVideoSection) {
+                        // Match lines like "[AVFoundation indev @ 0x...] [0] FaceTime HD Camera"
+                        const match = line.match(/\[(\d+)\]\s+(.+)$/);
+                        if (match) {
+                            cameras.push({
+                                index: parseInt(match[1]),
+                                name: match[2].trim(),
+                                id: match[1]
+                            });
+                        }
+                    }
+                }
+
+                availableCameras = cameras;
+                resolve(cameras);
+            });
+
+            proc.on('error', () => {
+                resolve([{ index: 0, name: 'Default Camera', id: '0' }]);
+            });
+
+        } else if (platform === 'win32') {
+            // Windows: Use ffmpeg to list dshow devices
+            const proc = spawn('ffmpeg', ['-f', 'dshow', '-list_devices', 'true', '-i', 'dummy']);
+            let output = '';
+
+            proc.stderr.on('data', (data) => {
+                output += data.toString();
+            });
+
+            proc.on('close', () => {
+                const lines = output.split('\n');
+                let inVideoSection = false;
+                let index = 0;
+
+                for (const line of lines) {
+                    if (line.includes('DirectShow video devices')) {
+                        inVideoSection = true;
+                        continue;
+                    }
+                    if (line.includes('DirectShow audio devices')) {
+                        inVideoSection = false;
+                        continue;
+                    }
+                    if (inVideoSection) {
+                        // Match lines like "  "Integrated Webcam""
+                        const match = line.match(/"([^"]+)"/);
+                        if (match && !line.includes('Alternative name')) {
+                            cameras.push({
+                                index: index,
+                                name: match[1],
+                                id: `video=${match[1]}`
+                            });
+                            index++;
+                        }
+                    }
+                }
+
+                availableCameras = cameras;
+                resolve(cameras);
+            });
+
+            proc.on('error', () => {
+                resolve([{ index: 0, name: 'Integrated Webcam', id: 'video=Integrated Webcam' }]);
+            });
+
+        } else {
+            // Linux: Check /dev/video* devices
+            try {
+                const videoDevices = fs.readdirSync('/dev').filter(f => f.startsWith('video'));
+                videoDevices.forEach((dev, i) => {
+                    cameras.push({
+                        index: i,
+                        name: `/dev/${dev}`,
+                        id: `/dev/${dev}`
+                    });
+                });
+                availableCameras = cameras;
+                resolve(cameras);
+            } catch (err) {
+                resolve([{ index: 0, name: '/dev/video0', id: '/dev/video0' }]);
+            }
+        }
+    });
+}
+
+function listMicrophones() {
+    return new Promise((resolve) => {
+        const platform = os.platform();
+        const mics = [];
+
+        if (platform === 'darwin') {
+            // macOS: Use system_profiler to list audio devices
+            try {
+                const output = execSync('system_profiler SPAudioDataType 2>/dev/null').toString();
+                const lines = output.split('\n');
+                let currentDevice = null;
+                let hasInput = false;
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+
+                    // New device block
+                    if (trimmed.endsWith(':') && !trimmed.startsWith('Input') && !trimmed.startsWith('Output') &&
+                        !trimmed.startsWith('Audio') && !trimmed.startsWith('Devices') && !trimmed.startsWith('Default')) {
+                        if (currentDevice && hasInput) {
+                            mics.push(currentDevice);
+                        }
+                        currentDevice = {
+                            index: mics.length,
+                            name: trimmed.replace(':', ''),
+                            id: 'default'
+                        };
+                        hasInput = false;
+                    }
+
+                    // Check for input capability
+                    if (trimmed.includes('Input Source:') || trimmed.includes('Input Channels:')) {
+                        hasInput = true;
+                    }
+                }
+
+                // Add last device
+                if (currentDevice && hasInput) {
+                    mics.push(currentDevice);
+                }
+
+                // Always add default as option
+                if (mics.length === 0) {
+                    mics.push({ index: 0, name: 'Default Microphone', id: 'default' });
+                }
+
+                availableMics = mics;
+                resolve(mics);
+
+            } catch (err) {
+                resolve([{ index: 0, name: 'Default Microphone', id: 'default' }]);
+            }
+
+        } else if (platform === 'win32') {
+            // Windows: Use ffmpeg to list audio devices
+            const proc = spawn('ffmpeg', ['-f', 'dshow', '-list_devices', 'true', '-i', 'dummy']);
+            let output = '';
+
+            proc.stderr.on('data', (data) => {
+                output += data.toString();
+            });
+
+            proc.on('close', () => {
+                const lines = output.split('\n');
+                let inAudioSection = false;
+                let index = 0;
+
+                for (const line of lines) {
+                    if (line.includes('DirectShow audio devices')) {
+                        inAudioSection = true;
+                        continue;
+                    }
+                    if (inAudioSection) {
+                        const match = line.match(/"([^"]+)"/);
+                        if (match && !line.includes('Alternative name')) {
+                            mics.push({
+                                index: index,
+                                name: match[1],
+                                id: match[1]
+                            });
+                            index++;
+                        }
+                    }
+                }
+
+                if (mics.length === 0) {
+                    mics.push({ index: 0, name: 'Default', id: 'default' });
+                }
+
+                availableMics = mics;
+                resolve(mics);
+            });
+
+            proc.on('error', () => {
+                resolve([{ index: 0, name: 'Default', id: 'default' }]);
+            });
+
+        } else {
+            // Linux: Use arecord -l
+            try {
+                const output = execSync('arecord -l 2>/dev/null').toString();
+                const lines = output.split('\n');
+
+                for (const line of lines) {
+                    const match = line.match(/card (\d+):.*\[(.+?)\]/);
+                    if (match) {
+                        mics.push({
+                            index: parseInt(match[1]),
+                            name: match[2],
+                            id: `hw:${match[1]}`
+                        });
+                    }
+                }
+
+                if (mics.length === 0) {
+                    mics.push({ index: 0, name: 'Default', id: 'default' });
+                }
+
+                availableMics = mics;
+                resolve(mics);
+
+            } catch (err) {
+                resolve([{ index: 0, name: 'Default', id: 'default' }]);
+            }
+        }
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // VIDEO CAPTURE (using ffmpeg)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -241,10 +491,36 @@ class VideoCapture {
         }
     }
 
+    getSelectedCameraInput() {
+        const platform = os.platform();
+
+        // If a specific camera is selected, use it
+        if (selectedCamera !== 'default' && availableCameras.length > 0) {
+            const cam = availableCameras.find(c =>
+                c.index === parseInt(selectedCamera) ||
+                c.name.toLowerCase().includes(selectedCamera.toLowerCase()) ||
+                c.id === selectedCamera
+            );
+            if (cam) {
+                return cam.id;
+            }
+        }
+
+        // Default camera by platform
+        if (platform === 'darwin') {
+            return '0';
+        } else if (platform === 'win32') {
+            return availableCameras.length > 0 ? availableCameras[0].id : 'video=Integrated Webcam';
+        } else {
+            return '/dev/video0';
+        }
+    }
+
     startCapture(onFrame) {
         if (this.capturing) return;
 
         const platform = os.platform();
+        const cameraInput = this.getSelectedCameraInput();
         let args;
 
         if (platform === 'darwin') {
@@ -253,7 +529,7 @@ class VideoCapture {
                 '-f', 'avfoundation',
                 '-framerate', String(VIDEO_FPS),
                 '-video_size', `${VIDEO_WIDTH}x${VIDEO_HEIGHT}`,
-                '-i', '0',
+                '-i', cameraInput,
                 '-f', 'mjpeg',
                 '-q:v', String(Math.round(31 - (VIDEO_QUALITY / 100) * 30)), // ffmpeg quality (2-31, lower=better)
                 '-'
@@ -264,7 +540,7 @@ class VideoCapture {
                 '-f', 'dshow',
                 '-framerate', String(VIDEO_FPS),
                 '-video_size', `${VIDEO_WIDTH}x${VIDEO_HEIGHT}`,
-                '-i', 'video=Integrated Webcam',
+                '-i', cameraInput,
                 '-f', 'mjpeg',
                 '-q:v', String(Math.round(31 - (VIDEO_QUALITY / 100) * 30)),
                 '-'
@@ -275,7 +551,7 @@ class VideoCapture {
                 '-f', 'v4l2',
                 '-framerate', String(VIDEO_FPS),
                 '-video_size', `${VIDEO_WIDTH}x${VIDEO_HEIGHT}`,
-                '-i', '/dev/video0',
+                '-i', cameraInput,
                 '-f', 'mjpeg',
                 '-q:v', String(Math.round(31 - (VIDEO_QUALITY / 100) * 30)),
                 '-'
@@ -335,14 +611,15 @@ class VideoCapture {
     captureTestFrame(callback) {
         const platform = os.platform();
         const testFile = path.join(os.tmpdir(), 'rangerblock_video_test.jpg');
+        const cameraInput = this.getSelectedCameraInput();
 
         let args;
         if (platform === 'darwin') {
-            args = ['-f', 'avfoundation', '-framerate', '1', '-i', '0', '-frames:v', '1', '-y', testFile];
+            args = ['-f', 'avfoundation', '-framerate', '1', '-i', cameraInput, '-frames:v', '1', '-y', testFile];
         } else if (platform === 'win32') {
-            args = ['-f', 'dshow', '-i', 'video=Integrated Webcam', '-frames:v', '1', '-y', testFile];
+            args = ['-f', 'dshow', '-i', cameraInput, '-frames:v', '1', '-y', testFile];
         } else {
-            args = ['-f', 'v4l2', '-i', '/dev/video0', '-frames:v', '1', '-y', testFile];
+            args = ['-f', 'v4l2', '-i', cameraInput, '-frames:v', '1', '-y', testFile];
         }
 
         const proc = spawn('ffmpeg', args);
@@ -351,7 +628,7 @@ class VideoCapture {
             if (code === 0 && fs.existsSync(testFile)) {
                 const frame = fs.readFileSync(testFile);
                 fs.unlinkSync(testFile);
-                callback(null, frame);
+                callback(null, frame, cameraInput);
             } else {
                 callback(new Error('Failed to capture test frame'));
             }
@@ -590,6 +867,30 @@ async function main() {
         console.log(`${c.dim}Voice chat will still work without video.${c.reset}`);
     } else {
         videoMsg(`${c.green}ffmpeg video ready${c.reset}`);
+
+        // Detect available cameras
+        const cameras = await listCameras();
+        if (cameras.length > 0) {
+            videoMsg(`${c.brightCyan}${cameras.length}${c.reset} camera(s) detected:`);
+            cameras.forEach((cam, i) => {
+                const marker = i === 0 ? `${c.green}→${c.reset}` : ` `;
+                console.log(`   ${marker} ${c.dim}[${cam.index}]${c.reset} ${cam.name}`);
+            });
+            console.log(`   ${c.dim}Use /camera list or /camera <n> to change${c.reset}`);
+        }
+    }
+
+    // Detect available microphones
+    if (soxInstalled) {
+        const mics = await listMicrophones();
+        if (mics.length > 0) {
+            systemMsg(`${c.brightCyan}${mics.length}${c.reset} microphone(s) detected:`);
+            mics.forEach((mic, i) => {
+                const marker = i === 0 ? `${c.green}→${c.reset}` : ` `;
+                console.log(`   ${marker} ${c.dim}[${mic.index}]${c.reset} ${mic.name}`);
+            });
+            console.log(`   ${c.dim}Use /mic list or /mic <n> to change${c.reset}`);
+        }
     }
 
     console.log();
@@ -1123,14 +1424,24 @@ async function main() {
             return;
         }
 
-        videoMsg(`Testing webcam capture...`);
+        // Get camera name for display
+        const camInfo = availableCameras.find(c =>
+            c.index === parseInt(selectedCamera) ||
+            c.name.toLowerCase().includes(selectedCamera.toLowerCase())
+        ) || availableCameras[0] || { name: 'Default Camera' };
 
-        videoCapture.captureTestFrame((err, frame) => {
+        videoMsg(`Testing camera: ${c.brightCyan}${camInfo.name}${c.reset}...`);
+
+        videoCapture.captureTestFrame((err, frame, cameraUsed) => {
             if (err) {
-                videoMsg(`${c.red}Webcam test failed: ${err.message}${c.reset}`);
+                videoMsg(`${c.red}Camera test failed: ${err.message}${c.reset}`);
                 videoMsg(`${c.dim}Make sure no other app is using the camera${c.reset}`);
+                if (availableCameras.length > 1) {
+                    videoMsg(`${c.dim}Try another camera with /camera <number>${c.reset}`);
+                }
             } else {
-                videoMsg(`${c.brightGreen}Webcam test successful!${c.reset}`);
+                videoMsg(`${c.brightGreen}Camera test successful!${c.reset}`);
+                videoMsg(`${c.dim}Camera: ${camInfo.name}${c.reset}`);
                 videoMsg(`${c.dim}Frame size: ${frame.length} bytes${c.reset}`);
 
                 // Save and open test frame
@@ -1347,7 +1658,17 @@ ${c.brightBlue}╔════════════════════�
 ${c.brightBlue}=== VIDEO ===${c.reset}
   ${c.green}/video on${c.reset}        Start video streaming
   ${c.green}/video off${c.reset}       Stop video streaming
-  ${c.green}/video test${c.reset}      Test webcam capture
+  ${c.green}/video test${c.reset}      Test selected camera
+
+${c.brightBlue}=== CAMERA ===${c.reset}
+  ${c.green}/camera list${c.reset}     List available cameras
+  ${c.green}/camera <n>${c.reset}      Select camera by number
+  ${c.green}/camera test${c.reset}     Test selected camera
+
+${c.brightMagenta}=== MICROPHONE ===${c.reset}
+  ${c.green}/mic list${c.reset}        List available microphones
+  ${c.green}/mic <n>${c.reset}         Select microphone by number
+  ${c.green}/mic test${c.reset}        Test selected microphone
 
 ${c.brightGreen}=== PRIVATE CALL ===${c.reset}
   ${c.green}/call <user>${c.reset}     Call a user (e.g., /call M3Pro)
@@ -1453,6 +1774,99 @@ ${c.dim}Quick Keys: a=answer, r=reject, t=talk, s=stop${c.reset}
                         return; // testVideo handles its own prompt
                     } else {
                         systemMsg(`${c.yellow}Usage: /video [on|off|test]${c.reset}`);
+                    }
+                    break;
+
+                case 'camera':
+                case 'cam':
+                    const camArg = args[0]?.toLowerCase();
+                    if (camArg === 'list' || !camArg) {
+                        if (availableCameras.length === 0) {
+                            videoMsg(`${c.yellow}No cameras detected. Try /video test${c.reset}`);
+                        } else {
+                            videoMsg(`${c.brightCyan}Available cameras:${c.reset}`);
+                            availableCameras.forEach((cam) => {
+                                const selected = (selectedCamera === 'default' && cam.index === 0) ||
+                                                 selectedCamera === String(cam.index) ||
+                                                 selectedCamera === cam.id;
+                                const marker = selected ? `${c.green}→${c.reset}` : ` `;
+                                console.log(`   ${marker} ${c.dim}[${cam.index}]${c.reset} ${cam.name}`);
+                            });
+                        }
+                    } else if (camArg === 'test') {
+                        testVideo();
+                        return;
+                    } else {
+                        // Select camera by number or name
+                        const camNum = parseInt(camArg);
+                        const cam = availableCameras.find(c =>
+                            c.index === camNum ||
+                            c.name.toLowerCase().includes(camArg.toLowerCase())
+                        );
+                        if (cam) {
+                            selectedCamera = String(cam.index);
+                            videoMsg(`${c.brightGreen}Camera selected:${c.reset} ${cam.name}`);
+                            videoMsg(`${c.dim}Use /camera test to verify${c.reset}`);
+                        } else {
+                            videoMsg(`${c.red}Camera '${camArg}' not found. Use /camera list${c.reset}`);
+                        }
+                    }
+                    break;
+
+                case 'mic':
+                case 'microphone':
+                    const micArg = args[0]?.toLowerCase();
+                    if (micArg === 'list' || !micArg) {
+                        if (availableMics.length === 0) {
+                            systemMsg(`${c.yellow}No microphones detected${c.reset}`);
+                        } else {
+                            systemMsg(`${c.brightCyan}Available microphones:${c.reset}`);
+                            availableMics.forEach((mic) => {
+                                const selected = selectedMic === 'default' && mic.index === 0 ||
+                                                 selectedMic === String(mic.index) ||
+                                                 selectedMic === mic.id;
+                                const marker = selected ? `${c.green}→${c.reset}` : ` `;
+                                console.log(`   ${marker} ${c.dim}[${mic.index}]${c.reset} ${mic.name}`);
+                            });
+                        }
+                    } else if (micArg === 'test') {
+                        systemMsg(`Testing microphone...`);
+                        systemMsg(`${c.dim}Speak now - you should see audio levels:${c.reset}`);
+                        let testChunks = 0;
+                        const testDuration = 3000; // 3 seconds
+
+                        audioCapture.startRecording((chunk) => {
+                            const level = getAudioLevel(chunk);
+                            const meter = drawAudioMeter(level);
+                            testChunks++;
+                            process.stdout.write(`\r   🎤 [${meter}] ${c.dim}Level: ${level}%${c.reset}   `);
+                        });
+
+                        setTimeout(() => {
+                            audioCapture.stopRecording();
+                            console.log();
+                            if (testChunks > 0) {
+                                systemMsg(`${c.brightGreen}Microphone test complete!${c.reset} (${testChunks} chunks received)`);
+                            } else {
+                                systemMsg(`${c.red}No audio received. Check your microphone.${c.reset}`);
+                            }
+                            showPrompt(callState, nickname, callPartner);
+                        }, testDuration);
+                        return;
+                    } else {
+                        // Select mic by number or name
+                        const micNum = parseInt(micArg);
+                        const mic = availableMics.find(m =>
+                            m.index === micNum ||
+                            m.name.toLowerCase().includes(micArg.toLowerCase())
+                        );
+                        if (mic) {
+                            selectedMic = mic.id;
+                            systemMsg(`${c.brightGreen}Microphone selected:${c.reset} ${mic.name}`);
+                            systemMsg(`${c.dim}Use /mic test to verify${c.reset}`);
+                        } else {
+                            systemMsg(`${c.red}Microphone '${micArg}' not found. Use /mic list${c.reset}`);
+                        }
                     }
                     break;
 
