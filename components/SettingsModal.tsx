@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AppSettings, AgentConfig, ModelType, SavedPrompt, VoiceConfig, Currency, DEFAULT_SAVED_PROMPTS, getModelBadges } from '../types';
 import { checkOllamaConnection, pullOllamaModel } from '../services/ollamaService';
+import { consoleCapture, ConsoleEntry } from '../services/consoleCapture';
 import { checkLMStudioConnection } from '../services/lmstudioService';
 import { fetchGeminiModels, fetchOllamaModels, fetchOpenAIModels, fetchLMStudioModels } from '../services/modelRegistry';
 import { processAvatarImage } from '../services/imageProcessing';
@@ -60,7 +61,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, 
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll, initialTab }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'commands' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'commands' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'console' | 'about' | 'github'>('general');
     const [commandSearch, setCommandSearch] = useState('');
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['system', 'recon', 'intel']));
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
@@ -97,6 +98,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [reloadResult, setReloadResult] = useState<{ success: boolean; message: string } | null>(null);
     const [stoppingServer, setStoppingServer] = useState(false);
     const [stopResult, setStopResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // Console Capture State
+    const [consoleEntries, setConsoleEntries] = useState<ConsoleEntry[]>([]);
+    const [consoleFilter, setConsoleFilter] = useState<'all' | 'log' | 'warn' | 'error' | 'info'>('all');
+    const [consoleCopied, setConsoleCopied] = useState(false);
+    const [consoleAutoScroll, setConsoleAutoScroll] = useState(true);
+    const consoleEndRef = useRef<HTMLDivElement>(null);
 
     // Advanced Weather Tester State
     const [weatherTester, setWeatherTester] = useState<{ isOpen: boolean; provider: 'openweather' | 'tomorrow' | 'visualcrossing' | 'openmeteo'; apiKey: string } | null>(null);
@@ -212,7 +220,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setInstallingUpdate(true);
         setUpdateResult(null);
         try {
-            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = settings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/system/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -251,7 +259,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setReloadingServer(true);
         setReloadResult(null);
         try {
-            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = settings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/system/reload`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -284,7 +292,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setStoppingServer(true);
         setStopResult(null);
         try {
-            const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = settings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/system/stop`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -369,10 +377,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         }
     }, [settings, isOpen, activeTab]);
 
+    // Console capture subscription
+    useEffect(() => {
+        const unsubscribe = consoleCapture.subscribe((entries) => {
+            setConsoleEntries(entries);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    // Auto-scroll console when new entries arrive
+    useEffect(() => {
+        if (consoleAutoScroll && consoleEndRef.current && activeTab === 'console') {
+            consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [consoleEntries, consoleAutoScroll, activeTab]);
+
     // Load blockchain status
     const loadBlockchainStatus = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+            if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/rangerblock/status`);
             const data = await response.json();
             if (data.success) {
@@ -386,7 +410,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Load blockchain config
     const loadBlockchainConfig = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+            if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/rangerblock/config`);
             const data = await response.json();
             if (data.success) {
@@ -410,7 +435,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Save blockchain config
     const saveBlockchainConfig = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/rangerblock/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -430,7 +455,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Start blockchain node
     const startBlockchain = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/rangerblock/start`, {
                 method: 'POST'
             });
@@ -450,7 +475,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Stop blockchain node
     const stopBlockchain = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/rangerblock/stop`, {
                 method: 'POST'
             });
@@ -470,7 +495,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     // Restart blockchain node
     const restartBlockchain = async () => {
         try {
-            const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+            let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
             const response = await fetch(`${proxyUrl}/api/rangerblock/restart`, {
                 method: 'POST'
             });
@@ -917,7 +942,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                     {/* Tabs */}
                     <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                        {['general', 'commands', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'about', 'github'].map((tab) => (
+                        {['general', 'commands', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'console', 'about', 'github'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -928,7 +953,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         ))}
                     </div>
 
-                    <div className={`flex-1 overflow-y-auto p-6 scrollbar-thin min-h-[65vh] ${localSettings.theme === 'tron' ? 'scrollbar-thumb-tron-cyan scrollbar-track-black' : ''}`}>
+                    <div className={`flex-1 overflow-y-auto p-6 scrollbar-thin ${localSettings.theme === 'tron' ? 'scrollbar-thumb-tron-cyan scrollbar-track-black' : ''}`}>
 
                         {/* GENERAL TAB */}
                         {activeTab === 'general' && (
@@ -2510,7 +2535,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                 if (localSettings.braveApiKey) secrets.braveApiKey = localSettings.braveApiKey;
                                                 if ((localSettings as any).obsidianApiKey) secrets.obsidianApiKey = (localSettings as any).obsidianApiKey;
                                                 try {
-                                                    const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+                                                    let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
                                                     await fetch(`${proxyUrl}/api/mcp/ensure`, {
                                                         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secrets })
                                                     });
@@ -2524,7 +2549,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <button
                                             onClick={async () => {
                                                 try {
-                                                    const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+                                                    let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
                                                     await fetch(`${proxyUrl}/api/mcp/stop`, { method: 'POST' });
                                                     setMcpStatus('stopped');
                                                 } catch {
@@ -2536,7 +2561,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         <button
                                             onClick={async () => {
                                                 try {
-                                                    const proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000';
+                                                    let proxyUrl = localSettings.corsProxyUrl || 'http://localhost:3000'; if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
                                                     const res = await fetch(`${proxyUrl}/api/mcp/status`);
                                                     const data = await res.json();
                                                     setMcpStatus(data.running ? 'running' : 'stopped');
@@ -4357,6 +4382,170 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* CONSOLE TAB */}
+                        {activeTab === 'console' && (
+                            <div className="space-y-4">
+                                <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="font-bold text-lg flex items-center gap-2">
+                                            <i className="fa-solid fa-terminal"></i>
+                                            Console Log Viewer
+                                        </h4>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs opacity-60">{consoleEntries.length} entries</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Controls */}
+                                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                                        {/* Filter */}
+                                        <select
+                                            value={consoleFilter}
+                                            onChange={(e) => setConsoleFilter(e.target.value as any)}
+                                            className="px-3 py-1.5 rounded border border-inherit bg-transparent text-sm"
+                                        >
+                                            <option value="all">All</option>
+                                            <option value="log">Log</option>
+                                            <option value="info">Info</option>
+                                            <option value="warn">Warn</option>
+                                            <option value="error">Error</option>
+                                        </select>
+
+                                        {/* Auto-scroll toggle */}
+                                        <button
+                                            onClick={() => setConsoleAutoScroll(!consoleAutoScroll)}
+                                            className={`px-3 py-1.5 rounded border border-inherit text-sm flex items-center gap-1 ${consoleAutoScroll ? 'bg-green-500/20 text-green-500' : 'opacity-60'}`}
+                                            title="Auto-scroll"
+                                        >
+                                            <i className="fa-solid fa-arrow-down"></i>
+                                            Auto
+                                        </button>
+
+                                        {/* Copy button */}
+                                        <button
+                                            onClick={async () => {
+                                                const success = await consoleCapture.copyToClipboard();
+                                                if (success) {
+                                                    setConsoleCopied(true);
+                                                    setTimeout(() => setConsoleCopied(false), 2000);
+                                                }
+                                            }}
+                                            className={`px-3 py-1.5 rounded border border-inherit text-sm flex items-center gap-1 ${consoleCopied ? 'bg-green-500/20 text-green-500' : 'hover:bg-white/5'}`}
+                                        >
+                                            <i className={`fa-solid ${consoleCopied ? 'fa-check' : 'fa-copy'}`}></i>
+                                            {consoleCopied ? 'Copied!' : 'Copy'}
+                                        </button>
+
+                                        {/* Download TXT */}
+                                        <button
+                                            onClick={() => consoleCapture.downloadAsText()}
+                                            className="px-3 py-1.5 rounded border border-inherit text-sm flex items-center gap-1 hover:bg-white/5"
+                                            title="Download as .txt"
+                                        >
+                                            <i className="fa-solid fa-download"></i>
+                                            .txt
+                                        </button>
+
+                                        {/* Download JSON */}
+                                        <button
+                                            onClick={() => consoleCapture.downloadAsJSON()}
+                                            className="px-3 py-1.5 rounded border border-inherit text-sm flex items-center gap-1 hover:bg-white/5"
+                                            title="Download as .json"
+                                        >
+                                            <i className="fa-solid fa-download"></i>
+                                            .json
+                                        </button>
+
+                                        {/* Clear button */}
+                                        <button
+                                            onClick={() => consoleCapture.clear()}
+                                            className="px-3 py-1.5 rounded border border-red-500/50 text-red-500 text-sm flex items-center gap-1 hover:bg-red-500/10"
+                                        >
+                                            <i className="fa-solid fa-trash"></i>
+                                            Clear
+                                        </button>
+                                    </div>
+
+                                    {/* Console Output */}
+                                    <div className="bg-black/50 rounded border border-inherit overflow-hidden">
+                                        <div className="max-h-[400px] overflow-y-auto p-3 font-mono text-xs space-y-1">
+                                            {consoleEntries
+                                                .filter(entry => consoleFilter === 'all' || entry.type === consoleFilter)
+                                                .map((entry) => (
+                                                    <div
+                                                        key={entry.id}
+                                                        className={`flex gap-2 py-0.5 border-b border-white/5 ${
+                                                            entry.type === 'error' ? 'text-red-400' :
+                                                            entry.type === 'warn' ? 'text-yellow-400' :
+                                                            entry.type === 'info' ? 'text-blue-400' :
+                                                            entry.type === 'debug' ? 'text-purple-400' :
+                                                            'text-gray-300'
+                                                        }`}
+                                                    >
+                                                        <span className="opacity-40 flex-shrink-0">
+                                                            {entry.timestamp.toLocaleTimeString()}
+                                                        </span>
+                                                        <span className={`uppercase text-[10px] px-1 rounded flex-shrink-0 ${
+                                                            entry.type === 'error' ? 'bg-red-500/20' :
+                                                            entry.type === 'warn' ? 'bg-yellow-500/20' :
+                                                            entry.type === 'info' ? 'bg-blue-500/20' :
+                                                            entry.type === 'debug' ? 'bg-purple-500/20' :
+                                                            'bg-gray-500/20'
+                                                        }`}>
+                                                            {entry.type}
+                                                        </span>
+                                                        <span className="break-all whitespace-pre-wrap">{entry.message}</span>
+                                                    </div>
+                                                ))
+                                            }
+                                            {consoleEntries.length === 0 && (
+                                                <div className="text-center opacity-40 py-8">
+                                                    <i className="fa-solid fa-terminal text-2xl mb-2"></i>
+                                                    <p>No console messages captured yet.</p>
+                                                    <p className="text-xs mt-1">Interact with the app to see logs here.</p>
+                                                </div>
+                                            )}
+                                            <div ref={consoleEndRef} />
+                                        </div>
+                                    </div>
+
+                                    {/* Stats */}
+                                    <div className="mt-3 flex items-center gap-4 text-xs opacity-60">
+                                        <span className="flex items-center gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                                            Log: {consoleEntries.filter(e => e.type === 'log').length}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                                            Info: {consoleEntries.filter(e => e.type === 'info').length}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+                                            Warn: {consoleEntries.filter(e => e.type === 'warn').length}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                                            Error: {consoleEntries.filter(e => e.type === 'error').length}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Tips */}
+                                <div className="p-4 border border-inherit rounded bg-opacity-5">
+                                    <h5 className="font-bold flex items-center gap-2 mb-2">
+                                        <i className="fa-solid fa-lightbulb text-yellow-500"></i>
+                                        Debugging Tips
+                                    </h5>
+                                    <ul className="text-sm opacity-80 space-y-1">
+                                        <li>• Click <strong>Code</strong> button and look for <code className="bg-black/30 px-1 rounded">🟢 openEditor called</code></li>
+                                        <li>• Click <strong>WP</strong> button and look for <code className="bg-black/30 px-1 rounded">🔵 openWordPress called</code></li>
+                                        <li>• Use filters to find specific log types</li>
+                                        <li>• Download logs to share for debugging</li>
+                                    </ul>
                                 </div>
                             </div>
                         )}

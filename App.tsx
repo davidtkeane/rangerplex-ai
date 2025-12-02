@@ -86,6 +86,7 @@ const App: React.FC = () => {
   const [isManualOpen, setIsManualOpen] = useState(false); // Manual overlay
   const [isEditorOpen, setIsEditorOpen] = useState(false); // State for Code Editor visibility
   const [isWordPressOpen, setIsWordPressOpen] = useState(false); // State for WordPress Dashboard visibility
+  const [isWordPressFullScreen, setIsWordPressFullScreen] = useState(false); // Full screen mode for WordPress
   const [isBlockchainChatOpen, setIsBlockchainChatOpen] = useState(false); // State for Blockchain Chat visibility
   const [initialBrowserUrl, setInitialBrowserUrl] = useState<string | undefined>(undefined);
   const [browserOpenRequest, setBrowserOpenRequest] = useState<{ url?: string; ts: number } | null>(null);
@@ -409,7 +410,8 @@ const App: React.FC = () => {
         await dbService.saveSetting(key, value);
       }
 
-      const proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+      let proxyUrl = settings.corsProxyUrl || 'http://localhost:3000';
+      if (proxyUrl.includes(':3010')) proxyUrl = proxyUrl.replace(':3010', ':3000');
       const response = await fetch(`${proxyUrl}/api/system/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -838,8 +840,10 @@ const App: React.FC = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
-  const openWordPress = useCallback(() => {
+  const openWordPress = useCallback((fullScreen: boolean = false) => {
+    console.log('🔵 openWordPress called, fullScreen:', fullScreen);
     setIsWordPressOpen(true);
+    setIsWordPressFullScreen(fullScreen);
     setActiveSurface('wordpress');
     setIsCanvasOpen(false);
     setIsTrainingOpen(false);
@@ -879,9 +883,11 @@ const App: React.FC = () => {
   }, []);
 
   const openEditor = useCallback(() => {
+    console.log('🟢 openEditor called - opening Code Editor');
     setIsEditorOpen(true);
     setActiveSurface('editor');
     setIsWordPressOpen(false);
+    setIsWordPressFullScreen(false);
     setIsWeatherOpen(false);
     setIsPodcastOpen(false);
     setIsCanvasOpen(false);
@@ -1225,6 +1231,10 @@ const App: React.FC = () => {
                   onOpenBlockchainChat={() => setIsBlockchainChatOpen(true)}
                   saveImageToLocal={saveImageToLocal}
                   petBridge={petBridge}
+                  bottomPadding={
+                    (settings.radioEnabled ? 60 : 0) +
+                    (rssSettings.enabled ? (rssSettings.height === 'small' ? 32 : rssSettings.height === 'large' ? 48 : 40) : 0)
+                  }
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -1272,9 +1282,24 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {activeSurface === 'wordpress' && (
+            {activeSurface === 'wordpress' && !isWordPressFullScreen && (
               <div className="absolute inset-0 z-20 bg-gray-50 dark:bg-zinc-900">
-                <button onClick={() => { setIsWordPressOpen(false); setActiveSurface('chat'); }} className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"><i className="fa-solid fa-xmark"></i></button>
+                {/* Full Screen Button */}
+                <button
+                  onClick={() => setIsWordPressFullScreen(true)}
+                  className="absolute top-4 right-16 z-50 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg"
+                  title="Full Screen"
+                >
+                  <i className="fa-solid fa-expand"></i>
+                </button>
+                {/* Close Button */}
+                <button
+                  onClick={() => { setIsWordPressOpen(false); setActiveSurface('chat'); }}
+                  className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"
+                  title="Close"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
                 <WordPressDashboard onOpenBrowser={openBrowser} onOpenFullScreen={openBrowserFullScreen} autoStart={true} />
               </div>
             )}
@@ -1495,6 +1520,24 @@ const App: React.FC = () => {
                 lineNumbers={settings.editorLineNumbers}
               />
             )}
+          </div>
+        )}
+
+        {/* WordPress Full Screen Mode */}
+        {isWordPressFullScreen && isWordPressOpen && (
+          <div className="fixed inset-0 z-[9999] bg-gray-900">
+            <button
+              onClick={() => { setIsWordPressFullScreen(false); setIsWordPressOpen(false); setActiveSurface('chat'); }}
+              className="absolute top-4 right-4 z-[10000] p-3 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition-all"
+              title="Close WordPress"
+            >
+              <i className="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <WordPressDashboard
+              onOpenBrowser={openBrowser}
+              onOpenFullScreen={openBrowserFullScreen}
+              autoStart={true}
+            />
           </div>
         )}
 
