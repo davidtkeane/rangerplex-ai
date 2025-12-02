@@ -29,7 +29,7 @@ const { spawn } = require('child_process');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '2.3.0';
+const VERSION = '2.4.0';
 let DEBUG_VOICE = false; // Toggle with /debug command
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
@@ -715,8 +715,19 @@ async function main() {
                 if (payload.target === nickname && callState === CALL_STATE.CALLING) {
                     callState = CALL_STATE.IN_CALL;
                     callPartner = senderName;
-                    callMsg(`${c.brightGreen}${senderName} answered! Connected.${c.reset}`);
-                    callMsg(`${c.dim}Type 't' to talk, '/hangup' to end${c.reset}`);
+
+                    // Show nice connected banner
+                    console.log();
+                    console.log(`${c.brightGreen}╔════════════════════════════════════════════════════════╗${c.reset}`);
+                    console.log(`${c.brightGreen}║${c.reset}  📞 ${c.bold}CONNECTED${c.reset} with ${c.brightMagenta}${c.bold}${senderName}${c.reset}                           ${c.brightGreen}║${c.reset}`);
+                    console.log(`${c.brightGreen}╚════════════════════════════════════════════════════════╝${c.reset}`);
+                    console.log();
+                    console.log(`   ${c.brightCyan}t${c.reset} + Enter  │  Start talking`);
+                    console.log(`   ${c.brightCyan}s${c.reset} + Enter  │  Stop talking`);
+                    console.log(`   ${c.brightCyan}/hangup${c.reset}    │  End call`);
+                    console.log();
+                    console.log(`   ${c.dim}💡 TIP: Use headphones to avoid echo/feedback${c.reset}`);
+                    console.log();
                     showPrompt(callState, nickname, callPartner);
                 }
                 break;
@@ -901,8 +912,18 @@ async function main() {
             }
         }));
 
-        callMsg(`${c.brightGreen}Connected with ${callPartner}!${c.reset}`);
-        callMsg(`${c.dim}Type 't' to talk, '/hangup' to end${c.reset}`);
+        // Show nice connected banner
+        console.log();
+        console.log(`${c.brightGreen}╔════════════════════════════════════════════════════════╗${c.reset}`);
+        console.log(`${c.brightGreen}║${c.reset}  📞 ${c.bold}CONNECTED${c.reset} with ${c.brightMagenta}${c.bold}${callPartner}${c.reset}                           ${c.brightGreen}║${c.reset}`);
+        console.log(`${c.brightGreen}╚════════════════════════════════════════════════════════╝${c.reset}`);
+        console.log();
+        console.log(`   ${c.brightCyan}t${c.reset} + Enter  │  Start talking`);
+        console.log(`   ${c.brightCyan}s${c.reset} + Enter  │  Stop talking`);
+        console.log(`   ${c.brightCyan}/hangup${c.reset}    │  End call`);
+        console.log();
+        console.log(`   ${c.dim}💡 TIP: Use headphones to avoid echo/feedback${c.reset}`);
+        console.log();
     }
 
     function rejectCall() {
@@ -1022,6 +1043,41 @@ async function main() {
     // VOICE FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════
 
+    // Calculate audio level from buffer (0-100)
+    function getAudioLevel(buffer) {
+        if (!buffer || buffer.length < 2) return 0;
+
+        let sum = 0;
+        // Read 16-bit samples
+        for (let i = 0; i < buffer.length - 1; i += 2) {
+            const sample = buffer.readInt16LE(i);
+            sum += Math.abs(sample);
+        }
+        const avg = sum / (buffer.length / 2);
+        // Normalize to 0-100 (32768 is max for 16-bit)
+        const level = Math.min(100, Math.round((avg / 32768) * 100 * 3)); // *3 for sensitivity
+        return level;
+    }
+
+    // Create visual audio meter
+    function drawAudioMeter(level, maxBars = 20) {
+        const filledBars = Math.round((level / 100) * maxBars);
+        const emptyBars = maxBars - filledBars;
+
+        let meter = '';
+        // Color based on level
+        if (level > 70) {
+            meter = `${c.brightRed}${'█'.repeat(filledBars)}${c.dim}${'░'.repeat(emptyBars)}${c.reset}`;
+        } else if (level > 40) {
+            meter = `${c.brightYellow}${'█'.repeat(filledBars)}${c.dim}${'░'.repeat(emptyBars)}${c.reset}`;
+        } else if (level > 10) {
+            meter = `${c.brightGreen}${'█'.repeat(filledBars)}${c.dim}${'░'.repeat(emptyBars)}${c.reset}`;
+        } else {
+            meter = `${c.green}${'█'.repeat(filledBars)}${c.dim}${'░'.repeat(emptyBars)}${c.reset}`;
+        }
+        return meter;
+    }
+
     function startTalking() {
         if (callState !== CALL_STATE.IN_CALL && callState !== CALL_STATE.IN_GROUP) {
             systemMsg(`${c.yellow}Join a call first: /call <user> or /voice for group${c.reset}`);
@@ -1029,7 +1085,7 @@ async function main() {
         }
 
         if (isTalking) {
-            systemMsg(`${c.dim}Already talking. Type 's' to stop.${c.reset}`);
+            systemMsg(`${c.dim}Already talking. Type 's' + Enter to stop.${c.reset}`);
             return;
         }
 
@@ -1047,13 +1103,30 @@ async function main() {
             }
         }));
 
-        systemMsg(`${c.brightGreen}TALKING${c.reset}`);
+        // Show nice talking header
+        console.log();
+        console.log(`${c.bgGreen}${c.bold}                                                        ${c.reset}`);
+        console.log(`${c.bgGreen}${c.bold}   🎤 TRANSMITTING TO: ${callState === CALL_STATE.IN_CALL ? callPartner : 'GROUP'}   ${c.reset}`);
+        console.log(`${c.bgGreen}${c.bold}                                                        ${c.reset}`);
+        console.log();
+        console.log(`${c.brightCyan}   Type ${c.bold}s${c.reset}${c.brightCyan} + Enter to stop talking${c.reset}`);
+        console.log(`${c.dim}   Use headphones to avoid echo/feedback${c.reset}`);
+        console.log();
 
         let chunkCount = 0;
+        let peakLevel = 0;
+
         audioCapture.startRecording((chunk) => {
             if (!isTalking) return;
 
             const compressed = compressAudio(chunk);
+            const level = getAudioLevel(chunk);
+            peakLevel = Math.max(peakLevel, level);
+
+            // Decay peak slowly
+            if (chunkCount % 5 === 0) {
+                peakLevel = Math.max(level, peakLevel - 5);
+            }
 
             ws.send(JSON.stringify({
                 type: 'broadcast',
@@ -1069,7 +1142,11 @@ async function main() {
             }));
 
             chunkCount++;
-            process.stdout.write(`\r${c.brightGreen}Talking${c.reset} ${c.dim}[${chunkCount}]${c.reset}  `);
+
+            // Draw live audio meter
+            const meter = drawAudioMeter(level);
+            const peakMark = level > 70 ? '🔊' : level > 30 ? '🔉' : '🔈';
+            process.stdout.write(`\r   ${peakMark} ${c.brightGreen}LIVE${c.reset} [${meter}] ${c.dim}${compressed.davidMath} #${chunkCount}${c.reset}   `);
         });
     }
 
@@ -1092,7 +1169,13 @@ async function main() {
         }));
 
         console.log();
-        systemMsg(`${c.dim}Stopped talking${c.reset}`);
+        console.log();
+        console.log(`${c.dim}   ─────────────────────────────────────────${c.reset}`);
+        console.log(`   ${c.yellow}⏹${c.reset}  ${c.dim}Transmission ended${c.reset}`);
+        console.log(`${c.dim}   ─────────────────────────────────────────${c.reset}`);
+        console.log();
+        console.log(`   ${c.brightCyan}t${c.reset} ${c.dim}= talk again${c.reset}  │  ${c.brightCyan}/hangup${c.reset} ${c.dim}= end call${c.reset}`);
+        console.log();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1120,7 +1203,7 @@ async function main() {
     function showHelp() {
         console.log(`
 ${c.brightGreen}╔════════════════════════════════════════════════════════════╗
-║                    RANGERBLOCK VOICE v2.3                  ║
+║                    RANGERBLOCK VOICE v2.4                  ║
 ╚════════════════════════════════════════════════════════════╝${c.reset}
 
 ${c.brightGreen}=== PRIVATE CALL ===${c.reset}
