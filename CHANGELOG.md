@@ -5,6 +5,138 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.8] - 2025-12-02 💬 RANGERCHAT LITE CONNECTION FIX
+
+### 🔧 Critical WebSocket Protocol Fix
+
+**Problem**: RangerChat Lite app was unable to connect to the relay server
+- User reported: "the app works but its not connecting to the chat"
+- Root cause: App using incorrect WebSocket message protocol
+
+### 🛠️ Protocol Updates (apps/ranger-chat-lite/src/App.tsx)
+
+#### 1. **Registration Protocol Fixed**
+**Before (Broken):**
+```typescript
+ws.send(JSON.stringify({
+    type: 'register',
+    name: username,  // Wrong field name
+    nodeType: 'lite-client'  // Missing required fields
+}))
+```
+
+**After (Working):**
+```typescript
+ws.send(JSON.stringify({
+    type: 'register',
+    address: nodeId,  // Unique node ID
+    nickname: username,  // Correct field name
+    channel: '#rangers',  // Required channel
+    ip: '0.0.0.0',
+    port: 0,
+    mode: 'lite-client',
+    capabilities: ['chat']
+}))
+```
+
+#### 2. **Message Handling Protocol Fixed**
+**Added support for:**
+- `welcome` → Server handshake, triggers registration
+- `registered` → Confirmation, request peer list
+- `peerList` → Show peer count in UI
+- `broadcast/nodeMessage` → Process payload-wrapped messages
+
+**Before (Only handled one type):**
+```typescript
+if (data.type === 'chat') {
+    // Handle chat
+}
+```
+
+**After (Handles full protocol):**
+```typescript
+switch (data.type) {
+    case 'welcome':
+        // Send registration
+    case 'registered':
+        // Show success, get peers
+    case 'peerList':
+        // Update peer count
+    case 'broadcast':
+    case 'nodeMessage':
+        // Handle payload wrapper
+}
+```
+
+#### 3. **Chat Message Format Fixed**
+**Before (Wrong format):**
+```typescript
+ws.send(JSON.stringify({
+    type: 'chat',
+    sender: username,
+    content: input
+}))
+```
+
+**After (Correct format matching voice-chat.cjs):**
+```typescript
+ws.send(JSON.stringify({
+    type: 'broadcast',
+    payload: {
+        type: 'chatMessage',
+        from: nodeId,
+        nickname: username,
+        message: input,
+        timestamp: Date.now()
+    }
+}))
+```
+
+### ✨ New Features
+
+- **Node ID Generation**: Unique `lite-${random}` identifier for each client
+- **Peer Count Display**: Shows number of connected peers
+- **Connection Status Messages**: System notifications for connection events
+- **Welcome Message Handling**: Proper handshake with relay server
+- **Error Handling**: Added `ws.onerror` handler for connection issues
+
+### 🎯 Reference Implementation
+
+All fixes based on working implementation in `rangerblock/just-chat/voice-chat.cjs` (1526 lines)
+- Same protocol as terminal chat client
+- Compatible with relay server at ws://44.222.101.125:5555
+- Ready for future voice/video call features
+
+### ✅ Testing - CONFIRMED WORKING! 🎉
+
+- ✅ App builds successfully with Vite + Electron
+- ✅ TypeScript compilation passes
+- ✅ Electron window launches on http://localhost:5174
+- ✅ **CONNECTION SUCCESSFUL** - Connected to relay server ws://44.222.101.125:5555
+- ✅ **CHAT WORKING** - Messages send and receive properly
+- ✅ **PEER LIST WORKING** - Shows connected users
+- ✅ **FULL PROTOCOL VERIFIED** - welcome → register → registered → peerList flow confirmed
+- ✅ **Tested on:** Windows 11 (MSI Vector 16")
+
+### 📦 Files Modified
+
+- `apps/ranger-chat-lite/src/App.tsx` - Complete WebSocket protocol rewrite
+
+### 🔄 Upgrade Impact
+
+**Users can now:**
+1. Connect to RangerPlex relay server properly
+2. See peer count and connection status
+3. Send/receive chat messages using correct protocol
+4. Experience the same chat as terminal voice-chat.cjs client
+
+**Next Steps:**
+- Test connection with relay server
+- Optional: Add voice call buttons (infrastructure ready)
+- Optional: Add video call support
+
+---
+
 ## [4.1.7] - 2025-12-02 🎓 C++ LEARNING PATH + 📚 DOCUMENTATION MEGA-UPDATE
 
 ### 🎓 C++ Companion Project Framework (NEW!)

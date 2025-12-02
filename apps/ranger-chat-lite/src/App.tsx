@@ -15,33 +15,79 @@ function App() {
     const [serverUrl, setServerUrl] = useState('ws://44.222.101.125:5555') // Default to AWS
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
+    const [peerCount, setPeerCount] = useState(0)
     const wsRef = useRef<WebSocket | null>(null)
+    const nodeIdRef = useRef<string>('')
 
     const connect = () => {
         if (wsRef.current) wsRef.current.close()
 
+        // Generate unique node ID
+        nodeIdRef.current = `lite-${Math.random().toString(36).substring(2, 10)}`
+
         const ws = new WebSocket(serverUrl)
 
         ws.onopen = () => {
-            setConnected(true)
-            // Register
-            ws.send(JSON.stringify({
-                type: 'register',
-                name: username,
-                nodeType: 'lite-client'
-            }))
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: 'Connected to server, waiting for welcome...',
+                timestamp: new Date().toLocaleTimeString()
+            }])
         }
 
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data)
-                if (data.type === 'chat') {
-                    setMessages(prev => [...prev, {
-                        type: 'chat',
-                        sender: data.sender || 'Unknown',
-                        content: data.content,
-                        timestamp: new Date().toLocaleTimeString()
-                    }])
+
+                switch (data.type) {
+                    case 'welcome':
+                        // Server welcomed us, now register
+                        ws.send(JSON.stringify({
+                            type: 'register',
+                            address: nodeIdRef.current,
+                            nickname: username,
+                            channel: '#rangers',
+                            ip: '0.0.0.0',
+                            port: 0,
+                            mode: 'lite-client',
+                            capabilities: ['chat']
+                        }))
+                        break
+
+                    case 'registered':
+                        setConnected(true)
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: `Registered as ${username}`,
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                        // Request peer list
+                        ws.send(JSON.stringify({ type: 'getPeers' }))
+                        break
+
+                    case 'peerList':
+                        const peers = data.peers || []
+                        setPeerCount(peers.length)
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: `${peers.length} peer(s) online`,
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                        break
+
+                    case 'broadcast':
+                    case 'nodeMessage':
+                        // Handle payload-wrapped messages
+                        if (data.payload) {
+                            handlePayload(data.payload)
+                        }
+                        break
+
+                    default:
+                        console.log('Unknown message type:', data.type)
                 }
             } catch (e) {
                 console.error('Failed to parse message', e)
@@ -58,17 +104,48 @@ function App() {
             }])
         }
 
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error)
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: 'Connection error',
+                timestamp: new Date().toLocaleTimeString()
+            }])
+        }
+
         wsRef.current = ws
+    }
+
+    const handlePayload = (payload: any) => {
+        switch (payload.type) {
+            case 'chatMessage':
+                setMessages(prev => [...prev, {
+                    type: 'chat',
+                    sender: payload.nickname || 'Unknown',
+                    content: payload.message,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+                break
+
+            default:
+                console.log('Unknown payload type:', payload.type)
+        }
     }
 
     const sendMessage = () => {
         if (!wsRef.current || !connected || !input.trim()) return
 
+        // Use broadcast format with chatMessage payload (matching voice-chat.cjs)
         const msg = {
-            type: 'chat',
-            sender: username,
-            content: input,
-            timestamp: Date.now()
+            type: 'broadcast',
+            payload: {
+                type: 'chatMessage',
+                from: nodeIdRef.current,
+                nickname: username,
+                message: input,
+                timestamp: Date.now()
+            }
         }
 
         wsRef.current.send(JSON.stringify(msg))
