@@ -9,6 +9,7 @@
     "relay": "node core/relay-server-bridge.cjs",
     "chat": "node just-chat/blockchain-chat.cjs",
     "voice": "node just-chat/voice-chat.cjs",
+    "video": "node just-chat/video-chat.cjs",
     "ping": "node core/blockchain-ping.cjs",
     "test": "node RangerBlockNode.cjs --name TestNode --port 5000"
   },
