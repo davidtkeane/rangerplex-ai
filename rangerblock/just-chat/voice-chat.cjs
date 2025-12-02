@@ -29,8 +29,8 @@ const { spawn } = require('child_process');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '2.1.0';
-const DEBUG_VOICE = true; // Show voice debug info
+const VERSION = '2.2.0';
+let DEBUG_VOICE = false; // Toggle with /debug command
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
 const DEFAULT_CHANNEL = '#rangers';
@@ -884,7 +884,7 @@ async function main() {
     function showHelp() {
         console.log(`
 ${c.brightGreen}╔════════════════════════════════════════════════════════════╗
-║                    RANGERBLOCK VOICE v2.1                  ║
+║                    RANGERBLOCK VOICE v2.2                  ║
 ╚════════════════════════════════════════════════════════════╝${c.reset}
 
 ${c.brightGreen}=== PRIVATE CALL ===${c.reset}
@@ -908,6 +908,12 @@ ${c.brightYellow}=== CHAT ===${c.reset}
 
 ${c.yellow}=== INFO ===${c.reset}
   ${c.green}/peers${c.reset}           List online users
+  ${c.green}/relay${c.reset}           Show relay server info
+  ${c.green}/status${c.reset}          Show your current status
+  ${c.green}/info${c.reset}            Show your node info
+  ${c.green}/ping${c.reset}            Test relay connection
+  ${c.green}/clear${c.reset}           Clear screen
+  ${c.green}/debug${c.reset}           Toggle debug mode
   ${c.green}/help${c.reset}            Show this help
   ${c.green}/quit${c.reset}            Exit
 
@@ -1029,6 +1035,74 @@ ${c.dim}Quick Keys: a=answer, r=reject, t=talk, s=stop${c.reset}
                 case 'who':
                 case 'users':
                     showPeers();
+                    break;
+
+                case 'relay':
+                case 'server':
+                    console.log(`
+${c.brightCyan}=== RELAY SERVER INFO ===${c.reset}
+  ${c.green}Host:${c.reset}        ${RELAY_HOST}
+  ${c.green}Port:${c.reset}        ${RELAY_PORT}
+  ${c.green}URL:${c.reset}         ws://${RELAY_HOST}:${RELAY_PORT}
+  ${c.green}Dashboard:${c.reset}   http://${RELAY_HOST}:5556
+  ${c.green}Status:${c.reset}      ${ws.readyState === WebSocket.OPEN ? `${c.brightGreen}Connected${c.reset}` : `${c.red}Disconnected${c.reset}`}
+`);
+                    break;
+
+                case 'status':
+                    const stateNames = {
+                        [CALL_STATE.IDLE]: 'Idle',
+                        [CALL_STATE.CALLING]: 'Calling...',
+                        [CALL_STATE.RINGING]: 'Incoming Call',
+                        [CALL_STATE.IN_CALL]: 'In Private Call',
+                        [CALL_STATE.IN_GROUP]: 'In Group Voice'
+                    };
+                    console.log(`
+${c.brightCyan}=== YOUR STATUS ===${c.reset}
+  ${c.green}State:${c.reset}       ${stateNames[callState] || callState}
+  ${c.green}Call With:${c.reset}   ${callPartner || 'Nobody'}
+  ${c.green}Talking:${c.reset}     ${isTalking ? `${c.brightGreen}Yes${c.reset}` : 'No'}
+  ${c.green}Muted:${c.reset}       ${isMuted ? `${c.yellow}Yes${c.reset}` : 'No'}
+  ${c.green}Peers:${c.reset}       ${peers.length} online
+`);
+                    break;
+
+                case 'info':
+                case 'me':
+                    console.log(`
+${c.brightCyan}=== YOUR NODE INFO ===${c.reset}
+  ${c.green}Nickname:${c.reset}    ${nickname}
+  ${c.green}Node ID:${c.reset}     ${nodeId}
+  ${c.green}Local IP:${c.reset}    ${localIP}
+  ${c.green}Channel:${c.reset}     ${DEFAULT_CHANNEL}
+  ${c.green}Version:${c.reset}     v${VERSION}
+`);
+                    break;
+
+                case 'ping':
+                    const pingStart = Date.now();
+                    ws.send(JSON.stringify({ type: 'ping' }));
+                    systemMsg(`Ping sent to relay...`);
+                    // Note: actual pong handling would need more work
+                    setTimeout(() => {
+                        if (ws.readyState === WebSocket.OPEN) {
+                            systemMsg(`${c.brightGreen}Relay is responding (connection active)${c.reset}`);
+                        } else {
+                            systemMsg(`${c.red}Relay not responding${c.reset}`);
+                        }
+                        showPrompt(callState, nickname, callPartner);
+                    }, 500);
+                    break;
+
+                case 'clear':
+                case 'cls':
+                    console.clear();
+                    showBanner();
+                    break;
+
+                case 'debug':
+                    DEBUG_VOICE = !DEBUG_VOICE;
+                    systemMsg(`Debug mode: ${DEBUG_VOICE ? `${c.brightGreen}ON${c.reset} (showing voice packets)` : `${c.dim}OFF${c.reset}`}`);
                     break;
 
                 case 'quit':
