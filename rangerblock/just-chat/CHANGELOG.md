@@ -4,6 +4,38 @@ All notable changes to Just-Chat will be documented here.
 
 ---
 
+## [1.3.0] - 2025-12-02
+
+### Added - Private Calls & Group Voice (v2.1.0)
+
+#### Private Calling
+- **`/call <user>`**: Call specific user (e.g., `/call M3Pro`)
+- **Incoming Call Alert**: Big red flashing notification + beep
+- **Quick Keys**: `a` to answer, `r` to reject
+- **`/answer`, `/reject`, `/hangup`**: Call management
+- **30-second timeout**: Auto-cancel unanswered calls
+- **Busy signal**: When user is already in call
+
+#### Group Voice
+- **`/voice`**: Join group channel (everyone hears you)
+- **`/leave`**: Exit group voice
+- **Join/leave notifications**: See who enters/exits
+
+#### Voice Controls
+- **`t`**: Start talking (push-to-talk)
+- **`s`**: Stop talking
+- **`/mute`, `/unmute`**: Audio control
+
+#### Debug Mode
+- Voice packet tracing
+- Call request matching debug
+
+### Fixed
+- Nickname matching for calls
+- Call notifications display
+
+---
+
 ## [1.2.0] - 2025-12-02
 
 ### Added - Voice Chat Module

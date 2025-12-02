@@ -4,6 +4,46 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [4.4.0] - 2025-12-02
+
+### Added - Private Calls & Group Voice (voice-chat.cjs v2.1.0)
+
+#### Private Calling System
+- **`/call <user>`**: Call a specific user (e.g., `/call M3Pro`)
+- **Incoming Call Notifications**: Big red flashing alert + terminal beep
+- **Quick Answer Keys**: Type `a` to answer, `r` to reject
+- **`/answer`**: Answer incoming call
+- **`/reject`**: Decline incoming call
+- **`/hangup`**: End current call
+- **30-second timeout**: Auto-cancel if no answer
+- **Busy signal**: If user is already in a call
+
+#### Group Voice Channel
+- **`/voice`**: Join group voice (Discord-style, everyone hears you)
+- **`/leave`**: Leave group voice channel
+- **Member notifications**: See who joins/leaves group voice
+
+#### Voice Controls (while in call)
+- **`t`**: Start talking (push-to-talk)
+- **`s`**: Stop talking
+- **`/mute`**: Mute incoming audio
+- **`/unmute`**: Unmute audio
+
+#### Integrated Chat
+- Type any text to send chat messages (works alongside voice)
+- See chat messages from both chat client and voice client users
+
+#### Debug Mode
+- Shows voice packet flow for troubleshooting
+- Call request matching debug
+- Audio playback status
+
+### Fixed
+- Nickname matching for calls (partial matches work: "MSI" matches "MSI-123")
+- Call notifications now properly display on receiver's terminal
+
+---
+
 ## [4.3.0] - 2025-12-02
 
 ### Added - Voice Chat & Unified Communications System
