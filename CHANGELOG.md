@@ -5,6 +5,31 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.6] - 2025-12-02 🔧 SETTINGS MODAL & PORT FIXES
+
+### 🐛 Settings Modal Scrollbar Fix
+- **Fixed**: COMMANDS tab showing unnecessary scrollbar and reducing content size
+- **Root Cause**: `min-h-[65vh]` on content wrapper conflicted with `max-h-[95vh]` outer container
+- **Solution**: Removed `min-h-[65vh]` constraint - `flex-1` now properly fills available space
+
+### 🔌 Port Auto-Correction (3010 → 3000)
+- **Fixed**: Connection refused errors when using slash commands (`/geoip`, etc.)
+- **Root Cause**: Old saved settings had `corsProxyUrl` pointing to port 3010
+- **Solution**: All proxy URL references now auto-correct 3010 → 3000
+- **Scope**: Updated 30+ instances across `ChatInterface.tsx` and `SettingsModal.tsx`
+
+### 📱 Chat Input Positioning
+- **Fixed**: Ranger Radio player covering the chat input/settings buttons
+- **Solution**: Added `bottomPadding` prop to ChatInterface
+- **Behavior**: Input area shifts up when Radio Player visible (+60px) and RSS ticker (+32-48px)
+
+### 📦 Files Modified
+- `App.tsx` - bottomPadding calculation, port fix
+- `components/ChatInterface.tsx` - bottomPadding prop, 20+ port fixes
+- `components/SettingsModal.tsx` - scrollbar fix, 10+ port fixes
+
+---
+
 ## [4.1.5] - 2025-12-01 🛠️ SIDEBAR & WORDPRESS FIXES
 
 ### 🐛 Code Button Fix
