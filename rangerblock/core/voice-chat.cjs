@@ -1,21 +1,22 @@
 #!/usr/bin/env node
 /**
- * RANGERBLOCK VOICE CHAT v1.0.0
+ * RANGERBLOCK VOICE CHAT v2.0.0
  * =============================
- * P2P Voice communication over blockchain relay
+ * P2P Voice communication with Private Calls + Group Voice
  *
- * Usage:
- *   node voice-chat.cjs
- *   node voice-chat.cjs --nick Ranger
+ * PRIVATE CALL:
+ *   /call M3Pro     - Call specific user
+ *   /answer         - Answer incoming call
+ *   /reject         - Reject incoming call
+ *   /hangup         - End current call
  *
- * Requirements:
- *   - macOS: brew install sox
- *   - Linux: apt install sox libsox-fmt-all
- *   - Windows: Install SoX from https://sox.sourceforge.net/
+ * GROUP VOICE:
+ *   /voice          - Join group voice channel
+ *   /leave          - Leave group voice channel
  *
  * Created by: David Keane (IrishRanger) with Claude Code (Ranger)
  * Philosophy: "One foot in front of the other"
- * Innovation: David's 73→27→73 compression mathematics
+ * Innovation: David's 73->27->73 compression mathematics
  */
 
 const WebSocket = require('ws');
@@ -28,16 +29,24 @@ const { spawn } = require('child_process');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '1.1.0';
+const VERSION = '2.0.0';
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
-const DEFAULT_CHANNEL = '#rangers-voice';
+const DEFAULT_CHANNEL = '#rangers';
 
 // Audio settings
-const SAMPLE_RATE = 16000;      // 16kHz for voice (smaller than 44.1kHz CD quality)
-const CHANNELS = 1;              // Mono
-const BIT_DEPTH = 16;            // 16-bit
-const CHUNK_DURATION_MS = 100;   // 100ms chunks
+const SAMPLE_RATE = 16000;
+const CHANNELS = 1;
+const BIT_DEPTH = 16;
+
+// Call states
+const CALL_STATE = {
+    IDLE: 'idle',
+    CALLING: 'calling',      // Outgoing call, waiting for answer
+    RINGING: 'ringing',      // Incoming call, waiting to answer
+    IN_CALL: 'in_call',      // Active private call
+    IN_GROUP: 'in_group'     // In group voice channel
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COLORS
@@ -47,15 +56,20 @@ const c = {
     reset: '\x1b[0m',
     bold: '\x1b[1m',
     dim: '\x1b[2m',
+    blink: '\x1b[5m',
     cyan: '\x1b[36m',
     green: '\x1b[32m',
     yellow: '\x1b[33m',
     red: '\x1b[31m',
     magenta: '\x1b[35m',
+    blue: '\x1b[34m',
     brightCyan: '\x1b[96m',
     brightGreen: '\x1b[92m',
     brightYellow: '\x1b[93m',
     brightMagenta: '\x1b[95m',
+    brightRed: '\x1b[91m',
+    bgRed: '\x1b[41m',
+    bgGreen: '\x1b[42m',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -66,8 +80,12 @@ function getTimestamp() {
     return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-function log(msg) {
+function clearLine() {
     process.stdout.write(`\r\x1b[K`);
+}
+
+function log(msg) {
+    clearLine();
     console.log(`${c.dim}[${getTimestamp()}]${c.reset} ${msg}`);
 }
 
@@ -75,12 +93,37 @@ function systemMsg(msg) {
     log(`${c.yellow}*${c.reset} ${msg}`);
 }
 
-function voiceMsg(from, status) {
-    log(`${c.brightMagenta}🎤${c.reset} ${c.bold}${from}${c.reset} ${status}`);
+function callMsg(msg) {
+    log(`${c.brightGreen}${c.reset} ${msg}`);
 }
 
-function showPrompt(channel, nick) {
-    process.stdout.write(`${c.dim}[${channel}]${c.reset} ${c.magenta}${nick}${c.reset}> `);
+function voiceMsg(from, status) {
+    log(`${c.brightMagenta}${c.reset} ${c.bold}${from}${c.reset} ${status}`);
+}
+
+function chatMsg(from, message) {
+    log(`${c.cyan}${c.reset} ${c.bold}${from}${c.reset}: ${message}`);
+}
+
+function showPrompt(state, nickname, callWith = null) {
+    let prefix = '';
+    switch (state) {
+        case CALL_STATE.IN_CALL:
+            prefix = `${c.brightGreen}[CALL ${callWith}]${c.reset} `;
+            break;
+        case CALL_STATE.IN_GROUP:
+            prefix = `${c.brightMagenta}[GROUP VOICE]${c.reset} `;
+            break;
+        case CALL_STATE.CALLING:
+            prefix = `${c.yellow}[Calling ${callWith}...]${c.reset} `;
+            break;
+        case CALL_STATE.RINGING:
+            prefix = `${c.brightRed}[INCOMING CALL]${c.reset} `;
+            break;
+        default:
+            prefix = '';
+    }
+    process.stdout.write(`${prefix}${c.magenta}${nickname}${c.reset}> `);
 }
 
 function getLocalIP() {
@@ -97,25 +140,19 @@ function getLocalIP() {
 
 function getMachineName() {
     const hostname = os.hostname().toLowerCase();
-    if (hostname.includes('m3') || hostname.includes('genesis')) return 'M3Pro-Voice';
-    if (hostname.includes('m4') || hostname.includes('max')) return 'M4Max-Voice';
-    if (hostname.includes('m1') || hostname.includes('air')) return 'M1Air-Voice';
-    if (hostname.includes('msi') || hostname.includes('vector')) return 'MSI-Voice';
-    if (hostname.includes('aws') || hostname.includes('ip-')) return 'AWS-Voice';
-    return hostname.slice(0, 12) + '-Voice';
+    if (hostname.includes('m3') || hostname.includes('genesis')) return 'M3Pro';
+    if (hostname.includes('m4') || hostname.includes('max')) return 'M4Max';
+    if (hostname.includes('m1') || hostname.includes('air')) return 'M1Air';
+    if (hostname.includes('msi') || hostname.includes('vector')) return 'MSI';
+    if (hostname.includes('aws') || hostname.includes('ip-')) return 'AWS';
+    return hostname.slice(0, 10);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DAVID'S 73→27→73 COMPRESSION
+// DAVID'S 73->27->73 COMPRESSION
 // ═══════════════════════════════════════════════════════════════════════════
 
 function compressAudio(audioBuffer) {
-    /**
-     * David's compression mathematics:
-     * - Compress to ~27% of original size for transmission
-     * - Decompress to ~73% quality on receive
-     * - Balance between size and quality
-     */
     try {
         const compressed = zlib.deflateSync(audioBuffer, { level: 9 });
         const ratio = compressed.length / audioBuffer.length;
@@ -124,7 +161,7 @@ function compressAudio(audioBuffer) {
             originalSize: audioBuffer.length,
             compressedSize: compressed.length,
             ratio: ratio,
-            davidMath: ratio <= 0.27 ? '27% achieved!' : `${(ratio * 100).toFixed(1)}%`
+            davidMath: ratio <= 0.27 ? '27%!' : `${(ratio * 100).toFixed(0)}%`
         };
     } catch (err) {
         return { data: audioBuffer, error: err.message };
@@ -132,13 +169,9 @@ function compressAudio(audioBuffer) {
 }
 
 function decompressAudio(compressedBuffer) {
-    /**
-     * David's decompression: Restore from 27% to playable audio
-     */
     try {
         return zlib.inflateSync(compressedBuffer);
     } catch (err) {
-        console.error(`Decompression error: ${err.message}`);
         return compressedBuffer;
     }
 }
@@ -151,7 +184,6 @@ class AudioCapture {
     constructor() {
         this.recording = false;
         this.process = null;
-        this.chunks = [];
     }
 
     checkSoxInstalled() {
@@ -165,23 +197,7 @@ class AudioCapture {
     startRecording(onData) {
         if (this.recording) return;
 
-        // SoX command to capture audio
-        // -d = default input device
-        // -t raw = raw audio output
-        // -r = sample rate
-        // -c = channels
-        // -b = bit depth
-        // -e signed = signed integer encoding
-        const args = [
-            '-d',                    // Default input device
-            '-t', 'raw',            // Raw output format
-            '-r', String(SAMPLE_RATE),
-            '-c', String(CHANNELS),
-            '-b', String(BIT_DEPTH),
-            '-e', 'signed-integer',
-            '-'                      // Output to stdout
-        ];
-
+        const args = ['-d', '-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', '-'];
         this.process = spawn('sox', args);
         this.recording = true;
 
@@ -189,22 +205,9 @@ class AudioCapture {
             if (onData) onData(chunk);
         });
 
-        this.process.stderr.on('data', (data) => {
-            // SoX outputs info to stderr, ignore unless error
-            const msg = data.toString();
-            if (msg.includes('error') || msg.includes('FAIL')) {
-                console.error(`${c.red}SoX error: ${msg}${c.reset}`);
-            }
-        });
-
-        this.process.on('error', (err) => {
-            console.error(`${c.red}Audio capture error: ${err.message}${c.reset}`);
-            this.recording = false;
-        });
-
-        this.process.on('close', () => {
-            this.recording = false;
-        });
+        this.process.stderr.on('data', () => {}); // Ignore SoX info
+        this.process.on('error', () => { this.recording = false; });
+        this.process.on('close', () => { this.recording = false; });
     }
 
     stopRecording() {
@@ -221,38 +224,55 @@ class AudioCapture {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class AudioPlayback {
-    constructor() {
-        this.playing = false;
-        this.queue = [];
-    }
-
     play(audioBuffer) {
-        // SoX play command
-        // -t raw = raw input format
-        // -r = sample rate
-        // -c = channels
-        // -b = bit depth
-        // -e signed = signed integer encoding
-        const args = [
-            '-t', 'raw',
-            '-r', String(SAMPLE_RATE),
-            '-c', String(CHANNELS),
-            '-b', String(BIT_DEPTH),
-            '-e', 'signed-integer',
-            '-',                     // Input from stdin
-            '-d'                     // Output to default device
-        ];
-
+        const args = ['-t', 'raw', '-r', String(SAMPLE_RATE), '-c', String(CHANNELS), '-b', String(BIT_DEPTH), '-e', 'signed-integer', '-', '-d'];
         const player = spawn('sox', args);
-
         player.stdin.write(audioBuffer);
         player.stdin.end();
-
-        player.on('error', (err) => {
-            // Silently handle - likely just no audio device
-        });
-
+        player.on('error', () => {});
         return player;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RING TONE (visual notification)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class RingTone {
+    constructor() {
+        this.ringing = false;
+        this.interval = null;
+        this.count = 0;
+    }
+
+    start(callerName) {
+        this.ringing = true;
+        this.count = 0;
+
+        const ring = () => {
+            if (!this.ringing) return;
+            this.count++;
+            clearLine();
+
+            if (this.count % 2 === 0) {
+                console.log(`\n${c.bgRed}${c.bold}  INCOMING CALL from ${callerName}!  ${c.reset}`);
+                console.log(`${c.brightGreen}    /answer${c.reset} to accept  |  ${c.brightRed}/reject${c.reset} to decline\n`);
+            } else {
+                console.log(`\n${c.brightRed}${c.bold}  ${callerName} is calling!   ${c.reset}`);
+                console.log(`${c.brightGreen}    /answer${c.reset} to accept  |  ${c.brightRed}/reject${c.reset} to decline\n`);
+            }
+        };
+
+        ring();
+        this.interval = setInterval(ring, 3000);
+    }
+
+    stop() {
+        this.ringing = false;
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+        }
     }
 }
 
@@ -263,17 +283,13 @@ class AudioPlayback {
 function showBanner() {
     console.clear();
     console.log(`
-${c.brightMagenta}╔══════════════════════════════════════════════════════════════╗
-║  ${c.brightYellow}██╗   ██╗${c.brightGreen} ██████╗ ${c.brightCyan}██╗${c.magenta} ██████╗${c.red}███████╗${c.brightMagenta}                     ║
-║  ${c.brightYellow}██║   ██║${c.brightGreen}██╔═══██╗${c.brightCyan}██║${c.magenta}██╔════╝${c.red}██╔════╝${c.brightMagenta}                     ║
-║  ${c.brightYellow}██║   ██║${c.brightGreen}██║   ██║${c.brightCyan}██║${c.magenta}██║     ${c.red}█████╗  ${c.brightMagenta}                     ║
-║  ${c.brightYellow}╚██╗ ██╔╝${c.brightGreen}██║   ██║${c.brightCyan}██║${c.magenta}██║     ${c.red}██╔══╝  ${c.brightMagenta}                     ║
-║  ${c.brightYellow} ╚████╔╝ ${c.brightGreen}╚██████╔╝${c.brightCyan}██║${c.magenta}╚██████╗${c.red}███████╗${c.brightMagenta}                     ║
-║  ${c.brightYellow}  ╚═══╝  ${c.brightGreen} ╚═════╝ ${c.brightCyan}╚═╝${c.magenta} ╚═════╝${c.red}╚══════╝${c.brightMagenta}                     ║
-║                                                              ║
-║     ${c.brightGreen}★${c.reset} ${c.bold}RANGERBLOCK VOICE CHAT${c.reset} ${c.brightGreen}★${c.brightMagenta}  v${VERSION}                  ║
-║     ${c.dim}David's 73→27→73 Compression${c.brightMagenta}                          ║
-╚══════════════════════════════════════════════════════════════╝${c.reset}
+${c.brightMagenta}+================================================================+
+|  ${c.brightGreen}RANGER    RANGER    RANGER    RANGER${c.brightMagenta}                        |
+|  ${c.brightGreen}BLOCK     BLOCK     BLOCK     BLOCK${c.brightMagenta}                         |
+|                                                                |
+|     ${c.brightCyan}VOICE + CHAT${c.reset}  ${c.dim}v${VERSION}${c.brightMagenta}                                  |
+|     ${c.dim}Private Calls | Group Voice | Text Chat${c.brightMagenta}                 |
++================================================================+${c.reset}
 `);
 }
 
@@ -282,7 +298,6 @@ ${c.brightMagenta}╔═══════════════════�
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function main() {
-    // Parse args
     const args = process.argv.slice(2);
     let presetNick = null;
     for (let i = 0; i < args.length; i++) {
@@ -293,33 +308,27 @@ async function main() {
 
     showBanner();
 
-    // Check SoX installation
+    // Check SoX
     const audioCapture = new AudioCapture();
     const audioPlayback = new AudioPlayback();
+    const ringTone = new RingTone();
 
     const soxInstalled = await audioCapture.checkSoxInstalled();
     if (!soxInstalled) {
-        console.log(`${c.red}╔════════════════════════════════════════════════════════════╗${c.reset}`);
-        console.log(`${c.red}║  ⚠️  SoX NOT INSTALLED - Required for audio                 ║${c.reset}`);
-        console.log(`${c.red}╠════════════════════════════════════════════════════════════╣${c.reset}`);
-        console.log(`${c.red}║${c.reset}                                                            ${c.red}║${c.reset}`);
-        console.log(`${c.red}║${c.reset}  ${c.cyan}macOS:${c.reset}   brew install sox                              ${c.red}║${c.reset}`);
-        console.log(`${c.red}║${c.reset}  ${c.cyan}Linux:${c.reset}   sudo apt install sox libsox-fmt-all           ${c.red}║${c.reset}`);
-        console.log(`${c.red}║${c.reset}  ${c.cyan}Windows:${c.reset} Download from https://sox.sourceforge.net/    ${c.red}║${c.reset}`);
-        console.log(`${c.red}║${c.reset}                                                            ${c.red}║${c.reset}`);
-        console.log(`${c.red}╚════════════════════════════════════════════════════════════╝${c.reset}`);
-        console.log();
+        console.log(`${c.red}+============================================================+${c.reset}`);
+        console.log(`${c.red}|  SoX NOT INSTALLED - Required for voice                    |${c.reset}`);
+        console.log(`${c.red}+============================================================+${c.reset}`);
+        console.log(`${c.red}|${c.reset}  ${c.cyan}macOS:${c.reset}   brew install sox                              ${c.red}|${c.reset}`);
+        console.log(`${c.red}|${c.reset}  ${c.cyan}Linux:${c.reset}   sudo apt install sox libsox-fmt-all           ${c.red}|${c.reset}`);
+        console.log(`${c.red}|${c.reset}  ${c.cyan}Windows:${c.reset} winget install sox.sox                        ${c.red}|${c.reset}`);
+        console.log(`${c.red}+============================================================+${c.reset}`);
         process.exit(1);
     }
 
-    systemMsg(`${c.green}SoX audio system detected${c.reset}`);
+    systemMsg(`${c.green}SoX audio ready${c.reset}`);
 
     // Setup readline
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const question = (q) => new Promise(resolve => rl.question(q, resolve));
 
     // Get username
@@ -334,20 +343,22 @@ async function main() {
         console.log();
     }
 
-    // Connection info
+    // State
     const localIP = getLocalIP();
     const nodeId = `${nickname}-${Date.now()}`;
-    const currentChannel = DEFAULT_CHANNEL;
-
-    systemMsg(`Connecting as 🎤 ${c.brightMagenta}${nickname}${c.reset}...`);
-    systemMsg(`Relay: ${c.cyan}ws://${RELAY_HOST}:${RELAY_PORT}${c.reset}`);
-
-    // Connect to relay
-    const wsUrl = `ws://${RELAY_HOST}:${RELAY_PORT}`;
-    let ws;
-    let peers = [];
+    let callState = CALL_STATE.IDLE;
+    let callPartner = null;
+    let incomingCaller = null;
     let isTalking = false;
     let isMuted = false;
+    let peers = [];
+    let groupVoiceMembers = [];
+
+    systemMsg(`Connecting as ${c.brightMagenta}${nickname}${c.reset}...`);
+
+    // Connect
+    const wsUrl = `ws://${RELAY_HOST}:${RELAY_PORT}`;
+    let ws;
 
     try {
         ws = new WebSocket(wsUrl);
@@ -356,18 +367,22 @@ async function main() {
         process.exit(1);
     }
 
-    // WebSocket handlers
+    // ═══════════════════════════════════════════════════════════════════════
+    // WEBSOCKET HANDLERS
+    // ═══════════════════════════════════════════════════════════════════════
+
     ws.on('open', () => {
-        systemMsg(`${c.brightGreen}Connected to voice relay!${c.reset}`);
+        systemMsg(`${c.brightGreen}Connected to relay!${c.reset}`);
     });
 
     ws.on('error', (err) => {
-        systemMsg(`${c.red}Connection error: ${err.message}${c.reset}`);
+        systemMsg(`${c.red}Error: ${err.message}${c.reset}`);
     });
 
     ws.on('close', () => {
-        systemMsg(`${c.red}Disconnected from relay${c.reset}`);
+        systemMsg(`${c.red}Disconnected${c.reset}`);
         audioCapture.stopRecording();
+        ringTone.stop();
         rl.close();
         process.exit(1);
     });
@@ -382,85 +397,35 @@ async function main() {
                         type: 'register',
                         address: nodeId,
                         nickname: nickname,
-                        channel: currentChannel,
+                        channel: DEFAULT_CHANNEL,
                         ip: localIP,
                         port: 0,
-                        mode: 'voice'
+                        mode: 'voice-chat',
+                        capabilities: ['voice', 'chat', 'call']
                     }));
                     break;
 
                 case 'registered':
                     systemMsg(`Registered as ${c.brightMagenta}${nickname}${c.reset}`);
-                    systemMsg(`Voice channel: ${c.cyan}${currentChannel}${c.reset}`);
                     ws.send(JSON.stringify({ type: 'getPeers' }));
                     break;
 
                 case 'peerList':
                     peers = msg.peers || [];
-                    systemMsg(`${c.brightGreen}${peers.length}${c.reset} peer(s) in voice channel`);
+                    systemMsg(`${c.brightGreen}${peers.length}${c.reset} peer(s) online`);
                     console.log();
                     showHelp();
                     console.log();
-                    showPrompt(currentChannel, nickname);
+                    showPrompt(callState, nickname, callPartner);
                     break;
 
                 case 'peerListUpdate':
-                    const oldCount = peers.length;
                     peers = msg.peers || [];
-                    if (peers.length > oldCount) {
-                        const newPeer = peers[peers.length - 1];
-                        const name = newPeer?.nickname || 'Someone';
-                        voiceMsg(name, `${c.green}joined voice channel${c.reset}`);
-                        showPrompt(currentChannel, nickname);
-                    } else if (peers.length < oldCount) {
-                        systemMsg(`${c.dim}Someone left voice channel${c.reset}`);
-                        showPrompt(currentChannel, nickname);
-                    }
                     break;
 
                 case 'broadcast':
                 case 'nodeMessage':
-                    // Handle both broadcast and nodeMessage types
-                    const payload = msg.payload;
-                    if (payload && payload.type === 'voiceData') {
-                        // Incoming voice data!
-                        const senderName = payload.nickname || 'Unknown';
-
-                        if (senderName !== nickname && !isMuted) {
-                            // Decompress and play
-                            const compressedAudio = Buffer.from(payload.audio, 'base64');
-                            const audioBuffer = decompressAudio(compressedAudio);
-                            audioPlayback.play(audioBuffer);
-
-                            // Show indicator (don't spam)
-                            if (!payload.continuous) {
-                                voiceMsg(senderName, `${c.cyan}speaking...${c.reset}`);
-                                showPrompt(currentChannel, nickname);
-                            }
-                        }
-                    } else if (payload && payload.type === 'voiceStatus') {
-                        const senderName = payload.nickname || 'Unknown';
-                        if (senderName !== nickname) {
-                            if (payload.status === 'started') {
-                                voiceMsg(senderName, `${c.green}started talking${c.reset}`);
-                            } else if (payload.status === 'stopped') {
-                                voiceMsg(senderName, `${c.dim}stopped talking${c.reset}`);
-                            }
-                            showPrompt(currentChannel, nickname);
-                        }
-                    } else if (payload && payload.type === 'chatMessage') {
-                        // Also show chat messages in voice client
-                        const senderName = payload.nickname || payload.from?.slice(0, 12) || 'Unknown';
-                        if (senderName !== nickname) {
-                            log(`${c.cyan}💬${c.reset} ${c.bold}${senderName}${c.reset}: ${payload.message}`);
-                            showPrompt(currentChannel, nickname);
-                        }
-                    }
-                    break;
-
-                case 'error':
-                    systemMsg(`${c.red}Error: ${msg.message}${c.reset}`);
-                    showPrompt(currentChannel, nickname);
+                    handlePayload(msg.payload);
                     break;
             }
         } catch (err) {
@@ -468,68 +433,359 @@ async function main() {
         }
     });
 
-    function showHelp() {
-        console.log(`
-${c.brightMagenta}═══ VOICE + CHAT COMMANDS ═══${c.reset}
-  ${c.green}/talk${c.reset}    or ${c.green}t${c.reset}     Start talking (push-to-talk)
-  ${c.green}/stop${c.reset}    or ${c.green}s${c.reset}     Stop talking
-  ${c.green}/mute${c.reset}              Mute incoming audio
-  ${c.green}/unmute${c.reset}            Unmute incoming audio
-  ${c.green}/peers${c.reset}             List peers in channel
-  ${c.green}/quit${c.reset}              Leave voice chat
+    // ═══════════════════════════════════════════════════════════════════════
+    // PAYLOAD HANDLER
+    // ═══════════════════════════════════════════════════════════════════════
 
-${c.brightCyan}═══ CHAT ═══${c.reset}
-  Just type a message and press Enter to send text chat!
+    function handlePayload(payload) {
+        if (!payload) return;
+        const senderName = payload.nickname || payload.from?.slice(0, 12) || 'Unknown';
+        if (senderName === nickname) return;
 
-${c.dim}Tip: Type 't' to talk, or just type to send chat${c.reset}
-`);
+        switch (payload.type) {
+            // ─────────────────────────────────────────────────────────────
+            // CALL SIGNALING
+            // ─────────────────────────────────────────────────────────────
+            case 'callRequest':
+                if (payload.target === nickname) {
+                    if (callState === CALL_STATE.IDLE) {
+                        incomingCaller = senderName;
+                        callState = CALL_STATE.RINGING;
+                        ringTone.start(senderName);
+                        showPrompt(callState, nickname, callPartner);
+                    } else {
+                        sendCallBusy(senderName);
+                    }
+                }
+                break;
+
+            case 'callAccepted':
+                if (payload.target === nickname && callState === CALL_STATE.CALLING) {
+                    callState = CALL_STATE.IN_CALL;
+                    callPartner = senderName;
+                    callMsg(`${c.brightGreen}${senderName} answered! Connected.${c.reset}`);
+                    callMsg(`${c.dim}Type 't' to talk, '/hangup' to end${c.reset}`);
+                    showPrompt(callState, nickname, callPartner);
+                }
+                break;
+
+            case 'callRejected':
+                if (payload.target === nickname && callState === CALL_STATE.CALLING) {
+                    callState = CALL_STATE.IDLE;
+                    callPartner = null;
+                    callMsg(`${c.red}${senderName} declined the call${c.reset}`);
+                    showPrompt(callState, nickname, callPartner);
+                }
+                break;
+
+            case 'callBusy':
+                if (payload.target === nickname && callState === CALL_STATE.CALLING) {
+                    callState = CALL_STATE.IDLE;
+                    callPartner = null;
+                    callMsg(`${c.yellow}${senderName} is busy${c.reset}`);
+                    showPrompt(callState, nickname, callPartner);
+                }
+                break;
+
+            case 'callEnded':
+                if (payload.target === nickname && (callState === CALL_STATE.IN_CALL || callState === CALL_STATE.RINGING)) {
+                    audioCapture.stopRecording();
+                    ringTone.stop();
+                    isTalking = false;
+                    callState = CALL_STATE.IDLE;
+                    callPartner = null;
+                    incomingCaller = null;
+                    callMsg(`${c.dim}Call ended by ${senderName}${c.reset}`);
+                    showPrompt(callState, nickname, callPartner);
+                }
+                break;
+
+            // ─────────────────────────────────────────────────────────────
+            // VOICE DATA
+            // ─────────────────────────────────────────────────────────────
+            case 'voiceData':
+                const shouldPlay =
+                    (callState === CALL_STATE.IN_CALL && senderName === callPartner) ||
+                    (callState === CALL_STATE.IN_GROUP);
+
+                if (shouldPlay && !isMuted) {
+                    const compressedAudio = Buffer.from(payload.audio, 'base64');
+                    const audioBuffer = decompressAudio(compressedAudio);
+                    audioPlayback.play(audioBuffer);
+                }
+                break;
+
+            case 'voiceStatus':
+                const isRelevant =
+                    (callState === CALL_STATE.IN_CALL && senderName === callPartner) ||
+                    (callState === CALL_STATE.IN_GROUP);
+
+                if (isRelevant) {
+                    if (payload.status === 'started') {
+                        voiceMsg(senderName, `${c.green}talking...${c.reset}`);
+                    } else if (payload.status === 'stopped') {
+                        voiceMsg(senderName, `${c.dim}stopped${c.reset}`);
+                    }
+                    showPrompt(callState, nickname, callPartner);
+                }
+                break;
+
+            // ─────────────────────────────────────────────────────────────
+            // GROUP VOICE
+            // ─────────────────────────────────────────────────────────────
+            case 'joinedGroupVoice':
+                if (!groupVoiceMembers.includes(senderName)) {
+                    groupVoiceMembers.push(senderName);
+                }
+                if (callState === CALL_STATE.IN_GROUP) {
+                    systemMsg(`${c.brightMagenta}${senderName}${c.reset} joined group voice`);
+                    showPrompt(callState, nickname, callPartner);
+                }
+                break;
+
+            case 'leftGroupVoice':
+                groupVoiceMembers = groupVoiceMembers.filter(n => n !== senderName);
+                if (callState === CALL_STATE.IN_GROUP) {
+                    systemMsg(`${c.dim}${senderName} left group voice${c.reset}`);
+                    showPrompt(callState, nickname, callPartner);
+                }
+                break;
+
+            // ─────────────────────────────────────────────────────────────
+            // CHAT MESSAGES
+            // ─────────────────────────────────────────────────────────────
+            case 'chatMessage':
+                chatMsg(senderName, payload.message);
+                showPrompt(callState, nickname, callPartner);
+                break;
+        }
     }
 
-    function sendChatMessage(message) {
+    // ═══════════════════════════════════════════════════════════════════════
+    // CALL FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function makeCall(targetName) {
+        if (callState !== CALL_STATE.IDLE) {
+            systemMsg(`${c.yellow}Already in a call. /hangup first.${c.reset}`);
+            return;
+        }
+
+        // Find peer
+        const peer = peers.find(p =>
+            (p.nickname && p.nickname.toLowerCase() === targetName.toLowerCase()) ||
+            (p.address && p.address.toLowerCase().startsWith(targetName.toLowerCase()))
+        );
+
+        if (!peer) {
+            systemMsg(`${c.red}User '${targetName}' not found. Use /peers to see online users${c.reset}`);
+            return;
+        }
+
+        const target = peer.nickname || peer.address;
+        callState = CALL_STATE.CALLING;
+        callPartner = target;
+
+        callMsg(`${c.yellow}Calling ${target}...${c.reset}`);
+
         ws.send(JSON.stringify({
             type: 'broadcast',
             payload: {
-                type: 'chatMessage',
+                type: 'callRequest',
                 from: nodeId,
                 nickname: nickname,
-                message: message,
-                channel: currentChannel,
+                target: target,
                 timestamp: Date.now()
             }
         }));
-        log(`${c.cyan}💬${c.reset} ${c.magenta}${nickname}${c.reset}: ${message}`);
+
+        // Timeout after 30 seconds
+        setTimeout(() => {
+            if (callState === CALL_STATE.CALLING && callPartner === target) {
+                callState = CALL_STATE.IDLE;
+                callPartner = null;
+                callMsg(`${c.dim}No answer from ${target}${c.reset}`);
+                showPrompt(callState, nickname, callPartner);
+            }
+        }, 30000);
     }
 
+    function answerCall() {
+        if (callState !== CALL_STATE.RINGING || !incomingCaller) {
+            systemMsg(`${c.yellow}No incoming call${c.reset}`);
+            return;
+        }
+
+        ringTone.stop();
+        callState = CALL_STATE.IN_CALL;
+        callPartner = incomingCaller;
+        incomingCaller = null;
+
+        ws.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'callAccepted',
+                from: nodeId,
+                nickname: nickname,
+                target: callPartner,
+                timestamp: Date.now()
+            }
+        }));
+
+        callMsg(`${c.brightGreen}Connected with ${callPartner}!${c.reset}`);
+        callMsg(`${c.dim}Type 't' to talk, '/hangup' to end${c.reset}`);
+    }
+
+    function rejectCall() {
+        if (callState !== CALL_STATE.RINGING || !incomingCaller) {
+            systemMsg(`${c.yellow}No incoming call${c.reset}`);
+            return;
+        }
+
+        ringTone.stop();
+
+        ws.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'callRejected',
+                from: nodeId,
+                nickname: nickname,
+                target: incomingCaller,
+                timestamp: Date.now()
+            }
+        }));
+
+        callMsg(`${c.dim}Rejected call from ${incomingCaller}${c.reset}`);
+        callState = CALL_STATE.IDLE;
+        incomingCaller = null;
+    }
+
+    function sendCallBusy(caller) {
+        ws.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'callBusy',
+                from: nodeId,
+                nickname: nickname,
+                target: caller,
+                timestamp: Date.now()
+            }
+        }));
+    }
+
+    function hangUp() {
+        if (callState !== CALL_STATE.IN_CALL && callState !== CALL_STATE.CALLING) {
+            systemMsg(`${c.yellow}Not in a call${c.reset}`);
+            return;
+        }
+
+        audioCapture.stopRecording();
+        isTalking = false;
+
+        if (callPartner) {
+            ws.send(JSON.stringify({
+                type: 'broadcast',
+                payload: {
+                    type: 'callEnded',
+                    from: nodeId,
+                    nickname: nickname,
+                    target: callPartner,
+                    timestamp: Date.now()
+                }
+            }));
+        }
+
+        callMsg(`${c.dim}Call ended${c.reset}`);
+        callState = CALL_STATE.IDLE;
+        callPartner = null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GROUP VOICE FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function joinGroupVoice() {
+        if (callState === CALL_STATE.IN_CALL) {
+            systemMsg(`${c.yellow}Leave your current call first (/hangup)${c.reset}`);
+            return;
+        }
+
+        callState = CALL_STATE.IN_GROUP;
+
+        ws.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'joinedGroupVoice',
+                from: nodeId,
+                nickname: nickname,
+                timestamp: Date.now()
+            }
+        }));
+
+        systemMsg(`${c.brightMagenta}Joined group voice channel${c.reset}`);
+        systemMsg(`${c.dim}Type 't' to talk to everyone, '/leave' to exit${c.reset}`);
+    }
+
+    function leaveGroupVoice() {
+        if (callState !== CALL_STATE.IN_GROUP) {
+            systemMsg(`${c.yellow}Not in group voice${c.reset}`);
+            return;
+        }
+
+        audioCapture.stopRecording();
+        isTalking = false;
+
+        ws.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'leftGroupVoice',
+                from: nodeId,
+                nickname: nickname,
+                timestamp: Date.now()
+            }
+        }));
+
+        callState = CALL_STATE.IDLE;
+        systemMsg(`${c.dim}Left group voice${c.reset}`);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // VOICE FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════
+
     function startTalking() {
+        if (callState !== CALL_STATE.IN_CALL && callState !== CALL_STATE.IN_GROUP) {
+            systemMsg(`${c.yellow}Join a call first: /call <user> or /voice for group${c.reset}`);
+            return;
+        }
+
         if (isTalking) {
-            systemMsg('Already talking! Type /stop or s to stop.');
+            systemMsg(`${c.dim}Already talking. Type 's' to stop.${c.reset}`);
             return;
         }
 
         isTalking = true;
-        systemMsg(`${c.brightGreen}🎤 TALKING - Speak now!${c.reset}`);
 
-        // Notify peers
         ws.send(JSON.stringify({
             type: 'broadcast',
             payload: {
                 type: 'voiceStatus',
+                from: nodeId,
                 nickname: nickname,
                 status: 'started',
-                channel: currentChannel,
+                target: callState === CALL_STATE.IN_CALL ? callPartner : 'group',
                 timestamp: Date.now()
             }
         }));
 
-        // Start capturing audio
+        systemMsg(`${c.brightGreen}TALKING${c.reset}`);
+
         let chunkCount = 0;
         audioCapture.startRecording((chunk) => {
             if (!isTalking) return;
 
-            // Compress with David's math
             const compressed = compressAudio(chunk);
 
-            // Send to relay
             ws.send(JSON.stringify({
                 type: 'broadcast',
                 payload: {
@@ -537,68 +793,131 @@ ${c.dim}Tip: Type 't' to talk, or just type to send chat${c.reset}
                     from: nodeId,
                     nickname: nickname,
                     audio: compressed.data.toString('base64'),
+                    target: callState === CALL_STATE.IN_CALL ? callPartner : 'group',
                     compression: compressed.davidMath,
-                    channel: currentChannel,
-                    continuous: true,
                     timestamp: Date.now()
                 }
             }));
 
             chunkCount++;
-            process.stdout.write(`\r${c.brightGreen}🎤 Talking...${c.reset} ${c.dim}[${chunkCount} chunks sent]${c.reset}  `);
+            process.stdout.write(`\r${c.brightGreen}Talking${c.reset} ${c.dim}[${chunkCount}]${c.reset}  `);
         });
     }
 
     function stopTalking() {
-        if (!isTalking) {
-            systemMsg('Not currently talking.');
-            return;
-        }
+        if (!isTalking) return;
 
         audioCapture.stopRecording();
         isTalking = false;
 
-        console.log(); // New line after the "Talking..." indicator
-        systemMsg(`${c.dim}Stopped talking${c.reset}`);
-
-        // Notify peers
         ws.send(JSON.stringify({
             type: 'broadcast',
             payload: {
                 type: 'voiceStatus',
+                from: nodeId,
                 nickname: nickname,
                 status: 'stopped',
-                channel: currentChannel,
+                target: callState === CALL_STATE.IN_CALL ? callPartner : 'group',
                 timestamp: Date.now()
             }
         }));
+
+        console.log();
+        systemMsg(`${c.dim}Stopped talking${c.reset}`);
     }
 
-    // Handle user input
+    // ═══════════════════════════════════════════════════════════════════════
+    // CHAT FUNCTION
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function sendChat(message) {
+        ws.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'chatMessage',
+                from: nodeId,
+                nickname: nickname,
+                message: message,
+                timestamp: Date.now()
+            }
+        }));
+        chatMsg(nickname, message);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HELP
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function showHelp() {
+        console.log(`
+${c.brightGreen}=== PRIVATE CALL ===${c.reset}
+  ${c.green}/call <user>${c.reset}     Call a specific user (e.g., /call M3Pro)
+  ${c.green}/answer${c.reset}          Answer incoming call
+  ${c.green}/reject${c.reset}          Reject incoming call
+  ${c.green}/hangup${c.reset}          End current call
+
+${c.brightMagenta}=== GROUP VOICE ===${c.reset}
+  ${c.green}/voice${c.reset}           Join group voice channel (everyone hears you)
+  ${c.green}/leave${c.reset}           Leave group voice
+
+${c.brightCyan}=== WHILE IN CALL ===${c.reset}
+  ${c.green}t${c.reset}                Start talking (push-to-talk)
+  ${c.green}s${c.reset}                Stop talking
+  ${c.green}/mute${c.reset}            Mute incoming audio
+  ${c.green}/unmute${c.reset}          Unmute audio
+
+${c.yellow}=== OTHER ===${c.reset}
+  ${c.green}/peers${c.reset}           List online users
+  ${c.green}/quit${c.reset}            Exit
+  ${c.dim}(or just type to send chat messages)${c.reset}
+`);
+    }
+
+    function showPeers() {
+        ws.send(JSON.stringify({ type: 'getPeers' }));
+
+        if (peers.length === 0) {
+            systemMsg(`${c.dim}No other users online${c.reset}`);
+        } else {
+            systemMsg(`${c.brightGreen}${peers.length}${c.reset} user(s) online:`);
+            peers.forEach(p => {
+                const name = p.nickname || p.address?.slice(0, 12) || 'Unknown';
+                const mode = p.mode ? ` ${c.dim}(${p.mode})${c.reset}` : '';
+                console.log(`   ${c.dim}*${c.reset} ${c.brightMagenta}${name}${c.reset}${mode}`);
+            });
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // INPUT HANDLER
+    // ═══════════════════════════════════════════════════════════════════════
+
     rl.on('line', (input) => {
-        const text = input.trim().toLowerCase();
+        const text = input.trim();
 
         if (!text) {
-            showPrompt(currentChannel, nickname);
+            showPrompt(callState, nickname, callPartner);
             return;
         }
 
-        // Quick commands
-        if (text === 't' || text === 'talk') {
+        // Quick voice controls
+        if (text.toLowerCase() === 't' || text.toLowerCase() === 'talk') {
             startTalking();
-            showPrompt(currentChannel, nickname);
+            showPrompt(callState, nickname, callPartner);
             return;
         }
 
-        if (text === 's' || text === 'stop') {
+        if (text.toLowerCase() === 's' || text.toLowerCase() === 'stop') {
             stopTalking();
-            showPrompt(currentChannel, nickname);
+            showPrompt(callState, nickname, callPartner);
             return;
         }
 
         // Slash commands
         if (text.startsWith('/')) {
-            const [cmd, ...args] = text.slice(1).split(' ');
+            const parts = text.slice(1).split(' ');
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1);
 
             switch (cmd) {
                 case 'help':
@@ -606,66 +925,88 @@ ${c.dim}Tip: Type 't' to talk, or just type to send chat${c.reset}
                     showHelp();
                     break;
 
-                case 'talk':
-                case 't':
-                    startTalking();
+                case 'call':
+                case 'c':
+                    if (args.length === 0) {
+                        systemMsg(`${c.yellow}Usage: /call <username>${c.reset}`);
+                        systemMsg(`${c.dim}Example: /call M3Pro${c.reset}`);
+                    } else {
+                        makeCall(args.join(' '));
+                    }
                     break;
 
-                case 'stop':
-                case 's':
-                    stopTalking();
+                case 'answer':
+                case 'a':
+                    answerCall();
+                    break;
+
+                case 'reject':
+                case 'r':
+                    rejectCall();
+                    break;
+
+                case 'hangup':
+                case 'end':
+                    hangUp();
+                    break;
+
+                case 'voice':
+                case 'v':
+                    joinGroupVoice();
+                    break;
+
+                case 'leave':
+                case 'l':
+                    leaveGroupVoice();
                     break;
 
                 case 'mute':
                     isMuted = true;
-                    systemMsg(`${c.yellow}Incoming audio muted${c.reset}`);
+                    systemMsg(`${c.yellow}Audio muted${c.reset}`);
                     break;
 
                 case 'unmute':
                     isMuted = false;
-                    systemMsg(`${c.green}Incoming audio unmuted${c.reset}`);
+                    systemMsg(`${c.green}Audio unmuted${c.reset}`);
                     break;
 
                 case 'peers':
                 case 'who':
-                    if (peers.length === 0) {
-                        systemMsg('No other peers in voice channel');
-                    } else {
-                        systemMsg(`${peers.length} peer(s) in voice channel:`);
-                        peers.forEach(p => {
-                            const name = p.nickname || p.address?.slice(0, 12) || 'Unknown';
-                            console.log(`   ${c.dim}•${c.reset} ${c.brightMagenta}${name}${c.reset}`);
-                        });
-                    }
+                case 'users':
+                    showPeers();
                     break;
 
                 case 'quit':
                 case 'exit':
                 case 'q':
                     stopTalking();
-                    console.log(`\n${c.brightGreen}Rangers lead the way! 🎖️${c.reset}\n`);
+                    if (callState === CALL_STATE.IN_CALL) hangUp();
+                    if (callState === CALL_STATE.IN_GROUP) leaveGroupVoice();
+                    console.log(`\n${c.brightGreen}Rangers lead the way!${c.reset}\n`);
                     ws.close();
                     rl.close();
                     process.exit(0);
                     break;
 
                 default:
-                    systemMsg(`Unknown command: /${cmd}`);
+                    systemMsg(`${c.dim}Unknown command: /${cmd}. Type /help${c.reset}`);
             }
 
-            showPrompt(currentChannel, nickname);
+            showPrompt(callState, nickname, callPartner);
             return;
         }
 
-        // Regular text = send as chat message
-        sendChatMessage(input.trim());
-        showPrompt(currentChannel, nickname);
+        // Regular text = chat message
+        sendChat(text);
+        showPrompt(callState, nickname, callPartner);
     });
 
-    // Handle Ctrl+C
+    // Ctrl+C
     rl.on('close', () => {
         stopTalking();
-        console.log(`\n${c.brightGreen}Rangers lead the way! 🎖️${c.reset}`);
+        if (callState === CALL_STATE.IN_CALL) hangUp();
+        if (callState === CALL_STATE.IN_GROUP) leaveGroupVoice();
+        console.log(`\n${c.brightGreen}Rangers lead the way!${c.reset}`);
         ws.close();
     });
 
@@ -677,8 +1018,7 @@ ${c.dim}Tip: Type 't' to talk, or just type to send chat${c.reset}
     }, 30000);
 }
 
-// Start
 main().catch(err => {
-    console.error(`${c.red}Error: ${err.message}${c.reset}`);
+    console.error(`Error: ${err.message}`);
     process.exit(1);
 });
