@@ -28,7 +28,7 @@ const { spawn } = require('child_process');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
 const DEFAULT_CHANNEL = '#rangers-voice';
@@ -418,7 +418,9 @@ async function main() {
                     }
                     break;
 
+                case 'broadcast':
                 case 'nodeMessage':
+                    // Handle both broadcast and nodeMessage types
                     const payload = msg.payload;
                     if (payload && payload.type === 'voiceData') {
                         // Incoming voice data!
@@ -438,12 +440,21 @@ async function main() {
                         }
                     } else if (payload && payload.type === 'voiceStatus') {
                         const senderName = payload.nickname || 'Unknown';
-                        if (payload.status === 'started') {
-                            voiceMsg(senderName, `${c.green}started talking${c.reset}`);
-                        } else if (payload.status === 'stopped') {
-                            voiceMsg(senderName, `${c.dim}stopped talking${c.reset}`);
+                        if (senderName !== nickname) {
+                            if (payload.status === 'started') {
+                                voiceMsg(senderName, `${c.green}started talking${c.reset}`);
+                            } else if (payload.status === 'stopped') {
+                                voiceMsg(senderName, `${c.dim}stopped talking${c.reset}`);
+                            }
+                            showPrompt(currentChannel, nickname);
                         }
-                        showPrompt(currentChannel, nickname);
+                    } else if (payload && payload.type === 'chatMessage') {
+                        // Also show chat messages in voice client
+                        const senderName = payload.nickname || payload.from?.slice(0, 12) || 'Unknown';
+                        if (senderName !== nickname) {
+                            log(`${c.cyan}💬${c.reset} ${c.bold}${senderName}${c.reset}: ${payload.message}`);
+                            showPrompt(currentChannel, nickname);
+                        }
                     }
                     break;
 
@@ -459,16 +470,34 @@ async function main() {
 
     function showHelp() {
         console.log(`
-${c.brightMagenta}═══ VOICE COMMANDS ═══${c.reset}
+${c.brightMagenta}═══ VOICE + CHAT COMMANDS ═══${c.reset}
   ${c.green}/talk${c.reset}    or ${c.green}t${c.reset}     Start talking (push-to-talk)
   ${c.green}/stop${c.reset}    or ${c.green}s${c.reset}     Stop talking
   ${c.green}/mute${c.reset}              Mute incoming audio
   ${c.green}/unmute${c.reset}            Unmute incoming audio
-  ${c.green}/peers${c.reset}             List peers in voice channel
+  ${c.green}/peers${c.reset}             List peers in channel
   ${c.green}/quit${c.reset}              Leave voice chat
 
-${c.dim}Tip: Type 't' and press Enter to start talking${c.reset}
+${c.brightCyan}═══ CHAT ═══${c.reset}
+  Just type a message and press Enter to send text chat!
+
+${c.dim}Tip: Type 't' to talk, or just type to send chat${c.reset}
 `);
+    }
+
+    function sendChatMessage(message) {
+        ws.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'chatMessage',
+                from: nodeId,
+                nickname: nickname,
+                message: message,
+                channel: currentChannel,
+                timestamp: Date.now()
+            }
+        }));
+        log(`${c.cyan}💬${c.reset} ${c.magenta}${nickname}${c.reset}: ${message}`);
     }
 
     function startTalking() {
@@ -628,8 +657,8 @@ ${c.dim}Tip: Type 't' and press Enter to start talking${c.reset}
             return;
         }
 
-        // Unknown input
-        systemMsg(`Type 't' to talk, 's' to stop, '/help' for commands`);
+        // Regular text = send as chat message
+        sendChatMessage(input.trim());
         showPrompt(currentChannel, nickname);
     });
 
