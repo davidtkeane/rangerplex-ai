@@ -250,36 +250,66 @@ function listMicrophones() {
 
     try {
         if (platform === 'darwin') {
-            // macOS - use system_profiler
+            // macOS - use system_profiler and parse properly
             const output = execSync('system_profiler SPAudioDataType 2>/dev/null', { encoding: 'utf8' });
             const lines = output.split('\n');
             let currentDevice = null;
-            let isInput = false;
+            let hasInput = false;
+            let isDefault = false;
 
-            for (const line of lines) {
-                if (line.includes('Input Source:') || line.includes('Default Input Device: Yes')) {
-                    isInput = true;
-                }
-                if (line.match(/^\s{8}\w/) && !line.includes(':')) {
-                    currentDevice = line.trim();
-                }
-                if (currentDevice && isInput) {
-                    if (!mics.find(m => m.name === currentDevice)) {
-                        mics.push({ name: currentDevice, id: mics.length });
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Device name: 8 spaces, then name ending with colon
+                // e.g. "        Logitech Webcam C930e:"
+                const deviceMatch = line.match(/^        ([^:]+):$/);
+                if (deviceMatch) {
+                    // Save previous device if it had input
+                    if (currentDevice && hasInput) {
+                        mics.push({
+                            name: currentDevice,
+                            id: mics.length,
+                            device: currentDevice,
+                            isDefault: isDefault
+                        });
                     }
-                    isInput = false;
+                    // Start new device
+                    currentDevice = deviceMatch[1];
+                    hasInput = false;
+                    isDefault = false;
+                    continue;
+                }
+
+                // Check if this device has input capability
+                if (currentDevice && line.includes('Input Channels:')) {
+                    hasInput = true;
+                }
+
+                // Check if this is the default input
+                if (currentDevice && line.includes('Default Input Device: Yes')) {
+                    isDefault = true;
                 }
             }
 
-            // Also try to get from SoX
-            try {
-                const soxOutput = execSync('sox --help 2>&1 | grep -A5 "AUDIO DEVICE"', { encoding: 'utf8' });
-                // Parse if available
-            } catch (e) {}
+            // Don't forget the last device
+            if (currentDevice && hasInput) {
+                mics.push({
+                    name: currentDevice,
+                    id: mics.length,
+                    device: currentDevice,
+                    isDefault: isDefault
+                });
+            }
 
-            // Add common macOS devices
+            // Sort so default is first
+            mics.sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0));
+
+            // Reassign IDs after sorting
+            mics.forEach((m, i) => m.id = i);
+
+            // Fallback
             if (mics.length === 0) {
-                mics.push({ name: 'Built-in Microphone', id: 0, device: 'default' });
+                mics.push({ name: 'Built-in Microphone', id: 0, device: 'default', isDefault: true });
             }
         } else if (platform === 'win32') {
             // Windows - try PowerShell
@@ -1269,12 +1299,13 @@ ${c.brightCyan}=== YOUR NODE INFO ===${c.reset}
                             console.log(`  ${c.yellow}No microphones detected${c.reset}`);
                         } else {
                             mics.forEach((mic, i) => {
-                                const current = (selectedMic === 'default' && i === 0) || selectedMic === mic.name;
-                                const marker = current ? `${c.brightGreen}[ACTIVE]${c.reset}` : '';
-                                console.log(`  ${c.green}${i}${c.reset}. ${mic.name} ${marker}`);
+                                const isSelected = (selectedMic === 'default' && mic.isDefault) || selectedMic === mic.name;
+                                const selectedMarker = isSelected ? `${c.brightGreen} ◀ SELECTED${c.reset}` : '';
+                                const defaultMarker = mic.isDefault ? `${c.dim}(system default)${c.reset}` : '';
+                                console.log(`  ${c.green}${i}${c.reset}. ${mic.name} ${defaultMarker}${selectedMarker}`);
                             });
                         }
-                        console.log(`\n${c.dim}Current: ${selectedMic}${c.reset}`);
+                        console.log(`\n${c.dim}Currently using: ${selectedMic}${c.reset}`);
                         console.log(`${c.dim}Use /mic <number> to select, /mic test to test${c.reset}\n`);
                     } else if (micArg === 'test') {
                         // Test current microphone
