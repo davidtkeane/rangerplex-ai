@@ -4,6 +4,57 @@ All notable changes to Just-Chat will be documented here.
 
 ---
 
+## [2.1.0] - 2025-12-03
+
+### Added - Security Enhancement Complete 🛡️
+
+#### E2E Message Encryption
+- **`encryptForRecipient()`**: Hybrid encryption (RSA + AES-256-GCM)
+- **`decryptMessage()`**: Decrypt messages sent to you
+- **Hybrid approach**: RSA-OAEP encrypts random AES key, AES encrypts message
+- Ready for `/dm` or `/encrypt` command integration
+
+#### identity-service.cjs v1.1.0
+- Added crypto module import
+- E2E encryption test in CLI (test #9)
+
+---
+
+## [2.0.0] - 2025-12-03
+
+### Added - Security Foundation 🔐
+
+#### Auth Server (auth-server.cjs)
+- **Challenge-Response Authentication**: Prove identity without exposing private key
+- **30-second challenge expiry**: Time-limited nonce
+- **1-hour session tokens**: `sess_*` prefixed tokens
+- **Standalone or integrated**: Can run on port 5557 or integrate with relay
+- **Session management**: Verify, revoke, list active sessions
+
+#### On-Chain Registration (register-identity.cjs)
+- **`node register-identity.cjs`**: Register identity on blockchain
+- **`node register-identity.cjs --check`**: Check registration status
+- **Signed registration block**: IDENTITY_REGISTRATION with signature
+- **Block hash proof**: Saved locally for verification
+
+#### Message Signing (blockchain-chat v4.1.0)
+- **Signature verification**: All incoming messages verified
+- **Visual indicators**: ✓ (verified), ✗ (invalid), ? (error)
+- **Public key broadcast**: Messages include sender's public key
+- **Trust indicator**: See who's really sending messages
+
+#### Admin Dashboard (private)
+- **admin-users.cjs**: View connected users with userIds
+- **Private storage**: `~/.claude/ranger/admin/`
+- **Not in git**: Kept separate from public repo
+
+### Technical
+- identity-service.cjs v1.0.0 with hardware-bound identity
+- RSA-2048 key pairs for all signing/encryption
+- Cross-app identity sharing via `~/.rangerblock/`
+
+---
+
 ## [1.6.0] - 2025-12-02
 
 ### Added - Visual Audio Meter & Better UX (v2.4.0)
@@ -189,7 +240,11 @@ All notable changes to Just-Chat will be documented here.
 - [ ] Add file transfer support
 - [x] Add voice chat integration (v1.2.0 - 2025-12-02)
 - [ ] Add more relay servers (EU, US-West)
-- [ ] Add encryption for messages
+- [x] Add encryption for messages (v2.1.0 - 2025-12-03)
+- [x] Add message signing verification (v2.0.0 - 2025-12-03)
+- [x] Add on-chain identity registration (v2.0.0 - 2025-12-03)
+- [ ] RAIN Protocol (kill switch)
+- [ ] Identity revocation support
 
 ---
 
