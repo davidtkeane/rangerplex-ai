@@ -45,6 +45,19 @@ interface UserIdentity {
     appType: string
 }
 
+// Blockchain transaction type
+interface BlockchainTx {
+    id: string
+    type: 'send' | 'receive' | 'system' | 'peer'
+    direction: 'in' | 'out'
+    from: string
+    to: string
+    payload: string
+    size: number
+    timestamp: number
+    status: 'pending' | 'confirmed' | 'broadcast'
+}
+
 // Theme definitions
 type ThemeName = 'classic' | 'matrix' | 'tron' | 'retro'
 
@@ -99,6 +112,11 @@ function App() {
     // Settings state
     const [storagePaths, setStoragePaths] = useState<any>(null)
     const [identityExport, setIdentityExport] = useState<string | null>(null)
+
+    // Blockchain transaction log
+    const [transactions, setTransactions] = useState<BlockchainTx[]>([])
+    const [showTransactions, setShowTransactions] = useState(false)
+    const [txStats, setTxStats] = useState({ sent: 0, received: 0, total: 0, bytes: 0 })
 
     const wsRef = useRef<WebSocket | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -168,6 +186,36 @@ function App() {
         setTimeout(() => setIsGenerating(false), 300)
     }
 
+    // Log blockchain transaction
+    const logTransaction = (
+        type: BlockchainTx['type'],
+        direction: BlockchainTx['direction'],
+        from: string,
+        to: string,
+        payload: any,
+        status: BlockchainTx['status'] = 'confirmed'
+    ) => {
+        const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload)
+        const tx: BlockchainTx = {
+            id: `0x${Date.now().toString(16)}${Math.random().toString(16).slice(2, 6)}`,
+            type,
+            direction,
+            from,
+            to,
+            payload: payloadStr.length > 100 ? payloadStr.substring(0, 100) + '...' : payloadStr,
+            size: new Blob([payloadStr]).size,
+            timestamp: Date.now(),
+            status
+        }
+        setTransactions(prev => [tx, ...prev].slice(0, 100)) // Keep last 100 transactions
+        setTxStats(prev => ({
+            sent: direction === 'out' ? prev.sent + 1 : prev.sent,
+            received: direction === 'in' ? prev.received + 1 : prev.received,
+            total: prev.total + 1,
+            bytes: prev.bytes + tx.size
+        }))
+    }
+
     // Connect to server
     const connect = async () => {
         if (!username.trim()) {
@@ -191,6 +239,7 @@ function App() {
         const ws = new WebSocket(serverUrl)
 
         ws.onopen = () => {
+            logTransaction('system', 'in', 'relay-server', nodeId, 'WebSocket connected', 'confirmed')
             setMessages(prev => [...prev, {
                 type: 'system',
                 sender: 'System',
@@ -202,19 +251,31 @@ function App() {
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data)
+                // Log incoming transaction
+                logTransaction(
+                    data.type === 'broadcast' || data.type === 'nodeMessage' ? 'receive' : 'system',
+                    'in',
+                    data.from || 'relay-server',
+                    nodeId,
+                    data,
+                    'confirmed'
+                )
+
                 switch (data.type) {
                     case 'welcome':
-                        ws.send(JSON.stringify({
+                        const registerMsg = {
                             type: 'register',
                             address: nodeId,
-                            userId: identity?.userId,  // Include userId for moderation
+                            userId: identity?.userId,
                             nickname: username,
                             channel: '#rangers',
                             ip: '0.0.0.0',
                             port: 0,
                             mode: 'lite-client',
                             capabilities: ['chat']
-                        }))
+                        }
+                        ws.send(JSON.stringify(registerMsg))
+                        logTransaction('system', 'out', nodeId, 'relay-server', registerMsg, 'broadcast')
                         break
                     case 'registered':
                         setConnected(true)
@@ -225,7 +286,9 @@ function App() {
                             content: `Registered as ${username}`,
                             timestamp: new Date().toLocaleTimeString()
                         }])
-                        ws.send(JSON.stringify({ type: 'getPeers' }))
+                        const getPeersMsg = { type: 'getPeers' }
+                        ws.send(JSON.stringify(getPeersMsg))
+                        logTransaction('peer', 'out', nodeId, 'relay-server', getPeersMsg, 'broadcast')
                         break
                     case 'peerList':
                         const peers = data.peers || []
@@ -256,6 +319,7 @@ function App() {
         }
 
         ws.onclose = () => {
+            logTransaction('system', 'in', 'relay-server', nodeId, 'WebSocket disconnected', 'confirmed')
             setConnected(false)
             setMessages(prev => [...prev, {
                 type: 'system',
@@ -266,6 +330,7 @@ function App() {
         }
 
         ws.onerror = (error) => {
+            logTransaction('system', 'in', 'relay-server', nodeId, 'Connection error', 'confirmed')
             console.error('WebSocket error:', error)
             setMessages(prev => [...prev, {
                 type: 'system',
@@ -311,6 +376,9 @@ function App() {
         }
 
         wsRef.current.send(JSON.stringify(msg))
+        // Log outgoing chat transaction
+        logTransaction('send', 'out', identity?.nodeId || 'local', 'broadcast', msg, 'broadcast')
+
         setMessages(prev => [...prev, {
             type: 'chat',
             sender: username,
@@ -639,6 +707,91 @@ function App() {
                             </div>
                         )}
 
+                        {/* Blockchain Transactions Section */}
+                        <div className="settings-section blockchain-section">
+                            <div className="section-header-row">
+                                <h3>⛓️ Blockchain Transactions</h3>
+                                <button
+                                    className={`toggle-btn ${showTransactions ? 'active' : ''}`}
+                                    onClick={() => setShowTransactions(!showTransactions)}
+                                >
+                                    {showTransactions ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+
+                            {/* Transaction Stats */}
+                            <div className="tx-stats">
+                                <div className="tx-stat">
+                                    <span className="stat-icon">📤</span>
+                                    <span className="stat-value">{txStats.sent}</span>
+                                    <span className="stat-label">Sent</span>
+                                </div>
+                                <div className="tx-stat">
+                                    <span className="stat-icon">📥</span>
+                                    <span className="stat-value">{txStats.received}</span>
+                                    <span className="stat-label">Received</span>
+                                </div>
+                                <div className="tx-stat">
+                                    <span className="stat-icon">📊</span>
+                                    <span className="stat-value">{txStats.total}</span>
+                                    <span className="stat-label">Total</span>
+                                </div>
+                                <div className="tx-stat">
+                                    <span className="stat-icon">💾</span>
+                                    <span className="stat-value">{(txStats.bytes / 1024).toFixed(1)}KB</span>
+                                    <span className="stat-label">Data</span>
+                                </div>
+                            </div>
+
+                            {/* Transaction Feed */}
+                            {showTransactions && (
+                                <div className="tx-feed">
+                                    <div className="tx-feed-header">
+                                        <span className="feed-title">Live Transaction Feed</span>
+                                        <span className="feed-count">{transactions.length} transactions</span>
+                                    </div>
+                                    <div className="tx-list">
+                                        {transactions.length === 0 ? (
+                                            <div className="tx-empty">
+                                                <span>No transactions yet</span>
+                                                <span className="tx-empty-hint">Connect to chat to see blockchain activity</span>
+                                            </div>
+                                        ) : (
+                                            transactions.map(tx => (
+                                                <div key={tx.id} className={`tx-item tx-${tx.direction} tx-type-${tx.type}`}>
+                                                    <div className="tx-header">
+                                                        <span className={`tx-direction ${tx.direction}`}>
+                                                            {tx.direction === 'in' ? '📥' : '📤'}
+                                                        </span>
+                                                        <span className="tx-id">{tx.id.substring(0, 14)}...</span>
+                                                        <span className={`tx-status ${tx.status}`}>{tx.status}</span>
+                                                    </div>
+                                                    <div className="tx-body">
+                                                        <div className="tx-route">
+                                                            <span className="tx-from" title={tx.from}>
+                                                                {tx.from.length > 12 ? tx.from.substring(0, 12) + '...' : tx.from}
+                                                            </span>
+                                                            <span className="tx-arrow">→</span>
+                                                            <span className="tx-to" title={tx.to}>
+                                                                {tx.to.length > 12 ? tx.to.substring(0, 12) + '...' : tx.to}
+                                                            </span>
+                                                        </div>
+                                                        <div className="tx-payload">{tx.payload}</div>
+                                                    </div>
+                                                    <div className="tx-footer">
+                                                        <span className="tx-size">{tx.size} bytes</span>
+                                                        <span className="tx-time">
+                                                            {new Date(tx.timestamp).toLocaleTimeString()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Theme Section */}
                         <div className="settings-section">
                             <h3>🎨 Theme</h3>
@@ -680,7 +833,7 @@ function App() {
                         <div className="settings-section">
                             <h3>ℹ️ About</h3>
                             <div className="about-info">
-                                <p><strong>RangerChat Lite</strong> v1.2.0</p>
+                                <p><strong>RangerChat Lite</strong> v1.2.1</p>
                                 <p>A lightweight chat client for the RangerPlex network.</p>
                                 <p className="mission">🎖️ Mission: Transform disabilities into superpowers</p>
                                 <p className="philosophy">"One foot in front of the other" - David Keane</p>

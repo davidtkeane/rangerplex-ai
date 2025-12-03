@@ -4,6 +4,32 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.2.1] - 2025-12-03 - "Blockchain Viewer"
+
+### Added
+
+#### Live Blockchain Transaction Viewer
+- **Transaction Feed**: See all network messages in real-time
+- **Stats Dashboard**: Track sent/received/total messages and data size
+- **Cyberpunk UI**: Cool animated transaction cards with color-coded types
+- **Theme Integration**: Matrix/Tron themes have special transaction styling
+
+#### Transaction Features
+- Unique transaction IDs (hex format like `0x19384abc...`)
+- Direction indicators (📥 incoming, 📤 outgoing)
+- Status badges (confirmed/broadcast/pending)
+- From/To routing display
+- Payload preview (first 100 chars)
+- Size in bytes and timestamp
+
+### Technical
+- Transaction logging on all WebSocket events
+- Keeps last 100 transactions in memory
+- Slide-in animation for new transactions
+- Color-coded borders: green (in), red (out), yellow (system), blue (peer)
+
+---
+
 ## [1.2.0] - 2025-12-03 - "Identity & Security"
 
 ### Added
@@ -178,6 +204,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.2.1 | 2025-12-03 | Live blockchain transaction viewer with cyberpunk UI |
 | 1.2.0 | 2025-12-03 | Device-bound identity, random name generator, settings page |
 | 1.1.3 | 2025-12-03 | Fixed messaging - send/receive now works! |
 | 1.1.2 | 2025-12-03 | Single theme cycle button for cleaner header |
