@@ -564,7 +564,6 @@ function App() {
                                     🎲
                                 </button>
                             </div>
-                            <p className="input-hint">Click 🎲 for a fun random name!</p>
                         </div>
 
                         <div className="input-group">
@@ -577,22 +576,9 @@ function App() {
                             />
                         </div>
 
-                        {identity && (
-                            <div className="identity-badge">
-                                <span className="badge-icon">🔐</span>
-                                <span className="badge-text">Identity saved to this device</span>
-                            </div>
-                        )}
-
                         <button className="connect-btn" onClick={connect} disabled={!username.trim()}>
                             Connect
                         </button>
-
-                        {identity && (
-                            <button className="settings-link" onClick={openSettings}>
-                                ⚙️ Settings
-                            </button>
-                        )}
                     </div>
                 </div>
             )}
