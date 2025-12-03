@@ -142,32 +142,57 @@ Write-Color "`n[3/5] Downloading server files..." "Yellow"
 
 $RepoUrl = "https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock"
 
-# Download relay server
+# Download relay server (from core - doesn't need identity)
 Write-Color "  Downloading relay-server-bridge.cjs..." "Gray"
 Invoke-WebRequest -Uri "$RepoUrl/core/relay-server-bridge.cjs" -OutFile "relay-server.cjs"
 
-# Download chat client
-Write-Color "  Downloading blockchain-chat.cjs..." "Gray"
-Invoke-WebRequest -Uri "$RepoUrl/core/blockchain-chat.cjs" -OutFile "blockchain-chat.cjs"
+# Download chat client (from just-chat - has security features v4.1.0)
+Write-Color "  Downloading blockchain-chat.cjs (v4.1.0 with signatures)..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/just-chat/blockchain-chat.cjs" -OutFile "blockchain-chat.cjs"
 
 # Download ping tool
 Write-Color "  Downloading blockchain-ping.cjs..." "Gray"
 Invoke-WebRequest -Uri "$RepoUrl/core/blockchain-ping.cjs" -OutFile "blockchain-ping.cjs"
 
-# Download voice chat
+# Download voice chat (from just-chat - uses shared identity)
 Write-Color "  Downloading voice-chat.cjs..." "Gray"
-Invoke-WebRequest -Uri "$RepoUrl/core/voice-chat.cjs" -OutFile "voice-chat.cjs"
+Invoke-WebRequest -Uri "$RepoUrl/just-chat/voice-chat.cjs" -OutFile "voice-chat.cjs"
 
 # Download video chat
 Write-Color "  Downloading video-chat.cjs..." "Gray"
 Invoke-WebRequest -Uri "$RepoUrl/core/video-chat.cjs" -OutFile "video-chat.cjs"
 
+# Download identity registration tool
+Write-Color "  Downloading register-identity.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/just-chat/register-identity.cjs" -OutFile "register-identity.cjs"
+
+# Download security library (lib folder)
+Write-Color "`n[3.5/5] Downloading security library..." "Yellow"
+New-Item -ItemType Directory -Path "lib" -Force | Out-Null
+
+Write-Color "  Downloading lib/identity-service.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/lib/identity-service.cjs" -OutFile "lib/identity-service.cjs"
+
+Write-Color "  Downloading lib/crypto-utils.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/lib/crypto-utils.cjs" -OutFile "lib/crypto-utils.cjs"
+
+Write-Color "  Downloading lib/hardware-id.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/lib/hardware-id.cjs" -OutFile "lib/hardware-id.cjs"
+
+Write-Color "  Downloading lib/storage-utils.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/lib/storage-utils.cjs" -OutFile "lib/storage-utils.cjs"
+
+Write-Color "  Downloading lib/auth-server.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/lib/auth-server.cjs" -OutFile "lib/auth-server.cjs"
+
+Write-Color "Security library downloaded (v5.1.0)" "Green"
+
 # Create package.json
 $packageJson = @"
 {
   "name": "rangerblock-server",
-  "version": "2.3.0",
-  "description": "RangerBlock P2P Relay Server - Windows Edition with Voice & Video Chat",
+  "version": "5.1.0",
+  "description": "RangerBlock P2P Relay Server - Windows Edition with Security, Voice & Video Chat",
   "main": "relay-server.cjs",
   "scripts": {
     "relay": "node relay-server.cjs",
@@ -175,6 +200,8 @@ $packageJson = @"
     "voice": "node voice-chat.cjs",
     "video": "node video-chat.cjs",
     "ping": "node blockchain-ping.cjs",
+    "register": "node register-identity.cjs",
+    "auth": "node lib/auth-server.cjs",
     "ngrok": "ngrok tcp 5555"
   },
   "dependencies": {

@@ -628,34 +628,59 @@ echo -e "\n${YELLOW}[4/6] Downloading server files...${NC}"
 
 REPO_URL="https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock"
 
-# Download relay server
+# Download relay server (from core - doesn't need identity)
 echo -e "${BLUE}  📥 relay-server-bridge.cjs${NC}"
 curl -fsSL "$REPO_URL/core/relay-server-bridge.cjs" -o relay-server.cjs
 
-# Download chat client
-echo -e "${BLUE}  📥 blockchain-chat.cjs${NC}"
-curl -fsSL "$REPO_URL/core/blockchain-chat.cjs" -o blockchain-chat.cjs
+# Download chat client (from just-chat - has security features v4.1.0)
+echo -e "${BLUE}  📥 blockchain-chat.cjs (v4.1.0 with signatures)${NC}"
+curl -fsSL "$REPO_URL/just-chat/blockchain-chat.cjs" -o blockchain-chat.cjs
 
 # Download ping tool
 echo -e "${BLUE}  📥 blockchain-ping.cjs${NC}"
 curl -fsSL "$REPO_URL/core/blockchain-ping.cjs" -o blockchain-ping.cjs
 
-# Download voice chat
+# Download voice chat (from just-chat - uses shared identity)
 echo -e "${BLUE}  📥 voice-chat.cjs${NC}"
-curl -fsSL "$REPO_URL/core/voice-chat.cjs" -o voice-chat.cjs
+curl -fsSL "$REPO_URL/just-chat/voice-chat.cjs" -o voice-chat.cjs
 
 # Download video chat
 echo -e "${BLUE}  📥 video-chat.cjs${NC}"
 curl -fsSL "$REPO_URL/core/video-chat.cjs" -o video-chat.cjs
 
+# Download identity registration tool
+echo -e "${BLUE}  📥 register-identity.cjs${NC}"
+curl -fsSL "$REPO_URL/just-chat/register-identity.cjs" -o register-identity.cjs
+
 echo -e "${GREEN}  ✅ Server files downloaded${NC}"
+
+# Download security library (lib folder)
+echo -e "\n${YELLOW}[4.5/6] Downloading security library...${NC}"
+mkdir -p lib
+
+echo -e "${BLUE}  📥 lib/identity-service.cjs${NC}"
+curl -fsSL "$REPO_URL/lib/identity-service.cjs" -o lib/identity-service.cjs
+
+echo -e "${BLUE}  📥 lib/crypto-utils.cjs${NC}"
+curl -fsSL "$REPO_URL/lib/crypto-utils.cjs" -o lib/crypto-utils.cjs
+
+echo -e "${BLUE}  📥 lib/hardware-id.cjs${NC}"
+curl -fsSL "$REPO_URL/lib/hardware-id.cjs" -o lib/hardware-id.cjs
+
+echo -e "${BLUE}  📥 lib/storage-utils.cjs${NC}"
+curl -fsSL "$REPO_URL/lib/storage-utils.cjs" -o lib/storage-utils.cjs
+
+echo -e "${BLUE}  📥 lib/auth-server.cjs${NC}"
+curl -fsSL "$REPO_URL/lib/auth-server.cjs" -o lib/auth-server.cjs
+
+echo -e "${GREEN}  ✅ Security library downloaded (v5.1.0)${NC}"
 
 # Create package.json
 cat > package.json << 'PACKAGE_EOF'
 {
   "name": "rangerblock-server",
-  "version": "2.3.0",
-  "description": "RangerBlock P2P Relay Server with Voice & Video Chat",
+  "version": "5.1.0",
+  "description": "RangerBlock P2P Relay Server with Security, Voice & Video Chat",
   "main": "relay-server.cjs",
   "scripts": {
     "relay": "node relay-server.cjs",
@@ -664,6 +689,8 @@ cat > package.json << 'PACKAGE_EOF'
     "voice": "node voice-chat.cjs",
     "video": "node video-chat.cjs",
     "ping": "node blockchain-ping.cjs",
+    "register": "node register-identity.cjs",
+    "auth": "node lib/auth-server.cjs",
     "ngrok": "ngrok tcp 5555",
     "status": "curl -s http://localhost:5556/api/status | jq .",
     "diag": "./network-diag.sh"
