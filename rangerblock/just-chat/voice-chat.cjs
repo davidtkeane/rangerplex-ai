@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 /**
- * RANGERBLOCK VOICE CHAT v2.0.0
+ * RANGERBLOCK VOICE CHAT v3.0.0
  * =============================
  * P2P Voice communication with Private Calls + Group Voice
+ *
+ * NEW IN v3.0.0:
+ * - Uses shared ~/.rangerblock/ identity (cross-app sync!)
+ * - Hardware-bound persistent identity
+ * - RSA-2048 message signing
+ * - Identity verification support
  *
  * PRIVATE CALL:
  *   /call M3Pro     - Call specific user
@@ -25,11 +31,14 @@ const os = require('os');
 const zlib = require('zlib');
 const { spawn } = require('child_process');
 
+// Import shared identity service
+const { justChatIdentity } = require('../lib/identity-service.cjs');
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '2.4.0';
+const VERSION = '3.0.0';
 let DEBUG_VOICE = false; // Toggle with /debug command
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
@@ -570,25 +579,50 @@ async function main() {
 
     systemMsg(`${c.green}SoX audio ready${c.reset}`);
 
+    // Initialize identity service
+    await justChatIdentity.init();
+
     // Setup readline
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const question = (q) => new Promise(resolve => rl.question(q, resolve));
 
-    // Get username
+    // Get or create identity
+    let identity;
     let nickname;
-    if (presetNick) {
-        nickname = presetNick;
-        console.log(`${c.dim}Using nickname: ${c.brightMagenta}${nickname}${c.reset}\n`);
-    } else {
-        const defaultName = getMachineName();
-        const input = await question(`${c.yellow}Enter your nickname ${c.dim}[${defaultName}]${c.reset}: `);
-        nickname = input.trim() || defaultName;
-        console.log();
-    }
 
-    // State
+    if (justChatIdentity.hasIdentity()) {
+        // Load existing identity
+        identity = await justChatIdentity.getOrCreateIdentity();
+        const defaultNick = presetNick || identity.username;
+
+        console.log(`${c.dim}Found existing identity: ${c.brightMagenta}${identity.userId.slice(0, 12)}...${c.reset}`);
+        const input = await question(`${c.yellow}Your nickname ${c.dim}[${defaultNick}]${c.reset}: `);
+        nickname = input.trim() || defaultNick;
+
+        // Update username if changed
+        if (nickname !== identity.username) {
+            justChatIdentity.updateUsername(nickname);
+        }
+    } else {
+        // Create new identity
+        if (presetNick) {
+            nickname = presetNick;
+            console.log(`${c.dim}Using nickname: ${c.brightMagenta}${nickname}${c.reset}`);
+        } else {
+            const defaultName = getMachineName();
+            const input = await question(`${c.yellow}Enter your nickname ${c.dim}[${defaultName}]${c.reset}: `);
+            nickname = input.trim() || defaultName;
+        }
+
+        identity = await justChatIdentity.getOrCreateIdentity(nickname);
+        console.log(`${c.dim}Created new identity: ${c.brightMagenta}${identity.userId.slice(0, 12)}...${c.reset}`);
+    }
+    console.log();
+
+    // State - use identity for nodeId/userId
     const localIP = getLocalIP();
-    const nodeId = `${nickname}-${Date.now()}`;
+    const nodeId = identity.nodeId;
+    const userId = identity.userId;
     let callState = CALL_STATE.IDLE;
     let callPartner = null;
     let incomingCaller = null;
@@ -639,12 +673,15 @@ async function main() {
                     ws.send(JSON.stringify({
                         type: 'register',
                         address: nodeId,
+                        userId: userId,
                         nickname: nickname,
                         channel: DEFAULT_CHANNEL,
                         ip: localIP,
                         port: 0,
                         mode: 'voice-chat',
-                        capabilities: ['voice', 'chat', 'call']
+                        capabilities: ['voice', 'chat', 'call'],
+                        appType: 'voice-chat',
+                        version: VERSION
                     }));
                     break;
 
@@ -1203,7 +1240,7 @@ async function main() {
     function showHelp() {
         console.log(`
 ${c.brightGreen}╔════════════════════════════════════════════════════════════╗
-║                    RANGERBLOCK VOICE v2.4                  ║
+║                    RANGERBLOCK VOICE v3.0                  ║
 ╚════════════════════════════════════════════════════════════╝${c.reset}
 
 ${c.brightGreen}=== PRIVATE CALL ===${c.reset}
@@ -1234,6 +1271,7 @@ ${c.yellow}=== INFO ===${c.reset}
   ${c.green}/peers${c.reset}           List online users
   ${c.green}/relay${c.reset}           Show relay server info
   ${c.green}/status${c.reset}          Show your current status
+  ${c.green}/identity${c.reset}        Show your hardware-bound identity
   ${c.green}/info${c.reset}            Show your node info
   ${c.green}/ping${c.reset}            Test relay connection
   ${c.green}/clear${c.reset}           Clear screen
@@ -1389,6 +1427,29 @@ ${c.brightCyan}=== YOUR STATUS ===${c.reset}
   ${c.green}Muted:${c.reset}       ${isMuted ? `${c.yellow}Yes${c.reset}` : 'No'}
   ${c.green}Peers:${c.reset}       ${peers.length} online
 `);
+                    break;
+
+                case 'identity':
+                case 'id':
+                    // Show identity information
+                    const summary = justChatIdentity.getSummary();
+                    if (summary) {
+                        console.log(`
+${c.brightCyan}=== YOUR IDENTITY ===${c.reset}
+  ${c.green}User ID:${c.reset}    ${summary.userId}
+  ${c.green}Username:${c.reset}   ${summary.username}
+  ${c.green}Machine:${c.reset}    ${summary.machineName}
+  ${c.green}Created:${c.reset}    ${new Date(summary.created).toLocaleDateString()}
+  ${c.green}Messages:${c.reset}   ${summary.messagesSent}
+  ${c.green}Sessions:${c.reset}   ${summary.sessionsCount}
+  ${c.green}On-Chain:${c.reset}   ${summary.isOnChain ? c.brightGreen + 'YES' : c.dim + 'NO'}${c.reset}
+  ${c.green}Has Keys:${c.reset}   ${justChatIdentity.getPublicKey() ? c.brightGreen + 'YES ✓' : c.dim + 'NO'}${c.reset}
+
+${c.dim}Your identity is hardware-bound and syncs across RangerBlock apps.${c.reset}
+`);
+                    } else {
+                        systemMsg(`${c.red}No identity found${c.reset}`);
+                    }
                     break;
 
                 case 'info':
