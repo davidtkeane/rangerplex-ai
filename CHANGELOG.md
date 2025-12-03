@@ -5,6 +5,26 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [RangerChat Lite 1.3.1] - 2025-12-03 - Update Notifications
+
+### Summary
+App now checks GitHub for updates and shows a banner when new versions are available!
+
+### New Features
+- **Update Checker**: Checks GitHub for new versions on startup
+- **Update Banner**: Animated orange banner when update is available
+- **Settings Integration**: Update instructions shown in Settings > About
+- **Theme-Aware**: Banner colors match your selected theme
+
+### How It Works
+When a newer version is found on GitHub:
+1. An animated banner appears at the top: "🚀 Update Available! v1.x.x is ready"
+2. Shows commands: `git pull` then `npm run dev`
+3. Can be dismissed with ✕ button
+4. Re-checks every 30 minutes
+
+---
+
 ## [RangerChat Lite 1.3.0] - 2025-12-03 - Easy Distribution
 
 ### Summary
@@ -28,6 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps
 ### Version History
 | Version | Highlights |
 |---------|------------|
+| 1.3.1 | Update notifications - checks GitHub for new versions |
 | 1.3.0 | Easy distribution - GitHub releases, install scripts |
 | 1.2.1 | Live blockchain transaction viewer |
 | 1.2.0 | Device-bound identity, random names, settings |

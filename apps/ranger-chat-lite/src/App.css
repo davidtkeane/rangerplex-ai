@@ -97,6 +97,152 @@ body {
 }
 
 /* ========================================
+   Update Banner
+   ======================================== */
+
+.update-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, #ff6b35 0%, #f7931e 50%, #ff6b35 100%);
+    background-size: 200% 100%;
+    animation: gradientShift 3s ease infinite;
+    padding: 10px 16px;
+    color: #fff;
+    font-size: 13px;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(255, 107, 53, 0.4);
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.update-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.update-icon {
+    font-size: 18px;
+    animation: bounce 1s ease infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+.update-text {
+    color: #fff;
+}
+
+.update-text strong {
+    font-weight: 700;
+}
+
+.update-command {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.update-command code {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    margin-left: 4px;
+}
+
+.update-dismiss {
+    background: rgba(0, 0, 0, 0.2);
+    border: none;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.update-dismiss:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* Update notice in Settings */
+.update-notice {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 12px 0;
+    color: #fff;
+}
+
+.update-badge {
+    display: inline-block;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.update-instructions {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+}
+
+.update-instructions p {
+    margin: 0 0 8px 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.update-instructions code {
+    display: block;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #fff;
+}
+
+/* Theme-specific update banner colors */
+.theme-matrix .update-banner {
+    background: linear-gradient(90deg, #00aa00 0%, #00ff00 50%, #00aa00 100%);
+    box-shadow: 0 2px 10px rgba(0, 255, 0, 0.4);
+}
+
+.theme-matrix .update-notice {
+    background: linear-gradient(135deg, #00aa00 0%, #00ff00 100%);
+}
+
+.theme-tron .update-banner {
+    background: linear-gradient(90deg, #0088cc 0%, #00d4ff 50%, #0088cc 100%);
+    box-shadow: 0 2px 10px rgba(0, 212, 255, 0.4);
+}
+
+.theme-tron .update-notice {
+    background: linear-gradient(135deg, #0088cc 0%, #00d4ff 100%);
+}
+
+.theme-retro .update-banner {
+    background: linear-gradient(90deg, #000080 0%, #0000cc 50%, #000080 100%);
+    box-shadow: 0 2px 10px rgba(0, 0, 128, 0.4);
+}
+
+.theme-retro .update-notice {
+    background: linear-gradient(135deg, #000080 0%, #0000cc 100%);
+}
+
+/* ========================================
    Login Screen
    ======================================== */
 

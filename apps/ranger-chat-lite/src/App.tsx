@@ -84,6 +84,10 @@ const EMOJI_DATA = {
 // App views
 type ViewType = 'login' | 'chat' | 'settings'
 
+// Current app version
+const APP_VERSION = '1.3.1'
+const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
+
 function App() {
     // View state
     const [view, setView] = useState<ViewType>('login')
@@ -118,6 +122,11 @@ function App() {
     const [showTransactions, setShowTransactions] = useState(false)
     const [txStats, setTxStats] = useState({ sent: 0, received: 0, total: 0, bytes: 0 })
 
+    // Update notification state
+    const [updateAvailable, setUpdateAvailable] = useState(false)
+    const [latestVersion, setLatestVersion] = useState<string | null>(null)
+    const [showUpdateBanner, setShowUpdateBanner] = useState(true)
+
     const wsRef = useRef<WebSocket | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const chatHistoryRef = useRef<HTMLDivElement>(null)
@@ -142,6 +151,52 @@ function App() {
             setLoading(false)
         }
         checkIdentity()
+    }, [])
+
+    // Check for updates on load
+    useEffect(() => {
+        const checkForUpdates = async () => {
+            try {
+                // Check the package.json in the repo for the latest version
+                const response = await fetch(
+                    `https://raw.githubusercontent.com/${GITHUB_REPO}/main/apps/ranger-chat-lite/package.json`
+                )
+                if (response.ok) {
+                    const packageJson = await response.json()
+                    const remoteVersion = packageJson.version
+
+                    // Compare versions (simple string comparison works for semver)
+                    if (remoteVersion && remoteVersion !== APP_VERSION) {
+                        // Check if remote version is newer
+                        const current = APP_VERSION.split('.').map(Number)
+                        const remote = remoteVersion.split('.').map(Number)
+
+                        let isNewer = false
+                        for (let i = 0; i < 3; i++) {
+                            if (remote[i] > current[i]) {
+                                isNewer = true
+                                break
+                            } else if (remote[i] < current[i]) {
+                                break
+                            }
+                        }
+
+                        if (isNewer) {
+                            setLatestVersion(remoteVersion)
+                            setUpdateAvailable(true)
+                            console.log(`Update available: v${remoteVersion} (current: v${APP_VERSION})`)
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Could not check for updates:', error)
+            }
+        }
+
+        // Check immediately and then every 30 minutes
+        checkForUpdates()
+        const interval = setInterval(checkForUpdates, 30 * 60 * 1000)
+        return () => clearInterval(interval)
     }, [])
 
     // Auto-scroll to bottom
@@ -465,13 +520,31 @@ function App() {
 
     return (
         <div className={`ranger-chat-container theme-${theme}`}>
+            {/* UPDATE BANNER - Shows on all views */}
+            {updateAvailable && showUpdateBanner && (
+                <div className="update-banner">
+                    <div className="update-content">
+                        <span className="update-icon">🚀</span>
+                        <span className="update-text">
+                            <strong>Update Available!</strong> v{latestVersion} is ready.
+                        </span>
+                        <span className="update-command">
+                            Run: <code>git pull</code> then <code>npm run dev</code>
+                        </span>
+                    </div>
+                    <button className="update-dismiss" onClick={() => setShowUpdateBanner(false)}>
+                        ✕
+                    </button>
+                </div>
+            )}
+
             {/* LOGIN VIEW */}
             {view === 'login' && (
                 <div className="login-screen">
                     <div className="login-card">
                         <div className="logo">🦅</div>
                         <h1>RangerChat</h1>
-                        <p className="subtitle">Lite Edition v1.2.0</p>
+                        <p className="subtitle">Lite Edition v{APP_VERSION}</p>
 
                         <div className="input-group">
                             <label>Choose Your Name</label>
@@ -833,8 +906,20 @@ function App() {
                         <div className="settings-section">
                             <h3>ℹ️ About</h3>
                             <div className="about-info">
-                                <p><strong>RangerChat Lite</strong> v1.2.1</p>
+                                <p><strong>RangerChat Lite</strong> v{APP_VERSION}</p>
                                 <p>A lightweight chat client for the RangerPlex network.</p>
+                                {updateAvailable && (
+                                    <div className="update-notice">
+                                        <span className="update-badge">🚀 Update Available: v{latestVersion}</span>
+                                        <div className="update-instructions">
+                                            <p>To update, run in terminal:</p>
+                                            <code>cd apps/ranger-chat-lite</code>
+                                            <code>git pull</code>
+                                            <code>npm install</code>
+                                            <code>npm run dev</code>
+                                        </div>
+                                    </div>
+                                )}
                                 <p className="mission">🎖️ Mission: Transform disabilities into superpowers</p>
                                 <p className="philosophy">"One foot in front of the other" - David Keane</p>
                             </div>

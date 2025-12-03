@@ -4,6 +4,23 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.3.1] - 2025-12-03 - "Update Notifications"
+
+### Added
+- **Update Checker**: App checks GitHub for new versions on startup
+- **Update Banner**: Animated banner appears when update is available
+- **Update Instructions**: Settings page shows git pull commands
+- **Version Display**: Shows current version (v1.3.1) dynamically
+- **Theme-aware**: Update banner matches current theme colors
+
+### Technical
+- Fetches package.json from GitHub raw to compare versions
+- Semantic version comparison (major.minor.patch)
+- Auto-check every 30 minutes
+- Dismissible banner with ✕ button
+
+---
+
 ## [1.3.0] - 2025-12-03 - "Easy Distribution"
 
 ### Added
@@ -241,6 +258,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.3.1 | 2025-12-03 | Update notifications - checks GitHub for new versions |
 | 1.3.0 | 2025-12-03 | Easy distribution - GitHub releases, install scripts |
 | 1.2.1 | 2025-12-03 | Live blockchain transaction viewer with cyberpunk UI |
 | 1.2.0 | 2025-12-03 | Device-bound identity, random name generator, settings page |
