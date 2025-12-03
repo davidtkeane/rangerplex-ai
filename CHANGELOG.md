@@ -90,6 +90,26 @@ Terminal chat client now uses shared `~/.rangerblock/` identity system!
 
 ---
 
+## [RangerChat Lite 2.0.0] - 2025-12-03 - Shared Identity
+
+### Summary
+RangerChat Lite now uses shared `~/.rangerblock/` identity system with cross-app sync!
+
+### New Features
+- **Shared Storage**: Identity stored in `~/.rangerblock/` (shared with all RangerBlock apps)
+- **Hardware-Bound**: Persistent userId tied to device fingerprint
+- **Cross-App Sync**: Identity syncs with blockchain-chat, voice-chat, and RangerPlex
+- **Migration**: Auto-migrates from legacy Electron userData storage
+- **RSA Keys**: Public/private key pairs for message signing
+
+### Technical
+- Primary storage: `~/.rangerblock/identity/master_identity.json`
+- Legacy fallback: Electron userData for backward compatibility
+- Auto-migration on first run if legacy identity exists
+- New methods: `isRangerPlexInstalled()`, `getPublicKey()`, `signMessage()`
+
+---
+
 ## [RangerChat Lite 1.3.1] - 2025-12-03 - Update Notifications
 
 ### Summary
