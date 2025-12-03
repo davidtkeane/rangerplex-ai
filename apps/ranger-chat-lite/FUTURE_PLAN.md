@@ -1,8 +1,8 @@
 # RangerChat Lite - Future Development Plan
 
 **Last Updated:** December 3, 2025
-**Current Version:** 1.2.1
-**Next Release:** 1.3.0 (Target: December 2025)
+**Current Version:** 2.0.1
+**Next Release:** 2.1.0 (Target: December 2025)
 
 ---
 
@@ -145,6 +145,43 @@ See **Distribution Plan** section at top for full details.
 - [x] Pre-built binaries on GitHub Releases
 - [x] One-click install scripts (bash/powershell)
 - [x] README with download links
+
+---
+
+### **v2.0.0 - "Security Foundation"** 🔐 ✅ COMPLETE
+**Released:** December 2025
+**Focus:** Shared identity system across all RangerBlock apps
+
+#### Completed Features
+- [x] Shared `~/.rangerblock/` storage system
+- [x] Hardware-bound identity (device fingerprinting)
+- [x] RSA-2048 key pairs for signing
+- [x] Cross-app identity sync (RangerChat Lite ↔ blockchain-chat ↔ voice-chat)
+- [x] Migration from legacy Electron userData
+- [x] Clean login UI (removed badges/hints)
+
+---
+
+### **v2.1.0 - "Security Enhancement"** 🛡️
+**Target:** December 2025
+**Focus:** Advanced security and authentication
+
+#### High Priority
+- [ ] Auth server for challenge-response verification
+- [ ] On-chain identity registration (blockchain)
+- [ ] Message signing verification (verify sender)
+- [ ] Admin dashboard (view all userIds)
+
+#### Medium Priority
+- [ ] RAIN Protocol implementation (kill switch)
+- [ ] E2E message encryption (AES-256-GCM)
+- [ ] Session tokens with expiry
+- [ ] Identity revocation support
+
+#### Low Priority
+- [ ] Multi-device identity sync
+- [ ] Identity backup/restore
+- [ ] Hardware security key support (YubiKey)
 
 ---
 
@@ -411,16 +448,35 @@ These are small improvements that can be added in any version:
 
 These are ambitious ideas to explore:
 
-1. **AI Integration** - Claude/GPT assistant in chat
-2. **Translation** - Real-time message translation
-3. **Voice-to-Text** - Speak messages
-4. **Sentiment Analysis** - Mood indicators
-5. **Smart Replies** - Suggested responses
-6. **Game Integration** - Play mini-games in chat
-7. **Music Sharing** - Spotify/YouTube integration
-8. **Calendar** - Schedule meetings in chat
-9. **Task Management** - Create todos from messages
-10. **Code Execution** - Run code snippets (sandboxed)
+### Security & Infrastructure
+1. **Auth Server** - Challenge-response identity verification
+2. **RAIN Protocol** - Emergency kill switch for blockchain
+3. **On-Chain Registration** - Register identities to blockchain
+4. **File Transfer Encryption** - E2E encrypted file sharing
+
+### Mobile & Cross-Platform
+5. **Mobile App** - React Native companion app
+6. **Web Client** - Browser-based version
+7. **CLI Client** - Terminal-only chat (already have blockchain-chat.cjs!)
+
+### AI & Smart Features
+8. **AI Integration** - Claude/GPT assistant in chat
+9. **Translation** - Real-time message translation
+10. **Voice-to-Text** - Speak messages
+11. **Sentiment Analysis** - Mood indicators
+12. **Smart Replies** - Suggested responses
+
+### Voice & Media
+13. **Voice Chat Improvements** - Better push-to-talk, noise cancellation
+14. **Video Calling** - WebRTC integration
+15. **Screen Sharing** - Share screen in chat
+16. **Music Sharing** - Spotify/YouTube integration
+
+### Fun & Social
+17. **Game Integration** - Play mini-games in chat
+18. **Calendar** - Schedule meetings in chat
+19. **Task Management** - Create todos from messages
+20. **Code Execution** - Run code snippets (sandboxed)
 
 ---
 
