@@ -1,8 +1,73 @@
 # RangerChat Lite - Future Development Plan
 
-**Last Updated:** December 2, 2025
-**Current Version:** 1.0.0
-**Next Release:** 1.1.0 (Target: December 2025)
+**Last Updated:** December 3, 2025
+**Current Version:** 1.2.1
+**Next Release:** 1.3.0 (Target: December 2025)
+
+---
+
+## 📦 Distribution Plan (Priority!)
+
+### v1.3.0 - "Easy Distribution" 📤
+**Target:** December 2025
+**Focus:** Make it easy to share RangerChat Lite with friends
+
+#### Phase 1: GitHub Releases with Pre-built Binaries (RECOMMENDED)
+
+**Why this approach:**
+- Friends just download and run - no dev setup needed
+- No Node.js, npm, or git required
+- Works for non-technical users
+- Professional distribution method
+
+**Build Outputs:**
+- [ ] `.exe` installer for Windows (NSIS or Squirrel)
+- [ ] `.dmg` for macOS
+- [ ] `.AppImage` for Linux
+- [ ] Portable `.zip` versions for each platform
+
+**GitHub Actions Workflow:**
+- [ ] Auto-build on git tag (e.g., `v1.3.0`)
+- [ ] Upload artifacts to GitHub Releases
+- [ ] Generate checksums for security
+
+**What friends need:**
+1. Download the app from GitHub Releases
+2. Run it (connects to YOUR RangerPlex server URL)
+3. No need to install full RangerPlex or run their own node
+
+#### Phase 2: Auto-Update System
+- [ ] electron-updater integration
+- [ ] Check for updates on startup
+- [ ] One-click update installation
+- [ ] Version mismatch warnings
+
+#### Phase 3: Install Scripts (Optional - for power users)
+
+**Bash Script (macOS/Linux):**
+```bash
+#!/bin/bash
+# install-rangerchat.sh
+curl -L https://github.com/davidtkeane/rangerplex-ai/releases/latest/download/RangerChat-Lite-linux.AppImage -o RangerChat
+chmod +x RangerChat
+./RangerChat
+```
+
+**PowerShell Script (Windows):**
+```powershell
+# install-rangerchat.ps1
+$url = "https://github.com/davidtkeane/rangerplex-ai/releases/latest/download/RangerChat-Lite-win.exe"
+Invoke-WebRequest -Uri $url -OutFile "RangerChat-Lite.exe"
+Start-Process "RangerChat-Lite.exe"
+```
+
+#### Distribution Checklist
+- [ ] Configure electron-builder for all platforms
+- [ ] Set up code signing (optional but recommended)
+- [ ] Create GitHub Actions release workflow
+- [ ] Add README with download links and screenshots
+- [ ] Create release notes template
+- [ ] Test on fresh machines (no dev tools)
 
 ---
 
@@ -19,37 +84,71 @@
 
 ## 📋 Release Roadmap
 
-### **v1.1.0 - "Stability & Polish"** 🔧
-**Target:** December 2025
+### **v1.1.0 - "Stability & Polish"** ✅ COMPLETE
+**Released:** December 2025
 **Focus:** Fix core UX issues, improve reliability
 
 #### High Priority (Must-Have)
 - [x] Auto-scroll to bottom when new messages arrive
 - [x] Show peer count in title bar (e.g., "RangerChat Lite (3 online)")
-- [x] Automatic reconnection on disconnect (with backoff)
-- [x] Clickable URLs in messages (auto-detect and link)
-- [x] Sound notifications for new messages (toggle-able)
-- [x] Online user list panel/sidebar
+- [x] Emoji picker with 180+ emojis across 9 categories
+- [x] Message search functionality
+- [x] Theme system (4 themes: Classic, Matrix, Tron, Retro)
+- [x] Show "You" instead of username for own messages
 
 #### Medium Priority (Should-Have)
 - [ ] Message persistence to localStorage
 - [ ] Desktop notifications (Electron Notification API)
 - [ ] Connection status indicator (🟢 Connected / 🔴 Disconnected)
 - [ ] Better error messages for connection failures
-- [ ] Show timestamps on message hover
 - [ ] "Scroll to bottom" button when scrolled up
-
-#### Low Priority (Nice-to-Have)
-- [ ] Message character counter (limit warnings)
-- [ ] Show "You" instead of username for own messages
-- [ ] Connection uptime display
-- [ ] Network latency/ping indicator
-
-**Estimated Development Time:** 1-2 weeks
 
 ---
 
-### **v1.2.0 - "Social Features"** 👥
+### **v1.2.0 - "Identity & Security"** ✅ COMPLETE
+**Released:** December 2025
+**Focus:** Device-bound identity for moderation
+
+#### Completed Features
+- [x] Device-bound identity (hardware fingerprinting)
+- [x] Persistent userId and nodeId across sessions
+- [x] Random username generator (🎲 button)
+- [x] Settings page with Profile, Identity, Theme, Storage, About sections
+- [x] RangerPlex compatible identity files (.personal folder)
+- [x] RSA keypair generation for future message signing
+- [x] Moderation support (userId sent with every message)
+
+---
+
+### **v1.2.1 - "Blockchain Viewer"** ✅ COMPLETE
+**Released:** December 2025
+**Focus:** Visualize network transactions
+
+#### Completed Features
+- [x] Live blockchain transaction viewer in Settings
+- [x] Stats dashboard (sent/received/total/bytes)
+- [x] Cyberpunk UI with animated transaction cards
+- [x] Color-coded transaction types (green=in, red=out, yellow=system, blue=peer)
+- [x] Theme-specific styling (Matrix green glow, Tron cyan glow)
+
+---
+
+### **v1.3.0 - "Easy Distribution"** 📤 (NEXT PRIORITY)
+**Target:** December 2025
+**Focus:** Build and share standalone app with friends
+
+See **Distribution Plan** section at top for full details.
+
+#### Key Deliverables
+- [ ] Electron-builder configuration for Win/Mac/Linux
+- [ ] GitHub Actions workflow for auto-releases
+- [ ] Pre-built binaries on GitHub Releases
+- [ ] One-click install scripts (bash/powershell)
+- [ ] README with download links and screenshots
+
+---
+
+### **v1.4.0 - "Social Features"** 👥
 **Target:** January 2026
 **Focus:** Enhanced communication and interaction
 
@@ -59,7 +158,6 @@
 - [ ] Message reactions (👍 ❤️ 😂 etc.)
 - [ ] Typing indicators ("User is typing...")
 - [ ] User status/presence (Online, Away, Busy)
-- [ ] Search messages (Ctrl+F)
 
 #### Medium Priority
 - [ ] User profiles (click username for info)
@@ -78,7 +176,7 @@
 
 ---
 
-### **v1.3.0 - "Rich Media"** 🎨
+### **v1.5.0 - "Rich Media"** 🎨
 **Target:** February 2026
 **Focus:** File sharing and rich content
 
