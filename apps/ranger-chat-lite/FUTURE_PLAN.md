@@ -1,8 +1,8 @@
 # RangerChat Lite - Future Development Plan
 
 **Last Updated:** December 3, 2025
-**Current Version:** 2.0.1
-**Next Release:** 2.1.0 (Target: December 2025)
+**Current Version:** 2.1.0
+**Next Release:** 2.2.0 (Target: January 2026)
 
 ---
 
@@ -162,20 +162,20 @@ See **Distribution Plan** section at top for full details.
 
 ---
 
-### **v2.1.0 - "Security Enhancement"** 🛡️
-**Target:** December 2025
+### **v2.1.0 - "Security Enhancement"** 🛡️ ✅ COMPLETE
+**Released:** December 2025
 **Focus:** Advanced security and authentication
 
-#### High Priority
-- [ ] Auth server for challenge-response verification
-- [ ] On-chain identity registration (blockchain)
-- [ ] Message signing verification (verify sender)
-- [ ] Admin dashboard (view all userIds)
+#### High Priority ✅
+- [x] Auth server for challenge-response verification (auth-server.cjs)
+- [x] On-chain identity registration (register-identity.cjs)
+- [x] Message signing verification (blockchain-chat v4.1.0)
+- [x] Admin dashboard (private admin-users.cjs)
 
 #### Medium Priority
 - [ ] RAIN Protocol implementation (kill switch)
-- [ ] E2E message encryption (AES-256-GCM)
-- [ ] Session tokens with expiry
+- [x] E2E message encryption (AES-256-GCM + RSA hybrid)
+- [x] Session tokens with expiry (auth-server.cjs)
 - [ ] Identity revocation support
 
 #### Low Priority

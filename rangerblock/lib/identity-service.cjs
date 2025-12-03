@@ -16,6 +16,7 @@
 
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { hardwareId, getFingerprint, getMachineName, getLocalIP } = require('./hardware-id.cjs');
 const { cryptoUtils, generateKeyPair, sign, verify, generateChallenge, signChallenge } = require('./crypto-utils.cjs');
 const { storage, init: initStorage, STORAGE_PATHS } = require('./storage-utils.cjs');
@@ -24,7 +25,7 @@ const { storage, init: initStorage, STORAGE_PATHS } = require('./storage-utils.c
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const APP_TYPE_CHAT_LITE = 'ranger-chat-lite';
 const APP_TYPE_RANGERPLEX = 'rangerplex';
 const APP_TYPE_JUST_CHAT = 'just-chat';
@@ -290,6 +291,57 @@ class IdentityService {
      */
     verifyMessage(message, signature, publicKey) {
         return verify(message, signature, publicKey);
+    }
+
+    /**
+     * Encrypt a message for a recipient (E2E)
+     * Uses hybrid encryption: RSA encrypts AES key, AES encrypts message
+     */
+    encryptForRecipient(message, recipientPublicKey) {
+        // Generate random AES key
+        const aesKey = crypto.randomBytes(32);
+
+        // Encrypt message with AES
+        const encrypted = cryptoUtils.encryptAES(message, aesKey);
+
+        // Encrypt AES key with recipient's RSA public key
+        const encryptedKey = crypto.publicEncrypt(
+            {
+                key: recipientPublicKey,
+                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+                oaepHash: 'sha256'
+            },
+            aesKey
+        ).toString('base64');
+
+        return {
+            encryptedMessage: encrypted,
+            encryptedKey: encryptedKey,
+            senderPublicKey: this.getPublicKey()
+        };
+    }
+
+    /**
+     * Decrypt a message sent to us (E2E)
+     */
+    decryptMessage(encryptedData) {
+        const privateKey = this.getPrivateKey();
+        if (!privateKey) {
+            throw new Error('No private key available');
+        }
+
+        // Decrypt the AES key with our RSA private key
+        const aesKey = crypto.privateDecrypt(
+            {
+                key: privateKey,
+                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+                oaepHash: 'sha256'
+            },
+            Buffer.from(encryptedData.encryptedKey, 'base64')
+        );
+
+        // Decrypt the message with AES key
+        return cryptoUtils.decryptAES(encryptedData.encryptedMessage, aesKey);
     }
 
     /**
@@ -655,6 +707,25 @@ if (require.main === module) {
         console.log(`   Base:     ${paths.base}`);
         console.log(`   Identity: ${paths.identity}`);
         console.log(`   Keys:     ${paths.keys}`);
+
+        // Test E2E encryption
+        console.log('\n9. Testing E2E encryption...');
+        const secretMessage = 'This is a secret message for testing E2E encryption!';
+        const recipientPublicKey = myIdentity.publicKey; // Encrypting to ourselves for test
+
+        try {
+            const encrypted = identity.encryptForRecipient(secretMessage, recipientPublicKey);
+            console.log(`   Original: "${secretMessage}"`);
+            console.log(`   Encrypted key: ${encrypted.encryptedKey.substring(0, 40)}...`);
+            console.log(`   Has sender key: ${encrypted.senderPublicKey ? 'YES' : 'NO'}`);
+
+            // Decrypt
+            const decrypted = identity.decryptMessage(encrypted);
+            console.log(`   Decrypted: "${decrypted}"`);
+            console.log(`   Match: ${decrypted === secretMessage ? '✅ YES' : '❌ NO'}`);
+        } catch (e) {
+            console.log(`   ❌ E2E encryption error: ${e.message}`);
+        }
 
         console.log('\n======================================');
         console.log('Identity service test completed!\n');
