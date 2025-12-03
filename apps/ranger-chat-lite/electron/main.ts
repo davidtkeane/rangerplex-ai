@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Menu, shell } from 'electron'
 import path from 'node:path'
 
 process.env.DIST = path.join(__dirname, '../dist')
@@ -11,10 +11,11 @@ const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
 function createWindow() {
     win = new BrowserWindow({
-        width: 400,
-        height: 600,
-        frame: false, // Custom frame for retro look
-        transparent: true, // Enable transparency for cool effects
+        width: 450,
+        height: 650,
+        frame: true, // Enable native frame for menu bar
+        transparent: false,
+        backgroundColor: '#1a1a2e',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,
@@ -52,4 +53,129 @@ app.on('activate', () => {
     }
 })
 
-app.whenReady().then(createWindow)
+// Create application menu
+function createMenu() {
+    const isMac = process.platform === 'darwin'
+
+    const template: Electron.MenuItemConstructorOptions[] = [
+        // File Menu
+        {
+            label: 'File',
+            submenu: [
+                {
+                    label: 'New Connection',
+                    accelerator: 'CmdOrCtrl+N',
+                    click: () => {
+                        win?.webContents.send('menu-action', 'new-connection')
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'Settings',
+                    accelerator: 'CmdOrCtrl+,',
+                    click: () => {
+                        win?.webContents.send('menu-action', 'settings')
+                    }
+                },
+                { type: 'separator' },
+                isMac ? { role: 'close' } : { role: 'quit' }
+            ]
+        },
+        // Edit Menu
+        {
+            label: 'Edit',
+            submenu: [
+                { role: 'undo' },
+                { role: 'redo' },
+                { type: 'separator' },
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' },
+                { role: 'selectAll' }
+            ]
+        },
+        // View Menu
+        {
+            label: 'View',
+            submenu: [
+                { role: 'reload' },
+                { role: 'forceReload' },
+                { type: 'separator' },
+                { role: 'resetZoom' },
+                { role: 'zoomIn' },
+                { role: 'zoomOut' },
+                { type: 'separator' },
+                { role: 'togglefullscreen' }
+            ]
+        },
+        // Developer Menu
+        {
+            label: 'Developer',
+            submenu: [
+                {
+                    role: 'toggleDevTools',
+                    label: 'Toggle Developer Tools',
+                    accelerator: 'CmdOrCtrl+Shift+I'
+                },
+                { type: 'separator' },
+                {
+                    label: 'View Console Logs',
+                    accelerator: 'CmdOrCtrl+Shift+C',
+                    click: () => {
+                        win?.webContents.openDevTools({ mode: 'bottom' })
+                    }
+                },
+                {
+                    label: 'Inspect Element',
+                    accelerator: 'CmdOrCtrl+Shift+E',
+                    click: () => {
+                        win?.webContents.inspectElement(0, 0)
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'Clear Cache & Reload',
+                    click: async () => {
+                        if (win) {
+                            await win.webContents.session.clearCache()
+                            win.webContents.reload()
+                        }
+                    }
+                }
+            ]
+        },
+        // Help Menu
+        {
+            label: 'Help',
+            submenu: [
+                {
+                    label: 'About RangerChat Lite',
+                    click: () => {
+                        win?.webContents.send('menu-action', 'about')
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'RangerPlex Website',
+                    click: async () => {
+                        await shell.openExternal('https://rangerplex.com')
+                    }
+                },
+                {
+                    label: 'Report Issue',
+                    click: async () => {
+                        await shell.openExternal('https://github.com/anthropics/claude-code/issues')
+                    }
+                }
+            ]
+        }
+    ]
+
+    const menu = Menu.buildFromTemplate(template)
+    Menu.setApplicationMenu(menu)
+}
+
+app.whenReady().then(() => {
+    createMenu()
+    createWindow()
+})

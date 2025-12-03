@@ -9,22 +9,72 @@ interface Message {
     timestamp: string
 }
 
+// Theme definitions
+type ThemeName = 'classic' | 'matrix' | 'tron' | 'retro'
+
+const THEMES: Record<ThemeName, { name: string; icon: string }> = {
+    classic: { name: 'Classic', icon: '💬' },
+    matrix: { name: 'Matrix', icon: '🟢' },
+    tron: { name: 'Tron', icon: '🔵' },
+    retro: { name: 'Retro', icon: '💾' }
+}
+
+// Emoji categories
+const EMOJI_DATA = {
+    frequent: ['😀', '😂', '🤣', '😊', '😍', '🥰', '😎', '🤔', '👍', '👎', '👏', '🙌', '🔥', '❤️', '💯', '🎉', '✨', '🚀', '💪', '🙏'],
+    smileys: ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😋', '😛', '😜', '🤪', '😝', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '😮', '🤯', '😱', '😨', '😰', '😥'],
+    gestures: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾'],
+    hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️'],
+    animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🦅', '🦆', '🦉', '🐺', '🦈'],
+    food: ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍕', '🍔', '🍟', '🌭', '🍿', '🧁', '🍩', '🍪', '☕', '🍺', '🍷', '🥤', '🧃'],
+    activities: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🎮', '🎲', '🎯', '🎪', '🎨', '🎬', '🎤', '🎧', '🎸', '🎹', '🎺', '🥁', '🏆', '🥇'],
+    travel: ['🚗', '🚕', '🚌', '🚎', '🏎️', '🚓', '🚑', '✈️', '🚀', '🛸', '🚁', '⛵', '🚢', '🏠', '🏰', '🗼', '🗽', '⛰️', '🏝️', '🌋'],
+    symbols: ['💯', '🔥', '⭐', '✨', '💫', '🌟', '⚡', '💥', '💢', '💤', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🎵', '🎶', '➕']
+}
+
 function App() {
     const [connected, setConnected] = useState(false)
     const [username, setUsername] = useState('RangerUser')
-    const [serverUrl, setServerUrl] = useState('ws://44.222.101.125:5555') // Default to AWS
+    const [serverUrl, setServerUrl] = useState('ws://44.222.101.125:5555')
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [peerCount, setPeerCount] = useState(0)
+
+    // New features
+    const [theme, setTheme] = useState<ThemeName>('classic')
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+    const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_DATA>('frequent')
+    const [emojiSearch, setEmojiSearch] = useState('')
+    const [showSearch, setShowSearch] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
+
     const wsRef = useRef<WebSocket | null>(null)
     const nodeIdRef = useRef<string>('')
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const chatHistoryRef = useRef<HTMLDivElement>(null)
+
+    // Auto-scroll to bottom
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [messages])
+
+    // Load theme from localStorage
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('rangerChatTheme') as ThemeName
+        if (savedTheme && THEMES[savedTheme]) {
+            setTheme(savedTheme)
+        }
+    }, [])
+
+    // Save theme to localStorage
+    useEffect(() => {
+        localStorage.setItem('rangerChatTheme', theme)
+        document.documentElement.setAttribute('data-theme', theme)
+    }, [theme])
 
     const connect = () => {
         if (wsRef.current) wsRef.current.close()
-
-        // Generate unique node ID
         nodeIdRef.current = `lite-${Math.random().toString(36).substring(2, 10)}`
-
         const ws = new WebSocket(serverUrl)
 
         ws.onopen = () => {
@@ -39,10 +89,8 @@ function App() {
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data)
-
                 switch (data.type) {
                     case 'welcome':
-                        // Server welcomed us, now register
                         ws.send(JSON.stringify({
                             type: 'register',
                             address: nodeIdRef.current,
@@ -54,7 +102,6 @@ function App() {
                             capabilities: ['chat']
                         }))
                         break
-
                     case 'registered':
                         setConnected(true)
                         setMessages(prev => [...prev, {
@@ -63,10 +110,8 @@ function App() {
                             content: `Registered as ${username}`,
                             timestamp: new Date().toLocaleTimeString()
                         }])
-                        // Request peer list
                         ws.send(JSON.stringify({ type: 'getPeers' }))
                         break
-
                     case 'peerList':
                         const peers = data.peers || []
                         setPeerCount(peers.length)
@@ -77,15 +122,18 @@ function App() {
                             timestamp: new Date().toLocaleTimeString()
                         }])
                         break
-
+                    case 'peerListUpdate':
+                        // Update peer count when peers join/leave
+                        const updatedPeers = data.peers || []
+                        setPeerCount(updatedPeers.length)
+                        break
                     case 'broadcast':
                     case 'nodeMessage':
-                        // Handle payload-wrapped messages
-                        if (data.payload) {
-                            handlePayload(data.payload)
-                        }
+                        if (data.payload) handlePayload(data.payload)
                         break
-
+                    case 'broadcastSent':
+                        // Confirmation that our message was broadcast - ignore
+                        break
                     default:
                         console.log('Unknown message type:', data.type)
                 }
@@ -120,14 +168,15 @@ function App() {
     const handlePayload = (payload: any) => {
         switch (payload.type) {
             case 'chatMessage':
+            case 'chat':
+                // Handle both chatMessage and chat payload types
                 setMessages(prev => [...prev, {
                     type: 'chat',
-                    sender: payload.nickname || 'Unknown',
-                    content: payload.message,
+                    sender: payload.nickname || payload.from || 'Unknown',
+                    content: payload.message || payload.content || '',
                     timestamp: new Date().toLocaleTimeString()
                 }])
                 break
-
             default:
                 console.log('Unknown payload type:', payload.type)
         }
@@ -136,7 +185,6 @@ function App() {
     const sendMessage = () => {
         if (!wsRef.current || !connected || !input.trim()) return
 
-        // Use broadcast format with chatMessage payload (matching voice-chat.cjs)
         const msg = {
             type: 'broadcast',
             payload: {
@@ -149,66 +197,197 @@ function App() {
         }
 
         wsRef.current.send(JSON.stringify(msg))
-
-        // Add to local view immediately
         setMessages(prev => [...prev, {
             type: 'chat',
             sender: username,
             content: input,
             timestamp: new Date().toLocaleTimeString()
         }])
-
         setInput('')
     }
 
-    return (
-        <div className="ranger-chat-container">
-            {/* Custom Title Bar */}
-            <div className="title-bar">
-                <div className="title-text">💾 RangerChat Lite</div>
-                <div className="window-controls">
-                    <button className="minimize">_</button>
-                    <button className="close" onClick={() => window.close()}>X</button>
-                </div>
-            </div>
+    const insertEmoji = (emoji: string) => {
+        setInput(prev => prev + emoji)
+    }
 
+    // Filter emojis by search
+    const getFilteredEmojis = () => {
+        const categoryEmojis = EMOJI_DATA[emojiCategory]
+        if (!emojiSearch) return categoryEmojis
+
+        // Search across all categories
+        const allEmojis = Object.values(EMOJI_DATA).flat()
+        return allEmojis.filter(emoji => emoji.includes(emojiSearch))
+    }
+
+    // Filter messages by search
+    const getFilteredMessages = () => {
+        if (!searchQuery) return messages
+        return messages.filter(msg =>
+            msg.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            msg.sender.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+    }
+
+    // Cycle through themes
+    const cycleTheme = () => {
+        const themeOrder: ThemeName[] = ['classic', 'matrix', 'tron', 'retro']
+        const currentIndex = themeOrder.indexOf(theme)
+        const nextIndex = (currentIndex + 1) % themeOrder.length
+        setTheme(themeOrder[nextIndex])
+    }
+
+    return (
+        <div className={`ranger-chat-container theme-${theme}`}>
             {!connected ? (
                 <div className="login-screen">
-                    <div className="logo">🦅</div>
-                    <h2>RangerChat Login</h2>
-                    <input
-                        type="text"
-                        placeholder="Username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                    />
-                    <input
-                        type="text"
-                        placeholder="Server URL (ws://...)"
-                        value={serverUrl}
-                        onChange={(e) => setServerUrl(e.target.value)}
-                    />
-                    <button onClick={connect}>Connect</button>
+                    <div className="login-card">
+                        <div className="logo">🦅</div>
+                        <h1>RangerChat</h1>
+                        <p className="subtitle">Lite Edition</p>
+
+                        <div className="input-group">
+                            <label>Username</label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="Enter your name"
+                            />
+                        </div>
+
+                        <div className="input-group">
+                            <label>Server</label>
+                            <input
+                                type="text"
+                                value={serverUrl}
+                                onChange={(e) => setServerUrl(e.target.value)}
+                                placeholder="ws://..."
+                            />
+                        </div>
+
+                        <button className="connect-btn" onClick={connect}>
+                            Connect
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="chat-interface">
-                    <div className="chat-history">
-                        {messages.map((msg, i) => (
+                    {/* Header */}
+                    <div className="chat-header">
+                        <div className="header-left">
+                            <span className="header-icon">🦅</span>
+                            <span className="header-title">RangerChat</span>
+                            <span className="peer-count">{peerCount} online</span>
+                        </div>
+                        <div className="header-right">
+                            <button
+                                className={`header-btn ${showSearch ? 'active' : ''}`}
+                                onClick={() => setShowSearch(!showSearch)}
+                                title="Search messages"
+                            >
+                                🔍
+                            </button>
+                            <button
+                                className="header-btn"
+                                onClick={cycleTheme}
+                                title={`Theme: ${THEMES[theme].name} (click to change)`}
+                            >
+                                {THEMES[theme].icon}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Search Bar */}
+                    {showSearch && (
+                        <div className="search-bar">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search messages..."
+                                autoFocus
+                            />
+                            {searchQuery && (
+                                <span className="search-count">
+                                    {getFilteredMessages().length} found
+                                </span>
+                            )}
+                            <button onClick={() => { setSearchQuery(''); setShowSearch(false); }}>✕</button>
+                        </div>
+                    )}
+
+                    {/* Chat History */}
+                    <div className="chat-history" ref={chatHistoryRef}>
+                        {getFilteredMessages().map((msg, i) => (
                             <div key={i} className={`message ${msg.type} ${msg.sender === username ? 'own' : ''}`}>
-                                <span className="sender">{msg.sender}:</span>
-                                <span className="content">{msg.content}</span>
+                                <div className="message-meta">
+                                    <span className="sender">{msg.sender === username ? 'You' : msg.sender}</span>
+                                    <span className="timestamp">{msg.timestamp}</span>
+                                </div>
+                                <div className="message-content">{msg.content}</div>
                             </div>
                         ))}
+                        <div ref={messagesEndRef} />
                     </div>
-                    <div className="chat-input">
+
+                    {/* Emoji Picker */}
+                    {showEmojiPicker && (
+                        <div className="emoji-picker">
+                            <div className="emoji-header">
+                                <input
+                                    type="text"
+                                    value={emojiSearch}
+                                    onChange={(e) => setEmojiSearch(e.target.value)}
+                                    placeholder="Search emojis..."
+                                    className="emoji-search"
+                                />
+                                <button className="emoji-close" onClick={() => setShowEmojiPicker(false)}>✕</button>
+                            </div>
+                            <div className="emoji-categories">
+                                {(Object.keys(EMOJI_DATA) as (keyof typeof EMOJI_DATA)[]).map(cat => (
+                                    <button
+                                        key={cat}
+                                        className={`cat-btn ${emojiCategory === cat ? 'active' : ''}`}
+                                        onClick={() => { setEmojiCategory(cat); setEmojiSearch(''); }}
+                                    >
+                                        {EMOJI_DATA[cat][0]}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="emoji-grid">
+                                {getFilteredEmojis().map((emoji, i) => (
+                                    <button
+                                        key={i}
+                                        className="emoji-btn"
+                                        onClick={() => insertEmoji(emoji)}
+                                    >
+                                        {emoji}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Input Area */}
+                    <div className="chat-input-area">
+                        <button
+                            className={`emoji-toggle ${showEmojiPicker ? 'active' : ''}`}
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        >
+                            😀
+                        </button>
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                             placeholder="Type a message..."
+                            className="message-input"
                         />
-                        <button onClick={sendMessage}>Send</button>
+                        <button className="send-btn" onClick={sendMessage}>
+                            Send
+                        </button>
                     </div>
                 </div>
             )}
