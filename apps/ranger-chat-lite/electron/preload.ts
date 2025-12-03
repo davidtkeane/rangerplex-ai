@@ -1,24 +1,21 @@
-import { ipcRenderer, contextBridge } from 'electron'
+// Preload script for RangerChat Lite
+// Note: contextIsolation is disabled, so we expose ipcRenderer directly on window
 
-// --------- Expose some API to the Renderer process ---------
-contextBridge.exposeInMainWorld('ipcRenderer', {
-    on(...args: Parameters<typeof ipcRenderer.on>) {
-        const [channel, listener] = args
-        return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
-    },
-    off(...args: Parameters<typeof ipcRenderer.off>) {
-        const [channel, ...omit] = args
-        return ipcRenderer.off(channel, ...omit)
-    },
-    send(...args: Parameters<typeof ipcRenderer.send>) {
-        const [channel, ...omit] = args
-        return ipcRenderer.send(channel, ...omit)
-    },
-    invoke(...args: Parameters<typeof ipcRenderer.invoke>) {
-        const [channel, ...omit] = args
-        return ipcRenderer.invoke(channel, ...omit)
-    },
+import { ipcRenderer } from 'electron'
 
-    // You can expose other APTs you need here.
-    // ...
-})
+// Expose identity service API to renderer
+;(window as any).electronAPI = {
+    identity: {
+        has: () => ipcRenderer.invoke('identity:has'),
+        load: () => ipcRenderer.invoke('identity:load'),
+        getOrCreate: (username?: string) => ipcRenderer.invoke('identity:getOrCreate', username),
+        generateUsername: () => ipcRenderer.invoke('identity:generateUsername'),
+        updateUsername: (newUsername: string) => ipcRenderer.invoke('identity:updateUsername', newUsername),
+        recordMessage: () => ipcRenderer.invoke('identity:recordMessage'),
+        getPaths: () => ipcRenderer.invoke('identity:getPaths'),
+        export: () => ipcRenderer.invoke('identity:export'),
+        reset: () => ipcRenderer.invoke('identity:reset')
+    }
+}
+
+console.log('RangerChat Lite preload loaded - Identity API ready')

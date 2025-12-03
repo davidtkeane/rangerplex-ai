@@ -1,22 +1,16 @@
 "use strict";
 const electron = require("electron");
-electron.contextBridge.exposeInMainWorld("ipcRenderer", {
-  on(...args) {
-    const [channel, listener] = args;
-    return electron.ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
-  },
-  off(...args) {
-    const [channel, ...omit] = args;
-    return electron.ipcRenderer.off(channel, ...omit);
-  },
-  send(...args) {
-    const [channel, ...omit] = args;
-    return electron.ipcRenderer.send(channel, ...omit);
-  },
-  invoke(...args) {
-    const [channel, ...omit] = args;
-    return electron.ipcRenderer.invoke(channel, ...omit);
+window.electronAPI = {
+  identity: {
+    has: () => electron.ipcRenderer.invoke("identity:has"),
+    load: () => electron.ipcRenderer.invoke("identity:load"),
+    getOrCreate: (username) => electron.ipcRenderer.invoke("identity:getOrCreate", username),
+    generateUsername: () => electron.ipcRenderer.invoke("identity:generateUsername"),
+    updateUsername: (newUsername) => electron.ipcRenderer.invoke("identity:updateUsername", newUsername),
+    recordMessage: () => electron.ipcRenderer.invoke("identity:recordMessage"),
+    getPaths: () => electron.ipcRenderer.invoke("identity:getPaths"),
+    export: () => electron.ipcRenderer.invoke("identity:export"),
+    reset: () => electron.ipcRenderer.invoke("identity:reset")
   }
-  // You can expose other APTs you need here.
-  // ...
-});
+};
+console.log("RangerChat Lite preload loaded - Identity API ready");
