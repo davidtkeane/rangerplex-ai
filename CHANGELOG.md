@@ -5,6 +5,45 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [RangerBlock Security Library 1.0.0] - 2025-12-03 - Shepherd Protocol
+
+### Summary
+New unified security system for all RangerBlock apps! Codename: **Shepherd Protocol**
+
+### New Security Modules (`rangerblock/lib/`)
+- **hardware-id.cjs**: Cross-platform hardware fingerprinting (macOS/Windows/Linux)
+- **crypto-utils.cjs**: RSA-2048 key generation + AES-256-GCM encryption
+- **storage-utils.cjs**: Shared storage system (`~/.rangerblock/`)
+- **identity-service.cjs**: Unified identity management for all apps
+
+### Features
+- Hardware-bound identity (unique per device, can't be copied)
+- RSA-2048 key pairs for message signing and encryption
+- Challenge-response authentication framework
+- Cross-app identity sharing (RangerChat Lite ↔ RangerPlex sync)
+- On-chain identity registration support
+- Secure file permissions (600 for private keys)
+- Audit logging framework
+
+### Shared Storage Structure
+```
+~/.rangerblock/
+├── identity/       # Master identity + hardware fingerprint
+├── keys/           # RSA-2048 keypairs
+├── apps/           # Per-app settings (chat-lite, rangerplex, just-chat)
+├── sync/           # Cross-app sync state
+├── security/       # Audit logs
+└── sessions/       # Session tokens
+```
+
+### Technical Details
+- SHA-256 hardware fingerprinting from Hardware UUID + hostname + username
+- AES-256-GCM for data encryption at rest
+- JWT-like session tokens with RSA signatures
+- PBKDF2 key derivation for password-protected keys (100,000 iterations)
+
+---
+
 ## [RangerChat Lite 1.3.1] - 2025-12-03 - Update Notifications
 
 ### Summary

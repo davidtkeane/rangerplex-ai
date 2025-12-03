@@ -4,6 +4,36 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.4.0] - 2025-12-03 - "Security Foundation" (In Progress)
+
+### Added
+
+#### RangerBlock Security Library Integration
+- **Shared Identity System**: Now uses unified identity from `~/.rangerblock/`
+- **Hardware-Bound Identity**: Device fingerprint prevents identity theft
+- **RSA-2048 Key Pairs**: Ready for message signing and encryption
+- **Cross-App Sync**: Identity syncs with RangerPlex when installed
+
+#### New Security Modules (rangerblock/lib/)
+- `hardware-id.cjs` - Cross-platform hardware fingerprinting
+- `crypto-utils.cjs` - RSA-2048 + AES-256-GCM encryption
+- `storage-utils.cjs` - Shared storage (`~/.rangerblock/`)
+- `identity-service.cjs` - Unified identity management
+
+### Technical
+- Identity now stored in `~/.rangerblock/identity/master_identity.json`
+- RSA keys stored in `~/.rangerblock/keys/`
+- App-specific settings in `~/.rangerblock/apps/ranger-chat-lite/`
+- Supports on-chain identity registration (future feature)
+
+### Coming Soon
+- Challenge-response authentication with server
+- Message signing for verified sender identity
+- Encrypted private messages
+- RangerPlex auto-sync on install
+
+---
+
 ## [1.3.1] - 2025-12-03 - "Update Notifications"
 
 ### Added
@@ -258,6 +288,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.4.0 | 2025-12-03 | Security foundation - shared identity, RSA keys, cross-app sync |
 | 1.3.1 | 2025-12-03 | Update notifications - checks GitHub for new versions |
 | 1.3.0 | 2025-12-03 | Easy distribution - GitHub releases, install scripts |
 | 1.2.1 | 2025-12-03 | Live blockchain transaction viewer with cyberpunk UI |
