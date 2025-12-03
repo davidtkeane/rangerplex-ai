@@ -29,6 +29,7 @@ const crypto__namespace = /* @__PURE__ */ _interopNamespaceDefault(crypto);
 const fs__namespace = /* @__PURE__ */ _interopNamespaceDefault(fs);
 const path__namespace = /* @__PURE__ */ _interopNamespaceDefault(path);
 const os__namespace = /* @__PURE__ */ _interopNamespaceDefault(os);
+const RANGERBLOCK_HOME = path__namespace.join(os__namespace.homedir(), ".rangerblock");
 const ADJECTIVES = [
   "Cosmic",
   "Cyber",
@@ -99,17 +100,42 @@ const NOUNS = [
 class IdentityService {
   // RangerPlex compatible .personal folder
   constructor() {
-    __publicField(this, "storageDir");
-    __publicField(this, "identityFile");
+    // NEW: Shared storage (all RangerBlock apps)
+    __publicField(this, "sharedStorageDir");
+    __publicField(this, "sharedIdentityFile");
+    __publicField(this, "sharedKeysDir");
+    __publicField(this, "sharedAppDir");
+    // LEGACY: Electron userData (for backward compatibility)
+    __publicField(this, "legacyStorageDir");
+    __publicField(this, "legacyIdentityFile");
     __publicField(this, "personalDir");
-    this.storageDir = path__namespace.join(electron.app.getPath("userData"), "identity");
-    this.identityFile = path__namespace.join(this.storageDir, "user_identity.json");
+    this.sharedStorageDir = path__namespace.join(RANGERBLOCK_HOME, "identity");
+    this.sharedIdentityFile = path__namespace.join(this.sharedStorageDir, "master_identity.json");
+    this.sharedKeysDir = path__namespace.join(RANGERBLOCK_HOME, "keys");
+    this.sharedAppDir = path__namespace.join(RANGERBLOCK_HOME, "apps", "ranger-chat-lite");
+    this.legacyStorageDir = path__namespace.join(electron.app.getPath("userData"), "identity");
+    this.legacyIdentityFile = path__namespace.join(this.legacyStorageDir, "user_identity.json");
     this.personalDir = path__namespace.join(electron.app.getPath("userData"), ".personal");
     this.ensureDirectories();
+    this.migrateFromLegacy();
   }
   ensureDirectories() {
-    if (!fs__namespace.existsSync(this.storageDir)) {
-      fs__namespace.mkdirSync(this.storageDir, { recursive: true });
+    const sharedDirs = [
+      RANGERBLOCK_HOME,
+      this.sharedStorageDir,
+      this.sharedKeysDir,
+      this.sharedAppDir,
+      path__namespace.join(RANGERBLOCK_HOME, "sync"),
+      path__namespace.join(RANGERBLOCK_HOME, "security"),
+      path__namespace.join(RANGERBLOCK_HOME, "sessions")
+    ];
+    for (const dir of sharedDirs) {
+      if (!fs__namespace.existsSync(dir)) {
+        fs__namespace.mkdirSync(dir, { recursive: true, mode: 448 });
+      }
+    }
+    if (!fs__namespace.existsSync(this.legacyStorageDir)) {
+      fs__namespace.mkdirSync(this.legacyStorageDir, { recursive: true });
     }
     if (!fs__namespace.existsSync(this.personalDir)) {
       fs__namespace.mkdirSync(this.personalDir, { recursive: true });
@@ -117,6 +143,46 @@ class IdentityService {
     const keysDir = path__namespace.join(this.personalDir, "keys");
     if (!fs__namespace.existsSync(keysDir)) {
       fs__namespace.mkdirSync(keysDir, { recursive: true });
+    }
+  }
+  /**
+   * Migrate from legacy Electron userData to shared ~/.rangerblock/
+   */
+  migrateFromLegacy() {
+    if (fs__namespace.existsSync(this.legacyIdentityFile) && !fs__namespace.existsSync(this.sharedIdentityFile)) {
+      try {
+        console.log("[IdentityService] Migrating from legacy storage to ~/.rangerblock/");
+        const legacyData = fs__namespace.readFileSync(this.legacyIdentityFile, "utf8");
+        const legacyStorage = JSON.parse(legacyData);
+        const identity = legacyStorage.identity || legacyStorage;
+        fs__namespace.writeFileSync(this.sharedIdentityFile, JSON.stringify(identity, null, 2), { mode: 384 });
+        const fingerprintFile = path__namespace.join(this.sharedStorageDir, "hardware_fingerprint.json");
+        fs__namespace.writeFileSync(fingerprintFile, JSON.stringify({
+          fingerprint: identity.hardwareFingerprint,
+          recordedAt: (/* @__PURE__ */ new Date()).toISOString(),
+          platform: os__namespace.platform(),
+          hostname: os__namespace.hostname()
+        }, null, 2), { mode: 384 });
+        const legacyKeysDir = path__namespace.join(this.personalDir, "keys");
+        if (fs__namespace.existsSync(legacyKeysDir)) {
+          const keyFiles = fs__namespace.readdirSync(legacyKeysDir);
+          for (const keyFile of keyFiles) {
+            const src = path__namespace.join(legacyKeysDir, keyFile);
+            const dest = path__namespace.join(this.sharedKeysDir, keyFile.replace("rangercode_chat", "master"));
+            if (!fs__namespace.existsSync(dest)) {
+              fs__namespace.copyFileSync(src, dest);
+              fs__namespace.chmodSync(dest, keyFile.includes("private") ? 384 : 420);
+            }
+          }
+        }
+        if (legacyStorage.settings) {
+          const appSettingsFile = path__namespace.join(this.sharedAppDir, "settings.json");
+          fs__namespace.writeFileSync(appSettingsFile, JSON.stringify(legacyStorage.settings, null, 2));
+        }
+        console.log("[IdentityService] Migration complete!");
+      } catch (error) {
+        console.error("[IdentityService] Migration failed:", error);
+      }
     }
   }
   /**
@@ -206,9 +272,10 @@ class IdentityService {
   }
   /**
    * Generate RSA keypair for message signing (RangerPlex compatible)
+   * Now supports both shared (~/.rangerblock/keys/) and legacy locations
    */
   generateKeypair(namePrefix) {
-    const keysDir = path__namespace.join(this.personalDir, "keys");
+    const keysDir = namePrefix === "master" ? this.sharedKeysDir : path__namespace.join(this.personalDir, "keys");
     const privatePath = path__namespace.join(keysDir, `${namePrefix}_private_key.pem`);
     const publicPath = path__namespace.join(keysDir, `${namePrefix}_public_key.pem`);
     if (fs__namespace.existsSync(privatePath) && fs__namespace.existsSync(publicPath)) {
@@ -219,16 +286,36 @@ class IdentityService {
       publicKeyEncoding: { type: "spki", format: "pem" },
       privateKeyEncoding: { type: "pkcs8", format: "pem" }
     });
-    fs__namespace.writeFileSync(privatePath, privateKey);
-    fs__namespace.writeFileSync(publicPath, publicKey);
+    fs__namespace.writeFileSync(privatePath, privateKey, { mode: 384 });
+    fs__namespace.writeFileSync(publicPath, publicKey, { mode: 420 });
   }
   /**
    * Load existing identity or return null
+   * Checks shared storage first, then legacy
    */
   loadIdentity() {
     try {
-      if (fs__namespace.existsSync(this.identityFile)) {
-        const data = fs__namespace.readFileSync(this.identityFile, "utf8");
+      if (fs__namespace.existsSync(this.sharedIdentityFile)) {
+        const data = fs__namespace.readFileSync(this.sharedIdentityFile, "utf8");
+        const identity = JSON.parse(data);
+        const settingsFile = path__namespace.join(this.sharedAppDir, "settings.json");
+        let settings = {
+          theme: "classic",
+          soundEnabled: true,
+          notificationsEnabled: true
+        };
+        if (fs__namespace.existsSync(settingsFile)) {
+          settings = JSON.parse(fs__namespace.readFileSync(settingsFile, "utf8"));
+        }
+        let stats = {
+          messagesSent: identity.messagesSent || 0,
+          sessionsCount: identity.sessionsCount || 1,
+          firstSeen: identity.created
+        };
+        return { identity, settings, stats };
+      }
+      if (fs__namespace.existsSync(this.legacyIdentityFile)) {
+        const data = fs__namespace.readFileSync(this.legacyIdentityFile, "utf8");
         return JSON.parse(data);
       }
     } catch (error) {
@@ -238,23 +325,32 @@ class IdentityService {
   }
   /**
    * Save identity to storage and create RangerPlex-compatible files
+   * Now saves to shared ~/.rangerblock/ storage
    */
   saveIdentity(identity, settings) {
-    const storage = {
+    const finalSettings = settings || {
+      theme: "classic",
+      soundEnabled: true,
+      notificationsEnabled: true
+    };
+    identity.lastSeen = (/* @__PURE__ */ new Date()).toISOString();
+    const publicKeyPath = path__namespace.join(this.sharedKeysDir, "master_public_key.pem");
+    if (fs__namespace.existsSync(publicKeyPath) && !identity.publicKey) {
+      identity.publicKey = fs__namespace.readFileSync(publicKeyPath, "utf8");
+    }
+    fs__namespace.writeFileSync(this.sharedIdentityFile, JSON.stringify(identity, null, 2), { mode: 384 });
+    const appSettingsFile = path__namespace.join(this.sharedAppDir, "settings.json");
+    fs__namespace.writeFileSync(appSettingsFile, JSON.stringify(finalSettings, null, 2));
+    const legacyStorage = {
       identity,
-      settings: settings || {
-        theme: "classic",
-        soundEnabled: true,
-        notificationsEnabled: true
-      },
+      settings: finalSettings,
       stats: {
-        messagesSent: 0,
-        sessionsCount: 1,
+        messagesSent: identity.messagesSent || 0,
+        sessionsCount: identity.sessionsCount || 1,
         firstSeen: identity.created
       }
     };
-    storage.identity.lastSeen = (/* @__PURE__ */ new Date()).toISOString();
-    fs__namespace.writeFileSync(this.identityFile, JSON.stringify(storage, null, 2));
+    fs__namespace.writeFileSync(this.legacyIdentityFile, JSON.stringify(legacyStorage, null, 2));
     const nodeIdentity = {
       nodeID: identity.nodeId,
       nodeName: identity.username,
@@ -266,6 +362,7 @@ class IdentityService {
       blockchain: "rangerplex",
       network: "rangerplex_mainnet",
       source: "ranger-chat-lite",
+      publicKey: identity.publicKey,
       mission: {
         primary: "Transform disabilities into superpowers",
         philosophy: "One foot in front of the other - David Keane"
@@ -273,6 +370,7 @@ class IdentityService {
     };
     const nodeIdentityPath = path__namespace.join(this.personalDir, "node_identity.json");
     fs__namespace.writeFileSync(nodeIdentityPath, JSON.stringify(nodeIdentity, null, 2));
+    this.generateKeypair("master");
     this.generateKeypair("rangercode_chat");
   }
   /**
@@ -312,20 +410,61 @@ class IdentityService {
     return identity;
   }
   /**
-   * Check if identity exists
+   * Check if identity exists (in shared or legacy storage)
    */
   hasIdentity() {
-    return fs__namespace.existsSync(this.identityFile);
+    return fs__namespace.existsSync(this.sharedIdentityFile) || fs__namespace.existsSync(this.legacyIdentityFile);
   }
   /**
    * Get storage paths (for Settings UI)
    */
   getPaths() {
     return {
-      storageDir: this.storageDir,
+      storageDir: this.legacyStorageDir,
       personalDir: this.personalDir,
-      identityFile: this.identityFile
+      identityFile: this.sharedIdentityFile,
+      sharedDir: RANGERBLOCK_HOME,
+      keysDir: this.sharedKeysDir
     };
+  }
+  /**
+   * Check if RangerPlex is installed
+   */
+  isRangerPlexInstalled() {
+    const rangerplexPaths = [
+      path__namespace.join(os__namespace.homedir(), ".rangerplex"),
+      path__namespace.join(RANGERBLOCK_HOME, "apps", "rangerplex", "settings.json")
+    ];
+    return rangerplexPaths.some((p) => fs__namespace.existsSync(p));
+  }
+  /**
+   * Get the public key for signing
+   */
+  getPublicKey() {
+    const publicKeyPath = path__namespace.join(this.sharedKeysDir, "master_public_key.pem");
+    if (fs__namespace.existsSync(publicKeyPath)) {
+      return fs__namespace.readFileSync(publicKeyPath, "utf8");
+    }
+    return null;
+  }
+  /**
+   * Sign a message with the private key
+   */
+  signMessage(message) {
+    const privateKeyPath = path__namespace.join(this.sharedKeysDir, "master_private_key.pem");
+    if (!fs__namespace.existsSync(privateKeyPath)) {
+      return null;
+    }
+    try {
+      const privateKey = fs__namespace.readFileSync(privateKeyPath, "utf8");
+      const sign = crypto__namespace.createSign("sha256");
+      sign.update(message);
+      sign.end();
+      return sign.sign(privateKey).toString("base64");
+    } catch (error) {
+      console.error("Error signing message:", error);
+      return null;
+    }
   }
   /**
    * Export identity for backup
