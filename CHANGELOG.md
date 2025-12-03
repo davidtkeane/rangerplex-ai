@@ -44,6 +44,25 @@ New unified security system for all RangerBlock apps! Codename: **Shepherd Proto
 
 ---
 
+## [Voice Chat 3.0.0] - 2025-12-03 - Shared Identity
+
+### Summary
+Voice chat now uses shared `~/.rangerblock/` identity system!
+
+### New Features
+- **Shared Identity**: Uses unified identity from `~/.rangerblock/`
+- **Hardware-Bound**: Persistent userId across sessions
+- **Identity Command**: `/identity` shows your info
+- **Moderation Ready**: userId sent with registration
+
+### Commands
+```
+/identity  - Show your hardware-bound identity
+/id        - Alias for /identity
+```
+
+---
+
 ## [Blockchain Chat 4.0.0] - 2025-12-03 - Shared Identity
 
 ### Summary
