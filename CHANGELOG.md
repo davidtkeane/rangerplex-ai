@@ -5,21 +5,30 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [RangerChat Lite 1.2.1] - 2025-12-03 - Blockchain Viewer
+## [RangerChat Lite 1.3.0] - 2025-12-03 - Easy Distribution
 
 ### Summary
-Added a live blockchain transaction viewer with cyberpunk-style UI to the Settings page.
+Complete distribution system for sharing RangerChat Lite with friends!
 
 ### New Features
-- **Live Transaction Feed**: See all network messages in real-time
-- **Stats Dashboard**: Track sent/received/total messages and data size (KB)
-- **Cyberpunk UI**: Animated transaction cards with color-coded types
-- **Transaction Details**: Unique IDs, routing, payloads, sizes, timestamps
-- **Theme Integration**: Matrix/Tron themes have special transaction styling
+- **Cross-Platform Builds**: Windows (.exe), macOS (.dmg), Linux (.AppImage, .deb)
+- **GitHub Actions**: Auto-build and release on version tags
+- **Install Scripts**: One-liner installers for PowerShell and Bash
+- **GitHub Releases**: Pre-built binaries for easy download
+
+### Quick Install
+```powershell
+# Windows
+irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install.ps1 | iex
+
+# macOS/Linux
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install.sh | bash
+```
 
 ### Version History
 | Version | Highlights |
 |---------|------------|
+| 1.3.0 | Easy distribution - GitHub releases, install scripts |
 | 1.2.1 | Live blockchain transaction viewer |
 | 1.2.0 | Device-bound identity, random names, settings |
 | 1.1.3 | Fixed messaging - send/receive works |

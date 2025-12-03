@@ -4,6 +4,43 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.3.0] - 2025-12-03 - "Easy Distribution"
+
+### Added
+
+#### Cross-Platform Build System
+- **Windows**: NSIS installer (.exe) and portable version (.zip)
+- **macOS**: DMG installer for Intel (x64) and Apple Silicon (arm64)
+- **Linux**: AppImage and Debian (.deb) packages
+- Pre-built binaries available on GitHub Releases
+
+#### GitHub Actions Workflow
+- Automatic builds triggered by version tags (`ranger-chat-lite-v*`)
+- Builds in parallel on Windows, macOS, and Linux runners
+- Auto-creates GitHub Release with all platform binaries
+- Release notes template with download table
+
+#### One-Click Install Scripts
+- **PowerShell (Windows)**: `irm .../install.ps1 | iex`
+- **Bash (macOS/Linux)**: `curl -fsSL .../install.sh | bash`
+- ASCII art banner and colored output
+- Auto-detects platform and architecture
+- Downloads latest release from GitHub
+
+### Changed
+- Package.json now includes full electron-builder configuration
+- New build scripts: `build:win`, `build:mac`, `build:linux`, `build:all`
+- Release artifacts output to `release/` folder
+- Updated README with Quick Install section and download links
+
+### Technical
+- electron-builder configured for all platforms
+- GitHub publish provider for auto-releases
+- Custom artifact naming: `${productName}-${version}-${platform}-${arch}.${ext}`
+- Desktop entry created for Linux (application menu integration)
+
+---
+
 ## [1.2.1] - 2025-12-03 - "Blockchain Viewer"
 
 ### Added
@@ -204,6 +241,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.3.0 | 2025-12-03 | Easy distribution - GitHub releases, install scripts |
 | 1.2.1 | 2025-12-03 | Live blockchain transaction viewer with cyberpunk UI |
 | 1.2.0 | 2025-12-03 | Device-bound identity, random name generator, settings page |
 | 1.1.3 | 2025-12-03 | Fixed messaging - send/receive now works! |
@@ -217,14 +255,13 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ## Upcoming Features
 
-See `FUTURE_PLAN.md` in the backup folder for the complete roadmap.
+See `FUTURE_PLAN.md` for the complete roadmap.
 
-**Next priorities:**
-- Sound notifications
-- Message persistence (localStorage)
-- Connection status indicator
-- Reconnection on disconnect
-- Desktop notifications
+**Next priorities (v1.4.0 - Social Features):**
+- Private/Direct messaging
+- User avatars
+- Message reactions
+- Typing indicators
 
 ---
 

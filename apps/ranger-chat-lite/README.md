@@ -2,8 +2,35 @@
 
 A lightweight, retro-styled Electron chat client for connecting to RangerPlex blockchain chat network.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+## Quick Install
+
+### Windows (PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install.ps1 | iex
+```
+
+### macOS / Linux (Bash)
+```bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install.sh | bash
+```
+
+### Manual Download
+Download pre-built binaries from [GitHub Releases](https://github.com/davidtkeane/rangerplex-ai/releases):
+
+| Platform | Download |
+|----------|----------|
+| Windows (Installer) | `RangerChat-Lite-x.x.x-win-x64.exe` |
+| Windows (Portable) | `RangerChat-Lite-x.x.x-win-x64.zip` |
+| macOS (Intel) | `RangerChat-Lite-x.x.x-mac-x64.dmg` |
+| macOS (Apple Silicon) | `RangerChat-Lite-x.x.x-mac-arm64.dmg` |
+| Linux (AppImage) | `RangerChat-Lite-x.x.x-linux-x64.AppImage` |
+| Linux (Debian) | `RangerChat-Lite-x.x.x-linux-x64.deb` |
 
 ---
 
@@ -18,12 +45,15 @@ RangerChat Lite is a **standalone desktop application** that connects to the Ran
 - **WebSocket** - Real-time chat communication
 
 ### Features:
-- 💾 Retro terminal-style UI
-- 🦅 Frameless custom window design
-- 🔌 WebSocket connection to RangerPlex chat
-- 💬 Real-time messaging
-- 📡 Connect to local or remote servers
-- 🎨 90s-inspired green-on-black aesthetic
+- 🎨 **4 Themes** - Classic (MSN), Matrix, Tron, Retro
+- 😀 **Emoji Picker** - 180+ emojis across 9 categories
+- 🔍 **Message Search** - Find messages instantly
+- 🆔 **Device Identity** - Unique ID per device for moderation
+- 🎲 **Random Names** - Fun username generator
+- ⚙️ **Settings Page** - Profile, identity, themes, storage info
+- 📊 **Blockchain Viewer** - See live network transactions
+- 💬 Real-time messaging via WebSocket
+- 📡 Connect to local or remote RangerPlex servers
 
 ---
 
@@ -387,7 +417,11 @@ Check terminal output for errors and WebSocket messages
 |---------|---------|
 | `npm install` | Install dependencies |
 | `npm run dev` | Run in development mode |
-| `npm run build` | Build production installer |
+| `npm run build` | Build for current platform |
+| `npm run build:win` | Build Windows installer (.exe) |
+| `npm run build:mac` | Build macOS installer (.dmg) |
+| `npm run build:linux` | Build Linux packages (.AppImage, .deb) |
+| `npm run build:all` | Build for all platforms |
 | `npm run preview` | Preview production build |
 
 ---
@@ -457,9 +491,10 @@ If stuck, check:
 
 ---
 
+**Version:** 1.3.0
 **Created:** December 2025
-**Platform:** Windows 11 (MSI Vector 16")
+**Platform:** Windows 11, macOS, Linux
 **Node.js:** v22.x
-**Author:** RangerPlex Team
+**Author:** David Keane
 
 Enjoy chatting! 🦅
