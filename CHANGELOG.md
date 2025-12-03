@@ -44,6 +44,33 @@ New unified security system for all RangerBlock apps! Codename: **Shepherd Proto
 
 ---
 
+## [Blockchain Chat 4.0.0] - 2025-12-03 - Shared Identity
+
+### Summary
+Terminal chat client now uses shared `~/.rangerblock/` identity system!
+
+### New Features
+- **Shared Identity**: Uses unified identity from `~/.rangerblock/`
+- **Hardware-Bound**: Persistent userId across sessions
+- **Message Signing**: RSA-2048 signatures on all messages
+- **Identity Command**: `/identity` shows your info
+- **Moderation Ready**: userId sent with messages for admin tracking
+
+### Commands
+```
+/identity  - Show your hardware-bound identity
+/id        - Alias for /identity
+/help      - Updated with new commands
+```
+
+### Technical
+- Imports `justChatIdentity` from shared library
+- Auto-creates identity on first run
+- Syncs with RangerChat Lite and RangerPlex
+- Stats tracking (messages sent, session count)
+
+---
+
 ## [RangerChat Lite 1.3.1] - 2025-12-03 - Update Notifications
 
 ### Summary
