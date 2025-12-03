@@ -676,6 +676,12 @@ curl -fsSL "$REPO_URL/lib/auth-server.cjs" -o lib/auth-server.cjs
 echo -e "${BLUE}  📥 lib/admin-check.cjs${NC}"
 curl -fsSL "$REPO_URL/lib/admin-check.cjs" -o lib/admin-check.cjs
 
+echo -e "${BLUE}  📥 lib/update-check.cjs${NC}"
+curl -fsSL "$REPO_URL/lib/update-check.cjs" -o lib/update-check.cjs
+
+echo -e "${BLUE}  📥 versions.json${NC}"
+curl -fsSL "$REPO_URL/versions.json" -o versions.json
+
 echo -e "${GREEN}  ✅ Security library downloaded (v5.1.0)${NC}"
 
 # Create package.json

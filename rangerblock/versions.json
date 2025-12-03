@@ -1,0 +1,66 @@
+{
+  "_comment": "RangerBlock Central Version Registry - Update this file when releasing new versions",
+  "_updated": "2025-12-03",
+  "_author": "David Keane (IrishRanger) + Claude Code (Ranger)",
+
+  "components": {
+    "rangerblock": {
+      "version": "5.1.0",
+      "description": "Main RangerBlock package",
+      "file": "package.json"
+    },
+    "blockchain-chat": {
+      "version": "4.1.0",
+      "description": "Terminal chat client with security",
+      "file": "just-chat/blockchain-chat.cjs"
+    },
+    "relay-server": {
+      "version": "2.1.0",
+      "description": "Relay server with bridge support",
+      "file": "core/relay-server-bridge.cjs"
+    },
+    "voice-chat": {
+      "version": "1.0.0",
+      "description": "Voice chat client",
+      "file": "just-chat/voice-chat.cjs"
+    },
+    "video-chat": {
+      "version": "1.0.0",
+      "description": "Video chat client",
+      "file": "core/video-chat.cjs"
+    },
+    "identity-service": {
+      "version": "1.1.0",
+      "description": "Identity and crypto library",
+      "file": "lib/identity-service.cjs"
+    },
+    "admin-check": {
+      "version": "1.0.0",
+      "description": "Admin verification module",
+      "file": "lib/admin-check.cjs"
+    },
+    "ranger-chat-lite": {
+      "version": "1.3.1",
+      "description": "Electron desktop app",
+      "file": "apps/ranger-chat-lite/package.json"
+    },
+    "setup-universal": {
+      "version": "5.1.0",
+      "description": "Universal setup script (Linux/macOS)",
+      "file": "server-only/setup-relay-universal.sh"
+    },
+    "setup-windows": {
+      "version": "5.1.0",
+      "description": "Windows setup script (PowerShell)",
+      "file": "server-only/setup-relay-windows.ps1"
+    }
+  },
+
+  "latest": {
+    "stable": "5.1.0",
+    "released": "2025-12-03",
+    "notes": "Admin system with Supreme Admin recognition, security fixes"
+  },
+
+  "updateUrl": "https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json"
+}

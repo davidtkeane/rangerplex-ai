@@ -4,6 +4,7 @@ var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { en
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 const electron = require("electron");
 const path$1 = require("node:path");
+const https = require("node:https");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -484,6 +485,52 @@ class IdentityService {
   }
 }
 const identityService = new IdentityService();
+const APP_VERSION = "1.3.1";
+const VERSIONS_URL = "https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json";
+async function checkForUpdates() {
+  return new Promise((resolve) => {
+    const result = {
+      updateAvailable: false,
+      currentVersion: APP_VERSION,
+      latestVersion: null
+    };
+    const timeout = setTimeout(() => {
+      resolve(result);
+    }, 5e3);
+    https.get(VERSIONS_URL, (res) => {
+      let data = "";
+      res.on("data", (chunk) => data += chunk);
+      res.on("end", () => {
+        var _a, _b, _c;
+        clearTimeout(timeout);
+        try {
+          const versions = JSON.parse(data);
+          const latest = (_b = (_a = versions.components) == null ? void 0 : _a["ranger-chat-lite"]) == null ? void 0 : _b.version;
+          if (latest) {
+            result.latestVersion = latest;
+            result.notes = (_c = versions.latest) == null ? void 0 : _c.notes;
+            const currentParts = APP_VERSION.split(".").map(Number);
+            const latestParts = latest.split(".").map(Number);
+            for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
+              const c = currentParts[i] || 0;
+              const l = latestParts[i] || 0;
+              if (c < l) {
+                result.updateAvailable = true;
+                break;
+              }
+              if (c > l) break;
+            }
+          }
+        } catch (e) {
+        }
+        resolve(result);
+      });
+    }).on("error", () => {
+      clearTimeout(timeout);
+      resolve(result);
+    });
+  });
+}
 process.env.DIST = path$1.join(__dirname, "../dist");
 process.env.VITE_PUBLIC = electron.app.isPackaged ? process.env.DIST : path$1.join(__dirname, "../public");
 let win;
@@ -667,7 +714,26 @@ electron.ipcMain.handle("identity:export", () => {
 electron.ipcMain.handle("identity:reset", () => {
   identityService.resetIdentity();
 });
-electron.app.whenReady().then(() => {
+electron.ipcMain.handle("app:checkForUpdates", async () => {
+  return checkForUpdates();
+});
+electron.ipcMain.handle("app:getVersion", () => {
+  return APP_VERSION;
+});
+electron.app.whenReady().then(async () => {
   createMenu();
   createWindow();
+  setTimeout(async () => {
+    const updateInfo = await checkForUpdates();
+    if (updateInfo.updateAvailable && win) {
+      win.webContents.send("update-available", updateInfo);
+      if (electron.Notification.isSupported()) {
+        const notification = new electron.Notification({
+          title: "RangerChat Update Available",
+          body: `Version ${updateInfo.latestVersion} is available (you have ${updateInfo.currentVersion})`
+        });
+        notification.show();
+      }
+    }
+  }, 3e3);
 });

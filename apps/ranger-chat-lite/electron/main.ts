@@ -1,6 +1,68 @@
-import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, shell, ipcMain, dialog, Notification } from 'electron'
 import path from 'node:path'
+import https from 'node:https'
 import { identityService, UserIdentity } from './identityService'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VERSION & UPDATE CHECK
+// ═══════════════════════════════════════════════════════════════════════════
+const APP_VERSION = '1.3.1'
+const VERSIONS_URL = 'https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json'
+
+interface UpdateInfo {
+    updateAvailable: boolean
+    currentVersion: string
+    latestVersion: string | null
+    notes?: string
+}
+
+async function checkForUpdates(): Promise<UpdateInfo> {
+    return new Promise((resolve) => {
+        const result: UpdateInfo = {
+            updateAvailable: false,
+            currentVersion: APP_VERSION,
+            latestVersion: null
+        }
+
+        const timeout = setTimeout(() => {
+            resolve(result)
+        }, 5000)
+
+        https.get(VERSIONS_URL, (res) => {
+            let data = ''
+            res.on('data', chunk => data += chunk)
+            res.on('end', () => {
+                clearTimeout(timeout)
+                try {
+                    const versions = JSON.parse(data)
+                    const latest = versions.components?.['ranger-chat-lite']?.version
+                    if (latest) {
+                        result.latestVersion = latest
+                        result.notes = versions.latest?.notes
+                        // Compare versions
+                        const currentParts = APP_VERSION.split('.').map(Number)
+                        const latestParts = latest.split('.').map(Number)
+                        for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
+                            const c = currentParts[i] || 0
+                            const l = latestParts[i] || 0
+                            if (c < l) {
+                                result.updateAvailable = true
+                                break
+                            }
+                            if (c > l) break
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse errors
+                }
+                resolve(result)
+            })
+        }).on('error', () => {
+            clearTimeout(timeout)
+            resolve(result)
+        })
+    })
+}
 
 process.env.DIST = path.join(__dirname, '../dist')
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(__dirname, '../public')
@@ -213,7 +275,34 @@ ipcMain.handle('identity:reset', () => {
     identityService.resetIdentity()
 })
 
-app.whenReady().then(() => {
+// IPC handler for update check
+ipcMain.handle('app:checkForUpdates', async () => {
+    return checkForUpdates()
+})
+
+ipcMain.handle('app:getVersion', () => {
+    return APP_VERSION
+})
+
+app.whenReady().then(async () => {
     createMenu()
     createWindow()
+
+    // Check for updates after window loads
+    setTimeout(async () => {
+        const updateInfo = await checkForUpdates()
+        if (updateInfo.updateAvailable && win) {
+            // Send update notification to renderer
+            win.webContents.send('update-available', updateInfo)
+
+            // Also show native notification if supported
+            if (Notification.isSupported()) {
+                const notification = new Notification({
+                    title: 'RangerChat Update Available',
+                    body: `Version ${updateInfo.latestVersion} is available (you have ${updateInfo.currentVersion})`
+                })
+                notification.show()
+            }
+        }
+    }, 3000) // Wait 3 seconds after startup
 })

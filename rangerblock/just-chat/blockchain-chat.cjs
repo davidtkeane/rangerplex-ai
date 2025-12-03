@@ -25,6 +25,14 @@ const path = require('path');
 // Import shared identity service
 const { justChatIdentity } = require('../lib/identity-service.cjs');
 
+// Import update checker
+let updateCheck = null;
+try {
+    updateCheck = require('../lib/update-check.cjs');
+} catch (e) {
+    // Update check not available - continue without it
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -146,6 +154,11 @@ async function main() {
     }
 
     showBanner();
+
+    // Check for updates (non-blocking)
+    if (updateCheck) {
+        updateCheck.check('blockchain-chat', VERSION).catch(() => {});
+    }
 
     // Initialize identity service
     await justChatIdentity.init();

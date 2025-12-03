@@ -43,6 +43,21 @@ try {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// UPDATE CHECK SYSTEM (v1.0.0)
+// ═══════════════════════════════════════════════════════════════════
+const RELAY_VERSION = '2.1.0';
+let updateCheck = null;
+try {
+    updateCheck = require('./lib/update-check.cjs');
+} catch (e) {
+    try {
+        updateCheck = require('../lib/update-check.cjs');
+    } catch (e2) {
+        // Update check not available
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════
 
@@ -2129,3 +2144,8 @@ process.on('SIGINT', () => {
 
 console.log('\n🎖️ Ready! Bridge mode:', config.bridge.enabled ? 'ENABLED' : 'DISABLED');
 console.log('');
+
+// Check for updates (non-blocking)
+if (updateCheck) {
+    updateCheck.check('relay-server', RELAY_VERSION).catch(() => {});
+}
