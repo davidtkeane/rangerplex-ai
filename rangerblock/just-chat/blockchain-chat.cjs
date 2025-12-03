@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 /**
- * RANGERBLOCK CHAT v3.0.0
+ * RANGERBLOCK CHAT v4.0.0
  * =======================
- * Simple P2P chat client for RangerBlock network
+ * P2P chat client with shared identity and signing
+ *
+ * NEW IN v4.0.0:
+ * - Uses shared ~/.rangerblock/ identity (cross-app sync!)
+ * - Hardware-bound persistent identity
+ * - RSA-2048 message signing
+ * - Identity verification support
  *
  * Usage:
  *   node blockchain-chat.cjs
@@ -14,12 +20,16 @@
 const WebSocket = require('ws');
 const readline = require('readline');
 const os = require('os');
+const path = require('path');
+
+// Import shared identity service
+const { justChatIdentity } = require('../lib/identity-service.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '3.0.0';
+const VERSION = '4.0.0';
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
 const DEFAULT_CHANNEL = '#rangers';
@@ -137,6 +147,9 @@ async function main() {
 
     showBanner();
 
+    // Initialize identity service
+    await justChatIdentity.init();
+
     // Setup readline
     const rl = readline.createInterface({
         input: process.stdin,
@@ -145,21 +158,43 @@ async function main() {
 
     const question = (q) => new Promise(resolve => rl.question(q, resolve));
 
-    // Get username
+    // Get or create identity
+    let identity;
     let nickname;
-    if (presetNick) {
-        nickname = presetNick;
-        console.log(`${c.dim}Using nickname: ${c.brightGreen}${nickname}${c.reset}\n`);
-    } else {
-        const defaultName = getMachineName();
-        const input = await question(`${c.yellow}Enter your nickname ${c.dim}[${defaultName}]${c.reset}: `);
-        nickname = input.trim() || defaultName;
-        console.log();
-    }
 
-    // Get IP
+    if (justChatIdentity.hasIdentity()) {
+        // Load existing identity
+        identity = await justChatIdentity.getOrCreateIdentity();
+        const defaultNick = presetNick || identity.username;
+
+        console.log(`${c.dim}Found existing identity: ${c.brightGreen}${identity.userId.slice(0, 12)}...${c.reset}`);
+        const input = await question(`${c.yellow}Your nickname ${c.dim}[${defaultNick}]${c.reset}: `);
+        nickname = input.trim() || defaultNick;
+
+        // Update username if changed
+        if (nickname !== identity.username) {
+            justChatIdentity.updateUsername(nickname);
+        }
+    } else {
+        // Create new identity
+        if (presetNick) {
+            nickname = presetNick;
+            console.log(`${c.dim}Using nickname: ${c.brightGreen}${nickname}${c.reset}`);
+        } else {
+            const defaultName = getMachineName();
+            const input = await question(`${c.yellow}Enter your nickname ${c.dim}[${defaultName}]${c.reset}: `);
+            nickname = input.trim() || defaultName;
+        }
+
+        identity = await justChatIdentity.getOrCreateIdentity(nickname);
+        console.log(`${c.dim}Created new identity: ${c.brightGreen}${identity.userId.slice(0, 12)}...${c.reset}`);
+    }
+    console.log();
+
+    // Get IP and node info from identity
     const localIP = getLocalIP();
-    const nodeId = `${nickname}-${Date.now()}`;
+    const nodeId = identity.nodeId;
+    const userId = identity.userId;
     const currentChannel = DEFAULT_CHANNEL;
 
     // Connection info
@@ -201,15 +236,18 @@ async function main() {
 
             switch (msg.type) {
                 case 'welcome':
-                    // Register with the relay
+                    // Register with the relay (includes userId for moderation)
                     ws.send(JSON.stringify({
                         type: 'register',
                         address: nodeId,
+                        userId: userId,
                         nickname: nickname,
                         channel: currentChannel,
                         ip: localIP,
                         port: 0,
-                        blockchainHeight: 0
+                        blockchainHeight: 0,
+                        appType: 'just-chat',
+                        version: VERSION
                     }));
                     break;
 
@@ -309,13 +347,17 @@ ${c.brightCyan}═══ CHAT COMMANDS ═══${c.reset}
   ${c.green}/peers${c.reset}             List online users
   ${c.green}/nick <name>${c.reset}       Change nickname
   ${c.green}/me <action>${c.reset}       Action message
+  ${c.green}/identity${c.reset}          Show your identity info
   ${c.green}/clear${c.reset}             Clear screen
   ${c.green}/quit${c.reset}              Exit chat
 
+${c.brightCyan}═══ SECURITY ═══${c.reset}
+  ${c.green}/id${c.reset}                Show identity (hardware-bound)
+  ${c.dim}/encrypt${c.reset}           ${c.dim}Toggle E2E encryption (coming soon)${c.reset}
+
 ${c.brightCyan}═══ COMING SOON ═══${c.reset}
-  ${c.dim}/voice${c.reset}             ${c.dim}Start voice chat (v1.1)${c.reset}
-  ${c.dim}/send <file>${c.reset}       ${c.dim}Send file (v1.2)${c.reset}
-  ${c.dim}/encrypt${c.reset}           ${c.dim}Toggle E2E encryption (v2.0)${c.reset}
+  ${c.dim}/voice${c.reset}             ${c.dim}Start voice chat${c.reset}
+  ${c.dim}/send <file>${c.reset}       ${c.dim}Send file${c.reset}
 `);
                     break;
 
@@ -408,10 +450,27 @@ ${c.brightCyan}═══ COMING SOON ═══${c.reset}
                     break;
 
                 case 'verify':
-                    // PLACEHOLDER: Peer verification (v2.0)
-                    // TODO: Implement challenge-response authentication
-                    systemMsg(`${c.yellow}Peer verification coming in v2.0!${c.reset}`);
-                    systemMsg(`${c.dim}Will support: digital signatures, identity verification${c.reset}`);
+                case 'identity':
+                case 'id':
+                    // Show identity information
+                    const summary = justChatIdentity.getSummary();
+                    if (summary) {
+                        console.log(`
+${c.brightCyan}═══ YOUR IDENTITY ═══${c.reset}
+  ${c.green}User ID:${c.reset}    ${summary.userId}
+  ${c.green}Username:${c.reset}   ${summary.username}
+  ${c.green}Machine:${c.reset}    ${summary.machineName}
+  ${c.green}Created:${c.reset}    ${new Date(summary.created).toLocaleDateString()}
+  ${c.green}Messages:${c.reset}   ${summary.messagesSent}
+  ${c.green}Sessions:${c.reset}   ${summary.sessionsCount}
+  ${c.green}On-Chain:${c.reset}   ${summary.isOnChain ? c.brightGreen + 'YES' : c.dim + 'NO'}${c.reset}
+  ${c.green}Has Keys:${c.reset}   ${justChatIdentity.getPublicKey() ? c.brightGreen + 'YES ✓' : c.dim + 'NO'}${c.reset}
+
+${c.dim}Your identity is hardware-bound and syncs across RangerBlock apps.${c.reset}
+`);
+                    } else {
+                        systemMsg(`${c.red}No identity found${c.reset}`);
+                    }
                     break;
 
                 default:
@@ -424,16 +483,33 @@ ${c.brightCyan}═══ COMING SOON ═══${c.reset}
 
         // Regular chat message
         if (ws.readyState === WebSocket.OPEN) {
+            // Record message for stats
+            justChatIdentity.recordMessage();
+
+            // Sign the message (optional - for verification)
+            const messageData = {
+                type: 'chatMessage',
+                from: nodeId,
+                userId: userId,
+                nickname: nickname,
+                message: text,
+                channel: currentChannel,
+                timestamp: Date.now()
+            };
+
+            // Add signature if we have keys
+            try {
+                const signature = justChatIdentity.signMessage(JSON.stringify(messageData));
+                if (signature) {
+                    messageData.signature = signature;
+                }
+            } catch (e) {
+                // Signing failed, continue without signature
+            }
+
             ws.send(JSON.stringify({
                 type: 'broadcast',
-                payload: {
-                    type: 'chatMessage',
-                    from: nodeId,
-                    nickname: nickname,
-                    message: text,
-                    channel: currentChannel,
-                    timestamp: Date.now()
-                }
+                payload: messageData
             }));
 
             // Show our own message locally
