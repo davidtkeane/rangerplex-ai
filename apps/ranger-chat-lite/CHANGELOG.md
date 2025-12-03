@@ -4,6 +4,53 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.2.0] - 2025-12-03 - "Identity & Security"
+
+### Added
+
+#### Device-Bound Identity System
+- **Persistent User Identity**: Each device gets a unique `userId` based on hardware fingerprint
+- **Persistent Node ID**: `nodeId` survives app restarts (no more random IDs per session!)
+- **Cross-platform hardware detection**: Works on Windows, Mac, and Linux
+- **RangerPlex Compatible**: Creates `.personal` folder with `node_identity.json` for RangerPlex browser sync
+- **RSA Keypair Generation**: Chat keys generated for future message signing
+
+#### Fun Username Generator
+- Click 🎲 to generate fun random names (e.g., "CosmicPhoenix42", "QuantumNinja88")
+- 32 adjectives + 31 nouns = 900+ unique combinations
+- Animated dice roll effect on button hover
+- Username field starts blank - encourages choosing a name
+
+#### Settings Page
+- **Profile Section**: Change display name anytime with 🎲 random generator
+- **Identity Section**: View your unique User ID, Node ID, device info, creation date
+- **Theme Section**: Visual theme grid to pick themes (not just cycle)
+- **Storage Section**: See where identity files are stored
+- **About Section**: App info with mission statement
+
+#### Moderation Support
+- `userId` is now sent with every chat message for admin tracking
+- Even if users change display names, admins can identify by device
+- Foundation for ban/warn/timeout features
+
+### Changed
+- Login screen now starts with blank username (was "RangerUser")
+- "Choose Your Name" label instead of just "Username"
+- Added "Click 🎲 for a fun random name!" hint text
+- Identity badge shows when returning user (saved identity detected)
+- Settings button in chat header (⚙️)
+- Connect button disabled when username is empty
+
+### Technical
+- New `identityService.ts` in Electron main process
+- IPC handlers for identity operations (load, save, generate, etc.)
+- Updated preload.ts to expose `window.electronAPI.identity`
+- Cross-platform UUID detection (Windows WMIC, Mac system_profiler, Linux machine-id)
+- SHA-256 hardware fingerprinting
+- Electron userData folder for persistence
+
+---
+
 ## [1.1.3] - 2025-12-03 - "Message Fix"
 
 ### Fixed
@@ -131,6 +178,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.2.0 | 2025-12-03 | Device-bound identity, random name generator, settings page |
 | 1.1.3 | 2025-12-03 | Fixed messaging - send/receive now works! |
 | 1.1.2 | 2025-12-03 | Single theme cycle button for cleaner header |
 | 1.1.1 | 2025-12-03 | Cleaner login screen, theme buttons moved to chat header |

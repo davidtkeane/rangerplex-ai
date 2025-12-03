@@ -1,5 +1,6 @@
-import { app, BrowserWindow, Menu, shell } from 'electron'
+import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron'
 import path from 'node:path'
+import { identityService, UserIdentity } from './identityService'
 
 process.env.DIST = path.join(__dirname, '../dist')
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(__dirname, '../public')
@@ -174,6 +175,43 @@ function createMenu() {
     const menu = Menu.buildFromTemplate(template)
     Menu.setApplicationMenu(menu)
 }
+
+// IPC Handlers for Identity Service
+ipcMain.handle('identity:has', () => {
+    return identityService.hasIdentity()
+})
+
+ipcMain.handle('identity:load', () => {
+    return identityService.loadIdentity()
+})
+
+ipcMain.handle('identity:getOrCreate', (_, username?: string) => {
+    return identityService.getOrCreateIdentity(username)
+})
+
+ipcMain.handle('identity:generateUsername', () => {
+    return identityService.generateRandomUsername()
+})
+
+ipcMain.handle('identity:updateUsername', (_, newUsername: string) => {
+    return identityService.updateUsername(newUsername)
+})
+
+ipcMain.handle('identity:recordMessage', () => {
+    identityService.recordMessage()
+})
+
+ipcMain.handle('identity:getPaths', () => {
+    return identityService.getPaths()
+})
+
+ipcMain.handle('identity:export', () => {
+    return identityService.exportIdentity()
+})
+
+ipcMain.handle('identity:reset', () => {
+    identityService.resetIdentity()
+})
 
 app.whenReady().then(() => {
     createMenu()

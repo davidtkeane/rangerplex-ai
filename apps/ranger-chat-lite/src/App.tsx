@@ -1,12 +1,48 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
+// Electron API type declaration
+declare global {
+    interface Window {
+        electronAPI?: {
+            identity: {
+                has: () => Promise<boolean>
+                load: () => Promise<any>
+                getOrCreate: (username?: string) => Promise<any>
+                generateUsername: () => Promise<string>
+                updateUsername: (newUsername: string) => Promise<any>
+                recordMessage: () => Promise<void>
+                getPaths: () => Promise<{ storageDir: string; personalDir: string; identityFile: string }>
+                export: () => Promise<string | null>
+                reset: () => Promise<void>
+            }
+        }
+    }
+}
+
 // Types
 interface Message {
     type: 'chat' | 'system'
     sender: string
+    senderId?: string  // For tracking real identity
     content: string
     timestamp: string
+}
+
+interface UserIdentity {
+    userId: string
+    nodeId: string
+    username: string
+    created: string
+    lastSeen: string
+    hardwareFingerprint: string
+    platform: {
+        system: string
+        machine: string
+        hostname: string
+    }
+    version: string
+    appType: string
 }
 
 // Theme definitions
@@ -32,15 +68,27 @@ const EMOJI_DATA = {
     symbols: ['💯', '🔥', '⭐', '✨', '💫', '🌟', '⚡', '💥', '💢', '💤', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🎵', '🎶', '➕']
 }
 
+// App views
+type ViewType = 'login' | 'chat' | 'settings'
+
 function App() {
+    // View state
+    const [view, setView] = useState<ViewType>('login')
     const [connected, setConnected] = useState(false)
-    const [username, setUsername] = useState('RangerUser')
+    const [loading, setLoading] = useState(true)
+
+    // Identity state
+    const [identity, setIdentity] = useState<UserIdentity | null>(null)
+    const [username, setUsername] = useState('')
+    const [isGenerating, setIsGenerating] = useState(false)
+
+    // Connection state
     const [serverUrl, setServerUrl] = useState('ws://44.222.101.125:5555')
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [peerCount, setPeerCount] = useState(0)
 
-    // New features
+    // UI state
     const [theme, setTheme] = useState<ThemeName>('classic')
     const [showEmojiPicker, setShowEmojiPicker] = useState(false)
     const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_DATA>('frequent')
@@ -48,10 +96,35 @@ function App() {
     const [showSearch, setShowSearch] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
 
+    // Settings state
+    const [storagePaths, setStoragePaths] = useState<any>(null)
+    const [identityExport, setIdentityExport] = useState<string | null>(null)
+
     const wsRef = useRef<WebSocket | null>(null)
-    const nodeIdRef = useRef<string>('')
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const chatHistoryRef = useRef<HTMLDivElement>(null)
+
+    // Check for existing identity on load
+    useEffect(() => {
+        const checkIdentity = async () => {
+            try {
+                if (window.electronAPI) {
+                    const hasIdentity = await window.electronAPI.identity.has()
+                    if (hasIdentity) {
+                        const storage = await window.electronAPI.identity.load()
+                        if (storage?.identity) {
+                            setIdentity(storage.identity)
+                            setUsername(storage.identity.username)
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking identity:', error)
+            }
+            setLoading(false)
+        }
+        checkIdentity()
+    }, [])
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -72,9 +145,49 @@ function App() {
         document.documentElement.setAttribute('data-theme', theme)
     }, [theme])
 
-    const connect = () => {
+    // Generate random username
+    const generateRandomUsername = async () => {
+        setIsGenerating(true)
+        try {
+            if (window.electronAPI) {
+                const newName = await window.electronAPI.identity.generateUsername()
+                setUsername(newName)
+            } else {
+                // Fallback for browser dev
+                const adjectives = ['Cosmic', 'Cyber', 'Digital', 'Electric', 'Quantum', 'Turbo', 'Mega', 'Ultra']
+                const nouns = ['Ranger', 'Phoenix', 'Dragon', 'Wolf', 'Falcon', 'Tiger', 'Hawk', 'Eagle']
+                const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
+                const noun = nouns[Math.floor(Math.random() * nouns.length)]
+                const num = Math.floor(Math.random() * 100)
+                setUsername(`${adj}${noun}${num}`)
+            }
+        } catch (error) {
+            console.error('Error generating username:', error)
+        }
+        // Animation delay
+        setTimeout(() => setIsGenerating(false), 300)
+    }
+
+    // Connect to server
+    const connect = async () => {
+        if (!username.trim()) {
+            alert('Please choose a username first!')
+            return
+        }
+
+        // Create or update identity
+        try {
+            if (window.electronAPI) {
+                const newIdentity = await window.electronAPI.identity.getOrCreate(username)
+                setIdentity(newIdentity)
+            }
+        } catch (error) {
+            console.error('Error creating identity:', error)
+        }
+
+        // Connect to WebSocket
         if (wsRef.current) wsRef.current.close()
-        nodeIdRef.current = `lite-${Math.random().toString(36).substring(2, 10)}`
+        const nodeId = identity?.nodeId || `lite-${Math.random().toString(36).substring(2, 10)}`
         const ws = new WebSocket(serverUrl)
 
         ws.onopen = () => {
@@ -93,7 +206,8 @@ function App() {
                     case 'welcome':
                         ws.send(JSON.stringify({
                             type: 'register',
-                            address: nodeIdRef.current,
+                            address: nodeId,
+                            userId: identity?.userId,  // Include userId for moderation
                             nickname: username,
                             channel: '#rangers',
                             ip: '0.0.0.0',
@@ -104,6 +218,7 @@ function App() {
                         break
                     case 'registered':
                         setConnected(true)
+                        setView('chat')
                         setMessages(prev => [...prev, {
                             type: 'system',
                             sender: 'System',
@@ -123,7 +238,6 @@ function App() {
                         }])
                         break
                     case 'peerListUpdate':
-                        // Update peer count when peers join/leave
                         const updatedPeers = data.peers || []
                         setPeerCount(updatedPeers.length)
                         break
@@ -132,7 +246,6 @@ function App() {
                         if (data.payload) handlePayload(data.payload)
                         break
                     case 'broadcastSent':
-                        // Confirmation that our message was broadcast - ignore
                         break
                     default:
                         console.log('Unknown message type:', data.type)
@@ -169,10 +282,10 @@ function App() {
         switch (payload.type) {
             case 'chatMessage':
             case 'chat':
-                // Handle both chatMessage and chat payload types
                 setMessages(prev => [...prev, {
                     type: 'chat',
                     sender: payload.nickname || payload.from || 'Unknown',
+                    senderId: payload.userId,  // Track userId for moderation
                     content: payload.message || payload.content || '',
                     timestamp: new Date().toLocaleTimeString()
                 }])
@@ -182,14 +295,15 @@ function App() {
         }
     }
 
-    const sendMessage = () => {
+    const sendMessage = async () => {
         if (!wsRef.current || !connected || !input.trim()) return
 
         const msg = {
             type: 'broadcast',
             payload: {
                 type: 'chatMessage',
-                from: nodeIdRef.current,
+                from: identity?.nodeId,
+                userId: identity?.userId,  // Include for moderation
                 nickname: username,
                 message: input,
                 timestamp: Date.now()
@@ -200,27 +314,33 @@ function App() {
         setMessages(prev => [...prev, {
             type: 'chat',
             sender: username,
+            senderId: identity?.userId,
             content: input,
             timestamp: new Date().toLocaleTimeString()
         }])
         setInput('')
+
+        // Record message for stats
+        try {
+            if (window.electronAPI) {
+                await window.electronAPI.identity.recordMessage()
+            }
+        } catch (error) {
+            console.error('Error recording message:', error)
+        }
     }
 
     const insertEmoji = (emoji: string) => {
         setInput(prev => prev + emoji)
     }
 
-    // Filter emojis by search
     const getFilteredEmojis = () => {
         const categoryEmojis = EMOJI_DATA[emojiCategory]
         if (!emojiSearch) return categoryEmojis
-
-        // Search across all categories
         const allEmojis = Object.values(EMOJI_DATA).flat()
         return allEmojis.filter(emoji => emoji.includes(emojiSearch))
     }
 
-    // Filter messages by search
     const getFilteredMessages = () => {
         if (!searchQuery) return messages
         return messages.filter(msg =>
@@ -229,7 +349,6 @@ function App() {
         )
     }
 
-    // Cycle through themes
     const cycleTheme = () => {
         const themeOrder: ThemeName[] = ['classic', 'matrix', 'tron', 'retro']
         const currentIndex = themeOrder.indexOf(theme)
@@ -237,23 +356,74 @@ function App() {
         setTheme(themeOrder[nextIndex])
     }
 
+    // Settings functions
+    const openSettings = async () => {
+        try {
+            if (window.electronAPI) {
+                const paths = await window.electronAPI.identity.getPaths()
+                setStoragePaths(paths)
+                const exported = await window.electronAPI.identity.export()
+                setIdentityExport(exported)
+            }
+        } catch (error) {
+            console.error('Error loading settings:', error)
+        }
+        setView('settings')
+    }
+
+    const updateDisplayName = async () => {
+        if (!username.trim()) return
+        try {
+            if (window.electronAPI) {
+                const updated = await window.electronAPI.identity.updateUsername(username)
+                if (updated) setIdentity(updated)
+            }
+        } catch (error) {
+            console.error('Error updating username:', error)
+        }
+    }
+
+    // Loading screen
+    if (loading) {
+        return (
+            <div className={`ranger-chat-container theme-${theme}`}>
+                <div className="loading-screen">
+                    <div className="loading-spinner">🦅</div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className={`ranger-chat-container theme-${theme}`}>
-            {!connected ? (
+            {/* LOGIN VIEW */}
+            {view === 'login' && (
                 <div className="login-screen">
                     <div className="login-card">
                         <div className="logo">🦅</div>
                         <h1>RangerChat</h1>
-                        <p className="subtitle">Lite Edition</p>
+                        <p className="subtitle">Lite Edition v1.2.0</p>
 
                         <div className="input-group">
-                            <label>Username</label>
-                            <input
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                placeholder="Enter your name"
-                            />
+                            <label>Choose Your Name</label>
+                            <div className="username-input-row">
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="Enter a display name..."
+                                    className={isGenerating ? 'generating' : ''}
+                                />
+                                <button
+                                    className="random-btn"
+                                    onClick={generateRandomUsername}
+                                    title="Generate random name"
+                                >
+                                    🎲
+                                </button>
+                            </div>
+                            <p className="input-hint">Click 🎲 for a fun random name!</p>
                         </div>
 
                         <div className="input-group">
@@ -266,14 +436,29 @@ function App() {
                             />
                         </div>
 
-                        <button className="connect-btn" onClick={connect}>
+                        {identity && (
+                            <div className="identity-badge">
+                                <span className="badge-icon">🔐</span>
+                                <span className="badge-text">Identity saved to this device</span>
+                            </div>
+                        )}
+
+                        <button className="connect-btn" onClick={connect} disabled={!username.trim()}>
                             Connect
                         </button>
+
+                        {identity && (
+                            <button className="settings-link" onClick={openSettings}>
+                                ⚙️ Settings
+                            </button>
+                        )}
                     </div>
                 </div>
-            ) : (
+            )}
+
+            {/* CHAT VIEW */}
+            {view === 'chat' && (
                 <div className="chat-interface">
-                    {/* Header */}
                     <div className="chat-header">
                         <div className="header-left">
                             <span className="header-icon">🦅</span>
@@ -295,10 +480,16 @@ function App() {
                             >
                                 {THEMES[theme].icon}
                             </button>
+                            <button
+                                className="header-btn"
+                                onClick={openSettings}
+                                title="Settings"
+                            >
+                                ⚙️
+                            </button>
                         </div>
                     </div>
 
-                    {/* Search Bar */}
                     {showSearch && (
                         <div className="search-bar">
                             <input
@@ -317,7 +508,6 @@ function App() {
                         </div>
                     )}
 
-                    {/* Chat History */}
                     <div className="chat-history" ref={chatHistoryRef}>
                         {getFilteredMessages().map((msg, i) => (
                             <div key={i} className={`message ${msg.type} ${msg.sender === username ? 'own' : ''}`}>
@@ -331,7 +521,6 @@ function App() {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Emoji Picker */}
                     {showEmojiPicker && (
                         <div className="emoji-picker">
                             <div className="emoji-header">
@@ -369,7 +558,6 @@ function App() {
                         </div>
                     )}
 
-                    {/* Input Area */}
                     <div className="chat-input-area">
                         <button
                             className={`emoji-toggle ${showEmojiPicker ? 'active' : ''}`}
@@ -388,6 +576,116 @@ function App() {
                         <button className="send-btn" onClick={sendMessage}>
                             Send
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* SETTINGS VIEW */}
+            {view === 'settings' && (
+                <div className="settings-screen">
+                    <div className="settings-header">
+                        <button className="back-btn" onClick={() => setView(connected ? 'chat' : 'login')}>
+                            ← Back
+                        </button>
+                        <h2>Settings</h2>
+                    </div>
+
+                    <div className="settings-content">
+                        {/* Profile Section */}
+                        <div className="settings-section">
+                            <h3>👤 Profile</h3>
+                            <div className="setting-item">
+                                <label>Display Name</label>
+                                <div className="username-input-row">
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                    />
+                                    <button className="random-btn" onClick={generateRandomUsername}>🎲</button>
+                                </div>
+                                <button className="save-btn" onClick={updateDisplayName}>
+                                    Save Name
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Identity Section */}
+                        {identity && (
+                            <div className="settings-section">
+                                <h3>🔐 Identity</h3>
+                                <div className="identity-info">
+                                    <div className="info-row">
+                                        <span className="info-label">User ID:</span>
+                                        <span className="info-value mono">{identity.userId}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Node ID:</span>
+                                        <span className="info-value mono">{identity.nodeId.substring(0, 30)}...</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Created:</span>
+                                        <span className="info-value">{new Date(identity.created).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Device:</span>
+                                        <span className="info-value">{identity.platform.hostname} ({identity.platform.system})</span>
+                                    </div>
+                                </div>
+                                <p className="identity-note">
+                                    🛡️ Your identity is linked to this device. Even if you change your display name,
+                                    admins can track your real identity for moderation purposes.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Theme Section */}
+                        <div className="settings-section">
+                            <h3>🎨 Theme</h3>
+                            <div className="theme-grid">
+                                {(Object.keys(THEMES) as ThemeName[]).map(t => (
+                                    <button
+                                        key={t}
+                                        className={`theme-option ${theme === t ? 'active' : ''}`}
+                                        onClick={() => setTheme(t)}
+                                    >
+                                        <span className="theme-icon">{THEMES[t].icon}</span>
+                                        <span className="theme-name">{THEMES[t].name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Storage Section */}
+                        {storagePaths && (
+                            <div className="settings-section">
+                                <h3>📁 Storage</h3>
+                                <div className="storage-info">
+                                    <div className="info-row">
+                                        <span className="info-label">Identity File:</span>
+                                        <span className="info-value small">{storagePaths.identityFile}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">RangerPlex Folder:</span>
+                                        <span className="info-value small">{storagePaths.personalDir}</span>
+                                    </div>
+                                </div>
+                                <p className="storage-note">
+                                    📦 Identity files are compatible with RangerPlex browser.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* About Section */}
+                        <div className="settings-section">
+                            <h3>ℹ️ About</h3>
+                            <div className="about-info">
+                                <p><strong>RangerChat Lite</strong> v1.2.0</p>
+                                <p>A lightweight chat client for the RangerPlex network.</p>
+                                <p className="mission">🎖️ Mission: Transform disabilities into superpowers</p>
+                                <p className="philosophy">"One foot in front of the other" - David Keane</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
