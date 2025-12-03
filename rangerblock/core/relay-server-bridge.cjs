@@ -2,8 +2,9 @@
 /**
  * 🎖️ RANGERBLOCK RELAY SERVER WITH BRIDGE SUPPORT
  *
- * Version: 2.0.0
+ * Version: 2.1.0
  * Created: November 30, 2025
+ * Updated: December 3, 2025
  * Author: David Keane (IrishRanger) + Claude Code (Ranger)
  *
  * Features:
@@ -12,6 +13,11 @@
  * - Cross-relay message forwarding
  * - Peer list synchronization across relays
  * - Automatic reconnection to bridge peers
+ * - 🔐 ADMIN SYSTEM (v5.1.0):
+ *   - Supreme Admin recognition (IrishRanger hardcoded)
+ *   - Ban/kick/timeout enforcement
+ *   - Role-based access control
+ *   - No more first-to-join admin exploit
  */
 
 const express = require('express');
@@ -19,6 +25,22 @@ const WebSocket = require('ws');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
+// ═══════════════════════════════════════════════════════════════════
+// ADMIN CHECK SYSTEM (v5.1.0)
+// ═══════════════════════════════════════════════════════════════════
+let adminCheck = null;
+try {
+    adminCheck = require('./lib/admin-check.cjs');
+    console.log('🔐 Admin check module loaded');
+} catch (e) {
+    try {
+        adminCheck = require('../lib/admin-check.cjs');
+        console.log('🔐 Admin check module loaded (from ../lib/)');
+    } catch (e2) {
+        console.log('⚠️  Admin check module not found - running without admin verification');
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -740,6 +762,9 @@ wss.on('connection', (ws, req) => {
         return;
     }
 
+    // Track userId for this connection (set during register)
+    let connectionUserId = null;
+
     // Regular node connection
     ws.send(JSON.stringify({
         type: 'welcome',
@@ -1087,24 +1112,84 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
         case 'register':
             console.log(`\n📝 Registration from ${msg.address || nodeId}`);
 
-            nodes.set(nodeId, {
-                id: nodeId,
-                address: msg.address,
-                ip: clientIP,
-                port: msg.port || 5000,
-                blockchainHeight: msg.blockchainHeight || 0,
-                lastSeen: Date.now(),
-                ws: ws
-            });
+            // Store userId for this connection (for admin checks)
+            const registeredUserId = msg.userId || msg.address || nodeId;
+            connectionUserId = registeredUserId;
+
+            // 🔐 Admin Check: Verify user can connect
+            if (adminCheck) {
+                const canConnect = adminCheck.canConnect(registeredUserId);
+                if (!canConnect.allowed) {
+                    console.log(`🚫 BANNED user attempted connection: ${registeredUserId}`);
+                    ws.send(JSON.stringify({
+                        type: 'connectionDenied',
+                        reason: canConnect.reason || 'You are banned from this network.',
+                        timestamp: Date.now()
+                    }));
+                    ws.close();
+                    return;
+                }
+
+                // Check if Supreme Admin
+                const isSupreme = adminCheck.isSupremeAdmin(registeredUserId);
+                const isAdmin = adminCheck.isAdmin(registeredUserId);
+                const role = adminCheck.getRole(registeredUserId);
+                const badge = adminCheck.getUserBadge(registeredUserId);
+
+                if (isSupreme) {
+                    console.log(`👑 SUPREME ADMIN connected: ${msg.address || registeredUserId}`);
+                    adminNodes.add(nodeId);
+                } else if (isAdmin) {
+                    console.log(`🛡️ Admin connected: ${msg.address || registeredUserId}`);
+                    adminNodes.add(nodeId);
+                }
+
+                // Store role info with node
+                nodes.set(nodeId, {
+                    id: nodeId,
+                    address: msg.address,
+                    userId: registeredUserId,
+                    ip: clientIP,
+                    port: msg.port || 5000,
+                    blockchainHeight: msg.blockchainHeight || 0,
+                    lastSeen: Date.now(),
+                    role: role,
+                    badge: badge,
+                    isAdmin: isSupreme || isAdmin,
+                    ws: ws
+                });
+
+                ws.send(JSON.stringify({
+                    type: 'registered',
+                    nodeId: nodeId,
+                    relayName: RELAY_NAME,
+                    role: role,
+                    badge: badge,
+                    isAdmin: isSupreme || isAdmin,
+                    isSupremeAdmin: isSupreme,
+                    timestamp: Date.now()
+                }));
+            } else {
+                // No admin check module - use basic registration
+                nodes.set(nodeId, {
+                    id: nodeId,
+                    address: msg.address,
+                    ip: clientIP,
+                    port: msg.port || 5000,
+                    blockchainHeight: msg.blockchainHeight || 0,
+                    lastSeen: Date.now(),
+                    ws: ws
+                });
+
+                ws.send(JSON.stringify({
+                    type: 'registered',
+                    nodeId: nodeId,
+                    relayName: RELAY_NAME,
+                    timestamp: Date.now()
+                }));
+            }
 
             stats.activeNodes = nodes.size;
-
-            ws.send(JSON.stringify({
-                type: 'registered',
-                nodeId: nodeId,
-                relayName: RELAY_NAME,
-                timestamp: Date.now()
-            }));
 
             // 🤖 RangerBot greeting - Send welcome message to new node
             setTimeout(() => {
@@ -1225,12 +1310,29 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
 
         case 'broadcast':
             const sender = nodes.get(nodeId);
+
+            // 🔐 Check if user is timed out or banned
+            if (adminCheck && sender?.userId) {
+                const canMessage = adminCheck.canMessage(sender.userId);
+                if (!canMessage.allowed) {
+                    ws.send(JSON.stringify({
+                        type: 'messageDenied',
+                        reason: canMessage.reason,
+                        remaining: canMessage.remaining,
+                        timestamp: Date.now()
+                    }));
+                    return; // Don't broadcast the message
+                }
+            }
+
             const broadcastPayload = {
                 type: 'nodeMessage',
                 from: sender?.address || nodeId,
                 fromNodeId: nodeId,
                 payload: msg.payload,
                 broadcast: true,
+                badge: sender?.badge,
+                role: sender?.role,
                 timestamp: Date.now()
             };
 
@@ -1335,31 +1437,37 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
 
                 broadcastMachineRegistry();
             } else {
-                // New machine - add to pending if approval required, or auto-approve
-                // Auto-approve if no admins yet (first machine becomes admin)
-                if (adminNodes.size === 0) {
-                    // First machine - auto-approve and make admin
+                // New machine - check if it's from the Supreme Admin
+                let isFromSupremeAdmin = false;
+                if (adminCheck && msg.machine?.userId) {
+                    isFromSupremeAdmin = adminCheck.isSupremeAdmin(msg.machine.userId);
+                }
+
+                if (isFromSupremeAdmin) {
+                    // Supreme Admin's machine - auto-approve
                     adminNodes.add(nodeId);
                     machineInfo.online = true;
                     machineInfo.lastSeen = Date.now();
                     machineInfo.nodeId = nodeId;
                     machineInfo.isAdmin = true;
+                    machineInfo.isSupreme = true;
                     machineRegistry.set(machineKey, machineInfo);
                     saveMachineRegistry();
 
-                    console.log(`👑 First machine auto-approved as admin: ${machineInfo.name}`);
+                    console.log(`👑 Supreme Admin machine auto-approved: ${machineInfo.name}`);
                     ws.send(JSON.stringify({
                         type: 'machine_registered',
                         status: 'approved',
                         isAdmin: true,
+                        isSupremeAdmin: true,
                         machine: machineInfo,
-                        message: 'You are the first node - approved as admin!',
+                        message: 'Supreme Admin recognized - auto-approved!',
                         timestamp: Date.now()
                     }));
 
                     broadcastMachineRegistry();
                 } else {
-                    // Add to pending and notify admins
+                    // Regular machine - add to pending and notify admins
                     pendingMachines.set(machineKey, machineInfo);
                     console.log(`⏳ Machine pending approval: ${machineInfo.name}`);
 

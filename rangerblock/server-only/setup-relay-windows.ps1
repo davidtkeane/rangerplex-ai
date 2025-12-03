@@ -185,6 +185,9 @@ Invoke-WebRequest -Uri "$RepoUrl/lib/storage-utils.cjs" -OutFile "lib/storage-ut
 Write-Color "  Downloading lib/auth-server.cjs..." "Gray"
 Invoke-WebRequest -Uri "$RepoUrl/lib/auth-server.cjs" -OutFile "lib/auth-server.cjs"
 
+Write-Color "  Downloading lib/admin-check.cjs..." "Gray"
+Invoke-WebRequest -Uri "$RepoUrl/lib/admin-check.cjs" -OutFile "lib/admin-check.cjs"
+
 Write-Color "Security library downloaded (v5.1.0)" "Green"
 
 # Create package.json
