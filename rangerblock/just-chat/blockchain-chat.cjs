@@ -29,7 +29,7 @@ const { justChatIdentity } = require('../lib/identity-service.cjs');
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION = '4.0.0';
+const VERSION = '4.1.0';
 const RELAY_HOST = '44.222.101.125';
 const RELAY_PORT = 5555;
 const DEFAULT_CHANNEL = '#rangers';
@@ -297,7 +297,34 @@ async function main() {
 
                         // Don't show our own messages (we already displayed them locally)
                         if (senderName !== nickname) {
-                            chatMsg(senderName, payload.message);
+                            // Verify signature if present
+                            let verified = false;
+                            let verifyIcon = '';
+
+                            if (payload.signed && payload.signature && payload.publicKey) {
+                                try {
+                                    // Reconstruct original message data (without signature fields)
+                                    const originalData = {
+                                        type: payload.type,
+                                        from: payload.from,
+                                        userId: payload.userId,
+                                        nickname: payload.nickname,
+                                        message: payload.message,
+                                        channel: payload.channel,
+                                        timestamp: payload.timestamp
+                                    };
+                                    verified = justChatIdentity.verifyMessage(
+                                        JSON.stringify(originalData),
+                                        payload.signature,
+                                        payload.publicKey
+                                    );
+                                    verifyIcon = verified ? `${c.brightGreen}✓${c.reset} ` : `${c.red}✗${c.reset} `;
+                                } catch (e) {
+                                    verifyIcon = `${c.yellow}?${c.reset} `;
+                                }
+                            }
+
+                            chatMsg(verifyIcon + senderName, payload.message);
                             showPrompt(currentChannel, nickname);
                         }
                     } else if (payload && payload.type === 'actionMessage') {
@@ -497,11 +524,14 @@ ${c.dim}Your identity is hardware-bound and syncs across RangerBlock apps.${c.re
                 timestamp: Date.now()
             };
 
-            // Add signature if we have keys
+            // Add signature and public key for verification
             try {
                 const signature = justChatIdentity.signMessage(JSON.stringify(messageData));
-                if (signature) {
+                const publicKey = justChatIdentity.getPublicKey();
+                if (signature && publicKey) {
                     messageData.signature = signature;
+                    messageData.publicKey = publicKey;
+                    messageData.signed = true;
                 }
             } catch (e) {
                 // Signing failed, continue without signature
