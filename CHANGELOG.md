@@ -5,6 +5,17 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [RangerChat Lite 2.0.1] - 2025-12-03 - Clean Login
+
+### Changes
+- Removed identity badge from login screen
+- Removed settings button from login screen
+- Removed "Click 🎲 for a fun random name!" hint
+- Cleaner, more minimal login experience
+- Settings accessible from chat header after login
+
+---
+
 ## [RangerBlock Security Library 1.0.0] - 2025-12-03 - Shepherd Protocol
 
 ### Summary
