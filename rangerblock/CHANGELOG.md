@@ -4,6 +4,65 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [5.1.0] - 2025-12-03
+
+### Added - E2E Encryption Complete 🔐
+
+#### identity-service.cjs v1.1.0
+- **`encryptForRecipient()`**: Hybrid RSA + AES-256-GCM encryption
+- **`decryptMessage()`**: Decrypt messages encrypted for you
+- **Hybrid approach**: RSA-OAEP encrypts random AES key, AES encrypts message
+- **E2E test in CLI**: Test #9 verifies encryption roundtrip
+
+#### Security v2.1.0 Complete
+- All 4 High Priority security tasks finished
+- Ready for `/dm` or `/encrypt` command integration
+
+---
+
+## [5.0.0] - 2025-12-03
+
+### Added - Security Foundation 🛡️
+
+#### Auth Server (lib/auth-server.cjs)
+- **Challenge-Response Authentication**: Prove identity without exposing private key
+- **30-second challenge expiry**: Time-limited cryptographic nonce
+- **1-hour session tokens**: `sess_*` prefixed session IDs
+- **Standalone or integrated**: Run on port 5557 or integrate with relay
+- **Session management**: `verifySession()`, `revokeSession()`, `getActiveSessions()`
+
+#### On-Chain Registration (just-chat/register-identity.cjs)
+- **`node register-identity.cjs`**: Register your identity on the blockchain
+- **`node register-identity.cjs --check`**: Check registration status
+- **Signed registration block**: IDENTITY_REGISTRATION type with RSA signature
+- **Block hash proof**: Saved to `~/.rangerblock/` for verification
+
+#### Message Signing (blockchain-chat.cjs v4.1.0)
+- **Outgoing messages signed**: All messages include RSA signature + public key
+- **Incoming verification**: Signatures verified on receipt
+- **Visual indicators**:
+  - ✓ Green = verified sender
+  - ✗ Red = invalid signature
+  - ? = verification error
+- **Trust system**: Know who's really sending messages
+
+#### Shared Identity Library (lib/identity-service.cjs v1.0.0)
+- **Hardware-bound identity**: Device fingerprinting
+- **RSA-2048 key pairs**: For signing and encryption
+- **Cross-app sharing**: `~/.rangerblock/` used by all apps
+- **App instances**: `chatLiteIdentity`, `justChatIdentity`, `voiceChatIdentity`
+
+#### Admin Dashboard (private)
+- **admin-users.cjs**: View connected users with userIds
+- **Real-time monitoring**: See all authenticated connections
+- **Private storage**: Not in public git repo
+
+### Changed
+- **Shared storage**: All apps now use `~/.rangerblock/` instead of app-specific folders
+- **Identity sync**: Same userId across RangerChat Lite, blockchain-chat, voice-chat
+
+---
+
 ## [4.7.0] - 2025-12-02
 
 ### Added - Visual Audio Meter & Better UX (voice-chat.cjs v2.4.0)
