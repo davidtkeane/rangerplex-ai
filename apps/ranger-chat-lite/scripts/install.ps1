@@ -1,155 +1,325 @@
-#
-# RangerChat Lite Installer for Windows
-# https://github.com/davidtkeane/rangerplex-ai
-#
-# Usage: irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install.ps1 | iex
-#
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+    RangerChat Lite - One-Command Installer for Windows
+.DESCRIPTION
+    Works on: Windows 10/11 (PowerShell 5.1+)
 
-$ErrorActionPreference = "Stop"
+    Created: December 4, 2025
+    Author: David Keane (IrishRanger) + Claude Code (Ranger)
+.PARAMETER Dev
+    Run in development mode (npm run dev) - DEFAULT
+.PARAMETER Build
+    Build production app after install
+.PARAMETER NoStart
+    Don't start the app after install
+.PARAMETER Yes
+    Skip confirmation prompts
+.EXAMPLE
+    # Run from PowerShell:
+    irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install.ps1 | iex
 
-$REPO = "davidtkeane/rangerplex-ai"
-$APP_NAME = "RangerChat Lite"
+    # Or with options:
+    .\install.ps1 -Build
+    .\install.ps1 -NoStart
+.NOTES
+    Rangers lead the way!
+#>
 
-# ASCII Art Header
-Write-Host @"
+param(
+    [switch]$Dev,
+    [switch]$Build,
+    [switch]$NoStart,
+    [switch]$Yes
+)
 
- ╔════════════════════════════════════════════════════════════╗
- ║                                                            ║
- ║   ██████╗  █████╗ ███╗   ██╗ ██████╗ ███████╗██████╗       ║
- ║   ██╔══██╗██╔══██╗████╗  ██║██╔════╝ ██╔════╝██╔══██╗      ║
- ║   ██████╔╝███████║██╔██╗ ██║██║  ███╗█████╗  ██████╔╝      ║
- ║   ██╔══██╗██╔══██║██║╚██╗██║██║   ██║██╔══╝  ██╔══██╗      ║
- ║   ██║  ██║██║  ██║██║ ╚████║╚██████╔╝███████╗██║  ██║      ║
- ║   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝      ║
- ║                                                            ║
- ║                    CHAT LITE INSTALLER                     ║
- ║                                                            ║
- ╚════════════════════════════════════════════════════════════╝
+# Configuration
+$InstallDir = "$env:USERPROFILE\RangerChat-Lite"
+$Version = "1.6.1"
 
-"@ -ForegroundColor Cyan
+# Colors
+function Write-Color {
+    param([string]$Text, [string]$Color = "White")
+    Write-Host $Text -ForegroundColor $Color
+}
 
-Write-Host "Detecting system..." -ForegroundColor Yellow
-Write-Host "  OS: Windows"
-Write-Host "  Architecture: x64"
+function Write-Banner {
+    Clear-Host
+    Write-Color @"
+ ======================================================================
+    RANGER  CHAT  LITE
+    ██████╗  █████╗ ███╗   ██╗ ██████╗ ███████╗██████╗  ██████╗██╗  ██╗
+    ██╔══██╗██╔══██╗████╗  ██║██╔════╝ ██╔════╝██╔══██╗██╔════╝██║  ██║
+    ██████╔╝███████║██╔██╗ ██║██║  ███╗█████╗  ██████╔╝██║     ███████║
+    ██╔══██╗██╔══██║██║╚██╗██║██║   ██║██╔══╝  ██╔══██╗██║     ██╔══██║
+    ██║  ██║██║  ██║██║ ╚████║╚██████╔╝███████╗██║  ██║╚██████╗██║  ██║
+    ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
+                           L    I    T    E
+ ======================================================================
+            Lightweight Chat for RangerBlock Network
+            Version 1.6.1 - One-Command Installer (Windows)
+            Created by IrishRanger + Claude Code (Ranger)
+ ======================================================================
+"@ -Color Cyan
+}
 
-# Get latest release
-Write-Host "`nFetching latest release..." -ForegroundColor Yellow
+# ============================================================
+# MAIN SCRIPT
+# ============================================================
 
+Write-Banner
+
+Write-Color "`nDetecting system..." -Color Yellow
+Write-Color "  OS: Windows $([System.Environment]::OSVersion.Version)" -Color Green
+Write-Color "  Architecture: $env:PROCESSOR_ARCHITECTURE" -Color Green
+Write-Color "  PowerShell: $($PSVersionTable.PSVersion)" -Color Green
+
+# ============================================================
+# STEP 1: Check/Install Node.js
+# ============================================================
+Write-Color "`n------------------------------------------------------------" -Color Cyan
+Write-Color "Step 1: Checking Node.js" -Color White
+Write-Color "------------------------------------------------------------" -Color Cyan
+
+$nodeInstalled = $false
 try {
-    $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/releases"
+    $nodeVersion = node -v 2>$null
+    if ($nodeVersion) {
+        Write-Color "[OK] Node.js found: $nodeVersion" -Color Green
+        $nodeInstalled = $true
+    }
+} catch {
+    $nodeInstalled = $false
+}
 
-    # Find ranger-chat-lite release
-    $latestRelease = $releases | Where-Object { $_.tag_name -like "ranger-chat-lite-v*" } | Select-Object -First 1
+if (-not $nodeInstalled) {
+    Write-Color "Node.js not found. Installing..." -Color Yellow
 
-    if (-not $latestRelease) {
-        $latestRelease = $releases | Select-Object -First 1
+    # Try winget first (Windows 10 1709+ and Windows 11)
+    $wingetAvailable = $false
+    try {
+        $wingetVersion = winget -v 2>$null
+        if ($wingetVersion) {
+            $wingetAvailable = $true
+        }
+    } catch {
+        $wingetAvailable = $false
     }
 
-    if (-not $latestRelease) {
-        throw "No releases found"
-    }
+    if ($wingetAvailable) {
+        Write-Color "Installing via winget..." -Color Blue
+        winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
 
-    $VERSION = $latestRelease.tag_name -replace "ranger-chat-lite-v", ""
-    Write-Host "  Latest version: $VERSION"
-} catch {
-    Write-Host "Error: Could not fetch release information" -ForegroundColor Red
-    Write-Host "Please visit https://github.com/$REPO/releases to download manually."
-    exit 1
-}
-
-# Find Windows installer asset
-$installerAsset = $latestRelease.assets | Where-Object { $_.name -like "*win*x64*.exe" -and $_.name -notlike "*portable*" } | Select-Object -First 1
-
-if (-not $installerAsset) {
-    # Try portable version
-    $installerAsset = $latestRelease.assets | Where-Object { $_.name -like "*win*.exe" } | Select-Object -First 1
-}
-
-if (-not $installerAsset) {
-    Write-Host "Error: Could not find Windows installer in release" -ForegroundColor Red
-    Write-Host "Please visit https://github.com/$REPO/releases to download manually."
-    exit 1
-}
-
-$DOWNLOAD_URL = $installerAsset.browser_download_url
-$DOWNLOAD_FILE = $installerAsset.name
-
-Write-Host "`nDownloading $DOWNLOAD_FILE..." -ForegroundColor Yellow
-
-# Create temp directory
-$TEMP_DIR = Join-Path $env:TEMP "RangerChatLiteInstall"
-New-Item -ItemType Directory -Force -Path $TEMP_DIR | Out-Null
-$INSTALLER_PATH = Join-Path $TEMP_DIR $DOWNLOAD_FILE
-
-try {
-    # Download with progress
-    $webClient = New-Object System.Net.WebClient
-    $webClient.DownloadFile($DOWNLOAD_URL, $INSTALLER_PATH)
-
-    Write-Host "Download complete!" -ForegroundColor Green
-} catch {
-    Write-Host "Error: Download failed" -ForegroundColor Red
-    Write-Host $_.Exception.Message
-    exit 1
-}
-
-# Verify download
-if (-not (Test-Path $INSTALLER_PATH)) {
-    Write-Host "Error: Downloaded file not found" -ForegroundColor Red
-    exit 1
-}
-
-$fileSize = (Get-Item $INSTALLER_PATH).Length / 1MB
-Write-Host "  Downloaded: $([math]::Round($fileSize, 2)) MB"
-
-# Run installer
-Write-Host "`nLaunching installer..." -ForegroundColor Yellow
-Write-Host "Please follow the installation prompts."
-
-try {
-    Start-Process -FilePath $INSTALLER_PATH -Wait
-    Write-Host "`nInstallation complete!" -ForegroundColor Green
-} catch {
-    Write-Host "Error: Installation failed" -ForegroundColor Red
-    Write-Host $_.Exception.Message
-    exit 1
-}
-
-# Cleanup
-Write-Host "`nCleaning up..." -ForegroundColor Yellow
-Remove-Item -Recurse -Force $TEMP_DIR -ErrorAction SilentlyContinue
-
-Write-Host @"
-
-═══════════════════════════════════════════════════════════════
-"@ -ForegroundColor Cyan
-
-Write-Host "Thank you for installing RangerChat Lite!" -ForegroundColor Green
-Write-Host "You can find it in your Start Menu or Desktop."
-Write-Host "Join the RangerPlex network and start chatting."
-
-Write-Host @"
-═══════════════════════════════════════════════════════════════
-"@ -ForegroundColor Cyan
-
-# Offer to launch
-$launch = Read-Host "`nWould you like to launch RangerChat Lite now? (Y/n)"
-if ($launch -ne "n" -and $launch -ne "N") {
-    $appPath = Join-Path $env:LOCALAPPDATA "Programs\RangerChat Lite\RangerChat Lite.exe"
-    if (Test-Path $appPath) {
-        Start-Process $appPath
+        # Refresh PATH
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
     } else {
-        # Try common install locations
-        $possiblePaths = @(
-            "C:\Program Files\RangerChat Lite\RangerChat Lite.exe",
-            "C:\Program Files (x86)\RangerChat Lite\RangerChat Lite.exe",
-            "$env:LOCALAPPDATA\RangerChat Lite\RangerChat Lite.exe"
-        )
-        foreach ($path in $possiblePaths) {
-            if (Test-Path $path) {
-                Start-Process $path
-                break
-            }
+        Write-Color "Installing via direct download..." -Color Blue
+
+        # Download Node.js installer
+        $nodeUrl = "https://nodejs.org/dist/v20.10.0/node-v20.10.0-x64.msi"
+        $installerPath = "$env:TEMP\node-installer.msi"
+
+        Write-Color "Downloading Node.js..." -Color Blue
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $nodeUrl -OutFile $installerPath -UseBasicParsing
+
+        Write-Color "Running installer (may require admin)..." -Color Blue
+        Start-Process msiexec.exe -ArgumentList "/i", $installerPath, "/quiet", "/norestart" -Wait
+
+        # Refresh PATH
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+        # Cleanup
+        Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+    }
+
+    # Verify installation
+    try {
+        $nodeVersion = node -v 2>$null
+        if ($nodeVersion) {
+            Write-Color "[OK] Node.js installed: $nodeVersion" -Color Green
+        } else {
+            throw "Node.js installation failed"
+        }
+    } catch {
+        Write-Color "ERROR: Node.js installation failed!" -Color Red
+        Write-Color "Please install Node.js manually from: https://nodejs.org" -Color Yellow
+        Write-Color "Then run this script again." -Color Yellow
+        exit 1
+    }
+}
+
+# Check npm
+try {
+    $npmVersion = npm -v 2>$null
+    Write-Color "[OK] npm found: $npmVersion" -Color Green
+} catch {
+    Write-Color "ERROR: npm not found!" -Color Red
+    exit 1
+}
+
+# Check git
+$gitInstalled = $false
+try {
+    $gitVersion = git --version 2>$null
+    if ($gitVersion) {
+        Write-Color "[OK] Git found: $gitVersion" -Color Green
+        $gitInstalled = $true
+    }
+} catch {
+    $gitInstalled = $false
+}
+
+if (-not $gitInstalled) {
+    Write-Color "Git not found. Installing..." -Color Yellow
+
+    $wingetAvailable = $false
+    try {
+        $wingetVersion = winget -v 2>$null
+        if ($wingetVersion) { $wingetAvailable = $true }
+    } catch {}
+
+    if ($wingetAvailable) {
+        winget install Git.Git --accept-package-agreements --accept-source-agreements
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    } else {
+        Write-Color "ERROR: Please install Git from: https://git-scm.com/download/win" -Color Red
+        exit 1
+    }
+}
+
+# ============================================================
+# STEP 2: Download RangerChat Lite
+# ============================================================
+Write-Color "`n------------------------------------------------------------" -Color Cyan
+Write-Color "Step 2: Downloading RangerChat Lite" -Color White
+Write-Color "------------------------------------------------------------" -Color Cyan
+
+if (Test-Path $InstallDir) {
+    Write-Color "RangerChat Lite already exists at: $InstallDir" -Color Yellow
+
+    if (-not $Yes) {
+        $response = Read-Host "Update existing installation? (y/n)"
+        if ($response -ne 'y' -and $response -ne 'Y') {
+            Write-Color "Skipping download, using existing files..." -Color Yellow
+        } else {
+            Write-Color "Updating..." -Color Blue
+            Set-Location $InstallDir
+            git pull 2>$null
         }
     }
+} else {
+    Write-Color "Cloning repository..." -Color Blue
+
+    # Clone with sparse checkout
+    $tempDir = "$InstallDir-temp"
+    git clone --filter=blob:none --sparse https://github.com/davidtkeane/rangerplex-ai.git $tempDir
+    Set-Location $tempDir
+    git sparse-checkout set apps/ranger-chat-lite rangerblock/lib
+
+    # Move to final location
+    New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+    Copy-Item -Path "apps\ranger-chat-lite\*" -Destination $InstallDir -Recurse -Force
+
+    # Copy rangerblock lib if needed
+    $rangerblockDir = Split-Path $InstallDir -Parent
+    $libDir = "$rangerblockDir\rangerblock"
+    New-Item -ItemType Directory -Force -Path $libDir | Out-Null
+    if (Test-Path "rangerblock\lib") {
+        Copy-Item -Path "rangerblock\lib" -Destination $libDir -Recurse -Force
+    }
+
+    # Cleanup temp
+    Set-Location $env:USERPROFILE
+    Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+
+    Write-Color "[OK] Downloaded to: $InstallDir" -Color Green
 }
+
+# ============================================================
+# STEP 3: Install Dependencies
+# ============================================================
+Write-Color "`n------------------------------------------------------------" -Color Cyan
+Write-Color "Step 3: Installing Dependencies" -Color White
+Write-Color "------------------------------------------------------------" -Color Cyan
+
+Set-Location $InstallDir
+Write-Color "Running npm install (this may take a minute)..." -Color Blue
+npm install
+
+Write-Color "[OK] Dependencies installed" -Color Green
+
+# ============================================================
+# STEP 4: Create Helper Scripts
+# ============================================================
+Write-Color "`n------------------------------------------------------------" -Color Cyan
+Write-Color "Step 4: Creating Helper Scripts" -Color White
+Write-Color "------------------------------------------------------------" -Color Cyan
+
+# Create start script (batch file)
+@"
+@echo off
+cd /d "%~dp0"
+echo Starting RangerChat Lite...
+npm run dev
+"@ | Out-File -FilePath "$InstallDir\start-chat.bat" -Encoding ASCII
+
+# Create build script (batch file)
+@"
+@echo off
+cd /d "%~dp0"
+echo Building RangerChat Lite...
+npm run build
+echo Build complete! Check the 'release' folder.
+pause
+"@ | Out-File -FilePath "$InstallDir\build-app.bat" -Encoding ASCII
+
+# Create PowerShell start script
+@"
+Set-Location `$PSScriptRoot
+Write-Host "Starting RangerChat Lite..." -ForegroundColor Cyan
+npm run dev
+"@ | Out-File -FilePath "$InstallDir\start-chat.ps1" -Encoding UTF8
+
+Write-Color "[OK] Helper scripts created" -Color Green
+Write-Color "  - start-chat.bat - Double-click to start" -Color Cyan
+Write-Color "  - start-chat.ps1 - PowerShell start script" -Color Cyan
+Write-Color "  - build-app.bat  - Build distributable" -Color Cyan
+
+# ============================================================
+# INSTALLATION COMPLETE
+# ============================================================
+Write-Color "`n------------------------------------------------------------" -Color Cyan
+Write-Color "[OK] INSTALLATION COMPLETE!" -Color Green
+Write-Color "------------------------------------------------------------" -Color Cyan
+
+Write-Color "`nRangerChat Lite has been installed to:" -Color White
+Write-Color "  $InstallDir" -Color Cyan
+
+Write-Color "`nTo start the app:" -Color Yellow
+Write-Color "  Double-click: start-chat.bat" -Color White
+Write-Color "  Or run: cd $InstallDir; npm run dev" -Color White
+
+# Auto-start if requested
+if (-not $NoStart) {
+    Write-Color "`n------------------------------------------------------------" -Color Cyan
+    Write-Color "Starting RangerChat Lite..." -Color White
+    Write-Color "------------------------------------------------------------" -Color Cyan
+
+    if ($Build) {
+        Write-Color "Building production app..." -Color Blue
+        npm run build
+        Write-Color "[OK] Build complete! Check the 'release' folder for the app." -Color Green
+    } else {
+        Write-Color "Starting development server..." -Color Blue
+        Write-Color "Press Ctrl+C to stop`n" -Color Yellow
+        npm run dev
+    }
+}
+
+Write-Color "`n===============================================================" -Color Magenta
+Write-Color "  Thank you for installing RangerChat Lite!" -Color Green
+Write-Color "  Join the RangerBlock network and start chatting." -Color Green
+Write-Color "===============================================================" -Color Magenta
+Write-Color "  Rangers lead the way!" -Color Cyan
+Write-Color ""
