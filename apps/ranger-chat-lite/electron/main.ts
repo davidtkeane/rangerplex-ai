@@ -3,10 +3,13 @@ import path from 'node:path'
 import https from 'node:https'
 import { identityService, UserIdentity } from './identityService'
 
+// Ledger Service - using require for CommonJS module
+const { ledger, TX_TYPES } = require('../../../rangerblock/lib/ledger-service.cjs')
+
 // ═══════════════════════════════════════════════════════════════════════════
 // VERSION & UPDATE CHECK
 // ═══════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.4.1'
+const APP_VERSION = '1.5.0'
 const VERSIONS_URL = 'https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json'
 
 interface UpdateInfo {
@@ -284,9 +287,100 @@ ipcMain.handle('app:getVersion', () => {
     return APP_VERSION
 })
 
+// ═══════════════════════════════════════════════════════════════════════════
+// IPC Handlers for Ledger Service
+// ═══════════════════════════════════════════════════════════════════════════
+
+let ledgerInitialized = false
+
+ipcMain.handle('ledger:init', async () => {
+    if (!ledgerInitialized) {
+        await ledger.init()
+        ledgerInitialized = true
+    }
+    return true
+})
+
+ipcMain.handle('ledger:getStatus', async () => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.getStatus()
+})
+
+ipcMain.handle('ledger:addMessage', async (_, message: {
+    sender: string
+    senderName: string
+    content: string
+    channel: string
+    signature?: string
+}) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.addMessage(message)
+})
+
+ipcMain.handle('ledger:getBlocks', async (_, page: number = 0, limit: number = 10) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.getBlocks(page, limit)
+})
+
+ipcMain.handle('ledger:getBlock', async (_, index: number) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.getBlock(index)
+})
+
+ipcMain.handle('ledger:getMessagesByChannel', async (_, channel: string, page: number = 0, limit: number = 50) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.getMessagesByChannel(channel, page, limit)
+})
+
+ipcMain.handle('ledger:getTransactionsByUser', async (_, userId: string, page: number = 0, limit: number = 50) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.getTransactionsByUser(userId, page, limit)
+})
+
+ipcMain.handle('ledger:verifyMessage', async (_, contentHash: string) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.verifyMessage(contentHash)
+})
+
+ipcMain.handle('ledger:mineBlock', async (_, validatorId?: string) => {
+    if (!ledgerInitialized) await ledger.init()
+    const block = await ledger.mineBlock(validatorId || 'local')
+    return block ? block.toJSON() : null
+})
+
+ipcMain.handle('ledger:exportChain', async () => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.exportChain()
+})
+
+ipcMain.handle('ledger:exportUserAudit', async (_, userId: string) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.exportUserAudit(userId)
+})
+
+// Wallet-ready endpoints (future use)
+ipcMain.handle('ledger:getBalance', async (_, userId: string) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.getBalance(userId)
+})
+
+ipcMain.handle('ledger:addReward', async (_, userId: string, amount: number, reason: string) => {
+    if (!ledgerInitialized) await ledger.init()
+    return ledger.addReward(userId, amount, reason)
+})
+
 app.whenReady().then(async () => {
     createMenu()
     createWindow()
+
+    // Initialize ledger on startup
+    try {
+        await ledger.init()
+        ledgerInitialized = true
+        console.log('[Main] Ledger initialized successfully')
+    } catch (e) {
+        console.error('[Main] Failed to initialize ledger:', e)
+    }
 
     // Check for updates after window loads
     setTimeout(async () => {
@@ -305,4 +399,11 @@ app.whenReady().then(async () => {
             }
         }
     }, 3000) // Wait 3 seconds after startup
+})
+
+// Cleanup on quit
+app.on('before-quit', async () => {
+    if (ledgerInitialized) {
+        await ledger.shutdown()
+    }
 })

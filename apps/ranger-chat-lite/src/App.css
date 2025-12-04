@@ -1503,3 +1503,335 @@ body {
 .theme-tron .tx-status {
     box-shadow: 0 0 5px currentColor;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LEDGER VIEW STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ledger-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--bg-primary);
+}
+
+.ledger-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.ledger-header h2 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.refresh-btn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.refresh-btn:hover {
+    background: var(--bg-hover);
+}
+
+.refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ledger-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.ledger-section {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+}
+
+.ledger-section h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+/* Status Grid */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.status-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--accent);
+}
+
+.status-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+.status-details {
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.detail-label {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.detail-value.mono {
+    font-family: monospace;
+    color: var(--accent);
+}
+
+/* Actions Section */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.action-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mine-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    color: white;
+}
+
+.mine-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.mine-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.export-btn {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.export-btn:hover {
+    background: var(--bg-hover);
+}
+
+.action-note {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Blocks List */
+.blocks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.loading-blocks, .no-blocks {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+}
+
+.block-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.block-card:hover {
+    border-color: var(--accent);
+}
+
+.block-card.selected {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.block-number {
+    font-weight: bold;
+    color: var(--accent);
+}
+
+.block-txcount {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.block-hash {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.block-time {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.block-details {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.block-transactions {
+    margin-top: 12px;
+}
+
+.block-transactions h4 {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.tx-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 11px;
+}
+
+.tx-type {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.tx-type-chat_message {
+    background: rgba(0, 200, 150, 0.2);
+    color: #00c896;
+}
+
+.tx-type-genesis {
+    background: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+}
+
+.tx-type-identity_register {
+    background: rgba(100, 150, 255, 0.2);
+    color: #6496ff;
+}
+
+.tx-sender {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.tx-content {
+    color: var(--text-muted);
+    flex: 1;
+    min-width: 100px;
+}
+
+/* Info Section */
+.info-section p {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.wallet-preview {
+    margin-top: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(255, 200, 0, 0.1), rgba(255, 150, 0, 0.1));
+    border-radius: 8px;
+    border: 1px solid rgba(255, 200, 0, 0.3);
+}
+
+/* Theme-specific ledger styling */
+[data-theme="matrix"] .status-value {
+    text-shadow: 0 0 10px var(--accent);
+}
+
+[data-theme="matrix"] .block-card:hover {
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+}
+
+[data-theme="tron"] .status-value {
+    text-shadow: 0 0 10px var(--accent);
+}
+
+[data-theme="tron"] .block-card:hover {
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+}
+
+[data-theme="tron"] .mine-btn {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}

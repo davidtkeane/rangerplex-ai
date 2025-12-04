@@ -3,7 +3,7 @@
     "productName": "RangerChat Lite",
     "description": "Lightweight chat client for the RangerPlex blockchain network",
     "private": true,
-    "version": "1.4.1",
+    "version": "1.5.0",
     "author": {
         "name": "David Keane",
         "email": "davidtkeane@gmail.com"

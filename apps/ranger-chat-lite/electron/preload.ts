@@ -15,7 +15,18 @@ import { ipcRenderer } from 'electron'
         getPaths: () => ipcRenderer.invoke('identity:getPaths'),
         export: () => ipcRenderer.invoke('identity:export'),
         reset: () => ipcRenderer.invoke('identity:reset')
+    },
+    ledger: {
+        init: () => ipcRenderer.invoke('ledger:init'),
+        getStatus: () => ipcRenderer.invoke('ledger:getStatus'),
+        addMessage: (msg: { sender: string; senderName: string; content: string; channel: string }) =>
+            ipcRenderer.invoke('ledger:addMessage', msg),
+        getBlocks: (page?: number, limit?: number) => ipcRenderer.invoke('ledger:getBlocks', page, limit),
+        getBlock: (index: number) => ipcRenderer.invoke('ledger:getBlock', index),
+        mineBlock: (validatorId?: string) => ipcRenderer.invoke('ledger:mineBlock', validatorId),
+        exportChain: () => ipcRenderer.invoke('ledger:exportChain'),
+        getBalance: (userId: string) => ipcRenderer.invoke('ledger:getBalance', userId)
     }
 }
 
-console.log('RangerChat Lite preload loaded - Identity API ready')
+console.log('RangerChat Lite preload loaded - Identity & Ledger API ready')

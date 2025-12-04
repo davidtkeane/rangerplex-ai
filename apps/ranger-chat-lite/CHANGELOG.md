@@ -4,6 +4,69 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.5.0] - 2025-12-04 - "Blockchain Ledger"
+
+### Summary
+Full blockchain ledger integration! Every message is now recorded on an immutable ledger with Proof of Work mining. Wallet-ready architecture for future token support.
+
+### Added
+
+#### Blockchain Ledger Service (rangerblock/lib/ledger-service.cjs)
+- **Persistent Blockchain**: All messages stored in blocks on disk
+- **Proof of Work Mining**: Blocks mined with configurable difficulty
+- **Merkle Trees**: Transaction verification with cryptographic proofs
+- **Auto-Mining**: Mines every 10 messages or 5 minutes
+- **Message Indexing**: Fast lookup by content hash, user, or channel
+
+#### Ledger Storage Structure
+- ~/.rangerblock/ledger/chain.json - Blockchain state
+- ~/.rangerblock/ledger/blocks/ - Individual block files
+- ~/.rangerblock/ledger/pending.json - Pending transactions
+- ~/.rangerblock/ledger/wallets.json - Wallet balances (future)
+- ~/.rangerblock/ledger/index/ - Quick lookup indexes
+
+#### Transaction Types
+- chat_message - Chat messages with content hash
+- identity_register - New user registrations
+- channel_join / channel_leave - Channel events
+- token_transfer / token_mint / reward - Wallet-ready (future)
+
+#### New IPC Handlers (14 total)
+- ledger:init - Initialize the ledger
+- ledger:getStatus - Chain height, pending count, stats
+- ledger:addMessage - Record a message to ledger
+- ledger:getBlocks - Get blocks (paginated)
+- ledger:getBlock - Get specific block by index
+- ledger:getMessagesByChannel - Query messages by channel
+- ledger:getTransactionsByUser - Query transactions by user
+- ledger:verifyMessage - Verify message exists in chain
+- ledger:mineBlock - Manually trigger mining
+- ledger:exportChain - Export full blockchain
+- ledger:exportUserAudit - Export user's transaction history
+- ledger:getBalance - Get wallet balance (future)
+- ledger:addReward - Add reward to wallet (future)
+
+### Technical
+- Genesis block created on first run (Dec 4, 2025)
+- SHA-256 hashing for blocks and transactions
+- Merkle root for efficient transaction verification
+- Block structure: index, hash, previousHash, merkleRoot, nonce, transactions
+- Configurable mining: difficulty=2, maxTxPerBlock=10, interval=5min
+
+### Wallet-Ready Architecture
+- Balance tracking infrastructure in place
+- Reward transaction type supported
+- Ready for future token implementation
+- Per-user wallet state persistence
+
+### Coming Next
+- Ledger Explorer UI tab
+- View blocks and transactions visually
+- Verify message authenticity
+- Export audit trails from UI
+
+---
+
 ## [1.4.1] - 2025-12-04 - "Identity Bug Fix"
 
 ### Fixed
@@ -299,6 +362,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.5.0 | 2025-12-04 | Blockchain Ledger - persistent blocks, Proof of Work, wallet-ready |
 | 1.4.1 | 2025-12-04 | Critical bug fix - identity service undefined property crash |
 | 1.4.0 | 2025-12-03 | Security foundation - shared identity, RSA keys, cross-app sync |
 | 1.3.1 | 2025-12-03 | Update notifications - checks GitHub for new versions |

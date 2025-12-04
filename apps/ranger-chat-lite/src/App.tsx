@@ -16,8 +16,54 @@ declare global {
                 export: () => Promise<string | null>
                 reset: () => Promise<void>
             }
+            ledger: {
+                init: () => Promise<boolean>
+                getStatus: () => Promise<LedgerStatus>
+                addMessage: (msg: { sender: string; senderName: string; content: string; channel: string }) => Promise<any>
+                getBlocks: (page?: number, limit?: number) => Promise<LedgerBlock[]>
+                getBlock: (index: number) => Promise<LedgerBlock | null>
+                mineBlock: (validatorId?: string) => Promise<LedgerBlock | null>
+                exportChain: () => Promise<any>
+                getBalance: (userId: string) => Promise<{ balance: number; transactions: string[] }>
+            }
         }
     }
+}
+
+// Ledger types
+interface LedgerStatus {
+    version: string
+    chainHeight: number
+    lastBlockHash: string
+    pendingTransactions: number
+    totalTransactions: number
+    totalMessages: number
+    totalUsers: number
+    lastBlockTime: number | null
+}
+
+interface LedgerBlock {
+    index: number
+    hash: string
+    previousHash: string
+    timestamp: number
+    merkleRoot: string
+    nonce: number
+    transactionCount: number
+    transactions: LedgerTransaction[]
+    validator: { nodeId: string; timestamp: number } | null
+}
+
+interface LedgerTransaction {
+    txId: string
+    type: string
+    sender: string
+    timestamp: number
+    data: any
+    hash: string
+    pending?: boolean
+    blockIndex?: number
+    blockHash?: string
 }
 
 // Types
@@ -82,10 +128,10 @@ const EMOJI_DATA = {
 }
 
 // App views
-type ViewType = 'login' | 'chat' | 'settings'
+type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.4.1'
+const APP_VERSION = '1.5.0'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -126,6 +172,12 @@ function App() {
     const [updateAvailable, setUpdateAvailable] = useState(false)
     const [latestVersion, setLatestVersion] = useState<string | null>(null)
     const [showUpdateBanner, setShowUpdateBanner] = useState(true)
+
+    // Ledger state
+    const [ledgerStatus, setLedgerStatus] = useState<LedgerStatus | null>(null)
+    const [ledgerBlocks, setLedgerBlocks] = useState<LedgerBlock[]>([])
+    const [selectedBlock, setSelectedBlock] = useState<LedgerBlock | null>(null)
+    const [ledgerLoading, setLedgerLoading] = useState(false)
 
     const wsRef = useRef<WebSocket | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -217,6 +269,70 @@ function App() {
         localStorage.setItem('rangerChatTheme', theme)
         document.documentElement.setAttribute('data-theme', theme)
     }, [theme])
+
+    // Load ledger status when entering ledger view
+    const loadLedgerData = async () => {
+        if (!window.electronAPI?.ledger) return
+        setLedgerLoading(true)
+        try {
+            const status = await window.electronAPI.ledger.getStatus()
+            setLedgerStatus(status)
+            const blocks = await window.electronAPI.ledger.getBlocks(0, 20)
+            setLedgerBlocks(blocks.reverse()) // Newest first
+        } catch (error) {
+            console.error('Error loading ledger:', error)
+        }
+        setLedgerLoading(false)
+    }
+
+    // Refresh ledger data
+    const refreshLedger = async () => {
+        await loadLedgerData()
+    }
+
+    // Manual mine block
+    const manualMineBlock = async () => {
+        if (!window.electronAPI?.ledger) return
+        setLedgerLoading(true)
+        try {
+            const block = await window.electronAPI.ledger.mineBlock(identity?.nodeId)
+            if (block) {
+                await loadLedgerData()
+            }
+        } catch (error) {
+            console.error('Error mining block:', error)
+        }
+        setLedgerLoading(false)
+    }
+
+    // Export chain
+    const exportChain = async () => {
+        if (!window.electronAPI?.ledger) return
+        try {
+            const chainData = await window.electronAPI.ledger.exportChain()
+            const blob = new Blob([JSON.stringify(chainData, null, 2)], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `rangerblock-chain-${Date.now()}.json`
+            a.click()
+            URL.revokeObjectURL(url)
+        } catch (error) {
+            console.error('Error exporting chain:', error)
+        }
+    }
+
+    // Format timestamp
+    const formatTime = (ts: number) => {
+        const date = new Date(ts)
+        return date.toLocaleString()
+    }
+
+    // Format hash for display
+    const formatHash = (hash: string) => {
+        if (!hash) return 'N/A'
+        return `${hash.substring(0, 8)}...${hash.substring(hash.length - 8)}`
+    }
 
     // Generate random username
     const generateRandomUsername = async () => {
@@ -609,6 +725,13 @@ function App() {
                             </button>
                             <button
                                 className="header-btn"
+                                onClick={() => { loadLedgerData(); setView('ledger') }}
+                                title="Blockchain Ledger"
+                            >
+                                ⛓️
+                            </button>
+                            <button
+                                className="header-btn"
                                 onClick={openSettings}
                                 title="Settings"
                             >
@@ -909,6 +1032,153 @@ function App() {
                                 <p className="mission">🎖️ Mission: Transform disabilities into superpowers</p>
                                 <p className="philosophy">"One foot in front of the other" - David Keane</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* LEDGER VIEW */}
+            {view === 'ledger' && (
+                <div className="ledger-screen">
+                    <div className="ledger-header">
+                        <button className="back-btn" onClick={() => setView(connected ? 'chat' : 'login')}>
+                            ← Back
+                        </button>
+                        <h2>⛓️ Blockchain Ledger</h2>
+                        <button className="refresh-btn" onClick={refreshLedger} disabled={ledgerLoading}>
+                            🔄
+                        </button>
+                    </div>
+
+                    <div className="ledger-content">
+                        {/* Status Section */}
+                        {ledgerStatus && (
+                            <div className="ledger-section status-section">
+                                <h3>📊 Chain Status</h3>
+                                <div className="status-grid">
+                                    <div className="status-item">
+                                        <span className="status-value">{ledgerStatus.chainHeight}</span>
+                                        <span className="status-label">Blocks</span>
+                                    </div>
+                                    <div className="status-item">
+                                        <span className="status-value">{ledgerStatus.totalMessages}</span>
+                                        <span className="status-label">Messages</span>
+                                    </div>
+                                    <div className="status-item">
+                                        <span className="status-value">{ledgerStatus.pendingTransactions}</span>
+                                        <span className="status-label">Pending</span>
+                                    </div>
+                                    <div className="status-item">
+                                        <span className="status-value">{ledgerStatus.totalUsers}</span>
+                                        <span className="status-label">Users</span>
+                                    </div>
+                                </div>
+                                <div className="status-details">
+                                    <div className="detail-row">
+                                        <span className="detail-label">Last Block:</span>
+                                        <span className="detail-value mono">{formatHash(ledgerStatus.lastBlockHash)}</span>
+                                    </div>
+                                    <div className="detail-row">
+                                        <span className="detail-label">Last Mined:</span>
+                                        <span className="detail-value">
+                                            {ledgerStatus.lastBlockTime ? formatTime(ledgerStatus.lastBlockTime) : 'Never'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actions Section */}
+                        <div className="ledger-section actions-section">
+                            <h3>⚡ Actions</h3>
+                            <div className="action-buttons">
+                                <button
+                                    className="action-btn mine-btn"
+                                    onClick={manualMineBlock}
+                                    disabled={ledgerLoading || (ledgerStatus?.pendingTransactions === 0)}
+                                >
+                                    ⛏️ Mine Block
+                                </button>
+                                <button className="action-btn export-btn" onClick={exportChain}>
+                                    📥 Export Chain
+                                </button>
+                            </div>
+                            {ledgerStatus?.pendingTransactions === 0 && (
+                                <p className="action-note">No pending transactions to mine</p>
+                            )}
+                        </div>
+
+                        {/* Blocks Section */}
+                        <div className="ledger-section blocks-section">
+                            <h3>🧱 Recent Blocks</h3>
+                            {ledgerLoading ? (
+                                <div className="loading-blocks">Loading...</div>
+                            ) : ledgerBlocks.length === 0 ? (
+                                <div className="no-blocks">No blocks yet. Mine some transactions!</div>
+                            ) : (
+                                <div className="blocks-list">
+                                    {ledgerBlocks.map(block => (
+                                        <div
+                                            key={block.index}
+                                            className={`block-card ${selectedBlock?.index === block.index ? 'selected' : ''}`}
+                                            onClick={() => setSelectedBlock(selectedBlock?.index === block.index ? null : block)}
+                                        >
+                                            <div className="block-header">
+                                                <span className="block-number">Block #{block.index}</span>
+                                                <span className="block-txcount">{block.transactionCount} txs</span>
+                                            </div>
+                                            <div className="block-hash mono">{formatHash(block.hash)}</div>
+                                            <div className="block-time">{formatTime(block.timestamp)}</div>
+
+                                            {selectedBlock?.index === block.index && (
+                                                <div className="block-details">
+                                                    <div className="detail-row">
+                                                        <span className="detail-label">Merkle Root:</span>
+                                                        <span className="detail-value mono">{formatHash(block.merkleRoot)}</span>
+                                                    </div>
+                                                    <div className="detail-row">
+                                                        <span className="detail-label">Previous:</span>
+                                                        <span className="detail-value mono">{formatHash(block.previousHash)}</span>
+                                                    </div>
+                                                    <div className="detail-row">
+                                                        <span className="detail-label">Nonce:</span>
+                                                        <span className="detail-value">{block.nonce}</span>
+                                                    </div>
+
+                                                    {block.transactions.length > 0 && (
+                                                        <div className="block-transactions">
+                                                            <h4>Transactions:</h4>
+                                                            {block.transactions.map((tx, i) => (
+                                                                <div key={i} className="tx-item">
+                                                                    <span className={`tx-type tx-type-${tx.type}`}>{tx.type}</span>
+                                                                    <span className="tx-sender">{tx.data?.senderName || tx.sender?.substring(0, 8) || 'System'}</span>
+                                                                    {tx.data?.content && (
+                                                                        <span className="tx-content">
+                                                                            {tx.data.content.substring(0, 50)}{tx.data.content.length > 50 ? '...' : ''}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Info Section */}
+                        <div className="ledger-section info-section">
+                            <h3>ℹ️ About the Ledger</h3>
+                            <p>
+                                Every message is recorded on an immutable blockchain. Blocks are mined
+                                automatically every 10 messages or 5 minutes using Proof of Work.
+                            </p>
+                            <p className="wallet-preview">
+                                💰 <strong>Coming Soon:</strong> Wallet integration with token rewards!
+                            </p>
                         </div>
                     </div>
                 </div>
