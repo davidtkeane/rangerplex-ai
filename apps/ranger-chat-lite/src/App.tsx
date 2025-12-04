@@ -1351,11 +1351,18 @@ function App() {
 
             case 'voiceData':
                 // Use refs for current values (fixes closure bug)
-                if (callStateRef.current === 'in_call' && senderName === callPartnerRef.current) {
+                const currentPartner = callPartnerRef.current
+                const isInCall = callStateRef.current === 'in_call'
+                // Case-insensitive comparison for usernames
+                const isFromPartner = currentPartner && senderName.toLowerCase() === currentPartner.toLowerCase()
+
+                console.log('[Voice] voiceData received - state:', callStateRef.current, 'from:', senderName, 'partner:', currentPartner, 'isMatch:', isFromPartner)
+
+                if (isInCall && isFromPartner) {
                     // Pass the sender's sample rate for proper playback
                     playAudio(payload.audio, senderName, payload.sampleRate)
                 } else {
-                    console.log('[Voice] Ignoring voiceData - state:', callStateRef.current, 'from:', senderName, 'partner:', callPartnerRef.current)
+                    console.log('[Voice] Ignoring voiceData - not in call or wrong sender')
                 }
                 break
 
