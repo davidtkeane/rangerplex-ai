@@ -168,13 +168,11 @@ function createWindow() {
     }
 }
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Quit when all windows are closed - force quit on ALL platforms
+// (Including macOS - we want the app to fully close when window is closed)
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
+    console.log('[Main] All windows closed - quitting app')
+    app.quit()
 })
 
 app.on('activate', () => {
@@ -501,8 +499,31 @@ app.whenReady().then(async () => {
 })
 
 // Cleanup on quit
-app.on('before-quit', async () => {
+app.on('before-quit', async (event) => {
+    console.log('[Main] App is quitting - cleaning up...')
+
+    // Shutdown ledger if initialized
     if (ledgerInitialized) {
-        await ledger.shutdown()
+        try {
+            await ledger.shutdown()
+            console.log('[Main] Ledger shutdown complete')
+        } catch (e) {
+            console.error('[Main] Error shutting down ledger:', e)
+        }
     }
+
+    // Close any remaining windows
+    if (win && !win.isDestroyed()) {
+        win.destroy()
+        win = null
+    }
+})
+
+// Force exit when quitting to ensure all processes are killed
+app.on('will-quit', (event) => {
+    console.log('[Main] Will quit - forcing process exit')
+    // Small delay to ensure cleanup completes, then force exit
+    setTimeout(() => {
+        process.exit(0)
+    }, 100)
 })
