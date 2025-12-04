@@ -1362,44 +1362,14 @@ function App() {
                         </div>
                         <div className="header-right">
                             {/* Voice Call Button */}
-                            <div className="call-dropdown-container">
-                                <button
-                                    className={`header-btn call-btn ${callState !== 'idle' ? 'active' : ''}`}
-                                    onClick={() => setShowPeerList(!showPeerList)}
-                                    title={callState === 'idle' ? 'Make a call' : callState === 'in_call' ? `In call with ${callPartner}` : 'Calling...'}
-                                    disabled={callState === 'ringing'}
-                                >
-                                    {callState === 'idle' ? '📞' : callState === 'in_call' ? '🔊' : '📱'}
-                                </button>
-                                {showPeerList && callState === 'idle' && (
-                                    <div className="peer-dropdown">
-                                        <div className="peer-dropdown-header">Call a peer</div>
-                                        {peers.length === 0 ? (
-                                            <div className="peer-dropdown-empty">No other users online</div>
-                                        ) : (
-                                            peers.map((peer, i) => (
-                                                <button
-                                                    key={i}
-                                                    className="peer-dropdown-item"
-                                                    onClick={() => {
-                                                        makeCall(peer.nickname)
-                                                        setShowPeerList(false)
-                                                    }}
-                                                >
-                                                    <span className="peer-icon">👤</span>
-                                                    <span className="peer-name">{peer.nickname}</span>
-                                                    {peer.capabilities?.includes('voice') && (
-                                                        <span className="peer-voice-badge" title="Voice enabled">🎙️</span>
-                                                    )}
-                                                </button>
-                                            ))
-                                        )}
-                                        <div className="peer-dropdown-tip">
-                                            Or type <code>/call username</code>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <button
+                                className={`header-btn call-btn ${callState !== 'idle' ? 'active' : ''}`}
+                                onClick={() => setShowPeerList(!showPeerList)}
+                                title={callState === 'idle' ? 'Make a call' : callState === 'in_call' ? `In call with ${callPartner}` : 'Calling...'}
+                                disabled={callState === 'ringing'}
+                            >
+                                {callState === 'idle' ? '📞' : callState === 'in_call' ? '🔊' : '📱'}
+                            </button>
                             <button
                                 className={`header-btn ${showSearch ? 'active' : ''}`}
                                 onClick={() => setShowSearch(!showSearch)}
@@ -1600,6 +1570,62 @@ function App() {
                             Send
                         </button>
                     </div>
+
+                    {/* Call Modal */}
+                    {showPeerList && callState === 'idle' && (
+                        <div className="call-modal-overlay" onClick={() => setShowPeerList(false)}>
+                            <div className="call-modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="call-modal-header">
+                                    <div className="call-modal-title">
+                                        <span className="call-icon">📞</span>
+                                        <span>Start a Call</span>
+                                    </div>
+                                    <button className="call-modal-close" onClick={() => setShowPeerList(false)}>
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="call-modal-body">
+                                    {peers.length === 0 ? (
+                                        <div className="peer-list-empty">
+                                            <div className="empty-icon">😴</div>
+                                            <div className="empty-text">No other users online</div>
+                                            <div className="empty-hint">Wait for someone to join or invite a friend!</div>
+                                        </div>
+                                    ) : (
+                                        peers.map((peer, i) => (
+                                            <div key={i} className="peer-list-item">
+                                                <div className="peer-avatar">
+                                                    👤
+                                                </div>
+                                                <div className="peer-info">
+                                                    <div className="peer-name">{peer.nickname}</div>
+                                                    <div className="peer-status">
+                                                        <span className="online-dot"></span>
+                                                        Online
+                                                        {peer.capabilities?.includes('voice') && ' • Voice ready'}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    className="peer-call-btn"
+                                                    onClick={() => {
+                                                        makeCall(peer.nickname)
+                                                        setShowPeerList(false)
+                                                    }}
+                                                >
+                                                    📞 Call
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                                <div className="call-modal-footer">
+                                    <div className="call-modal-tip">
+                                        Tip: You can also type <code>/call username</code> in chat
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
