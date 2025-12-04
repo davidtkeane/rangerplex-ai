@@ -1192,10 +1192,14 @@ body {
     gap: 10px;
     align-items: center;
     margin-bottom: 10px;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .mic-select {
     flex: 1;
+    min-width: 0;
+    max-width: calc(100% - 50px);
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -1208,6 +1212,9 @@ body {
     background-repeat: no-repeat;
     background-position: right 12px center;
     padding-right: 35px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .mic-select:focus {
