@@ -392,7 +392,7 @@ class IdentityService {
     const storage = this.loadIdentity();
     if (storage) {
       storage.stats.messagesSent++;
-      fs__namespace.writeFileSync(this.identityFile, JSON.stringify(storage, null, 2));
+      fs__namespace.writeFileSync(this.legacyIdentityFile, JSON.stringify(storage, null, 2));
     }
   }
   /**
@@ -403,7 +403,7 @@ class IdentityService {
     if (existing) {
       existing.identity.lastSeen = (/* @__PURE__ */ new Date()).toISOString();
       existing.stats.sessionsCount++;
-      fs__namespace.writeFileSync(this.identityFile, JSON.stringify(existing, null, 2));
+      fs__namespace.writeFileSync(this.legacyIdentityFile, JSON.stringify(existing, null, 2));
       return existing.identity;
     }
     const identity = this.generateIdentity(username);
@@ -479,8 +479,11 @@ class IdentityService {
    * Reset identity (for testing/debugging)
    */
   resetIdentity() {
-    if (fs__namespace.existsSync(this.identityFile)) {
-      fs__namespace.unlinkSync(this.identityFile);
+    if (fs__namespace.existsSync(this.legacyIdentityFile)) {
+      fs__namespace.unlinkSync(this.legacyIdentityFile);
+    }
+    if (fs__namespace.existsSync(this.sharedIdentityFile)) {
+      fs__namespace.unlinkSync(this.sharedIdentityFile);
     }
   }
 }

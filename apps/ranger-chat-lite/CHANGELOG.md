@@ -4,7 +4,18 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
-## [1.4.0] - 2025-12-03 - "Security Foundation" (In Progress)
+## [1.4.1] - 2025-12-04 - "Identity Bug Fix"
+
+### Fixed
+- **Critical Bug**: Fixed `ERR_INVALID_ARG_TYPE` crash on startup
+  - `this.identityFile` was undefined (property never declared)
+  - Affected methods: `recordMessage()`, `getOrCreateIdentity()`, `resetIdentity()`
+  - Changed to use `this.legacyIdentityFile` and `this.sharedIdentityFile`
+- RangerBot can now receive messages without crashing the app
+
+---
+
+## [1.4.0] - 2025-12-03 - "Security Foundation"
 
 ### Added
 
@@ -288,6 +299,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.4.1 | 2025-12-04 | Critical bug fix - identity service undefined property crash |
 | 1.4.0 | 2025-12-03 | Security foundation - shared identity, RSA keys, cross-app sync |
 | 1.3.1 | 2025-12-03 | Update notifications - checks GitHub for new versions |
 | 1.3.0 | 2025-12-03 | Easy distribution - GitHub releases, install scripts |

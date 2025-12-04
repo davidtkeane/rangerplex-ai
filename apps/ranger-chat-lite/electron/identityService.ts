@@ -466,7 +466,7 @@ class IdentityService {
         const storage = this.loadIdentity()
         if (storage) {
             storage.stats.messagesSent++
-            fs.writeFileSync(this.identityFile, JSON.stringify(storage, null, 2))
+            fs.writeFileSync(this.legacyIdentityFile, JSON.stringify(storage, null, 2))
         }
     }
 
@@ -480,7 +480,7 @@ class IdentityService {
             // Update lastSeen and session count
             existing.identity.lastSeen = new Date().toISOString()
             existing.stats.sessionsCount++
-            fs.writeFileSync(this.identityFile, JSON.stringify(existing, null, 2))
+            fs.writeFileSync(this.legacyIdentityFile, JSON.stringify(existing, null, 2))
             return existing.identity
         }
 
@@ -572,8 +572,11 @@ class IdentityService {
      * Reset identity (for testing/debugging)
      */
     resetIdentity(): void {
-        if (fs.existsSync(this.identityFile)) {
-            fs.unlinkSync(this.identityFile)
+        if (fs.existsSync(this.legacyIdentityFile)) {
+            fs.unlinkSync(this.legacyIdentityFile)
+        }
+        if (fs.existsSync(this.sharedIdentityFile)) {
+            fs.unlinkSync(this.sharedIdentityFile)
         }
         // Note: We keep .personal folder and keys for RangerPlex compatibility
     }
