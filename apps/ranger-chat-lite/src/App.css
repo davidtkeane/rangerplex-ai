@@ -2270,6 +2270,9 @@ body {
 .action-note {
     margin-top: 8px;
     font-size: 11px;
+    color: var(--text-muted);
+}
+
 .deploy-btn:hover {
     background: var(--bg-message);
     border-color: var(--accent);

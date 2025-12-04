@@ -600,9 +600,8 @@ function createWindow() {
   }
 }
 electron.app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    electron.app.quit();
-  }
+  console.log("[Main] All windows closed - quitting app");
+  electron.app.quit();
 });
 electron.app.on("activate", () => {
   if (electron.BrowserWindow.getAllWindows().length === 0) {
@@ -865,8 +864,24 @@ electron.app.whenReady().then(async () => {
     }
   }, 3e3);
 });
-electron.app.on("before-quit", async () => {
+electron.app.on("before-quit", async (event) => {
+  console.log("[Main] App is quitting - cleaning up...");
   if (ledgerInitialized) {
-    await ledger.shutdown();
+    try {
+      await ledger.shutdown();
+      console.log("[Main] Ledger shutdown complete");
+    } catch (e) {
+      console.error("[Main] Error shutting down ledger:", e);
+    }
   }
+  if (win && !win.isDestroyed()) {
+    win.destroy();
+    win = null;
+  }
+});
+electron.app.on("will-quit", (event) => {
+  console.log("[Main] Will quit - forcing process exit");
+  setTimeout(() => {
+    process.exit(0);
+  }, 100);
 });
