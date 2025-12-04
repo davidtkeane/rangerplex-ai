@@ -245,7 +245,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.7.0'
+const APP_VERSION = '1.7.1'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {

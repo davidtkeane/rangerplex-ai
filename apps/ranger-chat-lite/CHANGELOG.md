@@ -4,6 +4,59 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.7.1] - 2025-12-04 - "Voice Calls Polished"
+
+### Fixed
+
+#### Critical Bug Fixes
+- **Call State Closure Bug**: Fixed caller staying stuck on "Calling..." after callee answers
+  - Added `callStateRef` to track current state in WebSocket handler
+  - React closure was capturing stale state values
+- **Audio Not Sending Bug**: Fixed voice not transmitting when Push-to-Talk pressed
+  - Added `isTalkingRef` and `callPartnerRef` for audio processor callback
+  - Same closure issue in `onaudioprocess` handler
+
+### Changed
+
+#### Professional UI Redesign
+- **Call Button (Header)**:
+  - Deep indigo gradient with animated shine effect
+  - Glows and scales up on hover
+  - Green pulse animation when in active call
+
+- **Call Modal (Peer List)**:
+  - Glassmorphism effect with gradient border glow
+  - Subtle blue ambient glow behind modal
+  - Floating phone icon animation in header
+
+- **Peer Avatars**:
+  - Dynamic color gradients (indigo, teal, red, purple, orange)
+  - Shows user's first letter instead of generic icon
+  - Online indicator with pulsing green glow
+
+- **Call Buttons**:
+  - Shimmer effect sweeps across on hover
+  - Uppercase text with letter spacing
+  - Spring bounce animation on click
+
+- **In-Call Bar**:
+  - Animated gradient background (subtle movement)
+  - Highlight line at top for depth
+  - Professional cohesive look
+
+- **Push-to-Talk Button**:
+  - Indigo gradient matching app theme
+  - Ripple effect radiates from center on hover
+  - Dramatic green pulse animation when talking
+  - Uppercase "PUSH TO TALK" styling
+
+### Technical
+- Added refs for all state used in callbacks: `callStateRef`, `isTalkingRef`, `callPartnerRef`
+- `useEffect` hooks keep refs in sync with state
+- Fixes React's stale closure problem in event handlers
+
+---
+
 ## [1.7.0] - 2025-12-04 - "Voice Calls"
 
 ### Added
