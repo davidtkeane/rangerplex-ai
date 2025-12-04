@@ -828,11 +828,15 @@ function App() {
     // Enumerate available audio input devices
     const loadAudioDevices = async () => {
         try {
+            console.log('[Voice] Requesting microphone permission...')
             // Need to request permission first to get device labels
-            await navigator.mediaDevices.getUserMedia({ audio: true })
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            // Stop the stream immediately - we just needed permission
+            stream.getTracks().forEach(track => track.stop())
+
             const devices = await navigator.mediaDevices.enumerateDevices()
             const audioInputs = devices.filter(d => d.kind === 'audioinput')
-            console.log('[Voice] Found audio devices:', audioInputs.map(d => d.label || d.deviceId))
+            console.log('[Voice] Found audio devices:', audioInputs.length, audioInputs.map(d => d.label || d.deviceId))
             setAudioDevices(audioInputs)
 
             // If we have a saved preference, validate it still exists
@@ -843,8 +847,17 @@ function App() {
                     setSelectedMicId('default')
                 }
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('[Voice] Error enumerating audio devices:', error)
+            // Still try to enumerate without labels
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices()
+                const audioInputs = devices.filter(d => d.kind === 'audioinput')
+                console.log('[Voice] Found devices without labels:', audioInputs.length)
+                setAudioDevices(audioInputs)
+            } catch (e) {
+                console.error('[Voice] Cannot enumerate devices:', e)
+            }
         }
     }
 
@@ -1368,6 +1381,8 @@ function App() {
                 const exported = await window.electronAPI.identity.export()
                 setIdentityExport(exported)
             }
+            // Load available audio devices when settings opens
+            loadAudioDevices()
         } catch (error) {
             console.error('Error loading settings:', error)
         }
@@ -1808,7 +1823,7 @@ function App() {
                                 </button>
                             </div>
                             {audioDevices.length === 0 && (
-                                <p className="mic-note">No microphones detected. Click 🔄 to scan for devices.</p>
+                                <p className="mic-note">Click 🔄 to scan for microphones. You may need to allow microphone access when prompted.</p>
                             )}
                             {audioDevices.length > 0 && (
                                 <p className="mic-count">{audioDevices.length} microphone(s) available</p>
