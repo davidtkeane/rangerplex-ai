@@ -4,6 +4,31 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.6.1] - 2025-12-04 - "Admin Detection"
+
+### Added
+
+#### Admin Recognition System
+- **Admin Registry Check**: App now reads `~/.claude/ranger/admin/data/users.json` on startup
+- **Role Detection**: Detects Supreme Admin, Admin, Moderator, and standard User roles
+- **Chat Header Badge**: Animated admin badge appears in chat header
+  - 👑 Gold crown for Supreme Admin (with pulse animation)
+  - 🛡️ Shield for Admin
+  - ⚔️ Sword for Moderator
+- **Settings Identity Section**: New "Admin Status" box shows your role and permissions
+
+#### IPC Handlers
+- `admin:getStatus` - Check current user's admin status
+- `admin:checkUserId` - Check any userId's admin status
+- `admin:getRegistryPath` - Get admin registry file path
+
+### Technical
+- Admin registry path: `~/.claude/ranger/admin/data/users.json`
+- Checks userId from identity against admin registry
+- Returns: `isAdmin`, `isSupreme`, `isModerator`, `role`, `adminUsername`
+
+---
+
 ## [1.6.0] - 2025-12-04 - "Blockchain Ledger + Smart Contracts"
 
 ### Summary

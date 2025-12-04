@@ -26,7 +26,12 @@ import { ipcRenderer } from 'electron'
         mineBlock: (validatorId?: string) => ipcRenderer.invoke('ledger:mineBlock', validatorId),
         exportChain: () => ipcRenderer.invoke('ledger:exportChain'),
         getBalance: (userId: string) => ipcRenderer.invoke('ledger:getBalance', userId)
+    },
+    admin: {
+        getStatus: () => ipcRenderer.invoke('admin:getStatus'),
+        checkUserId: (userId: string) => ipcRenderer.invoke('admin:checkUserId', userId),
+        getRegistryPath: () => ipcRenderer.invoke('admin:getRegistryPath')
     }
 }
 
-console.log('RangerChat Lite preload loaded - Identity & Ledger API ready')
+console.log('RangerChat Lite preload loaded - Identity, Ledger & Admin API ready')

@@ -85,7 +85,8 @@ rangerblock/keys/
 rangerblock/**/node_modules/
 rangerblock/**/*.log
 # Keep templates and code tracked for git clone to M1Air
-blockchain/
+# Blockchain contracts are PUBLIC (tracked)
+# blockchain/  # REMOVED - contracts now public!
 
 # Ollama setup files (keep local)
 M4_OLLAMA_SETUP.sh

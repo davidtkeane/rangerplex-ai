@@ -379,6 +379,41 @@ body {
     border-radius: 12px;
 }
 
+/* Admin badges */
+.admin-badge {
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    animation: adminPulse 2s infinite;
+}
+
+.admin-badge.supreme {
+    background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+}
+
+.admin-badge.admin {
+    background: linear-gradient(135deg, #4ecdc4 0%, #2d9cdb 100%);
+    box-shadow: 0 0 10px rgba(45, 156, 219, 0.5);
+}
+
+.admin-badge.mod {
+    background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+@keyframes adminPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Message admin badge - shows next to your name in chat bubbles */
+.msg-admin-badge {
+    font-size: 12px;
+    margin-right: 4px;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.8));
+}
+
 .header-right {
     display: flex;
     align-items: center;
@@ -1124,6 +1159,59 @@ body {
     font-size: 12px;
     color: var(--text-secondary);
     line-height: 1.5;
+}
+
+/* Admin Status Box */
+.admin-status-box {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--bg-chat);
+    border: 2px solid var(--border);
+}
+
+.admin-status-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.admin-status-header strong {
+    color: var(--text-primary);
+}
+
+.admin-status-detail {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.admin-status-detail.supreme {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 170, 0, 0.2) 100%);
+    border: 1px solid #ffd700;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.admin-status-detail.admin {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(45, 156, 219, 0.2) 100%);
+    border: 1px solid #4ecdc4;
+    color: #4ecdc4;
+}
+
+.admin-status-detail.mod {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%);
+    border: 1px solid #a855f7;
+    color: #a855f7;
+}
+
+.admin-status-detail.user {
+    background: var(--bg-message-own);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
 }
 
 /* Theme Grid */

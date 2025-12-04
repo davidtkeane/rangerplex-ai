@@ -26,8 +26,22 @@ declare global {
                 exportChain: () => Promise<any>
                 getBalance: (userId: string) => Promise<{ balance: number; transactions: string[] }>
             }
+            admin: {
+                getStatus: () => Promise<AdminStatus>
+                checkUserId: (userId: string) => Promise<AdminStatus>
+                getRegistryPath: () => Promise<string>
+            }
         }
     }
+}
+
+// Admin status type
+interface AdminStatus {
+    isAdmin: boolean
+    isSupreme: boolean
+    isModerator: boolean
+    role: string
+    adminUsername?: string
 }
 
 // Ledger types
@@ -219,7 +233,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.6.0'
+const APP_VERSION = '1.6.1'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -273,6 +287,9 @@ function App() {
     const [selectedBlock, setSelectedBlock] = useState<LedgerBlock | null>(null)
     const [ledgerLoading, setLedgerLoading] = useState(false)
 
+    // Admin state
+    const [adminStatus, setAdminStatus] = useState<AdminStatus | null>(null)
+
     const wsRef = useRef<WebSocket | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const chatHistoryRef = useRef<HTMLDivElement>(null)
@@ -288,6 +305,16 @@ function App() {
                         if (storage?.identity) {
                             setIdentity(storage.identity)
                             setUsername(storage.identity.username)
+
+                            // Check admin status
+                            try {
+                                const status = await window.electronAPI.admin.getStatus()
+                                setAdminStatus(status)
+                                console.log('[Admin] Status:', JSON.stringify(status, null, 2))
+                                console.log('[Admin] isSupreme:', status.isSupreme, 'isAdmin:', status.isAdmin, 'role:', status.role)
+                            } catch (e) {
+                                console.log('[Admin] Could not check admin status:', e)
+                            }
                         }
                     }
                 }
@@ -856,7 +883,10 @@ function App() {
                         {getFilteredMessages().map((msg, i) => (
                             <div key={i} className={`message ${msg.type} ${msg.sender === username ? 'own' : ''}`}>
                                 <div className="message-meta">
-                                    <span className="sender">{msg.sender === username ? 'You' : msg.sender}</span>
+                                    <span className="sender">
+                                        {msg.sender === username && adminStatus?.isSupreme && <span className="msg-admin-badge">👑</span>}
+                                        {msg.sender}
+                                    </span>
                                     <span className="timestamp">{msg.timestamp}</span>
                                 </div>
                                 <div className="message-content">{msg.content}</div>
@@ -980,6 +1010,36 @@ function App() {
                                     🛡️ Your identity is linked to this device. Even if you change your display name,
                                     admins can track your real identity for moderation purposes.
                                 </p>
+
+                                {/* Admin Status */}
+                                {adminStatus && (
+                                    <div className="admin-status-box">
+                                        <div className="admin-status-header">
+                                            {adminStatus.isSupreme ? '👑' : adminStatus.isAdmin ? '🛡️' : adminStatus.isModerator ? '⚔️' : '👤'}
+                                            <span>Role: <strong>{adminStatus.role.toUpperCase()}</strong></span>
+                                        </div>
+                                        {adminStatus.isSupreme && (
+                                            <div className="admin-status-detail supreme">
+                                                SUPREME ADMIN - Full control over RangerBlock network
+                                            </div>
+                                        )}
+                                        {adminStatus.isAdmin && !adminStatus.isSupreme && (
+                                            <div className="admin-status-detail admin">
+                                                ADMIN - Can approve users, moderate chat, manage bans
+                                            </div>
+                                        )}
+                                        {adminStatus.isModerator && (
+                                            <div className="admin-status-detail mod">
+                                                MODERATOR - Can moderate chat and report users
+                                            </div>
+                                        )}
+                                        {!adminStatus.isAdmin && !adminStatus.isModerator && !adminStatus.isSupreme && (
+                                            <div className="admin-status-detail user">
+                                                Standard user - No special permissions
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 

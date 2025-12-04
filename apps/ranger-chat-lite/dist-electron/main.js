@@ -2,6 +2,8 @@
 const electron = require("electron");
 const path$1 = require("node:path");
 const https = require("node:https");
+const fs$1 = require("node:fs");
+const os$1 = require("node:os");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -485,7 +487,46 @@ class IdentityService {
   }
 }
 const identityService = new IdentityService();
-const APP_VERSION = "1.4.1";
+const { ledger, TX_TYPES } = require("../../../rangerblock/lib/ledger-service.cjs");
+const ADMIN_REGISTRY_PATH = path$1.join(os$1.homedir(), ".claude", "ranger", "admin", "data", "users.json");
+function getAdminStatus(userId) {
+  const result = {
+    isAdmin: false,
+    isSupreme: false,
+    isModerator: false,
+    role: "user"
+  };
+  try {
+    if (fs$1.existsSync(ADMIN_REGISTRY_PATH)) {
+      const data = fs$1.readFileSync(ADMIN_REGISTRY_PATH, "utf-8");
+      const users = JSON.parse(data);
+      if (users[userId]) {
+        const user = users[userId];
+        result.adminUsername = user.username;
+        result.role = user.role;
+        switch (user.role) {
+          case "supreme":
+            result.isSupreme = true;
+            result.isAdmin = true;
+            break;
+          case "admin":
+            result.isAdmin = true;
+            break;
+          case "moderator":
+            result.isModerator = true;
+            break;
+          case "banned":
+            result.role = "banned";
+            break;
+        }
+      }
+    }
+  } catch (e) {
+    console.error("[Admin] Failed to read admin registry:", e);
+  }
+  return result;
+}
+const APP_VERSION = "1.5.0";
 const VERSIONS_URL = "https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json";
 async function checkForUpdates() {
   return new Promise((resolve) => {
@@ -713,15 +754,103 @@ electron.ipcMain.handle("identity:export", () => {
 electron.ipcMain.handle("identity:reset", () => {
   identityService.resetIdentity();
 });
+electron.ipcMain.handle("admin:getStatus", async () => {
+  const storage = identityService.loadIdentity();
+  console.log("[Admin] Raw identity storage:", JSON.stringify(storage, null, 2).substring(0, 500));
+  const identity = storage?.identity || storage;
+  console.log("[Admin] Using userId:", identity?.userId);
+  if (identity && identity.userId) {
+    const status = getAdminStatus(identity.userId);
+    console.log(`[Admin] Checked status for ${identity.userId}: ${JSON.stringify(status)}`);
+    return status;
+  }
+  console.log("[Admin] No userId found in identity");
+  return {
+    isAdmin: false,
+    isSupreme: false,
+    isModerator: false,
+    role: "unknown"
+  };
+});
+electron.ipcMain.handle("admin:checkUserId", (_, userId) => {
+  return getAdminStatus(userId);
+});
+electron.ipcMain.handle("admin:getRegistryPath", () => {
+  return ADMIN_REGISTRY_PATH;
+});
 electron.ipcMain.handle("app:checkForUpdates", async () => {
   return checkForUpdates();
 });
 electron.ipcMain.handle("app:getVersion", () => {
   return APP_VERSION;
 });
+let ledgerInitialized = false;
+electron.ipcMain.handle("ledger:init", async () => {
+  if (!ledgerInitialized) {
+    await ledger.init();
+    ledgerInitialized = true;
+  }
+  return true;
+});
+electron.ipcMain.handle("ledger:getStatus", async () => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.getStatus();
+});
+electron.ipcMain.handle("ledger:addMessage", async (_, message) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.addMessage(message);
+});
+electron.ipcMain.handle("ledger:getBlocks", async (_, page = 0, limit = 10) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.getBlocks(page, limit);
+});
+electron.ipcMain.handle("ledger:getBlock", async (_, index) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.getBlock(index);
+});
+electron.ipcMain.handle("ledger:getMessagesByChannel", async (_, channel, page = 0, limit = 50) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.getMessagesByChannel(channel, page, limit);
+});
+electron.ipcMain.handle("ledger:getTransactionsByUser", async (_, userId, page = 0, limit = 50) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.getTransactionsByUser(userId, page, limit);
+});
+electron.ipcMain.handle("ledger:verifyMessage", async (_, contentHash) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.verifyMessage(contentHash);
+});
+electron.ipcMain.handle("ledger:mineBlock", async (_, validatorId) => {
+  if (!ledgerInitialized) await ledger.init();
+  const block = await ledger.mineBlock(validatorId || "local");
+  return block ? block.toJSON() : null;
+});
+electron.ipcMain.handle("ledger:exportChain", async () => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.exportChain();
+});
+electron.ipcMain.handle("ledger:exportUserAudit", async (_, userId) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.exportUserAudit(userId);
+});
+electron.ipcMain.handle("ledger:getBalance", async (_, userId) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.getBalance(userId);
+});
+electron.ipcMain.handle("ledger:addReward", async (_, userId, amount, reason) => {
+  if (!ledgerInitialized) await ledger.init();
+  return ledger.addReward(userId, amount, reason);
+});
 electron.app.whenReady().then(async () => {
   createMenu();
   createWindow();
+  try {
+    await ledger.init();
+    ledgerInitialized = true;
+    console.log("[Main] Ledger initialized successfully");
+  } catch (e) {
+    console.error("[Main] Failed to initialize ledger:", e);
+  }
   setTimeout(async () => {
     const updateInfo = await checkForUpdates();
     if (updateInfo.updateAvailable && win) {
@@ -735,4 +864,9 @@ electron.app.whenReady().then(async () => {
       }
     }
   }, 3e3);
+});
+electron.app.on("before-quit", async () => {
+  if (ledgerInitialized) {
+    await ledger.shutdown();
+  }
 });

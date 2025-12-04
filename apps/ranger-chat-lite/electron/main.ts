@@ -1,10 +1,76 @@
 import { app, BrowserWindow, Menu, shell, ipcMain, dialog, Notification } from 'electron'
 import path from 'node:path'
 import https from 'node:https'
+import fs from 'node:fs'
+import os from 'node:os'
 import { identityService, UserIdentity } from './identityService'
 
 // Ledger Service - using require for CommonJS module
 const { ledger, TX_TYPES } = require('../../../rangerblock/lib/ledger-service.cjs')
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMIN DETECTION - Check ~/.claude/ranger/admin/data/users.json
+// ═══════════════════════════════════════════════════════════════════════════
+const ADMIN_REGISTRY_PATH = path.join(os.homedir(), '.claude', 'ranger', 'admin', 'data', 'users.json')
+
+interface AdminUser {
+    userId: string
+    username: string
+    publicKeyHash: string
+    role: 'supreme' | 'admin' | 'moderator' | 'user' | 'banned'
+    created: string
+    note?: string
+}
+
+interface AdminStatus {
+    isAdmin: boolean
+    isSupreme: boolean
+    isModerator: boolean
+    role: string
+    adminUsername?: string
+}
+
+function getAdminStatus(userId: string): AdminStatus {
+    const result: AdminStatus = {
+        isAdmin: false,
+        isSupreme: false,
+        isModerator: false,
+        role: 'user'
+    }
+
+    try {
+        if (fs.existsSync(ADMIN_REGISTRY_PATH)) {
+            const data = fs.readFileSync(ADMIN_REGISTRY_PATH, 'utf-8')
+            const users: Record<string, AdminUser> = JSON.parse(data)
+
+            if (users[userId]) {
+                const user = users[userId]
+                result.adminUsername = user.username
+                result.role = user.role
+
+                switch (user.role) {
+                    case 'supreme':
+                        result.isSupreme = true
+                        result.isAdmin = true
+                        break
+                    case 'admin':
+                        result.isAdmin = true
+                        break
+                    case 'moderator':
+                        result.isModerator = true
+                        break
+                    case 'banned':
+                        result.role = 'banned'
+                        break
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[Admin] Failed to read admin registry:', e)
+    }
+
+    return result
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VERSION & UPDATE CHECK
@@ -276,6 +342,39 @@ ipcMain.handle('identity:export', () => {
 
 ipcMain.handle('identity:reset', () => {
     identityService.resetIdentity()
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IPC Handlers for Admin Detection
+// ═══════════════════════════════════════════════════════════════════════════
+ipcMain.handle('admin:getStatus', async () => {
+    const storage = identityService.loadIdentity()
+    console.log('[Admin] Raw identity storage:', JSON.stringify(storage, null, 2).substring(0, 500))
+
+    // Identity might be nested in storage.identity
+    const identity = storage?.identity || storage
+    console.log('[Admin] Using userId:', identity?.userId)
+
+    if (identity && identity.userId) {
+        const status = getAdminStatus(identity.userId)
+        console.log(`[Admin] Checked status for ${identity.userId}: ${JSON.stringify(status)}`)
+        return status
+    }
+    console.log('[Admin] No userId found in identity')
+    return {
+        isAdmin: false,
+        isSupreme: false,
+        isModerator: false,
+        role: 'unknown'
+    }
+})
+
+ipcMain.handle('admin:checkUserId', (_, userId: string) => {
+    return getAdminStatus(userId)
+})
+
+ipcMain.handle('admin:getRegistryPath', () => {
+    return ADMIN_REGISTRY_PATH
 })
 
 // IPC handler for update check
