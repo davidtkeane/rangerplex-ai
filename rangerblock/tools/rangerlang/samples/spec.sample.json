@@ -1,0 +1,38 @@
+{
+  "version": "0.1.0",
+  "network": "rangerblock-demo",
+  "contracts": [
+    {
+      "type": "registration",
+      "name": "RangerRegistration",
+      "terms": {
+        "version": "1.0.0",
+        "hash": "sha256:deadbeef"
+      },
+      "roles": {
+        "owner": "owner-address-placeholder",
+        "supreme_admin": "supreme-admin-placeholder",
+        "admins": []
+      },
+      "fields": {
+        "max_username_len": 32,
+        "require_hardware_hash": true
+      }
+    },
+    {
+      "type": "bridge",
+      "name": "RangerBridge",
+      "pairs": [
+        { "from": "wbtc", "to": "ranger", "rate": "40000", "fee_bps": 100, "daily_limit": "20e18" },
+        { "from": "usdc", "to": "ranger", "rate": "1", "fee_bps": 100, "daily_limit": "20e18" }
+      ],
+      "pauseable": true
+    },
+    {
+      "type": "file_transfer",
+      "name": "RangerFileTransfer",
+      "expiry_hours": 24,
+      "requires_dual_signatures": true
+    }
+  ]
+}
