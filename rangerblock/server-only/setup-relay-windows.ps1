@@ -191,16 +191,33 @@ Invoke-WebRequest -Uri "$RepoUrl/lib/admin-check.cjs" -OutFile "lib/admin-check.
 Write-Color "  Downloading lib/update-check.cjs..." "Gray"
 Invoke-WebRequest -Uri "$RepoUrl/lib/update-check.cjs" -OutFile "lib/update-check.cjs"
 
+Write-Color "  Downloading lib/sync-manager.cjs..." "Gray"
+try {
+    Invoke-WebRequest -Uri "$RepoUrl/lib/sync-manager.cjs" -OutFile "lib/sync-manager.cjs" -ErrorAction SilentlyContinue
+} catch {}
+
 Write-Color "  Downloading versions.json..." "Gray"
 Invoke-WebRequest -Uri "$RepoUrl/versions.json" -OutFile "versions.json"
 
-Write-Color "Security library downloaded (v5.1.0)" "Green"
+Write-Color "Security library downloaded (v5.1.1)" "Green"
+
+# Fix library paths for flat server structure (../lib/ -> ./lib/)
+Write-Color "`n[3.6/5] Fixing library paths for server structure..." "Yellow"
+$filesToFix = @("blockchain-chat.cjs", "voice-chat.cjs", "register-identity.cjs", "relay-server.cjs")
+foreach ($file in $filesToFix) {
+    if (Test-Path $file) {
+        $content = Get-Content $file -Raw
+        $newContent = $content -replace "'../lib/", "'./lib/"
+        $newContent | Set-Content $file -NoNewline
+        Write-Color "  Fixed paths in $file" "Green"
+    }
+}
 
 # Create package.json
 $packageJson = @"
 {
   "name": "rangerblock-server",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "RangerBlock P2P Relay Server - Windows Edition with Security, Voice & Video Chat",
   "main": "relay-server.cjs",
   "scripts": {

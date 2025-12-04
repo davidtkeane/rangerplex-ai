@@ -682,13 +682,25 @@ curl -fsSL "$REPO_URL/lib/update-check.cjs" -o lib/update-check.cjs
 echo -e "${BLUE}  📥 versions.json${NC}"
 curl -fsSL "$REPO_URL/versions.json" -o versions.json
 
-echo -e "${GREEN}  ✅ Security library downloaded (v5.1.0)${NC}"
+echo -e "${BLUE}  📥 lib/sync-manager.cjs${NC}"
+curl -fsSL "$REPO_URL/lib/sync-manager.cjs" -o lib/sync-manager.cjs 2>/dev/null || true
+
+echo -e "${GREEN}  ✅ Security library downloaded (v5.1.1)${NC}"
+
+# Fix library paths for flat server structure (../lib/ -> ./lib/)
+echo -e "\n${YELLOW}[4.6/6] Fixing library paths for server structure...${NC}"
+for file in blockchain-chat.cjs voice-chat.cjs register-identity.cjs relay-server.cjs; do
+    if [ -f "$file" ]; then
+        sed -i "s|'../lib/|'./lib/|g" "$file" 2>/dev/null || sed -i '' "s|'../lib/|'./lib/|g" "$file"
+        echo -e "${GREEN}  ✓ Fixed paths in ${file}${NC}"
+    fi
+done
 
 # Create package.json
 cat > package.json << 'PACKAGE_EOF'
 {
   "name": "rangerblock-server",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "RangerBlock P2P Relay Server with Security, Voice & Video Chat",
   "main": "relay-server.cjs",
   "scripts": {

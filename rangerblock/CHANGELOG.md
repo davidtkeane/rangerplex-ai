@@ -14,6 +14,11 @@ All notable changes to RangerBlock will be documented here.
 - **Full lib download**: Downloads all required lib files (identity-service, hardware-id, crypto-utils, etc.)
 - **Works for both users**: Root (relay) and Admin (chat client)
 
+#### Setup Scripts Updated
+- **setup-relay-universal.sh**: Now includes path fix + sync-manager.cjs download
+- **setup-relay-windows.ps1**: Now includes path fix + sync-manager.cjs download
+- **Version bump**: Both scripts now create v5.1.1 package.json
+
 #### Bug Fix
 - **identity-service.cjs crash**: Server couldn't find `./hardware-id.cjs` and other lib dependencies
 - **Root cause**: Files downloaded from `just-chat/` folder had `../lib/` paths (for nested structure)
