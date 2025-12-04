@@ -400,10 +400,20 @@ ipcMain.handle('app:runUpdate', async () => {
     }
 
     try {
-        // Step 1: git pull
-        console.log('[Update] Running git pull in:', appDir)
+        // Find the git root directory (works for both monorepo and standalone)
+        let gitRoot = appDir
         try {
-            const gitResult = await execPromise('git pull', { cwd: appDir, timeout: 60000 })
+            const gitRootResult = await execPromise('git rev-parse --show-toplevel', { cwd: appDir })
+            gitRoot = gitRootResult.stdout.trim()
+            console.log('[Update] Git root detected:', gitRoot)
+        } catch (e) {
+            console.log('[Update] Could not find git root, using app dir:', appDir)
+        }
+
+        // Step 1: git pull from git root
+        console.log('[Update] Running git pull in:', gitRoot)
+        try {
+            const gitResult = await execPromise('git pull', { cwd: gitRoot, timeout: 60000 })
             result.gitPull = { success: true, output: gitResult.stdout, error: gitResult.stderr }
             console.log('[Update] git pull:', gitResult.stdout)
         } catch (e: any) {
@@ -417,7 +427,8 @@ ipcMain.handle('app:runUpdate', async () => {
             console.log('[Update] No changes, skipping npm install')
             result.npmInstall = { success: true, output: 'Skipped - no changes', error: '' }
         } else {
-            console.log('[Update] Running npm install...')
+            // Run npm install in the app directory (ranger-chat-lite)
+            console.log('[Update] Running npm install in:', appDir)
             try {
                 const npmResult = await execPromise('npm install', { cwd: appDir, timeout: 120000 })
                 result.npmInstall = { success: true, output: npmResult.stdout, error: npmResult.stderr }
