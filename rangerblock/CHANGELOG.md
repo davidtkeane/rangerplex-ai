@@ -4,6 +4,33 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [5.1.1] - 2025-12-04
+
+### Fixed - AWS Server Path Issue
+
+#### Server Update Script (server-only/update-server.sh) v1.0.0
+- **NEW SCRIPT**: One-command update for AWS/remote servers
+- **Path fix**: Automatically converts `../lib/` to `./lib/` for flat server structure
+- **Full lib download**: Downloads all required lib files (identity-service, hardware-id, crypto-utils, etc.)
+- **Works for both users**: Root (relay) and Admin (chat client)
+
+#### Bug Fix
+- **identity-service.cjs crash**: Server couldn't find `./hardware-id.cjs` and other lib dependencies
+- **Root cause**: Files downloaded from `just-chat/` folder had `../lib/` paths (for nested structure)
+- **Server structure is flat**: `rangerblock-server/blockchain-chat.cjs` + `rangerblock-server/lib/`
+- **Fix**: Update script now patches all paths after download
+
+#### Usage on AWS
+```bash
+# One-liner update (run as root OR admin):
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/server-only/update-server.sh | bash
+
+# Then test:
+bash start-chat.sh
+```
+
+---
+
 ## [5.1.0] - 2025-12-03
 
 ### Added - E2E Encryption Complete 🔐
