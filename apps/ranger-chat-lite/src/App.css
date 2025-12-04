@@ -1867,6 +1867,9 @@ body {
 .action-buttons {
     display: flex;
     gap: 12px;
+    margin-top: 16px;
+}
+
 /* ========================================
    Smart Contracts Section
    ======================================== */
