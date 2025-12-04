@@ -4,6 +4,33 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.7.3] - 2025-12-04 - "Quick Call & Mic Settings"
+
+### Added
+
+#### Quick Call Button in Chat
+- **Call Icon in Messages**: Small 📞 button appears when hovering over other users' messages
+- Click to instantly call that user (no need to type `/call username`)
+- Button hidden on your own messages and system messages
+- Smooth hover animation with indigo gradient styling
+
+#### Microphone Settings
+- **New Settings Section**: "🎤 Microphone Settings" in Settings panel
+- **Device Selection**: Dropdown shows all available microphones
+- **Refresh Button**: 🔄 button to rescan for new audio devices
+- **Device Count**: Shows number of available microphones
+- **Cross-Platform**: Works on macOS, Windows, and Linux
+- Selected microphone is used for voice calls
+
+### Technical
+- `loadAudioDevices()` function enumerates audio input devices
+- `selectedMicId` state persists microphone choice
+- `getUserMedia()` uses selected deviceId constraint
+- Professional dropdown styling with custom SVG arrow
+- Refresh button rotates 180° on hover
+
+---
+
 ## [1.7.2] - 2025-12-04 - "Audio Fixed"
 
 ### Fixed

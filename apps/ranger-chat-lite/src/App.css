@@ -612,6 +612,35 @@ body {
     word-wrap: break-word;
 }
 
+/* Quick Call Button in Messages */
+.msg-call-btn {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    border: none;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease;
+    margin-left: auto;
+}
+
+.message:hover .msg-call-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.msg-call-btn:hover {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.msg-call-btn:active {
+    transform: scale(0.95);
+}
+
 /* Emoji Picker */
 .emoji-picker {
     position: absolute;
@@ -1149,6 +1178,77 @@ body {
 
 .save-btn:hover {
     background: var(--accent-hover);
+}
+
+/* Microphone Settings */
+.settings-note {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 12px 0;
+}
+
+.mic-settings {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.mic-select {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-chat);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 35px;
+}
+
+.mic-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.mic-select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 10px;
+}
+
+.refresh-btn {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-chat);
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: rotate(180deg);
+}
+
+.mic-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+}
+
+.mic-count {
+    font-size: 12px;
+    color: var(--accent);
+    margin: 0;
 }
 
 /* Identity Info */

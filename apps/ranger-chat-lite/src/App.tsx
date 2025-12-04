@@ -245,7 +245,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.7.2'
+const APP_VERSION = '1.7.3'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -311,6 +311,10 @@ function App() {
     const [peers, setPeers] = useState<PeerInfo[]>([])
     const [showPeerList, setShowPeerList] = useState(false)
     const [audioLevel, setAudioLevel] = useState(0)
+
+    // Audio device state
+    const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
+    const [selectedMicId, setSelectedMicId] = useState<string>('default')
 
     const wsRef = useRef<WebSocket | null>(null)
     const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -821,6 +825,29 @@ function App() {
     // VOICE CALL FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════════
 
+    // Enumerate available audio input devices
+    const loadAudioDevices = async () => {
+        try {
+            // Need to request permission first to get device labels
+            await navigator.mediaDevices.getUserMedia({ audio: true })
+            const devices = await navigator.mediaDevices.enumerateDevices()
+            const audioInputs = devices.filter(d => d.kind === 'audioinput')
+            console.log('[Voice] Found audio devices:', audioInputs.map(d => d.label || d.deviceId))
+            setAudioDevices(audioInputs)
+
+            // If we have a saved preference, validate it still exists
+            if (selectedMicId !== 'default') {
+                const exists = audioInputs.some(d => d.deviceId === selectedMicId)
+                if (!exists) {
+                    console.log('[Voice] Previously selected mic not found, using default')
+                    setSelectedMicId('default')
+                }
+            }
+        } catch (error) {
+            console.error('[Voice] Error enumerating audio devices:', error)
+        }
+    }
+
     // Initialize audio context for playback
     const initAudioContext = () => {
         if (!audioContextRef.current) {
@@ -832,15 +859,19 @@ function App() {
     // Start audio capture
     const startAudioCapture = async () => {
         try {
-            console.log('[Voice] Starting audio capture...')
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                }
-            })
-            console.log('[Voice] Got microphone stream:', stream.getAudioTracks())
+            console.log('[Voice] Starting audio capture with mic:', selectedMicId)
+            // Build audio constraints with selected device
+            const audioConstraints: MediaTrackConstraints = {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            }
+            // Only add deviceId if not 'default'
+            if (selectedMicId && selectedMicId !== 'default') {
+                audioConstraints.deviceId = { exact: selectedMicId }
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints })
+            console.log('[Voice] Got microphone stream:', stream.getAudioTracks()[0]?.label || 'Unknown')
             mediaStreamRef.current = stream
 
             const audioContext = initAudioContext()
@@ -1588,6 +1619,16 @@ function App() {
                                         {msg.sender}
                                     </span>
                                     <span className="timestamp">{msg.timestamp}</span>
+                                    {/* Quick call button for other users' messages */}
+                                    {msg.type === 'chat' && msg.sender !== username && msg.sender !== 'System' && (
+                                        <button
+                                            className="msg-call-btn"
+                                            onClick={() => makeCall(msg.sender)}
+                                            title={`Call ${msg.sender}`}
+                                        >
+                                            📞
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="message-content">{msg.content}</div>
                             </div>
@@ -1743,6 +1784,35 @@ function App() {
                                     Save Name
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Microphone Settings Section */}
+                        <div className="settings-section">
+                            <h3>🎤 Microphone Settings</h3>
+                            <p className="settings-note">Select which microphone to use for voice calls</p>
+                            <div className="mic-settings">
+                                <select
+                                    className="mic-select"
+                                    value={selectedMicId}
+                                    onChange={(e) => setSelectedMicId(e.target.value)}
+                                >
+                                    <option value="default">System Default</option>
+                                    {audioDevices.map((device) => (
+                                        <option key={device.deviceId} value={device.deviceId}>
+                                            {device.label || `Microphone ${device.deviceId.substring(0, 8)}`}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button className="refresh-btn" onClick={loadAudioDevices} title="Refresh device list">
+                                    🔄
+                                </button>
+                            </div>
+                            {audioDevices.length === 0 && (
+                                <p className="mic-note">No microphones detected. Click 🔄 to scan for devices.</p>
+                            )}
+                            {audioDevices.length > 0 && (
+                                <p className="mic-count">{audioDevices.length} microphone(s) available</p>
+                            )}
                         </div>
 
                         {/* Identity Section */}
