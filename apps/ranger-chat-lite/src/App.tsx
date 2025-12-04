@@ -945,11 +945,21 @@ function App() {
     }
 
     // Play received audio
-    const playAudio = (base64Audio: string) => {
-        if (isMuted) return
+    const playAudio = (base64Audio: string, from: string) => {
+        if (isMuted) {
+            console.log('[Voice] Muted, skipping audio from', from)
+            return
+        }
 
         try {
+            console.log('[Voice] RECEIVING audio from', from, 'bytes:', base64Audio.length)
             const audioContext = initAudioContext()
+
+            // Resume if suspended
+            if (audioContext.state === 'suspended') {
+                audioContext.resume()
+            }
+
             const binaryString = atob(base64Audio)
             const bytes = new Uint8Array(binaryString.length)
             for (let i = 0; i < binaryString.length; i++) {
@@ -962,15 +972,17 @@ function App() {
                 floatData[i] = int16Data[i] / 32767
             }
 
-            const audioBuffer = audioContext.createBuffer(1, floatData.length, 16000)
+            // Use the audioContext's sample rate instead of hardcoded 16000
+            const audioBuffer = audioContext.createBuffer(1, floatData.length, audioContext.sampleRate)
             audioBuffer.copyToChannel(floatData, 0)
 
             const source = audioContext.createBufferSource()
             source.buffer = audioBuffer
             source.connect(audioContext.destination)
             source.start()
+            console.log('[Voice] Playing audio buffer, samples:', floatData.length)
         } catch (error) {
-            console.error('Error playing audio:', error)
+            console.error('[Voice] Error playing audio:', error)
         }
     }
 
@@ -1127,13 +1139,22 @@ function App() {
 
     // Start talking (push-to-talk)
     const startTalking = async () => {
-        if (callState !== 'in_call') return
-
-        if (!mediaStreamRef.current) {
-            const hasAudio = await startAudioCapture()
-            if (!hasAudio) return
+        console.log('[Voice] startTalking called, callState:', callState, 'callPartner:', callPartner)
+        if (callState !== 'in_call') {
+            console.log('[Voice] Not in call, ignoring')
+            return
         }
 
+        if (!mediaStreamRef.current) {
+            console.log('[Voice] No media stream, starting capture...')
+            const hasAudio = await startAudioCapture()
+            if (!hasAudio) {
+                console.log('[Voice] Failed to start audio capture')
+                return
+            }
+        }
+
+        console.log('[Voice] Setting isTalking to TRUE')
         setIsTalking(true)
 
         wsRef.current?.send(JSON.stringify({
@@ -1153,6 +1174,7 @@ function App() {
     const stopTalking = () => {
         if (!isTalking) return
 
+        console.log('[Voice] stopTalking called')
         setIsTalking(false)
         setAudioLevel(0)
 
@@ -1273,8 +1295,11 @@ function App() {
                 break
 
             case 'voiceData':
-                if (callState === 'in_call' && senderName === callPartner) {
-                    playAudio(payload.audio)
+                // Use refs for current values (fixes closure bug)
+                if (callStateRef.current === 'in_call' && senderName === callPartnerRef.current) {
+                    playAudio(payload.audio, senderName)
+                } else {
+                    console.log('[Voice] Ignoring voiceData - state:', callStateRef.current, 'from:', senderName, 'partner:', callPartnerRef.current)
                 }
                 break
 
