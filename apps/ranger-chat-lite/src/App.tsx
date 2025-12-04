@@ -321,6 +321,12 @@ function App() {
     const ringIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const chatHistoryRef = useRef<HTMLDivElement>(null)
+    const callStateRef = useRef<CallState>('idle')
+
+    // Keep callStateRef in sync with callState (fixes closure bug in WebSocket handler)
+    useEffect(() => {
+        callStateRef.current = callState
+    }, [callState])
 
     // Check for existing identity on load
     useEffect(() => {
@@ -1134,7 +1140,7 @@ function App() {
             case 'callRequest':
                 // Check if this call is for us
                 if (payload.target === username || payload.target.toLowerCase() === username.toLowerCase()) {
-                    if (callState === 'idle') {
+                    if (callStateRef.current === 'idle') {
                         setIncomingCaller(senderName)
                         setCallState('ringing')
 
@@ -1169,7 +1175,7 @@ function App() {
                 break
 
             case 'callAccepted':
-                if (payload.target === username && callState === 'calling') {
+                if (payload.target === username && callStateRef.current === 'calling') {
                     setCallState('in_call')
                     setCallPartner(senderName)
                     startAudioCapture()
@@ -1183,7 +1189,7 @@ function App() {
                 break
 
             case 'callRejected':
-                if (payload.target === username && callState === 'calling') {
+                if (payload.target === username && callStateRef.current === 'calling') {
                     setCallState('idle')
                     setCallPartner(null)
                     setMessages(prev => [...prev, {
@@ -1196,7 +1202,7 @@ function App() {
                 break
 
             case 'callBusy':
-                if (payload.target === username && callState === 'calling') {
+                if (payload.target === username && callStateRef.current === 'calling') {
                     setCallState('idle')
                     setCallPartner(null)
                     setMessages(prev => [...prev, {
@@ -1209,7 +1215,7 @@ function App() {
                 break
 
             case 'callEnded':
-                if (payload.target === username && (callState === 'in_call' || callState === 'ringing')) {
+                if (payload.target === username && (callStateRef.current === 'in_call' || callStateRef.current === 'ringing')) {
                     stopAudioCapture()
                     if (ringIntervalRef.current) {
                         clearInterval(ringIntervalRef.current)
