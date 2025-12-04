@@ -832,16 +832,26 @@ function App() {
     // Start audio capture
     const startAudioCapture = async () => {
         try {
+            console.log('[Voice] Starting audio capture...')
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
-                    sampleRate: 16000
+                    autoGainControl: true
                 }
             })
+            console.log('[Voice] Got microphone stream:', stream.getAudioTracks())
             mediaStreamRef.current = stream
 
             const audioContext = initAudioContext()
+            console.log('[Voice] AudioContext state:', audioContext.state, 'sampleRate:', audioContext.sampleRate)
+
+            // Resume audio context if suspended (required by browser autoplay policy)
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume()
+                console.log('[Voice] AudioContext resumed')
+            }
+
             const source = audioContext.createMediaStreamSource(stream)
             const analyser = audioContext.createAnalyser()
             analyser.fftSize = 256
@@ -854,10 +864,24 @@ function App() {
             source.connect(analyser)
             analyser.connect(processor)
             processor.connect(audioContext.destination)
+            console.log('[Voice] Audio pipeline connected')
 
+            let frameCount = 0
             processor.onaudioprocess = (e) => {
                 // Use refs for current values (fixes closure bug)
-                if (!isTalkingRef.current || !wsRef.current || callStateRef.current !== 'in_call') return
+                const talking = isTalkingRef.current
+                const ws = wsRef.current
+                const state = callStateRef.current
+                const partner = callPartnerRef.current
+
+                if (!talking || !ws || state !== 'in_call') {
+                    // Log occasionally to show processor is running
+                    frameCount++
+                    if (frameCount % 100 === 0) {
+                        console.log('[Voice] Waiting... talking:', talking, 'ws:', !!ws, 'state:', state, 'partner:', partner)
+                    }
+                    return
+                }
 
                 const inputData = e.inputBuffer.getChannelData(0)
                 const audioData = new Float32Array(inputData)
@@ -878,22 +902,25 @@ function App() {
 
                 const base64Audio = btoa(String.fromCharCode(...new Uint8Array(int16Data.buffer)))
 
-                wsRef.current.send(JSON.stringify({
+                console.log('[Voice] SENDING audio to', partner, 'level:', level, 'bytes:', base64Audio.length)
+
+                ws.send(JSON.stringify({
                     type: 'broadcast',
                     payload: {
                         type: 'voiceData',
                         from: identity?.nodeId,
                         nickname: username,
                         audio: base64Audio,
-                        target: callPartnerRef.current,
+                        target: partner,
                         timestamp: Date.now()
                     }
                 }))
             }
 
+            console.log('[Voice] Audio capture started successfully')
             return true
         } catch (error) {
-            console.error('Error accessing microphone:', error)
+            console.error('[Voice] Error accessing microphone:', error)
             setMessages(prev => [...prev, {
                 type: 'system',
                 sender: 'System',
