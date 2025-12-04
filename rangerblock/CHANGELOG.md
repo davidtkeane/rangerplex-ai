@@ -4,6 +4,101 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [5.3.0] - 2025-12-04
+
+### Added - File Transfer Smart Contracts (COURIER PROTOCOL)
+
+#### New Files
+| File | Location | Purpose |
+|------|----------|---------|
+| `RangerFileTransfer.sol` | `Blockchain/contracts/` | Ethereum file transfer contract |
+| `ranger_file_transfer.rs` | `Blockchain/contracts/solana/` | Solana file transfer contract |
+| `file-transfer-service.cjs` | `lib/` | JavaScript integration service |
+
+#### Features
+- **Formal transfers** - Blockchain-recorded file transfer agreements
+- **Informal transfers** - Quick send with `/file accept on`
+- **.rangerblock format** - Compressed file package with metadata + hash
+- **Chain of custody** - Immutable record of sender/receiver/timestamp
+- **Dual signatures** - Both parties sign the transfer contract
+- **24-hour expiry** - Auto-cancel pending transfers
+- **Hash verification** - SHA-256 checksum matching
+
+#### Transfer Modes
+
+| Mode | Use Case | Blockchain Record |
+|------|----------|-------------------|
+| **Informal** | Quick file share with friend | No |
+| **Formal** | Legal/sensitive documents | Yes (immutable) |
+
+#### Chat Commands
+
+```
+/file accept on         # Enable receiving files
+/file accept off        # Disable receiving files
+/file send <user> <path>    # Send file informally
+
+/contract send <user> <path>    # Create formal transfer
+/contract accept <id>           # Accept pending transfer
+/contract reject <id>           # Reject pending transfer
+/contract status <id>           # Check transfer status
+```
+
+#### .rangerblock File Format
+```
+RNGBLK01 (magic)
+metadata_length (4 bytes)
+metadata (JSON: filename, size, hash, sender, timestamp)
+compressed_data (zlib)
+```
+
+---
+
+## [5.2.0] - 2025-12-04
+
+### Added - Multi-Chain Smart Contracts
+
+#### Solana/Anchor Contracts
+Location: `Blockchain/contracts/solana/`
+
+| Contract | Purpose |
+|----------|---------|
+| `ranger_registration.rs` | User registration + consent tracking |
+| `ranger_token.rs` | SPL Token with 20 EUR/day transfer limit |
+| `ranger_bridge.rs` | Cross-chain conversion bridge |
+| `Anchor.toml` | Project configuration |
+
+#### Ethereum/Solidity Contracts
+Location: `Blockchain/contracts/`
+
+| Contract | Purpose |
+|----------|---------|
+| `RangerRegistration.sol` | User registration + consent (Remix compatible) |
+| `RangerBridge.sol` | Cross-chain conversion bridge |
+
+#### Bridge Features
+Convert between RangerCoin and major cryptocurrencies:
+
+| From | To | Method |
+|------|-----|--------|
+| RangerCoin | Bitcoin | via WBTC (Wrapped Bitcoin) |
+| RangerCoin | Ethereum | via ETH/wETH |
+| RangerCoin | Solana | via SOL |
+| RangerCoin | USD | via USDC (Stablecoin) |
+
+#### Security Features
+- **20 EUR/day conversion limit** - Prevents abuse
+- **1% fee** - Goes to treasury
+- **Oracle-based rates** - Admin-updateable
+- **Pause function** - Emergency freeze
+- **Hardware ID tracking** - Ban evasion prevention
+
+#### Deployment
+- **Ethereum**: Use Remix IDE (https://remix.ethereum.org)
+- **Solana**: Use Solana Playground (https://beta.solpg.io)
+
+---
+
 ## [5.1.1] - 2025-12-04
 
 ### Fixed - AWS Server Path Issue

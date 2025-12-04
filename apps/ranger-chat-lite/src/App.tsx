@@ -104,6 +104,94 @@ interface BlockchainTx {
     status: 'pending' | 'confirmed' | 'broadcast'
 }
 
+// Smart Contract type
+interface SmartContract {
+    id: string
+    name: string
+    description: string
+    chain: 'ethereum' | 'solana' | 'both'
+    category: 'registration' | 'bridge' | 'transfer' | 'token'
+    icon: string
+    status: 'available' | 'deployed' | 'selected'
+    features: string[]
+    contractAddress?: string
+}
+
+// Available Smart Contracts
+const SMART_CONTRACTS: SmartContract[] = [
+    {
+        id: 'ranger-registration',
+        name: 'RangerRegistration',
+        description: 'User registration with consent tracking and hardware ID verification',
+        chain: 'both',
+        category: 'registration',
+        icon: '📋',
+        status: 'available',
+        features: ['User registration', 'Consent bundled', 'Hardware ID tracking', 'Admin approve/deny', 'Ban evasion prevention']
+    },
+    {
+        id: 'ranger-bridge',
+        name: 'RangerBridge',
+        description: 'Cross-chain conversion between RangerCoin and major cryptocurrencies',
+        chain: 'both',
+        category: 'bridge',
+        icon: '🌉',
+        status: 'available',
+        features: ['BTC conversion (WBTC)', 'ETH conversion', 'SOL conversion', 'USDC stablecoin', '20 EUR/day limit', '1% fee']
+    },
+    {
+        id: 'ranger-file-transfer',
+        name: 'RangerFileTransfer',
+        description: 'Formal file transfer agreements with blockchain verification',
+        chain: 'both',
+        category: 'transfer',
+        icon: '📁',
+        status: 'available',
+        features: ['Legal transfers', 'Chain of custody', '.rangerblock format', 'Dual signatures', '24h expiry', 'Hash verification']
+    },
+    {
+        id: 'ranger-token',
+        name: 'RangerToken',
+        description: 'SPL Token with daily transfer limits for Solana',
+        chain: 'solana',
+        category: 'token',
+        icon: '🪙',
+        status: 'available',
+        features: ['SPL Token standard', '20 EUR/day limit', 'Admin freeze', 'Mint/burn controls', 'Treasury management']
+    },
+    // === COMING SOON: SECURE COMMUNICATION CONTRACTS ===
+    {
+        id: 'ranger-text-chat',
+        name: 'RangerTextChat',
+        description: 'COMING SOON: Secure text messaging with 99.99% identity verification',
+        chain: 'both',
+        category: 'communication' as any,
+        icon: '💬',
+        status: 'available',
+        features: ['Identity verification', 'E2E encryption', 'Session keys', 'Challenge-response auth', 'Block/report system', 'WHISPER PROTOCOL']
+    },
+    {
+        id: 'ranger-voice-chat',
+        name: 'RangerVoiceChat',
+        description: 'COMING SOON: Secure voice calls with blockchain identity verification',
+        chain: 'both',
+        category: 'communication' as any,
+        icon: '🎙️',
+        status: 'available',
+        features: ['Pre-call ID verification', 'DTLS/SRTP encryption', 'Call duration logging', 'Missed call tracking', 'DND status', 'ECHO PROTOCOL']
+    },
+    {
+        id: 'ranger-video-chat',
+        name: 'RangerVideoChat',
+        description: 'COMING SOON: Secure video calls with verified identity before answering',
+        chain: 'both',
+        category: 'communication' as any,
+        icon: '📹',
+        status: 'available',
+        features: ['Face-to-identity confirmation', 'WebRTC encryption', 'Screen share flag', 'Recording consent', 'Quality negotiation', 'VISION PROTOCOL']
+    }
+]
+
 // Theme definitions
 type ThemeName = 'classic' | 'matrix' | 'tron' | 'retro'
 
@@ -131,7 +219,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.5.0'
+const APP_VERSION = '1.6.0'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -167,6 +255,12 @@ function App() {
     const [transactions, setTransactions] = useState<BlockchainTx[]>([])
     const [showTransactions, setShowTransactions] = useState(false)
     const [txStats, setTxStats] = useState({ sent: 0, received: 0, total: 0, bytes: 0 })
+
+    // Smart contracts state
+    const [contracts, setContracts] = useState<SmartContract[]>(SMART_CONTRACTS)
+    const [selectedContract, setSelectedContract] = useState<SmartContract | null>(null)
+    const [showContractDetails, setShowContractDetails] = useState(false)
+    const [preferredChain, setPreferredChain] = useState<'ethereum' | 'solana'>('solana')
 
     // Update notification state
     const [updateAvailable, setUpdateAvailable] = useState(false)
@@ -972,6 +1066,149 @@ function App() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Smart Contracts Section */}
+                        <div className="settings-section contracts-section">
+                            <div className="section-header-row">
+                                <h3>📜 Smart Contracts</h3>
+                                <div className="chain-selector">
+                                    <button
+                                        className={`chain-btn ${preferredChain === 'solana' ? 'active' : ''}`}
+                                        onClick={() => setPreferredChain('solana')}
+                                    >
+                                        ◎ Solana
+                                    </button>
+                                    <button
+                                        className={`chain-btn ${preferredChain === 'ethereum' ? 'active' : ''}`}
+                                        onClick={() => setPreferredChain('ethereum')}
+                                    >
+                                        ⟠ Ethereum
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="contracts-grid">
+                                {contracts
+                                    .filter(c => c.chain === 'both' || c.chain === preferredChain)
+                                    .map(contract => (
+                                    <div
+                                        key={contract.id}
+                                        className={`contract-card ${selectedContract?.id === contract.id ? 'selected' : ''}`}
+                                        onClick={() => {
+                                            setSelectedContract(contract)
+                                            setShowContractDetails(true)
+                                        }}
+                                    >
+                                        <div className="contract-header">
+                                            <span className="contract-icon">{contract.icon}</span>
+                                            <span className="contract-name">{contract.name}</span>
+                                            <span className={`contract-chain chain-${contract.chain}`}>
+                                                {contract.chain === 'both' ? '◎⟠' : contract.chain === 'solana' ? '◎' : '⟠'}
+                                            </span>
+                                        </div>
+                                        <p className="contract-description">{contract.description}</p>
+                                        <div className="contract-category">
+                                            <span className={`category-badge cat-${contract.category}`}>
+                                                {contract.category}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Contract Details Modal */}
+                            {showContractDetails && selectedContract && (
+                                <div className="contract-details-overlay" onClick={() => setShowContractDetails(false)}>
+                                    <div className="contract-details" onClick={e => e.stopPropagation()}>
+                                        <div className="details-header">
+                                            <span className="details-icon">{selectedContract.icon}</span>
+                                            <h3>{selectedContract.name}</h3>
+                                            <button className="close-details" onClick={() => setShowContractDetails(false)}>✕</button>
+                                        </div>
+
+                                        <div className="details-body">
+                                            <p className="details-description">{selectedContract.description}</p>
+
+                                            <div className="details-chain">
+                                                <span className="label">Available on:</span>
+                                                <span className="value">
+                                                    {selectedContract.chain === 'both' ? 'Solana & Ethereum' :
+                                                     selectedContract.chain === 'solana' ? 'Solana' : 'Ethereum'}
+                                                </span>
+                                            </div>
+
+                                            <div className="details-features">
+                                                <span className="label">Features:</span>
+                                                <ul className="features-list">
+                                                    {selectedContract.features.map((feature, i) => (
+                                                        <li key={i}>{feature}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+
+                                            <div className="details-files">
+                                                <span className="label">Contract Files:</span>
+                                                <div className="file-list">
+                                                    {(selectedContract.chain === 'both' || selectedContract.chain === 'solana') && (
+                                                        <code className="file-path">
+                                                            Blockchain/contracts/solana/ranger_{selectedContract.category === 'registration' ? 'registration' :
+                                                                selectedContract.category === 'bridge' ? 'bridge' :
+                                                                selectedContract.category === 'transfer' ? 'file_transfer' : 'token'}.rs
+                                                        </code>
+                                                    )}
+                                                    {(selectedContract.chain === 'both' || selectedContract.chain === 'ethereum') && (
+                                                        <code className="file-path">
+                                                            Blockchain/contracts/Ranger{selectedContract.category === 'registration' ? 'Registration' :
+                                                                selectedContract.category === 'bridge' ? 'Bridge' :
+                                                                selectedContract.category === 'transfer' ? 'FileTransfer' : 'Token'}.sol
+                                                        </code>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="details-status">
+                                                <span className={`status-badge status-${selectedContract.status}`}>
+                                                    {selectedContract.status === 'available' ? '🟢 Available' :
+                                                     selectedContract.status === 'deployed' ? '🔵 Deployed' : '⭐ Selected'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="details-actions">
+                                            <button
+                                                className="action-btn select-btn"
+                                                onClick={() => {
+                                                    setContracts(prev => prev.map(c => ({
+                                                        ...c,
+                                                        status: c.id === selectedContract.id ? 'selected' : c.status === 'selected' ? 'available' : c.status
+                                                    })))
+                                                    setSelectedContract({ ...selectedContract, status: 'selected' })
+                                                }}
+                                            >
+                                                {selectedContract.status === 'selected' ? '⭐ Selected' : 'Select Contract'}
+                                            </button>
+                                            <button
+                                                className="action-btn deploy-btn"
+                                                onClick={() => window.open(
+                                                    preferredChain === 'solana'
+                                                        ? 'https://beta.solpg.io'
+                                                        : 'https://remix.ethereum.org',
+                                                    '_blank'
+                                                )}
+                                            >
+                                                🚀 Deploy on {preferredChain === 'solana' ? 'Solana Playground' : 'Remix IDE'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <p className="contracts-note">
+                                📜 Select a contract to view details. Deploy contracts using{' '}
+                                <a href="https://beta.solpg.io" target="_blank" rel="noopener">Solana Playground</a> or{' '}
+                                <a href="https://remix.ethereum.org" target="_blank" rel="noopener">Remix IDE</a>.
+                            </p>
                         </div>
 
                         {/* Theme Section */}

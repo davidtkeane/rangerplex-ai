@@ -1631,6 +1631,352 @@ body {
 .action-buttons {
     display: flex;
     gap: 12px;
+/* ========================================
+   Smart Contracts Section
+   ======================================== */
+
+.contracts-section {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+/* Chain Selector Toggle */
+.chain-selector {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-chat);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.chain-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chain-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-message);
+}
+
+.chain-btn.active {
+    background: var(--accent);
+    color: var(--bg-primary);
+    font-weight: 600;
+}
+
+/* Contracts Grid */
+.contracts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+/* Contract Card */
+.contract-card {
+    background: var(--bg-chat);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.contract-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.contract-card.selected {
+    border-color: var(--accent);
+    background: var(--bg-message-own);
+}
+
+.contract-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.contract-icon {
+    font-size: 24px;
+}
+
+.contract-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.contract-chain {
+    font-size: 14px;
+    opacity: 0.7;
+}
+
+.contract-chain.chain-solana {
+    color: #9945FF;
+}
+
+.contract-chain.chain-ethereum {
+    color: #627EEA;
+}
+
+.contract-chain.chain-both {
+    background: linear-gradient(90deg, #9945FF, #627EEA);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.contract-description {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.contract-category {
+    display: flex;
+}
+
+.category-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cat-registration {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.cat-bridge {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.cat-transfer {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.cat-token {
+    background: rgba(139, 92, 246, 0.2);
+    color: #8b5cf6;
+}
+
+.cat-communication {
+    background: rgba(236, 72, 153, 0.2);
+    color: #ec4899;
+}
+
+/* Contract Details Modal */
+.contract-details-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.contract-details {
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 450px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.details-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-chat);
+    border-radius: 14px 14px 0 0;
+}
+
+.details-icon {
+    font-size: 32px;
+}
+
+.details-header h3 {
+    flex: 1;
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-primary);
+}
+
+.close-details {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.close-details:hover {
+    background: var(--bg-message-own);
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+
+.details-body {
+    padding: 20px;
+}
+
+.details-description {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.details-chain,
+.details-features,
+.details-files,
+.details-status {
+    margin-bottom: 16px;
+}
+
+.details-chain .label,
+.details-features .label,
+.details-files .label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.details-chain .value {
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.features-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.features-list li {
+    position: relative;
+    padding: 6px 0 6px 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.features-list li:last-child {
+    border-bottom: none;
+}
+
+.features-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #10b981;
+    font-weight: bold;
+}
+
+.file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.file-path {
+    display: block;
+    padding: 8px 10px;
+    background: var(--bg-chat);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    word-break: break-all;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.status-available {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.status-deployed {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.status-selected {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.details-actions {
+    display: flex;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-chat);
+    border-radius: 0 0 14px 14px;
 }
 
 .action-btn {
@@ -1639,6 +1985,11 @@ body {
     border: none;
     border-radius: 8px;
     font-size: 14px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -1660,6 +2011,18 @@ body {
 
 .export-btn {
     background: var(--bg-primary);
+.select-btn {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+.select-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.deploy-btn {
+    background: var(--bg-secondary);
     color: var(--text-primary);
     border: 1px solid var(--border);
 }
@@ -1671,6 +2034,17 @@ body {
 .action-note {
     margin-top: 8px;
     font-size: 11px;
+.deploy-btn:hover {
+    background: var(--bg-message);
+    border-color: var(--accent);
+}
+
+.contracts-note {
+    margin: 15px 0 0 0;
+    padding: 10px;
+    background: var(--bg-chat);
+    border-radius: 6px;
+    font-size: 12px;
     color: var(--text-muted);
     text-align: center;
 }
@@ -1834,4 +2208,34 @@ body {
 
 [data-theme="tron"] .mine-btn {
     box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+.contracts-note a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.contracts-note a:hover {
+    text-decoration: underline;
+}
+
+/* Theme-specific contract styles */
+.theme-matrix .contract-card {
+    border-color: rgba(0, 255, 0, 0.3);
+}
+
+.theme-matrix .contract-card:hover {
+    border-color: #00ff00;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+.theme-matrix .contract-details {
+    border-color: #00ff00;
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+}
+
+.theme-tron .contract-card:hover {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.theme-tron .contract-details {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
 }

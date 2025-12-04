@@ -4,12 +4,14 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
-## [1.5.0] - 2025-12-04 - "Blockchain Ledger"
+## [1.6.0] - 2025-12-04 - "Blockchain Ledger + Smart Contracts"
 
 ### Summary
-Full blockchain ledger integration! Every message is now recorded on an immutable ledger with Proof of Work mining. Wallet-ready architecture for future token support.
+Major release combining Blockchain Ledger (immutable message storage with PoW mining) and Smart Contracts browser (7 contracts including communication protocols). Built by M3Pro + MSI collaboration!
 
-### Added
+---
+
+### Part 1: Blockchain Ledger (MSI Implementation)
 
 #### Blockchain Ledger Service (rangerblock/lib/ledger-service.cjs)
 - **Persistent Blockchain**: All messages stored in blocks on disk
@@ -46,24 +48,64 @@ Full blockchain ledger integration! Every message is now recorded on an immutabl
 - ledger:getBalance - Get wallet balance (future)
 - ledger:addReward - Add reward to wallet (future)
 
-### Technical
+#### Technical
 - Genesis block created on first run (Dec 4, 2025)
 - SHA-256 hashing for blocks and transactions
 - Merkle root for efficient transaction verification
 - Block structure: index, hash, previousHash, merkleRoot, nonce, transactions
 - Configurable mining: difficulty=2, maxTxPerBlock=10, interval=5min
 
-### Wallet-Ready Architecture
+#### Wallet-Ready Architecture
 - Balance tracking infrastructure in place
 - Reward transaction type supported
 - Ready for future token implementation
 - Per-user wallet state persistence
 
-### Coming Next
-- Ledger Explorer UI tab
-- View blocks and transactions visually
-- Verify message authenticity
-- Export audit trails from UI
+---
+
+### Part 2: Smart Contracts Browser (M3Pro Implementation)
+
+#### Smart Contracts Section in Settings
+- **New Settings Tab**: "📜 Smart Contracts" section with interactive contract browser
+- **Chain Selector**: Toggle between Solana (◎) and Ethereum (⟠) views
+- **Contract Cards**: Visual grid showing all available contracts
+- **Contract Details Modal**: Click any contract to see full details
+
+#### Available Contracts (7 Total)
+| Contract | Category | Description |
+|----------|----------|-------------|
+| **RangerRegistration** | Registration | User registration + consent tracking |
+| **RangerBridge** | Bridge | Cross-chain crypto conversion |
+| **RangerFileTransfer** | Transfer | Formal file transfer agreements |
+| **RangerToken** | Token | SPL Token with daily limits (Solana only) |
+| **RangerTextChat** | Communication | COMING SOON: WHISPER Protocol |
+| **RangerVoiceChat** | Communication | COMING SOON: ECHO Protocol |
+| **RangerVideoChat** | Communication | COMING SOON: VISION Protocol |
+
+#### Features
+- **Contract Selection**: Select contracts for your session
+- **Deploy Links**: Quick links to Solana Playground and Remix IDE
+- **Feature Lists**: See all features for each contract
+- **File Paths**: Shows contract file locations
+- **Status Badges**: Available / Deployed / Selected indicators
+
+#### Visual Polish
+- Color-coded category badges (registration=blue, bridge=green, transfer=amber, token=purple, communication=pink)
+- Chain icons with Solana purple and Ethereum blue
+- Theme-aware styling (Matrix green glow, Tron cyan glow)
+- Smooth modal animations
+
+#### Technical
+- New React state for contract management
+- Contracts filtered by selected chain
+- Modal overlay with click-outside-to-close
+- Links to deployment IDEs open in new tab
+
+---
+
+## [1.5.0] - 2025-12-04 - "Blockchain Ledger"
+
+*Note: This version was superseded by v1.6.0 which merged M3Pro and MSI implementations*
 
 ---
 
@@ -158,236 +200,37 @@ Full blockchain ledger integration! Every message is now recorded on an immutabl
 - electron-builder configured for all platforms
 - GitHub publish provider for auto-releases
 - Custom artifact naming: `${productName}-${version}-${platform}-${arch}.${ext}`
-- Desktop entry created for Linux (application menu integration)
 
 ---
 
-## [1.2.1] - 2025-12-03 - "Blockchain Viewer"
+## [1.2.0] - 2025-12-02 - "Blockchain Transactions"
 
 ### Added
-
-#### Live Blockchain Transaction Viewer
-- **Transaction Feed**: See all network messages in real-time
-- **Stats Dashboard**: Track sent/received/total messages and data size
-- **Cyberpunk UI**: Cool animated transaction cards with color-coded types
-- **Theme Integration**: Matrix/Tron themes have special transaction styling
-
-#### Transaction Features
-- Unique transaction IDs (hex format like `0x19384abc...`)
-- Direction indicators (📥 incoming, 📤 outgoing)
-- Status badges (confirmed/broadcast/pending)
-- From/To routing display
-- Payload preview (first 100 chars)
-- Size in bytes and timestamp
-
-### Technical
-- Transaction logging on all WebSocket events
-- Keeps last 100 transactions in memory
-- Slide-in animation for new transactions
-- Color-coded borders: green (in), red (out), yellow (system), blue (peer)
+- **Blockchain Transaction Log**: Track all messages as transactions
+- **Transaction Stats**: Sent/received/total/bytes counters
+- **Live Transaction Feed**: See messages flowing in real-time
+- **Theme-aware**: Matrix/Tron themes with glow effects
 
 ---
 
-## [1.2.0] - 2025-12-03 - "Identity & Security"
+## [1.1.0] - 2025-11-30 - "Emoji & Themes"
 
 ### Added
-
-#### Device-Bound Identity System
-- **Persistent User Identity**: Each device gets a unique `userId` based on hardware fingerprint
-- **Persistent Node ID**: `nodeId` survives app restarts (no more random IDs per session!)
-- **Cross-platform hardware detection**: Works on Windows, Mac, and Linux
-- **RangerPlex Compatible**: Creates `.personal` folder with `node_identity.json` for RangerPlex browser sync
-- **RSA Keypair Generation**: Chat keys generated for future message signing
-
-#### Fun Username Generator
-- Click 🎲 to generate fun random names (e.g., "CosmicPhoenix42", "QuantumNinja88")
-- 32 adjectives + 31 nouns = 900+ unique combinations
-- Animated dice roll effect on button hover
-- Username field starts blank - encourages choosing a name
-
-#### Settings Page
-- **Profile Section**: Change display name anytime with 🎲 random generator
-- **Identity Section**: View your unique User ID, Node ID, device info, creation date
-- **Theme Section**: Visual theme grid to pick themes (not just cycle)
-- **Storage Section**: See where identity files are stored
-- **About Section**: App info with mission statement
-
-#### Moderation Support
-- `userId` is now sent with every chat message for admin tracking
-- Even if users change display names, admins can identify by device
-- Foundation for ban/warn/timeout features
-
-### Changed
-- Login screen now starts with blank username (was "RangerUser")
-- "Choose Your Name" label instead of just "Username"
-- Added "Click 🎲 for a fun random name!" hint text
-- Identity badge shows when returning user (saved identity detected)
-- Settings button in chat header (⚙️)
-- Connect button disabled when username is empty
-
-### Technical
-- New `identityService.ts` in Electron main process
-- IPC handlers for identity operations (load, save, generate, etc.)
-- Updated preload.ts to expose `window.electronAPI.identity`
-- Cross-platform UUID detection (Windows WMIC, Mac system_profiler, Linux machine-id)
-- SHA-256 hardware fingerprinting
-- Electron userData folder for persistence
+- **Emoji Picker**: 8 categories with search
+- **4 Themes**: Classic, Matrix, Tron, Retro
+- **Message Search**: Find messages by content or sender
+- **Auto-reconnect**: Exponential backoff
 
 ---
 
-## [1.1.3] - 2025-12-03 - "Message Fix"
-
-### Fixed
-- Fixed contextBridge error in preload script (was breaking console)
-- Added handler for `peerListUpdate` message type (peer count updates)
-- Added handler for `chat` payload type (receiving messages from other clients)
-- Added handler for `broadcastSent` confirmation (no longer logs as unknown)
-- Messages now properly send and receive!
-
----
-
-## [1.1.2] - 2025-12-03 - "Neat Header"
-
-### Changed
-- Replaced 4 theme buttons with single cycle button
-- Click theme button to cycle: Classic -> Matrix -> Tron -> Retro -> Classic...
-- Header now has just 2 buttons: Search (🔍) and Theme (💬/🟢/🔵/💾)
-- Cleaner, more minimal header design
-
----
-
-## [1.1.1] - 2025-12-03 - "Clean Login"
-
-### Changed
-- Removed theme selector from login screen for cleaner UI
-- Theme buttons now only appear in chat header after login
-- Login screen is now more compact and focused
-
----
-
-## [1.1.0] - 2025-12-03 - "Style & Expression"
+## [1.0.0] - 2025-11-29 - "Initial Release"
 
 ### Added
-
-#### Emoji Picker
-- Full emoji picker with 180+ emojis across 9 categories
-- Categories: Frequent, Smileys, Gestures, Hearts, Animals, Food, Activities, Travel, Symbols
-- Search functionality to find emojis quickly
-- Click emoji button or use picker to insert emojis into messages
-- Hover animations on emoji buttons
-
-#### Message Search
-- Search bar to find messages by content or sender name
-- Toggle search with magnifying glass button in header
-- Real-time filtering as you type
-- Shows count of matching messages
-- Close button to clear search and hide bar
-
-#### Theme System (4 Themes!)
-- **Classic** - MSN Messenger inspired blue theme (default)
-- **Matrix** - Green on black with scanline effect and text glow
-- **Tron** - Cyan neon glow effects on dark background
-- **Retro** - 90s Windows 3D button styling
-- Theme selector on login screen
-- Quick theme switcher in chat header
-- Themes saved to localStorage (persists across sessions)
-
-#### Auto-scroll
-- Chat automatically scrolls to newest messages
-- Smooth scroll animation
-
-#### UI Improvements
-- Complete redesign with MSN Messenger inspiration
-- Header bar with app icon, title, and peer count badge
-- Messages show sender name and timestamp
-- Own messages display as "You" instead of username
-- Message animation on arrival
-- Gradient backgrounds on login screen
-- Hover effects on all interactive elements
-
-### Changed
-- Removed custom title bar (using native Electron menu bar now)
-- New login card design with better spacing
-- Input fields have focus states with accent color
-- Send button has hover lift effect
-- Dark theme by default (Classic theme)
-
-### Technical
-- CSS variables for easy theming
-- Theme-specific effects (Matrix scanlines, Tron glow, Retro 3D borders)
-- Responsive emoji grid (8 columns desktop, 6 mobile)
-- Proper flexbox layout with min-height: 0 for scrolling
-- localStorage for theme persistence
+- Basic chat functionality
+- WebSocket connection to relay server
+- Username selection
+- Peer count display
 
 ---
 
-## [1.0.1] - 2025-12-03 - "Menu Bar"
-
-### Added
-- Native Electron menu bar with 5 menus:
-  - **File**: New Connection, Settings, Quit
-  - **Edit**: Undo, Redo, Cut, Copy, Paste, Select All
-  - **View**: Reload, Force Reload, Zoom controls, Fullscreen
-  - **Developer**: Toggle DevTools, View Console, Inspect Element, Clear Cache
-  - **Help**: About, RangerPlex Website, Report Issue
-- Keyboard shortcuts for common actions (Ctrl+Shift+I for DevTools)
-
-### Changed
-- Switched from frameless to native frame for menu bar visibility
-- Window size increased to 450x650
-- Dark background color (#1a1a2e)
-
----
-
-## [1.0.0] - 2025-12-03 - "Initial Release"
-
-### Added
-- Basic WebSocket chat functionality
-- Connection to RangerPlex blockchain network
-- Username and server URL configuration
-- Real-time message sending and receiving
-- Peer count tracking
-- System messages for connection events
-- Custom frameless window (removed in 1.0.1)
-- Retro-inspired UI design
-
-### Technical
-- Built with Electron 29, React 18, Vite 5, TypeScript 5
-- WebSocket protocol for real-time communication
-- Node ID generation for unique client identification
-
----
-
-## Version Summary
-
-| Version | Date | Highlights |
-|---------|------|------------|
-| 1.5.0 | 2025-12-04 | Blockchain Ledger - persistent blocks, Proof of Work, wallet-ready |
-| 1.4.1 | 2025-12-04 | Critical bug fix - identity service undefined property crash |
-| 1.4.0 | 2025-12-03 | Security foundation - shared identity, RSA keys, cross-app sync |
-| 1.3.1 | 2025-12-03 | Update notifications - checks GitHub for new versions |
-| 1.3.0 | 2025-12-03 | Easy distribution - GitHub releases, install scripts |
-| 1.2.1 | 2025-12-03 | Live blockchain transaction viewer with cyberpunk UI |
-| 1.2.0 | 2025-12-03 | Device-bound identity, random name generator, settings page |
-| 1.1.3 | 2025-12-03 | Fixed messaging - send/receive now works! |
-| 1.1.2 | 2025-12-03 | Single theme cycle button for cleaner header |
-| 1.1.1 | 2025-12-03 | Cleaner login screen, theme buttons moved to chat header |
-| 1.1.0 | 2025-12-03 | Emoji picker, message search, 4 themes (Classic/Matrix/Tron/Retro) |
-| 1.0.1 | 2025-12-03 | Native menu bar with Developer tools |
-| 1.0.0 | 2025-12-03 | Initial release with basic chat |
-
----
-
-## Upcoming Features
-
-See `FUTURE_PLAN.md` for the complete roadmap.
-
-**Next priorities (v1.4.0 - Social Features):**
-- Private/Direct messaging
-- User avatars
-- Message reactions
-- Typing indicators
-
----
-
-*RangerChat Lite - Lightweight chat for the RangerPlex network*
+*Rangers lead the way!*
