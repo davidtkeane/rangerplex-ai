@@ -1594,8 +1594,8 @@ function App() {
                             <div className="call-modal" onClick={(e) => e.stopPropagation()}>
                                 <div className="call-modal-header">
                                     <div className="call-modal-title">
-                                        <span className="call-icon">📞</span>
-                                        <span>Start a Call</span>
+                                        <span className="call-icon">📱</span>
+                                        <span>Voice Call</span>
                                     </div>
                                     <button className="call-modal-close" onClick={() => setShowPeerList(false)}>
                                         ✕
@@ -1604,22 +1604,27 @@ function App() {
                                 <div className="call-modal-body">
                                     {peers.length === 0 ? (
                                         <div className="peer-list-empty">
-                                            <div className="empty-icon">😴</div>
-                                            <div className="empty-text">No other users online</div>
-                                            <div className="empty-hint">Wait for someone to join or invite a friend!</div>
+                                            <div className="empty-icon">📡</div>
+                                            <div className="empty-text">Waiting for Rangers...</div>
+                                            <div className="empty-hint">No other users are online yet. Share the app with a friend!</div>
                                         </div>
                                     ) : (
                                         peers.map((peer, i) => (
                                             <div key={i} className="peer-list-item">
-                                                <div className="peer-avatar">
-                                                    👤
+                                                <div className="peer-avatar" style={{
+                                                    background: `linear-gradient(135deg, ${
+                                                        ['#5c6bc0', '#26a69a', '#ef5350', '#ab47bc', '#ffa726'][i % 5]
+                                                    } 0%, ${
+                                                        ['#3949ab', '#00897b', '#c62828', '#7b1fa2', '#f57c00'][i % 5]
+                                                    } 100%)`
+                                                }}>
+                                                    {peer.nickname.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div className="peer-info">
                                                     <div className="peer-name">{peer.nickname}</div>
                                                     <div className="peer-status">
                                                         <span className="online-dot"></span>
-                                                        Online
-                                                        {peer.capabilities?.includes('voice') && ' • Voice ready'}
+                                                        Online{peer.capabilities?.includes('voice') && ' • Voice Ready'}
                                                     </div>
                                                 </div>
                                                 <button
@@ -1637,7 +1642,7 @@ function App() {
                                 </div>
                                 <div className="call-modal-footer">
                                     <div className="call-modal-tip">
-                                        Tip: You can also type <code>/call username</code> in chat
+                                        💡 Tip: Type <code>/call username</code> in chat
                                     </div>
                                 </div>
                             </div>

@@ -437,6 +437,54 @@ body {
     border-color: var(--accent);
 }
 
+/* Voice Call Button - Special Styling */
+.header-btn.call-btn {
+    background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+    border: 2px solid #3949ab;
+    position: relative;
+    overflow: hidden;
+}
+
+.header-btn.call-btn::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transform: rotate(45deg);
+    animation: call-btn-shine 3s ease-in-out infinite;
+}
+
+@keyframes call-btn-shine {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    50%, 100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.header-btn.call-btn:hover {
+    background: linear-gradient(135deg, #283593 0%, #3949ab 100%);
+    border-color: #5c6bc0;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(92, 107, 192, 0.5);
+}
+
+.header-btn.call-btn.active {
+    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+    border-color: #4caf50;
+    animation: call-active-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes call-active-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+}
+
 /* Search Bar */
 .search-bar {
     display: flex;
@@ -2376,15 +2424,31 @@ body {
 }
 
 .call-modal {
-    background: var(--bg-secondary);
-    border: 2px solid var(--accent);
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px var(--shadow);
+    background: linear-gradient(145deg, rgba(30, 35, 45, 0.98) 0%, rgba(20, 25, 35, 0.98) 100%);
+    border: 2px solid;
+    border-image: linear-gradient(135deg, #3949ab, #1a237e, #5c6bc0) 1;
+    border-radius: 24px;
+    box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.6),
+        0 0 60px rgba(57, 73, 171, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
     width: 90%;
-    max-width: 400px;
+    max-width: 420px;
     max-height: 80vh;
     overflow: hidden;
-    animation: modal-slide-up 0.3s ease-out;
+    animation: modal-slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+}
+
+.call-modal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 150px;
+    background: linear-gradient(180deg, rgba(57, 73, 171, 0.15) 0%, transparent 100%);
+    pointer-events: none;
 }
 
 @keyframes modal-slide-up {
@@ -2393,24 +2457,34 @@ body {
 }
 
 .call-modal-header {
-    padding: 20px 24px;
-    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-    border-bottom: 1px solid var(--border);
+    padding: 24px 28px;
+    background: linear-gradient(135deg, rgba(57, 73, 171, 0.3) 0%, rgba(26, 35, 126, 0.2) 100%);
+    border-bottom: 1px solid rgba(92, 107, 192, 0.3);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: relative;
+    z-index: 1;
 }
 
 .call-modal-title {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 18px;
+    gap: 14px;
+    font-size: 20px;
     font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 .call-modal-title .call-icon {
-    font-size: 28px;
+    font-size: 32px;
+    filter: drop-shadow(0 0 10px rgba(92, 107, 192, 0.5));
+    animation: call-icon-float 2s ease-in-out infinite;
+}
+
+@keyframes call-icon-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
 }
 
 .call-modal-close {
@@ -2488,15 +2562,36 @@ body {
 }
 
 .peer-avatar {
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--bg-primary) 100%);
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #5c6bc0 0%, #3949ab 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 22px;
     flex-shrink: 0;
+    border: 2px solid rgba(92, 107, 192, 0.5);
+    box-shadow: 0 4px 15px rgba(57, 73, 171, 0.3);
+    position: relative;
+}
+
+.peer-avatar::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    background: #4caf50;
+    border-radius: 50%;
+    border: 2px solid var(--bg-secondary);
+    animation: online-glow 2s ease-in-out infinite;
+}
+
+@keyframes online-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+    50% { box-shadow: 0 0 8px 2px rgba(76, 175, 80, 0.6); }
 }
 
 .peer-info {
@@ -2532,23 +2627,48 @@ body {
 }
 
 .peer-call-btn {
-    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+    background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
     color: white;
     border: none;
-    padding: 10px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.peer-call-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.peer-call-btn:hover::before {
+    left: 100%;
 }
 
 .peer-call-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+}
+
+.peer-call-btn:active {
+    transform: scale(0.98);
 }
 
 .call-modal-footer {
@@ -2678,10 +2798,30 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 20px;
-    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 50%, #1565c0 100%);
+    background-size: 200% 100%;
     border-bottom: 3px solid #42a5f5;
-    box-shadow: 0 4px 20px rgba(33, 150, 243, 0.3);
+    box-shadow:
+        0 4px 20px rgba(33, 150, 243, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    animation: in-call-gradient 3s ease-in-out infinite;
+    position: relative;
+}
+
+.in-call-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+@keyframes in-call-gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
 }
 
 .in-call-bar .call-info {
@@ -2758,17 +2898,39 @@ body {
 }
 
 .talk-btn {
-    background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+    background: linear-gradient(135deg, #5c6bc0 0%, #3949ab 100%);
     color: white;
     font-weight: 700;
-    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
-    min-width: 140px;
+    box-shadow: 0 4px 20px rgba(92, 107, 192, 0.4);
+    min-width: 160px;
     justify-content: center;
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.talk-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+.talk-btn:hover::before {
+    width: 200px;
+    height: 200px;
 }
 
 .talk-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(92, 107, 192, 0.5);
+    background: linear-gradient(135deg, #7986cb 0%, #5c6bc0 100%);
 }
 
 .talk-btn:active {
@@ -2776,20 +2938,20 @@ body {
 }
 
 .talk-btn.talking {
-    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
     color: white;
-    animation: talking-pulse 0.8s ease-in-out infinite;
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+    animation: talking-pulse 0.6s ease-in-out infinite;
+    box-shadow: 0 0 30px rgba(76, 175, 80, 0.7);
 }
 
 @keyframes talking-pulse {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.6), 0 4px 15px rgba(76, 175, 80, 0.4);
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7), 0 4px 20px rgba(76, 175, 80, 0.5);
         transform: scale(1);
     }
     50% {
-        box-shadow: 0 0 0 10px rgba(76, 175, 80, 0), 0 4px 15px rgba(76, 175, 80, 0.4);
-        transform: scale(1.02);
+        box-shadow: 0 0 0 15px rgba(76, 175, 80, 0), 0 4px 20px rgba(76, 175, 80, 0.5);
+        transform: scale(1.05);
     }
 }
 
