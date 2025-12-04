@@ -31,7 +31,13 @@ import { ipcRenderer } from 'electron'
         getStatus: () => ipcRenderer.invoke('admin:getStatus'),
         checkUserId: (userId: string) => ipcRenderer.invoke('admin:checkUserId', userId),
         getRegistryPath: () => ipcRenderer.invoke('admin:getRegistryPath')
+    },
+    app: {
+        runUpdate: () => ipcRenderer.invoke('app:runUpdate'),
+        reload: () => ipcRenderer.invoke('app:reload'),
+        checkForUpdates: () => ipcRenderer.invoke('app:checkForUpdates'),
+        getVersion: () => ipcRenderer.invoke('app:getVersion')
     }
 }
 
-console.log('RangerChat Lite preload loaded - Identity, Ledger & Admin API ready')
+console.log('RangerChat Lite preload loaded - Identity, Ledger, Admin & App API ready')
