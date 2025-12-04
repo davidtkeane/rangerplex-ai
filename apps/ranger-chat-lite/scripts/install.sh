@@ -36,7 +36,7 @@ DEV_MODE=true
 BUILD_MODE=false
 AUTO_START=true
 SKIP_CONFIRM=false
-VERSION="1.7.0"
+VERSION="1.7.2"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -84,7 +84,7 @@ cat << 'EOF'
                            ╚══════╝╚═╝   ╚═╝   ╚══════╝
  ══════════════════════════════════════════════════════════════════════
             🦅 Lightweight Chat for RangerBlock Network 🦅
-            Version 1.7.1 - One-Command Installer
+            Version 1.7.2 - One-Command Installer
             Created by IrishRanger + Claude Code (Ranger)
  ══════════════════════════════════════════════════════════════════════
 EOF

@@ -245,7 +245,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.7.1'
+const APP_VERSION = '1.7.2'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -911,6 +911,7 @@ function App() {
                         from: identity?.nodeId,
                         nickname: username,
                         audio: base64Audio,
+                        sampleRate: audioContextRef.current?.sampleRate || 48000, // Include sample rate for proper playback
                         target: partner,
                         timestamp: Date.now()
                     }
@@ -945,19 +946,23 @@ function App() {
     }
 
     // Play received audio
-    const playAudio = (base64Audio: string, from: string) => {
+    const playAudio = (base64Audio: string, from: string, sourceSampleRate?: number) => {
         if (isMuted) {
             console.log('[Voice] Muted, skipping audio from', from)
             return
         }
 
         try {
-            console.log('[Voice] RECEIVING audio from', from, 'bytes:', base64Audio.length)
+            // Use source sample rate if provided, otherwise assume 48000
+            const originalSampleRate = sourceSampleRate || 48000
+            console.log('[Voice] RECEIVING audio from', from, 'bytes:', base64Audio.length, 'sampleRate:', originalSampleRate)
+
             const audioContext = initAudioContext()
 
             // Resume if suspended
             if (audioContext.state === 'suspended') {
                 audioContext.resume()
+                console.log('[Voice] AudioContext resumed for playback')
             }
 
             const binaryString = atob(base64Audio)
@@ -972,15 +977,21 @@ function App() {
                 floatData[i] = int16Data[i] / 32767
             }
 
-            // Use the audioContext's sample rate instead of hardcoded 16000
-            const audioBuffer = audioContext.createBuffer(1, floatData.length, audioContext.sampleRate)
+            // Create buffer with the ORIGINAL sample rate from sender
+            // This ensures correct playback speed/pitch
+            const audioBuffer = audioContext.createBuffer(1, floatData.length, originalSampleRate)
             audioBuffer.copyToChannel(floatData, 0)
+
+            // Create a gain node to boost volume (4x boost for better audibility)
+            const gainNode = audioContext.createGain()
+            gainNode.gain.value = 4.0 // Boost volume significantly
 
             const source = audioContext.createBufferSource()
             source.buffer = audioBuffer
-            source.connect(audioContext.destination)
+            source.connect(gainNode)
+            gainNode.connect(audioContext.destination)
             source.start()
-            console.log('[Voice] Playing audio buffer, samples:', floatData.length)
+            console.log('[Voice] Playing audio buffer, samples:', floatData.length, 'gain: 4.0x', 'contextRate:', audioContext.sampleRate)
         } catch (error) {
             console.error('[Voice] Error playing audio:', error)
         }
@@ -1297,7 +1308,8 @@ function App() {
             case 'voiceData':
                 // Use refs for current values (fixes closure bug)
                 if (callStateRef.current === 'in_call' && senderName === callPartnerRef.current) {
-                    playAudio(payload.audio, senderName)
+                    // Pass the sender's sample rate for proper playback
+                    playAudio(payload.audio, senderName, payload.sampleRate)
                 } else {
                     console.log('[Voice] Ignoring voiceData - state:', callStateRef.current, 'from:', senderName, 'partner:', callPartnerRef.current)
                 }

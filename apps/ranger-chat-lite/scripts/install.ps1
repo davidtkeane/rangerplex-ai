@@ -35,7 +35,7 @@ param(
 
 # Configuration
 $InstallDir = "$env:USERPROFILE\RangerChat-Lite"
-$Version = "1.7.0"
+$Version = "1.7.2"
 
 # Colors
 function Write-Color {
@@ -57,7 +57,7 @@ function Write-Banner {
                            L    I    T    E
  ======================================================================
             Lightweight Chat for RangerBlock Network
-            Version 1.7.1 - One-Command Installer (Windows)
+            Version 1.7.2 - One-Command Installer (Windows)
             Created by IrishRanger + Claude Code (Ranger)
  ======================================================================
 "@ -Color Cyan

@@ -4,6 +4,28 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.7.2] - 2025-12-04 - "Audio Fixed"
+
+### Fixed
+
+#### Cross-Machine Audio Playback
+- **Sample Rate Mismatch Bug**: Fixed audio not playing correctly between machines with different sample rates
+  - Sender now includes their AudioContext sample rate in voice data
+  - Receiver creates playback buffer with original sample rate
+  - Fixes pitch/timing issues when Mac (48000Hz) talks to Windows (44100Hz)
+
+- **Volume Too Quiet**: Added GainNode with 4x volume boost
+  - Audio was being received and decoded correctly but too quiet to hear
+  - Now amplifies incoming voice 4x for clear audibility
+
+### Technical
+- Voice data now includes `sampleRate` field (e.g., 48000, 44100)
+- `playAudio()` function accepts optional `sourceSampleRate` parameter
+- GainNode inserted between buffer source and destination
+- Enhanced logging shows sample rate info for debugging
+
+---
+
 ## [1.7.1] - 2025-12-04 - "Voice Calls Polished"
 
 ### Fixed
