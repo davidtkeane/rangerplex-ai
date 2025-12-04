@@ -4,6 +4,54 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.7.0] - 2025-12-04 - "Voice Calls"
+
+### Added
+
+#### 1-to-1 Voice Calls
+- **Voice Call System**: Make private voice calls to any online peer
+- **Call UI**: Phone button in header opens peer list dropdown
+- **Incoming Calls**: Animated banner with Answer/Reject buttons
+- **In-Call Controls**: Push-to-talk, mute, hang up
+- **Audio Level Meter**: Visual indicator when talking
+- **Call States**: idle, calling, ringing, in_call
+
+#### Chat Commands
+- `/call username` - Call a user by name (e.g., `/call Ranger`)
+- `/hangup` or `/end` - Hang up current call
+- `/peers` or `/online` - List online users with voice capability
+
+#### Push-to-Talk
+- Hold "Push to Talk" button to transmit voice
+- Release to stop transmitting
+- Visual feedback when talking (green pulse animation)
+- Audio level bar shows voice intensity
+
+#### Polished UI
+- **Incoming Call Banner**: Animated shimmer gradient, ringing phone icon
+- **Calling Bar**: Orange gradient with bouncing dots animation
+- **In-Call Bar**: Blue gradient with connected icon pulse
+- **Peer Dropdown**: Smooth animations, avatar circles, hover effects
+- **Buttons**: Gradient backgrounds, shadows, hover transforms
+
+#### Call Notifications
+- Ring sound on incoming calls
+- System messages for call events
+- Status bar shows current call state
+
+### Technical
+- Web Audio API for microphone capture and playback
+- Audio data encoded as Int16 PCM, sent as base64 over WebSocket
+- Echo cancellation and noise suppression enabled
+- Same relay server (44.222.101.125:5555) - compatible with voice-chat.cjs
+- Theme-aware styling (Matrix green, Tron cyan)
+
+### Note
+- Group voice NOT included (text chat only in group)
+- Private 1-to-1 calls only as requested
+
+---
+
 ## [1.6.1] - 2025-12-04 - "Admin Detection"
 
 ### Added

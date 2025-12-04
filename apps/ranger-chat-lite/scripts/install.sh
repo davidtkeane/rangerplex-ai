@@ -36,7 +36,7 @@ DEV_MODE=true
 BUILD_MODE=false
 AUTO_START=true
 SKIP_CONFIRM=false
-VERSION="1.6.1"
+VERSION="1.7.0"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do

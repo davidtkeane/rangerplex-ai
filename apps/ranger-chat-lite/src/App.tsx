@@ -118,6 +118,18 @@ interface BlockchainTx {
     status: 'pending' | 'confirmed' | 'broadcast'
 }
 
+// Voice call states
+type CallState = 'idle' | 'calling' | 'ringing' | 'in_call'
+
+// Peer info
+interface PeerInfo {
+    address: string
+    userId?: string
+    nickname: string
+    mode?: string
+    capabilities?: string[]
+}
+
 // Smart Contract type
 interface SmartContract {
     id: string
@@ -233,7 +245,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.6.1'
+const APP_VERSION = '1.7.0'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -290,7 +302,23 @@ function App() {
     // Admin state
     const [adminStatus, setAdminStatus] = useState<AdminStatus | null>(null)
 
+    // Voice call state
+    const [callState, setCallState] = useState<CallState>('idle')
+    const [callPartner, setCallPartner] = useState<string | null>(null)
+    const [incomingCaller, setIncomingCaller] = useState<string | null>(null)
+    const [isTalking, setIsTalking] = useState(false)
+    const [isMuted, setIsMuted] = useState(false)
+    const [peers, setPeers] = useState<PeerInfo[]>([])
+    const [showPeerList, setShowPeerList] = useState(false)
+    const [audioLevel, setAudioLevel] = useState(0)
+
     const wsRef = useRef<WebSocket | null>(null)
+    const mediaStreamRef = useRef<MediaStream | null>(null)
+    const audioContextRef = useRef<AudioContext | null>(null)
+    const analyserRef = useRef<AnalyserNode | null>(null)
+    const processorRef = useRef<ScriptProcessorNode | null>(null)
+    const audioQueueRef = useRef<Float32Array[]>([])
+    const ringIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const chatHistoryRef = useRef<HTMLDivElement>(null)
 
@@ -564,7 +592,7 @@ function App() {
                             ip: '0.0.0.0',
                             port: 0,
                             mode: 'lite-client',
-                            capabilities: ['chat']
+                            capabilities: ['chat', 'voice', 'call']
                         }
                         ws.send(JSON.stringify(registerMsg))
                         logTransaction('system', 'out', nodeId, 'relay-server', registerMsg, 'broadcast')
@@ -583,17 +611,19 @@ function App() {
                         logTransaction('peer', 'out', nodeId, 'relay-server', getPeersMsg, 'broadcast')
                         break
                     case 'peerList':
-                        const peers = data.peers || []
-                        setPeerCount(peers.length)
+                        const peerList = data.peers || []
+                        setPeers(peerList.filter((p: PeerInfo) => p.nickname !== username))
+                        setPeerCount(peerList.length)
                         setMessages(prev => [...prev, {
                             type: 'system',
                             sender: 'System',
-                            content: `${peers.length} peer(s) online`,
+                            content: `${peerList.length} peer(s) online`,
                             timestamp: new Date().toLocaleTimeString()
                         }])
                         break
                     case 'peerListUpdate':
                         const updatedPeers = data.peers || []
+                        setPeers(updatedPeers.filter((p: PeerInfo) => p.nickname !== username))
                         setPeerCount(updatedPeers.length)
                         break
                     case 'broadcast':
@@ -636,6 +666,12 @@ function App() {
     }
 
     const handlePayload = (payload: any) => {
+        // Handle voice-related payloads
+        if (['callRequest', 'callAccepted', 'callRejected', 'callBusy', 'callEnded', 'voiceData', 'voiceStatus'].includes(payload.type)) {
+            handleVoicePayload(payload)
+            return
+        }
+
         switch (payload.type) {
             case 'chatMessage':
             case 'chat':
@@ -654,6 +690,55 @@ function App() {
 
     const sendMessage = async () => {
         if (!wsRef.current || !connected || !input.trim()) return
+
+        // Handle /call command
+        const callMatch = input.match(/^\/call\s+(.+)$/i)
+        if (callMatch) {
+            const targetUser = callMatch[1].trim()
+            if (targetUser) {
+                makeCall(targetUser)
+                setInput('')
+                return
+            }
+        }
+
+        // Handle /hangup command
+        if (input.toLowerCase() === '/hangup' || input.toLowerCase() === '/end') {
+            if (callState !== 'idle') {
+                hangUp()
+            } else {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: 'Not in a call',
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /peers command
+        if (input.toLowerCase() === '/peers' || input.toLowerCase() === '/online') {
+            if (peers.length === 0) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: 'No other users online',
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            } else {
+                const peerList = peers.map(p => `  • ${p.nickname}${p.capabilities?.includes('voice') ? ' 🎙️' : ''}`).join('\n')
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `Online peers:\n${peerList}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
 
         const msg = {
             type: 'broadcast',
@@ -714,6 +799,452 @@ function App() {
         const currentIndex = themeOrder.indexOf(theme)
         const nextIndex = (currentIndex + 1) % themeOrder.length
         setTheme(themeOrder[nextIndex])
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VOICE CALL FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // Initialize audio context for playback
+    const initAudioContext = () => {
+        if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+        }
+        return audioContextRef.current
+    }
+
+    // Start audio capture
+    const startAudioCapture = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    sampleRate: 16000
+                }
+            })
+            mediaStreamRef.current = stream
+
+            const audioContext = initAudioContext()
+            const source = audioContext.createMediaStreamSource(stream)
+            const analyser = audioContext.createAnalyser()
+            analyser.fftSize = 256
+            analyserRef.current = analyser
+
+            // Create script processor for capturing audio
+            const processor = audioContext.createScriptProcessor(4096, 1, 1)
+            processorRef.current = processor
+
+            source.connect(analyser)
+            analyser.connect(processor)
+            processor.connect(audioContext.destination)
+
+            processor.onaudioprocess = (e) => {
+                if (!isTalking || !wsRef.current || callState !== 'in_call') return
+
+                const inputData = e.inputBuffer.getChannelData(0)
+                const audioData = new Float32Array(inputData)
+
+                // Calculate audio level
+                let sum = 0
+                for (let i = 0; i < audioData.length; i++) {
+                    sum += Math.abs(audioData[i])
+                }
+                const level = Math.min(100, Math.round((sum / audioData.length) * 300))
+                setAudioLevel(level)
+
+                // Convert to base64 and send
+                const int16Data = new Int16Array(audioData.length)
+                for (let i = 0; i < audioData.length; i++) {
+                    int16Data[i] = Math.max(-32768, Math.min(32767, audioData[i] * 32767))
+                }
+
+                const base64Audio = btoa(String.fromCharCode(...new Uint8Array(int16Data.buffer)))
+
+                wsRef.current.send(JSON.stringify({
+                    type: 'broadcast',
+                    payload: {
+                        type: 'voiceData',
+                        from: identity?.nodeId,
+                        nickname: username,
+                        audio: base64Audio,
+                        target: callPartner,
+                        timestamp: Date.now()
+                    }
+                }))
+            }
+
+            return true
+        } catch (error) {
+            console.error('Error accessing microphone:', error)
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: 'Could not access microphone. Please grant permission.',
+                timestamp: new Date().toLocaleTimeString()
+            }])
+            return false
+        }
+    }
+
+    // Stop audio capture
+    const stopAudioCapture = () => {
+        if (processorRef.current) {
+            processorRef.current.disconnect()
+            processorRef.current = null
+        }
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(track => track.stop())
+            mediaStreamRef.current = null
+        }
+        setAudioLevel(0)
+    }
+
+    // Play received audio
+    const playAudio = (base64Audio: string) => {
+        if (isMuted) return
+
+        try {
+            const audioContext = initAudioContext()
+            const binaryString = atob(base64Audio)
+            const bytes = new Uint8Array(binaryString.length)
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i)
+            }
+
+            const int16Data = new Int16Array(bytes.buffer)
+            const floatData = new Float32Array(int16Data.length)
+            for (let i = 0; i < int16Data.length; i++) {
+                floatData[i] = int16Data[i] / 32767
+            }
+
+            const audioBuffer = audioContext.createBuffer(1, floatData.length, 16000)
+            audioBuffer.copyToChannel(floatData, 0)
+
+            const source = audioContext.createBufferSource()
+            source.buffer = audioBuffer
+            source.connect(audioContext.destination)
+            source.start()
+        } catch (error) {
+            console.error('Error playing audio:', error)
+        }
+    }
+
+    // Make a call
+    const makeCall = (targetNickname: string) => {
+        if (callState !== 'idle') {
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: 'Already in a call. Hang up first.',
+                timestamp: new Date().toLocaleTimeString()
+            }])
+            return
+        }
+
+        setCallState('calling')
+        setCallPartner(targetNickname)
+
+        wsRef.current?.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'callRequest',
+                from: identity?.nodeId,
+                nickname: username,
+                target: targetNickname,
+                timestamp: Date.now()
+            }
+        }))
+
+        setMessages(prev => [...prev, {
+            type: 'system',
+            sender: 'System',
+            content: `Calling ${targetNickname}...`,
+            timestamp: new Date().toLocaleTimeString()
+        }])
+
+        // Timeout after 30 seconds
+        setTimeout(() => {
+            if (callState === 'calling') {
+                setCallState('idle')
+                setCallPartner(null)
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `No answer from ${targetNickname}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+        }, 30000)
+    }
+
+    // Answer incoming call
+    const answerCall = async () => {
+        if (callState !== 'ringing' || !incomingCaller) return
+
+        // Stop ring tone
+        if (ringIntervalRef.current) {
+            clearInterval(ringIntervalRef.current)
+            ringIntervalRef.current = null
+        }
+
+        // Request microphone permission before answering
+        const hasAudio = await startAudioCapture()
+        if (!hasAudio) {
+            rejectCall()
+            return
+        }
+
+        setCallState('in_call')
+        setCallPartner(incomingCaller)
+        setIncomingCaller(null)
+
+        wsRef.current?.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'callAccepted',
+                from: identity?.nodeId,
+                nickname: username,
+                target: incomingCaller,
+                timestamp: Date.now()
+            }
+        }))
+
+        setMessages(prev => [...prev, {
+            type: 'system',
+            sender: 'System',
+            content: `Connected with ${incomingCaller}`,
+            timestamp: new Date().toLocaleTimeString()
+        }])
+    }
+
+    // Reject incoming call
+    const rejectCall = () => {
+        if (callState !== 'ringing' || !incomingCaller) return
+
+        // Stop ring tone
+        if (ringIntervalRef.current) {
+            clearInterval(ringIntervalRef.current)
+            ringIntervalRef.current = null
+        }
+
+        wsRef.current?.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'callRejected',
+                from: identity?.nodeId,
+                nickname: username,
+                target: incomingCaller,
+                timestamp: Date.now()
+            }
+        }))
+
+        setMessages(prev => [...prev, {
+            type: 'system',
+            sender: 'System',
+            content: `Rejected call from ${incomingCaller}`,
+            timestamp: new Date().toLocaleTimeString()
+        }])
+
+        setCallState('idle')
+        setIncomingCaller(null)
+    }
+
+    // Hang up
+    const hangUp = () => {
+        if (callState !== 'in_call' && callState !== 'calling') return
+
+        stopAudioCapture()
+        setIsTalking(false)
+
+        if (callPartner) {
+            wsRef.current?.send(JSON.stringify({
+                type: 'broadcast',
+                payload: {
+                    type: 'callEnded',
+                    from: identity?.nodeId,
+                    nickname: username,
+                    target: callPartner,
+                    timestamp: Date.now()
+                }
+            }))
+        }
+
+        setMessages(prev => [...prev, {
+            type: 'system',
+            sender: 'System',
+            content: 'Call ended',
+            timestamp: new Date().toLocaleTimeString()
+        }])
+
+        setCallState('idle')
+        setCallPartner(null)
+    }
+
+    // Start talking (push-to-talk)
+    const startTalking = async () => {
+        if (callState !== 'in_call') return
+
+        if (!mediaStreamRef.current) {
+            const hasAudio = await startAudioCapture()
+            if (!hasAudio) return
+        }
+
+        setIsTalking(true)
+
+        wsRef.current?.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'voiceStatus',
+                from: identity?.nodeId,
+                nickname: username,
+                status: 'started',
+                target: callPartner,
+                timestamp: Date.now()
+            }
+        }))
+    }
+
+    // Stop talking
+    const stopTalking = () => {
+        if (!isTalking) return
+
+        setIsTalking(false)
+        setAudioLevel(0)
+
+        wsRef.current?.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'voiceStatus',
+                from: identity?.nodeId,
+                nickname: username,
+                status: 'stopped',
+                target: callPartner,
+                timestamp: Date.now()
+            }
+        }))
+    }
+
+    // Handle voice payload
+    const handleVoicePayload = (payload: any) => {
+        const senderName = payload.nickname || payload.from?.slice(0, 12) || 'Unknown'
+        if (senderName === username) return
+
+        switch (payload.type) {
+            case 'callRequest':
+                // Check if this call is for us
+                if (payload.target === username || payload.target.toLowerCase() === username.toLowerCase()) {
+                    if (callState === 'idle') {
+                        setIncomingCaller(senderName)
+                        setCallState('ringing')
+
+                        // Play ring sound (visual notification)
+                        ringIntervalRef.current = setInterval(() => {
+                            // Terminal bell sound
+                            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleHsYcKjm8tK7egMthNT82suxcCM1jdb/3syrXSEzkt7/3MmgWzEqiNX/3cmfWzYqiNT/3saYWz4pid3/3MWQWEpVi9n/28OLXFRSkNf/2sCIYl1Li9X/27+IY11PjNP/276FY2JOjdH/2ryFZWNPjtD/2rqFZWNPjtD/2rmFZWJQjtD/2rqFZGNPjtH/27uFZWFOjdD/2ruGZmBPjdD/2rqHZl9Qj9D/27qGZl9RjtD/2ryGZl5RkNL/2ryGZl5Rj9H/27qJZlxTkdP/2rqIZlxTkdT/2rmIZltUk9X/2riJZlpVlNX/2reKZlhXldX/2raKZldYldX/27aJZldZltX/2raKZlZalt3/27WKZldaltz/27WLZlVcltr/27SNZVRdl9n/2rOOZVJfl9n/2rGPZVFfl9r/2rCQZVBhmdr/2a+RZE9imdr/2a+RZE5jmtr/2a6TY01kmtr/2a2TY0xkmtr/2ayVYktlm9r/2KuWYkpnm9v/2KqWYkhonNz/2KqXYUdon93/2KmYYUdpnt3/2KiZYEZqnt7/2KeaYEVrn97/16ebX0Rsn97/16acXkNtoN7/16WdXkJuoN7/16SdXUFvoN//16OeXUBwoN//1qKfXD9xod//1qGfXD5yod//1qCgWz5zot//1qChWz10ot//1p+hWjx1o+D/1p6iWjt2pOD/1p2jWTp3pOH/1pykWDl4peH/1pylVzl5peH/1pqmVjh6puL/1pmm');
+                            audio.volume = 0.3
+                            audio.play().catch(() => {})
+                        }, 2000)
+
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: `📞 Incoming call from ${senderName}`,
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    } else {
+                        // Send busy signal
+                        wsRef.current?.send(JSON.stringify({
+                            type: 'broadcast',
+                            payload: {
+                                type: 'callBusy',
+                                from: identity?.nodeId,
+                                nickname: username,
+                                target: senderName,
+                                timestamp: Date.now()
+                            }
+                        }))
+                    }
+                }
+                break
+
+            case 'callAccepted':
+                if (payload.target === username && callState === 'calling') {
+                    setCallState('in_call')
+                    setCallPartner(senderName)
+                    startAudioCapture()
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `Connected with ${senderName}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+
+            case 'callRejected':
+                if (payload.target === username && callState === 'calling') {
+                    setCallState('idle')
+                    setCallPartner(null)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `${senderName} declined the call`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+
+            case 'callBusy':
+                if (payload.target === username && callState === 'calling') {
+                    setCallState('idle')
+                    setCallPartner(null)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `${senderName} is busy`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+
+            case 'callEnded':
+                if (payload.target === username && (callState === 'in_call' || callState === 'ringing')) {
+                    stopAudioCapture()
+                    if (ringIntervalRef.current) {
+                        clearInterval(ringIntervalRef.current)
+                        ringIntervalRef.current = null
+                    }
+                    setIsTalking(false)
+                    setCallState('idle')
+                    setCallPartner(null)
+                    setIncomingCaller(null)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `Call ended by ${senderName}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+
+            case 'voiceData':
+                if (callState === 'in_call' && senderName === callPartner) {
+                    playAudio(payload.audio)
+                }
+                break
+
+            case 'voiceStatus':
+                if (callState === 'in_call' && senderName === callPartner) {
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: payload.status === 'started' ? `${senderName} is talking...` : `${senderName} stopped`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+        }
     }
 
     // Settings functions
@@ -830,6 +1361,45 @@ function App() {
                             <span className="peer-count">{peerCount} online</span>
                         </div>
                         <div className="header-right">
+                            {/* Voice Call Button */}
+                            <div className="call-dropdown-container">
+                                <button
+                                    className={`header-btn call-btn ${callState !== 'idle' ? 'active' : ''}`}
+                                    onClick={() => setShowPeerList(!showPeerList)}
+                                    title={callState === 'idle' ? 'Make a call' : callState === 'in_call' ? `In call with ${callPartner}` : 'Calling...'}
+                                    disabled={callState === 'ringing'}
+                                >
+                                    {callState === 'idle' ? '📞' : callState === 'in_call' ? '🔊' : '📱'}
+                                </button>
+                                {showPeerList && callState === 'idle' && (
+                                    <div className="peer-dropdown">
+                                        <div className="peer-dropdown-header">Call a peer</div>
+                                        {peers.length === 0 ? (
+                                            <div className="peer-dropdown-empty">No other users online</div>
+                                        ) : (
+                                            peers.map((peer, i) => (
+                                                <button
+                                                    key={i}
+                                                    className="peer-dropdown-item"
+                                                    onClick={() => {
+                                                        makeCall(peer.nickname)
+                                                        setShowPeerList(false)
+                                                    }}
+                                                >
+                                                    <span className="peer-icon">👤</span>
+                                                    <span className="peer-name">{peer.nickname}</span>
+                                                    {peer.capabilities?.includes('voice') && (
+                                                        <span className="peer-voice-badge" title="Voice enabled">🎙️</span>
+                                                    )}
+                                                </button>
+                                            ))
+                                        )}
+                                        <div className="peer-dropdown-tip">
+                                            Or type <code>/call username</code>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <button
                                 className={`header-btn ${showSearch ? 'active' : ''}`}
                                 onClick={() => setShowSearch(!showSearch)}
@@ -876,6 +1446,85 @@ function App() {
                                 </span>
                             )}
                             <button onClick={() => { setSearchQuery(''); setShowSearch(false); }}>✕</button>
+                        </div>
+                    )}
+
+                    {/* Incoming Call Banner */}
+                    {callState === 'ringing' && incomingCaller && (
+                        <div className="incoming-call-banner">
+                            <div className="call-info">
+                                <span className="call-icon ringing">📞</span>
+                                <span className="caller-name">{incomingCaller}</span>
+                                <span className="call-status">is calling...</span>
+                            </div>
+                            <div className="call-actions">
+                                <button className="call-answer-btn" onClick={answerCall}>
+                                    ✓ Answer
+                                </button>
+                                <button className="call-reject-btn" onClick={rejectCall}>
+                                    ✕ Reject
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* In-Call Control Bar */}
+                    {callState === 'in_call' && (
+                        <div className="in-call-bar">
+                            <div className="call-info">
+                                <span className="call-icon connected">🔊</span>
+                                <span className="call-partner">{callPartner}</span>
+                                {isTalking && (
+                                    <div className="audio-meter">
+                                        <div
+                                            className="audio-level"
+                                            style={{ width: `${audioLevel}%` }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="call-controls">
+                                <button
+                                    className={`talk-btn ${isTalking ? 'talking' : ''}`}
+                                    onMouseDown={startTalking}
+                                    onMouseUp={stopTalking}
+                                    onMouseLeave={stopTalking}
+                                    onTouchStart={startTalking}
+                                    onTouchEnd={stopTalking}
+                                >
+                                    {isTalking ? '🎤 Talking...' : '🎤 Push to Talk'}
+                                </button>
+                                <button
+                                    className={`mute-btn ${isMuted ? 'muted' : ''}`}
+                                    onClick={() => setIsMuted(!isMuted)}
+                                    title={isMuted ? 'Unmute' : 'Mute'}
+                                >
+                                    {isMuted ? '🔇' : '🔊'}
+                                </button>
+                                <button className="hangup-btn" onClick={hangUp}>
+                                    📵 Hang Up
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Calling Status Bar */}
+                    {callState === 'calling' && (
+                        <div className="calling-bar">
+                            <div className="call-info">
+                                <span className="call-icon calling">📱</span>
+                                <span className="call-partner">
+                                    Calling {callPartner}
+                                    <span className="call-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </span>
+                                </span>
+                            </div>
+                            <button className="cancel-call-btn" onClick={hangUp}>
+                                ✕ Cancel
+                            </button>
                         </div>
                     )}
 
