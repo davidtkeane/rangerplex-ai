@@ -4,6 +4,48 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.7.6] - 2025-12-04 - "Custom Login Picture"
+
+### Added
+
+#### Login Picture Customization
+- **New Settings Section**: "Login Picture" in Settings panel
+- **Three Options**:
+  - **Eagle (Default)**: Classic eagle emoji logo
+  - **RangerSmyth**: David's personal rangersmyth-pic.png picture
+  - **Upload Custom**: Upload any image, auto-resized to 128x128
+- **Live Preview**: See selected picture in Settings before applying
+- **Reset Button**: One-click reset to default eagle
+
+### Technical
+- `loginPicture` state stored in localStorage
+- Image upload uses Canvas API for 128x128 resize
+- Square crop maintains aspect ratio
+- Base64 encoding for custom images
+- Circular border styling with accent color
+
+---
+
+## [1.7.5] - 2025-12-04 - "One-Click Updates"
+
+### Added
+
+#### In-App Update System
+- **Update Now Button**: One-click update directly from Settings
+- **Check for Updates Button**: Manual update check in About section
+- **Progress Indicator**: Animated spinner shows update progress
+- **Status Messages**: Clear feedback for success/error states
+- **Auto-Reload**: App reloads automatically after successful update
+
+### Technical
+- `app:runUpdate` IPC handler runs `git pull` + `npm install`
+- `app:reload` IPC handler reloads the Electron window
+- Frontend shows update progress states
+- Graceful error handling with user feedback
+- Replaces manual terminal commands
+
+---
+
 ## [1.7.4] - 2025-12-04 - "Audio Device Selection"
 
 ### Added

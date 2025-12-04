@@ -31,6 +31,16 @@ declare global {
                 checkUserId: (userId: string) => Promise<AdminStatus>
                 getRegistryPath: () => Promise<string>
             }
+            app: {
+                runUpdate: () => Promise<{
+                    success: boolean
+                    gitPull: { success: boolean; output: string; error: string }
+                    npmInstall: { success: boolean; output: string; error: string }
+                }>
+                reload: () => Promise<boolean>
+                checkForUpdates: () => Promise<{ updateAvailable: boolean; latestVersion: string | null }>
+                getVersion: () => Promise<string>
+            }
         }
     }
 }
@@ -245,7 +255,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.7.3'
+const APP_VERSION = '1.7.6'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -292,6 +302,19 @@ function App() {
     const [updateAvailable, setUpdateAvailable] = useState(false)
     const [latestVersion, setLatestVersion] = useState<string | null>(null)
     const [showUpdateBanner, setShowUpdateBanner] = useState(true)
+    const [updateNotificationsEnabled, setUpdateNotificationsEnabled] = useState(() => {
+        const saved = localStorage.getItem('rangerChatUpdateNotifications')
+        return saved !== null ? saved === 'true' : true // Default to enabled
+    })
+    const [isUpdating, setIsUpdating] = useState(false)
+    const [updateStatus, setUpdateStatus] = useState<string>('')
+    const [updateError, setUpdateError] = useState<string>('')
+
+    // Login picture state ('default' = eagle emoji, 'rangersmyth' = rangersmyth-pic.png, or base64 custom image)
+    const [loginPicture, setLoginPicture] = useState<string>(() => {
+        return localStorage.getItem('rangerChatLoginPicture') || 'default'
+    })
+    const loginPictureInputRef = useRef<HTMLInputElement>(null)
 
     // Ledger state
     const [ledgerStatus, setLedgerStatus] = useState<LedgerStatus | null>(null)
@@ -427,6 +450,49 @@ function App() {
         return () => clearInterval(interval)
     }, [])
 
+    // Handle in-app update (git pull + npm install + reload)
+    const handleRunUpdate = async () => {
+        if (!window.electronAPI?.app) {
+            setUpdateError('Update feature requires Electron app')
+            return
+        }
+
+        setIsUpdating(true)
+        setUpdateStatus('Pulling latest changes...')
+        setUpdateError('')
+
+        try {
+            const result = await window.electronAPI.app.runUpdate()
+
+            if (!result.success) {
+                if (!result.gitPull.success) {
+                    setUpdateError(`Git pull failed: ${result.gitPull.error}`)
+                } else if (!result.npmInstall.success) {
+                    setUpdateError(`npm install failed: ${result.npmInstall.error}`)
+                }
+                setIsUpdating(false)
+                return
+            }
+
+            // Check if there were changes
+            if (result.gitPull.output.includes('Already up to date')) {
+                setUpdateStatus('Already up to date!')
+                setIsUpdating(false)
+                setTimeout(() => setUpdateStatus(''), 3000)
+                return
+            }
+
+            // Changes were pulled, reload the app
+            setUpdateStatus('Update complete! Reloading...')
+            setTimeout(async () => {
+                await window.electronAPI?.app.reload()
+            }, 1500)
+        } catch (error: any) {
+            setUpdateError(`Update failed: ${error.message}`)
+            setIsUpdating(false)
+        }
+    }
+
     // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -445,6 +511,59 @@ function App() {
         localStorage.setItem('rangerChatTheme', theme)
         document.documentElement.setAttribute('data-theme', theme)
     }, [theme])
+
+    // Save update notifications preference
+    useEffect(() => {
+        localStorage.setItem('rangerChatUpdateNotifications', updateNotificationsEnabled.toString())
+    }, [updateNotificationsEnabled])
+
+    // Save login picture preference
+    useEffect(() => {
+        localStorage.setItem('rangerChatLoginPicture', loginPicture)
+    }, [loginPicture])
+
+    // Handle login picture upload with resize
+    const handleLoginPictureUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        // Check file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file')
+            return
+        }
+
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            const img = new Image()
+            img.onload = () => {
+                // Resize to 128x128 for login logo
+                const canvas = document.createElement('canvas')
+                const size = 128
+                canvas.width = size
+                canvas.height = size
+                const ctx = canvas.getContext('2d')
+                if (ctx) {
+                    // Calculate crop to make it square
+                    const minDim = Math.min(img.width, img.height)
+                    const sx = (img.width - minDim) / 2
+                    const sy = (img.height - minDim) / 2
+
+                    // Draw image with circular mask consideration (just crop to square)
+                    ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
+
+                    // Convert to base64
+                    const base64 = canvas.toDataURL('image/png', 0.9)
+                    setLoginPicture(base64)
+                }
+            }
+            img.src = e.target?.result as string
+        }
+        reader.readAsDataURL(file)
+
+        // Reset input so same file can be selected again
+        event.target.value = ''
+    }
 
     // Load ledger status when entering ledger view
     const loadLedgerData = async () => {
@@ -1461,8 +1580,8 @@ function App() {
 
     return (
         <div className={`ranger-chat-container theme-${theme}`}>
-            {/* UPDATE BANNER - Shows on all views */}
-            {updateAvailable && showUpdateBanner && (
+            {/* UPDATE BANNER - Shows on all views if notifications enabled */}
+            {updateAvailable && showUpdateBanner && updateNotificationsEnabled && (
                 <div className="update-banner">
                     <div className="update-content">
                         <span className="update-icon">🚀</span>
@@ -1483,7 +1602,15 @@ function App() {
             {view === 'login' && (
                 <div className="login-screen">
                     <div className="login-card">
-                        <div className="logo">🦅</div>
+                        <div className="logo">
+                            {loginPicture === 'default' ? (
+                                '🦅'
+                            ) : loginPicture === 'rangersmyth' ? (
+                                <img src="/rangersmyth-pic.png" alt="RangerSmyth" className="login-logo-image" />
+                            ) : (
+                                <img src={loginPicture} alt="Custom" className="login-logo-image" />
+                            )}
+                        </div>
                         <h1>RangerChat</h1>
                         <p className="subtitle">Lite Edition v{APP_VERSION}</p>
 
@@ -2209,6 +2336,86 @@ function App() {
                             </div>
                         </div>
 
+                        {/* Login Picture Section */}
+                        <div className="settings-section">
+                            <h3>🖼️ Login Picture</h3>
+                            <p className="section-description">Customize your login screen picture</p>
+
+                            <div className="login-picture-preview">
+                                {loginPicture === 'default' ? (
+                                    <div className="preview-emoji">🦅</div>
+                                ) : loginPicture === 'rangersmyth' ? (
+                                    <img src="/rangersmyth-pic.png" alt="RangerSmyth" className="preview-image" />
+                                ) : (
+                                    <img src={loginPicture} alt="Custom" className="preview-image" />
+                                )}
+                            </div>
+
+                            <div className="login-picture-options">
+                                <button
+                                    className={`picture-option ${loginPicture === 'default' ? 'active' : ''}`}
+                                    onClick={() => setLoginPicture('default')}
+                                >
+                                    <span className="option-icon">🦅</span>
+                                    <span className="option-label">Eagle (Default)</span>
+                                </button>
+
+                                <button
+                                    className={`picture-option ${loginPicture === 'rangersmyth' ? 'active' : ''}`}
+                                    onClick={() => setLoginPicture('rangersmyth')}
+                                >
+                                    <span className="option-icon">🎖️</span>
+                                    <span className="option-label">RangerSmyth</span>
+                                </button>
+
+                                <button
+                                    className={`picture-option ${loginPicture.startsWith('data:') ? 'active' : ''}`}
+                                    onClick={() => loginPictureInputRef.current?.click()}
+                                >
+                                    <span className="option-icon">📤</span>
+                                    <span className="option-label">Upload Custom</span>
+                                </button>
+                            </div>
+
+                            <input
+                                ref={loginPictureInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleLoginPictureUpload}
+                                style={{ display: 'none' }}
+                            />
+
+                            {loginPicture.startsWith('data:') && (
+                                <button
+                                    className="reset-picture-btn"
+                                    onClick={() => setLoginPicture('default')}
+                                >
+                                    Reset to Default
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Update Notifications Section */}
+                        <div className="settings-section">
+                            <h3>🔔 Notifications</h3>
+                            <div className="notification-toggle">
+                                <label className="toggle-row">
+                                    <span className="toggle-label">Update Notifications</span>
+                                    <button
+                                        className={`toggle-switch ${updateNotificationsEnabled ? 'active' : ''}`}
+                                        onClick={() => setUpdateNotificationsEnabled(!updateNotificationsEnabled)}
+                                    >
+                                        <span className="toggle-slider"></span>
+                                    </button>
+                                </label>
+                                <p className="toggle-note">
+                                    {updateNotificationsEnabled
+                                        ? 'You will be notified when updates are available'
+                                        : 'Update notifications are disabled'}
+                                </p>
+                            </div>
+                        </div>
+
                         {/* Storage Section */}
                         {storagePaths && (
                             <div className="settings-section">
@@ -2235,18 +2442,58 @@ function App() {
                             <div className="about-info">
                                 <p><strong>RangerChat Lite</strong> v{APP_VERSION}</p>
                                 <p>A lightweight chat client for the RangerPlex network.</p>
+                                {/* Update Available Notice */}
                                 {updateAvailable && (
                                     <div className="update-notice">
                                         <span className="update-badge">🚀 Update Available: v{latestVersion}</span>
-                                        <div className="update-instructions">
-                                            <p>To update, run in terminal:</p>
-                                            <code>cd apps/ranger-chat-lite</code>
-                                            <code>git pull</code>
-                                            <code>npm install</code>
-                                            <code>npm run dev</code>
+                                        <div className="update-actions">
+                                            <button
+                                                className="update-now-btn"
+                                                onClick={handleRunUpdate}
+                                                disabled={isUpdating}
+                                            >
+                                                {isUpdating ? (
+                                                    <>
+                                                        <span className="spinner"></span>
+                                                        {updateStatus || 'Updating...'}
+                                                    </>
+                                                ) : (
+                                                    <>🔄 Update Now</>
+                                                )}
+                                            </button>
+                                            {updateStatus && !isUpdating && (
+                                                <p className="update-status success">{updateStatus}</p>
+                                            )}
+                                            {updateError && (
+                                                <p className="update-status error">{updateError}</p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Manual Update Option */}
+                                <div className="manual-update">
+                                    <button
+                                        className="check-update-btn"
+                                        onClick={handleRunUpdate}
+                                        disabled={isUpdating}
+                                    >
+                                        {isUpdating ? (
+                                            <>
+                                                <span className="spinner"></span>
+                                                {updateStatus || 'Checking...'}
+                                            </>
+                                        ) : (
+                                            <>🔍 Check for Updates</>
+                                        )}
+                                    </button>
+                                    {!updateAvailable && updateStatus && (
+                                        <p className="update-status success">{updateStatus}</p>
+                                    )}
+                                    {!updateAvailable && updateError && (
+                                        <p className="update-status error">{updateError}</p>
+                                    )}
+                                </div>
                                 <p className="mission">🎖️ Mission: Transform disabilities into superpowers</p>
                                 <p className="philosophy">"One foot in front of the other" - David Keane</p>
                             </div>

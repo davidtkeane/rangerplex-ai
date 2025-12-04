@@ -75,7 +75,7 @@ function getAdminStatus(userId: string): AdminStatus {
 // ═══════════════════════════════════════════════════════════════════════════
 // VERSION & UPDATE CHECK
 // ═══════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.7.4'
+const APP_VERSION = '1.7.6'
 const VERSIONS_URL = 'https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json'
 
 interface UpdateInfo {
@@ -382,6 +382,69 @@ ipcMain.handle('app:checkForUpdates', async () => {
 
 ipcMain.handle('app:getVersion', () => {
     return APP_VERSION
+})
+
+// IPC handler for running update commands (git pull, npm install, reload)
+ipcMain.handle('app:runUpdate', async () => {
+    const { exec } = require('child_process')
+    const util = require('util')
+    const execPromise = util.promisify(exec)
+
+    // Get the app directory (go up from electron folder to app root)
+    const appDir = path.join(__dirname, '..')
+
+    const result = {
+        success: false,
+        gitPull: { success: false, output: '', error: '' },
+        npmInstall: { success: false, output: '', error: '' }
+    }
+
+    try {
+        // Step 1: git pull
+        console.log('[Update] Running git pull in:', appDir)
+        try {
+            const gitResult = await execPromise('git pull', { cwd: appDir, timeout: 60000 })
+            result.gitPull = { success: true, output: gitResult.stdout, error: gitResult.stderr }
+            console.log('[Update] git pull:', gitResult.stdout)
+        } catch (e: any) {
+            result.gitPull = { success: false, output: '', error: e.message }
+            console.error('[Update] git pull failed:', e.message)
+            return result
+        }
+
+        // Step 2: npm install (only if git pull succeeded and there were changes)
+        if (result.gitPull.output.includes('Already up to date')) {
+            console.log('[Update] No changes, skipping npm install')
+            result.npmInstall = { success: true, output: 'Skipped - no changes', error: '' }
+        } else {
+            console.log('[Update] Running npm install...')
+            try {
+                const npmResult = await execPromise('npm install', { cwd: appDir, timeout: 120000 })
+                result.npmInstall = { success: true, output: npmResult.stdout, error: npmResult.stderr }
+                console.log('[Update] npm install complete')
+            } catch (e: any) {
+                result.npmInstall = { success: false, output: '', error: e.message }
+                console.error('[Update] npm install failed:', e.message)
+                return result
+            }
+        }
+
+        result.success = true
+        return result
+    } catch (e: any) {
+        console.error('[Update] Error:', e)
+        return result
+    }
+})
+
+// IPC handler to reload the app
+ipcMain.handle('app:reload', () => {
+    if (win) {
+        console.log('[Update] Reloading app...')
+        win.webContents.reload()
+        return true
+    }
+    return false
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
