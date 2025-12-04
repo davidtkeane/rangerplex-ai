@@ -1,7 +1,4 @@
 "use strict";
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 const electron = require("electron");
 const path$1 = require("node:path");
 const https = require("node:https");
@@ -99,17 +96,17 @@ const NOUNS = [
   "Bear"
 ];
 class IdentityService {
+  // NEW: Shared storage (all RangerBlock apps)
+  sharedStorageDir;
+  sharedIdentityFile;
+  sharedKeysDir;
+  sharedAppDir;
+  // LEGACY: Electron userData (for backward compatibility)
+  legacyStorageDir;
+  legacyIdentityFile;
+  personalDir;
   // RangerPlex compatible .personal folder
   constructor() {
-    // NEW: Shared storage (all RangerBlock apps)
-    __publicField(this, "sharedStorageDir");
-    __publicField(this, "sharedIdentityFile");
-    __publicField(this, "sharedKeysDir");
-    __publicField(this, "sharedAppDir");
-    // LEGACY: Electron userData (for backward compatibility)
-    __publicField(this, "legacyStorageDir");
-    __publicField(this, "legacyIdentityFile");
-    __publicField(this, "personalDir");
     this.sharedStorageDir = path__namespace.join(RANGERBLOCK_HOME, "identity");
     this.sharedIdentityFile = path__namespace.join(this.sharedStorageDir, "master_identity.json");
     this.sharedKeysDir = path__namespace.join(RANGERBLOCK_HOME, "keys");
@@ -488,7 +485,7 @@ class IdentityService {
   }
 }
 const identityService = new IdentityService();
-const APP_VERSION = "1.3.1";
+const APP_VERSION = "1.4.1";
 const VERSIONS_URL = "https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json";
 async function checkForUpdates() {
   return new Promise((resolve) => {
@@ -504,14 +501,13 @@ async function checkForUpdates() {
       let data = "";
       res.on("data", (chunk) => data += chunk);
       res.on("end", () => {
-        var _a, _b, _c;
         clearTimeout(timeout);
         try {
           const versions = JSON.parse(data);
-          const latest = (_b = (_a = versions.components) == null ? void 0 : _a["ranger-chat-lite"]) == null ? void 0 : _b.version;
+          const latest = versions.components?.["ranger-chat-lite"]?.version;
           if (latest) {
             result.latestVersion = latest;
-            result.notes = (_c = versions.latest) == null ? void 0 : _c.notes;
+            result.notes = versions.latest?.notes;
             const currentParts = APP_VERSION.split(".").map(Number);
             const latestParts = latest.split(".").map(Number);
             for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
@@ -554,7 +550,7 @@ function createWindow() {
     }
   });
   win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+    win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
   });
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
@@ -583,7 +579,7 @@ function createMenu() {
           label: "New Connection",
           accelerator: "CmdOrCtrl+N",
           click: () => {
-            win == null ? void 0 : win.webContents.send("menu-action", "new-connection");
+            win?.webContents.send("menu-action", "new-connection");
           }
         },
         { type: "separator" },
@@ -591,7 +587,7 @@ function createMenu() {
           label: "Settings",
           accelerator: "CmdOrCtrl+,",
           click: () => {
-            win == null ? void 0 : win.webContents.send("menu-action", "settings");
+            win?.webContents.send("menu-action", "settings");
           }
         },
         { type: "separator" },
@@ -639,14 +635,14 @@ function createMenu() {
           label: "View Console Logs",
           accelerator: "CmdOrCtrl+Shift+C",
           click: () => {
-            win == null ? void 0 : win.webContents.openDevTools({ mode: "bottom" });
+            win?.webContents.openDevTools({ mode: "bottom" });
           }
         },
         {
           label: "Inspect Element",
           accelerator: "CmdOrCtrl+Shift+E",
           click: () => {
-            win == null ? void 0 : win.webContents.inspectElement(0, 0);
+            win?.webContents.inspectElement(0, 0);
           }
         },
         { type: "separator" },
@@ -668,7 +664,7 @@ function createMenu() {
         {
           label: "About RangerChat Lite",
           click: () => {
-            win == null ? void 0 : win.webContents.send("menu-action", "about");
+            win?.webContents.send("menu-action", "about");
           }
         },
         { type: "separator" },
