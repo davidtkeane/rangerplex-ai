@@ -322,11 +322,21 @@ function App() {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const chatHistoryRef = useRef<HTMLDivElement>(null)
     const callStateRef = useRef<CallState>('idle')
+    const isTalkingRef = useRef(false)
+    const callPartnerRef = useRef<string | null>(null)
 
-    // Keep callStateRef in sync with callState (fixes closure bug in WebSocket handler)
+    // Keep refs in sync with state (fixes closure bugs in audio processor and WebSocket handlers)
     useEffect(() => {
         callStateRef.current = callState
     }, [callState])
+
+    useEffect(() => {
+        isTalkingRef.current = isTalking
+    }, [isTalking])
+
+    useEffect(() => {
+        callPartnerRef.current = callPartner
+    }, [callPartner])
 
     // Check for existing identity on load
     useEffect(() => {
@@ -846,7 +856,8 @@ function App() {
             processor.connect(audioContext.destination)
 
             processor.onaudioprocess = (e) => {
-                if (!isTalking || !wsRef.current || callState !== 'in_call') return
+                // Use refs for current values (fixes closure bug)
+                if (!isTalkingRef.current || !wsRef.current || callStateRef.current !== 'in_call') return
 
                 const inputData = e.inputBuffer.getChannelData(0)
                 const audioData = new Float32Array(inputData)
@@ -874,7 +885,7 @@ function App() {
                         from: identity?.nodeId,
                         nickname: username,
                         audio: base64Audio,
-                        target: callPartner,
+                        target: callPartnerRef.current,
                         timestamp: Date.now()
                     }
                 }))
