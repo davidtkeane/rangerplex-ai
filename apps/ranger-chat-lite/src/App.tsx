@@ -315,6 +315,8 @@ function App() {
     // Audio device state
     const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
     const [selectedMicId, setSelectedMicId] = useState<string>('default')
+    const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([])
+    const [selectedSpeakerId, setSelectedSpeakerId] = useState<string>('default')
 
     const wsRef = useRef<WebSocket | null>(null)
     const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -328,6 +330,7 @@ function App() {
     const callStateRef = useRef<CallState>('idle')
     const isTalkingRef = useRef(false)
     const callPartnerRef = useRef<string | null>(null)
+    const selectedSpeakerRef = useRef<string>('default')
 
     // Keep refs in sync with state (fixes closure bugs in audio processor and WebSocket handlers)
     useEffect(() => {
@@ -341,6 +344,10 @@ function App() {
     useEffect(() => {
         callPartnerRef.current = callPartner
     }, [callPartner])
+
+    useEffect(() => {
+        selectedSpeakerRef.current = selectedSpeakerId
+    }, [selectedSpeakerId])
 
     // Check for existing identity on load
     useEffect(() => {
@@ -825,7 +832,7 @@ function App() {
     // VOICE CALL FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Enumerate available audio input devices
+    // Enumerate available audio input and output devices
     const loadAudioDevices = async () => {
         try {
             console.log('[Voice] Requesting microphone permission...')
@@ -836,8 +843,11 @@ function App() {
 
             const devices = await navigator.mediaDevices.enumerateDevices()
             const audioInputs = devices.filter(d => d.kind === 'audioinput')
-            console.log('[Voice] Found audio devices:', audioInputs.length, audioInputs.map(d => d.label || d.deviceId))
+            const audioOutputs = devices.filter(d => d.kind === 'audiooutput')
+            console.log('[Voice] Found input devices:', audioInputs.length, audioInputs.map(d => d.label || d.deviceId))
+            console.log('[Voice] Found output devices:', audioOutputs.length, audioOutputs.map(d => d.label || d.deviceId))
             setAudioDevices(audioInputs)
+            setAudioOutputDevices(audioOutputs)
 
             // If we have a saved preference, validate it still exists
             if (selectedMicId !== 'default') {
@@ -847,25 +857,53 @@ function App() {
                     setSelectedMicId('default')
                 }
             }
+            // Validate speaker selection
+            if (selectedSpeakerId !== 'default') {
+                const exists = audioOutputs.some(d => d.deviceId === selectedSpeakerId)
+                if (!exists) {
+                    console.log('[Voice] Previously selected speaker not found, using default')
+                    setSelectedSpeakerId('default')
+                }
+            }
         } catch (error: unknown) {
             console.error('[Voice] Error enumerating audio devices:', error)
             // Still try to enumerate without labels
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices()
                 const audioInputs = devices.filter(d => d.kind === 'audioinput')
-                console.log('[Voice] Found devices without labels:', audioInputs.length)
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput')
+                console.log('[Voice] Found devices without labels:', audioInputs.length, 'inputs,', audioOutputs.length, 'outputs')
                 setAudioDevices(audioInputs)
+                setAudioOutputDevices(audioOutputs)
             } catch (e) {
                 console.error('[Voice] Cannot enumerate devices:', e)
             }
         }
     }
 
-    // Initialize audio context for playback
-    const initAudioContext = () => {
+    // Initialize audio context for playback with optional output device
+    const initAudioContext = async (speakerId?: string) => {
+        const targetSinkId = speakerId || selectedSpeakerRef.current
+
         if (!audioContextRef.current) {
+            // Create new AudioContext
             audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+            console.log('[Voice] Created new AudioContext')
         }
+
+        // Try to set the output device if specified and not default
+        if (targetSinkId && targetSinkId !== 'default' && audioContextRef.current) {
+            try {
+                // setSinkId is available in Chromium-based browsers (including Electron)
+                if (typeof (audioContextRef.current as any).setSinkId === 'function') {
+                    await (audioContextRef.current as any).setSinkId(targetSinkId)
+                    console.log('[Voice] AudioContext output set to:', targetSinkId)
+                }
+            } catch (e) {
+                console.warn('[Voice] Could not set audio output device:', e)
+            }
+        }
+
         return audioContextRef.current
     }
 
@@ -887,7 +925,7 @@ function App() {
             console.log('[Voice] Got microphone stream:', stream.getAudioTracks()[0]?.label || 'Unknown')
             mediaStreamRef.current = stream
 
-            const audioContext = initAudioContext()
+            const audioContext = await initAudioContext()
             console.log('[Voice] AudioContext state:', audioContext.state, 'sampleRate:', audioContext.sampleRate)
 
             // Resume audio context if suspended (required by browser autoplay policy)
@@ -989,8 +1027,8 @@ function App() {
         setAudioLevel(0)
     }
 
-    // Play received audio
-    const playAudio = (base64Audio: string, from: string, sourceSampleRate?: number) => {
+    // Play received audio on the selected speaker
+    const playAudio = async (base64Audio: string, from: string, sourceSampleRate?: number) => {
         if (isMuted) {
             console.log('[Voice] Muted, skipping audio from', from)
             return
@@ -999,13 +1037,14 @@ function App() {
         try {
             // Use source sample rate if provided, otherwise assume 48000
             const originalSampleRate = sourceSampleRate || 48000
-            console.log('[Voice] RECEIVING audio from', from, 'bytes:', base64Audio.length, 'sampleRate:', originalSampleRate)
+            const speakerId = selectedSpeakerRef.current
+            console.log('[Voice] RECEIVING audio from', from, 'bytes:', base64Audio.length, 'sampleRate:', originalSampleRate, 'speaker:', speakerId || 'default')
 
-            const audioContext = initAudioContext()
+            const audioContext = await initAudioContext()
 
             // Resume if suspended
             if (audioContext.state === 'suspended') {
-                audioContext.resume()
+                await audioContext.resume()
                 console.log('[Voice] AudioContext resumed for playback')
             }
 
@@ -1834,6 +1873,35 @@ function App() {
                             )}
                             {audioDevices.length > 0 && (
                                 <p className="mic-count">{audioDevices.length} microphone(s) available</p>
+                            )}
+                        </div>
+
+                        {/* Speaker Settings Section */}
+                        <div className="settings-section">
+                            <h3>🔊 Speaker Settings</h3>
+                            <p className="settings-note">Select which speaker/headphones to use for voice call audio</p>
+                            <div className="mic-settings">
+                                <select
+                                    className="mic-select"
+                                    value={selectedSpeakerId}
+                                    onChange={(e) => setSelectedSpeakerId(e.target.value)}
+                                >
+                                    <option value="default">System Default</option>
+                                    {audioOutputDevices.map((device) => (
+                                        <option key={device.deviceId} value={device.deviceId}>
+                                            {device.label || `Speaker ${device.deviceId.substring(0, 8)}`}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button className="refresh-btn" onClick={loadAudioDevices} title="Refresh device list">
+                                    🔄
+                                </button>
+                            </div>
+                            {audioOutputDevices.length === 0 && (
+                                <p className="mic-note">Click 🔄 to scan for audio output devices.</p>
+                            )}
+                            {audioOutputDevices.length > 0 && (
+                                <p className="mic-count">{audioOutputDevices.length} speaker(s) available</p>
                             )}
                         </div>
 

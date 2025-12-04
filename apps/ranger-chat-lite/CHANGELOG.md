@@ -4,6 +4,29 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.7.4] - 2025-12-04 - "Audio Device Selection"
+
+### Added
+
+#### Speaker/Output Device Selection
+- **New Settings Section**: "🔊 Speaker Settings" in Settings panel
+- **Device Selection**: Dropdown shows all available audio output devices (speakers, headphones, monitors)
+- **Refresh Button**: 🔄 button to rescan for new audio output devices
+- **Device Count**: Shows number of available speakers
+- **Cross-Platform**: Works on macOS, Windows, and Linux
+- Selected speaker is used for voice call audio playback
+
+### Technical
+- `audioOutputDevices` state stores available output devices
+- `selectedSpeakerId` state persists speaker choice
+- `selectedSpeakerRef` ref for accessing speaker ID in callbacks
+- `initAudioContext()` now supports `setSinkId()` for output device routing
+- `loadAudioDevices()` enumerates both input AND output devices
+- `playAudio()` routes audio to selected speaker via AudioContext sinkId
+- Fixes cross-machine audio issues where wrong output device was selected
+
+---
+
 ## [1.7.3] - 2025-12-04 - "Quick Call & Mic Settings"
 
 ### Added
