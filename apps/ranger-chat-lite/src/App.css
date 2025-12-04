@@ -2444,6 +2444,8 @@ body {
 
 [data-theme="tron"] .mine-btn {
     box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
 .contracts-note a {
     color: var(--accent);
     text-decoration: none;
