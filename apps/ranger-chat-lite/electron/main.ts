@@ -6,7 +6,7 @@ import { identityService, UserIdentity } from './identityService'
 // ═══════════════════════════════════════════════════════════════════════════
 // VERSION & UPDATE CHECK
 // ═══════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.3.1'
+const APP_VERSION = '1.4.1'
 const VERSIONS_URL = 'https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json'
 
 interface UpdateInfo {
