@@ -410,8 +410,8 @@ class IdentityService {
             identity,
             settings: finalSettings,
             stats: {
-                messagesSent: identity.messagesSent || 0,
-                sessionsCount: identity.sessionsCount || 1,
+                messagesSent: 0,
+                sessionsCount: 1,
                 firstSeen: identity.created
             }
         }

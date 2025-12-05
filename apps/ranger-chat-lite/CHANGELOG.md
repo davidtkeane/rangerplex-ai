@@ -4,6 +4,61 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.8.0] - 2025-12-05 - "Ranger Radio" 📻
+
+### Added
+
+#### Ranger Radio Integration
+- **📻 Radio Button**: New radio button in header to toggle Ranger Radio on/off
+- **22+ SomaFM Stations**: Curated stations organized by genre:
+  - 🎧 **Ambient/Focus**: Groove Salad, Drone Zone, Deep Space One, Space Station, Mission Control
+  - 💻 **Electronic/Coding**: DEF CON Radio, Beat Blender, cliqhop idm, The Trip, Dubstep Beyond
+  - 🎷 **Lounge/Chill**: Lush, Secret Agent, Bossa Beyond
+  - 🎸 **Rock/Alternative**: Indie Pop Rocks!, Underground 80s
+  - 🤘 **Metal**: Metal Detector
+  - 🎺 **Jazz/Soul**: Sonic Universe, Seven Inch Soul
+  - 🌍 **World**: ThistleRadio, Heavyweight Reggae
+  - 🎄 **Holiday**: Christmas Lounge, Christmas Rocks!
+
+#### Radio UI
+- **Minimized Mode**: Slim bar with inline controls (⏮ ▶ ⏭), station name, volume slider, expand/close buttons
+- **Expanded Mode**: Full controls with large play button, station description, genre selector dropdown
+- **Audio Visualizer**: Real-time frequency bars using Web Audio API - gradient-colored bars pulse to the beat
+- **Theme-Aware**: Radio bar styling matches all 4 themes (Classic, Matrix, Tron, Retro)
+- **Positioned Above Chat Input**: Radio sits in the chat flow, never covers the message input
+
+#### Radio Controls
+- **Play/Pause**: Large play button with glow animation when playing
+- **Previous/Next**: Skip through stations
+- **Volume Slider**: Adjust volume with visual feedback
+- **Station Selector**: Dropdown organized by genre with optgroups
+- **Minimize/Expand**: Toggle between compact and full views
+- **Close Button**: Stop radio and hide the player
+
+### Changed
+
+#### Header Improvements
+- **Removed Peer Count**: Cleaned up header by removing "X online" display
+- **Compact Buttons**: Header buttons reduced to 32px for better fit
+- **No Overflow**: Buttons use `flex-shrink: 0` so Settings button is always visible
+- **Responsive Title**: App title truncates gracefully on narrow windows
+
+### Technical
+- **Web Audio API**: AudioContext, AnalyserNode, getByteFrequencyData for visualizer
+- **Canvas Rendering**: 32-bar frequency visualizer with gradient colors
+- **CORS Handling**: Electron session.webRequest adds User-Agent and Referer headers for SomaFM streams
+- **Settings Persistence**: Radio settings (enabled, volume, last station, minimized) saved to localStorage
+- **crossOrigin="anonymous"**: Audio element configured for Web Audio API access
+
+### Accessibility (Planned for Phase 2)
+- Large touch targets (48px minimum) per WCAG 2.1 AA
+- ARIA labels for screen readers
+- Keyboard navigation (Space=Play, M=Mute, arrows=Volume/Station)
+- High contrast mode support
+- Voice commands ("Ranger, play radio")
+
+---
+
 ## [1.7.6] - 2025-12-04 - "Custom Login Picture"
 
 ### Added

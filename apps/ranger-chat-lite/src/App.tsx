@@ -253,7 +253,7 @@ const EMOJI_DATA = {
 }
 
 // App views
-type ViewType = 'login' | 'chat' | 'settings' | 'ledger' | 'radio'
+type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
 const APP_VERSION = '1.7.6'
@@ -274,7 +274,7 @@ function App() {
     const [serverUrl, setServerUrl] = useState('ws://44.222.101.125:5555')
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
-    const [peerCount, setPeerCount] = useState(0)
+    const [_peerCount, setPeerCount] = useState(0)
 
     // UI state
     const [theme, setTheme] = useState<ThemeName>('classic')
@@ -286,7 +286,7 @@ function App() {
 
     // Settings state
     const [storagePaths, setStoragePaths] = useState<any>(null)
-    const [identityExport, setIdentityExport] = useState<string | null>(null)
+    const [_identityExport, setIdentityExport] = useState<string | null>(null)
 
     // Blockchain transaction log
     const [transactions, setTransactions] = useState<BlockchainTx[]>([])
@@ -372,7 +372,6 @@ function App() {
     const audioContextRef = useRef<AudioContext | null>(null)
     const analyserRef = useRef<AnalyserNode | null>(null)
     const processorRef = useRef<ScriptProcessorNode | null>(null)
-    const audioQueueRef = useRef<Float32Array[]>([])
     const ringIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const chatHistoryRef = useRef<HTMLDivElement>(null)
@@ -1268,7 +1267,7 @@ function App() {
 
         // Timeout after 30 seconds
         setTimeout(() => {
-            if (callState === 'calling') {
+            if (callStateRef.current === 'calling') {
                 setCallState('idle')
                 setCallPartner(null)
                 setMessages(prev => [...prev, {
@@ -1692,7 +1691,6 @@ function App() {
                         <div className="header-left">
                             <span className="header-icon">🦅</span>
                             <span className="header-title">RangerChat</span>
-                            <span className="peer-count">{peerCount} online</span>
                         </div>
                         <div className="header-right">
                             {/* Voice Call Button */}
@@ -1713,8 +1711,8 @@ function App() {
                             </button>
                             <button
                                 className={`header-btn ${radioSettings.radioEnabled ? 'active' : ''}`}
-                                onClick={() => setView('radio')}
-                                title="Ranger Radio"
+                                onClick={() => handleRadioSettingsChange({ radioEnabled: !radioSettings.radioEnabled, radioMinimized: false })}
+                                title={radioSettings.radioEnabled ? 'Close Radio' : 'Open Radio'}
                             >
                                 📻
                             </button>
@@ -1900,6 +1898,15 @@ function App() {
                                 ))}
                             </div>
                         </div>
+                    )}
+
+                    {/* Radio Player - Above chat input */}
+                    {radioSettings.radioEnabled && (
+                        <RadioPlayer
+                            settings={radioSettings}
+                            onSettingsChange={handleRadioSettingsChange}
+                            theme={theme}
+                        />
                     )}
 
                     <div className="chat-input-area">
@@ -2688,48 +2695,6 @@ function App() {
                         </div>
                     </div>
                 </div>
-            )}
-
-            {/* RADIO VIEW */}
-            {view === 'radio' && (
-                <div className="radio-screen">
-                    <div className="radio-header">
-                        <button className="back-btn" onClick={() => setView('chat')}>
-                            ← Back to Chat
-                        </button>
-                        <div className="radio-mode-switch">
-                            <button
-                                className={view === 'chat' ? 'mode-btn active' : 'mode-btn'}
-                                onClick={() => setView('chat')}
-                            >
-                                💬 Chat
-                            </button>
-                            <button
-                                className={view === 'radio' ? 'mode-btn active' : 'mode-btn'}
-                                onClick={() => setView('radio')}
-                            >
-                                📻 Radio
-                            </button>
-                        </div>
-                    </div>
-                    <RadioPlayer
-                        settings={radioSettings}
-                        onSettingsChange={handleRadioSettingsChange}
-                        theme={theme}
-                        isFullMode={true}
-                        onClose={() => setView('chat')}
-                    />
-                </div>
-            )}
-
-            {/* Floating Radio Mini Player (when enabled and not in radio view) */}
-            {radioSettings.radioEnabled && view !== 'radio' && view !== 'login' && (
-                <RadioPlayer
-                    settings={radioSettings}
-                    onSettingsChange={handleRadioSettingsChange}
-                    theme={theme}
-                    isFullMode={false}
-                />
             )}
         </div>
     )

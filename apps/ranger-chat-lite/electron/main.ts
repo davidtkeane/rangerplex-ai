@@ -1,12 +1,12 @@
-import { app, BrowserWindow, Menu, shell, ipcMain, dialog, Notification } from 'electron'
+import { app, BrowserWindow, Menu, shell, ipcMain, Notification, session } from 'electron'
 import path from 'node:path'
 import https from 'node:https'
 import fs from 'node:fs'
 import os from 'node:os'
-import { identityService, UserIdentity } from './identityService'
+import { identityService } from './identityService'
 
 // Ledger Service - using require for CommonJS module
-const { ledger, TX_TYPES } = require('../../../rangerblock/lib/ledger-service.cjs')
+const { ledger } = require('../../../rangerblock/lib/ledger-service.cjs')
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ADMIN DETECTION - Check ~/.claude/ranger/admin/data/users.json
@@ -159,6 +159,16 @@ function createWindow() {
     win.webContents.on('did-finish-load', () => {
         win?.webContents.send('main-process-message', (new Date).toLocaleString())
     })
+
+    // 📻 RANGER RADIO: Add User-Agent header for SomaFM streams (fixes 403 errors)
+    session.defaultSession.webRequest.onBeforeSendHeaders(
+        { urls: ['*://*.somafm.com/*', '*://somafm.com/*'] },
+        (details, callback) => {
+            details.requestHeaders['User-Agent'] = 'RangerChat/1.8.0 (Electron; RangerPlex)'
+            details.requestHeaders['Referer'] = 'https://somafm.com/'
+            callback({ requestHeaders: details.requestHeaders })
+        }
+    )
 
     if (VITE_DEV_SERVER_URL) {
         win.loadURL(VITE_DEV_SERVER_URL)
@@ -350,12 +360,13 @@ ipcMain.handle('admin:getStatus', async () => {
     console.log('[Admin] Raw identity storage:', JSON.stringify(storage, null, 2).substring(0, 500))
 
     // Identity might be nested in storage.identity
-    const identity = storage?.identity || storage
-    console.log('[Admin] Using userId:', identity?.userId)
+    const identity = (storage as any)?.identity || storage
+    const userId = (identity as any)?.userId
+    console.log('[Admin] Using userId:', userId)
 
-    if (identity && identity.userId) {
-        const status = getAdminStatus(identity.userId)
-        console.log(`[Admin] Checked status for ${identity.userId}: ${JSON.stringify(status)}`)
+    if (identity && userId) {
+        const status = getAdminStatus(userId)
+        console.log(`[Admin] Checked status for ${userId}: ${JSON.stringify(status)}`)
         return status
     }
     console.log('[Admin] No userId found in identity')
@@ -573,7 +584,7 @@ app.whenReady().then(async () => {
 })
 
 // Cleanup on quit
-app.on('before-quit', async (event) => {
+app.on('before-quit', async (_event) => {
     console.log('[Main] App is quitting - cleaning up...')
 
     // Shutdown ledger if initialized
@@ -594,7 +605,7 @@ app.on('before-quit', async (event) => {
 })
 
 // Force exit when quitting to ensure all processes are killed
-app.on('will-quit', (event) => {
+app.on('will-quit', (_event) => {
     console.log('[Main] Will quit - forcing process exit')
     // Small delay to ensure cleanup completes, then force exit
     setTimeout(() => {
