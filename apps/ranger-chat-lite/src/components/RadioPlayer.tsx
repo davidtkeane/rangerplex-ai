@@ -107,6 +107,11 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const animationRef = useRef<number | null>(null);
 
+  // 🎸 Ranger Easter Egg - Show rangersmyth-pic.png after 5s of inactivity
+  const [showRangerPic, setShowRangerPic] = useState(false);
+  const [isHoveringButton, setIsHoveringButton] = useState(false);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Mode: radio or podcast
   const [mode, setMode] = useState<'radio' | 'podcast'>(settings.podcastMode ? 'podcast' : 'radio');
 
@@ -145,6 +150,29 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
       default: return { primary: '#4da6ff', secondary: '#2d5a87', bg: '#1e3a5f' };
     }
   }, [theme]);
+
+  // 🎸 Reset inactivity timer (called on any user interaction)
+  const resetInactivityTimer = useCallback(() => {
+    setShowRangerPic(false);
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = setTimeout(() => {
+      setShowRangerPic(true);
+    }, 5000); // 5 seconds
+  }, []);
+
+  // 🎸 Setup and cleanup inactivity timer
+  useEffect(() => {
+    if (!isMinimized) {
+      resetInactivityTimer();
+    }
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [isMinimized, resetInactivityTimer]);
 
   // 🎵 Audio Visualizer
   const drawVisualizer = useCallback(() => {
@@ -290,6 +318,7 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
   const handlePlay = async () => {
     if (!audioRef.current) return;
 
+    resetInactivityTimer(); // 🎸 Reset timer on interaction
     setIsLoading(true);
     setError(null);
 
@@ -319,17 +348,20 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
   const handlePause = () => {
     if (audioRef.current) {
+      resetInactivityTimer(); // 🎸 Reset timer on interaction
       audioRef.current.pause();
       setIsPlaying(false);
     }
   };
 
   const handleVolumeChange = (newVolume: number) => {
+    resetInactivityTimer(); // 🎸 Reset timer on interaction
     setVolume(newVolume);
     onSettingsChange({ radioVolume: newVolume });
   };
 
   const handleStationChange = (stationId: string) => {
+    resetInactivityTimer(); // 🎸 Reset timer on interaction
     const station = RADIO_STATIONS.find(s => s.id === stationId);
     if (station) {
       const wasPlaying = isPlaying;
@@ -476,11 +508,15 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
           <div className="radio-mini">
             <button className="radio-ctrl-btn" onClick={handlePrevStation} title="Previous">⏮</button>
             <button
-              className={`radio-ctrl-btn play ${isPlaying ? 'playing' : ''}`}
+              className={`radio-ctrl-btn play ${isPlaying ? 'playing' : ''} ${showRangerPic && !isHoveringButton ? 'ranger-pic-active' : ''}`}
               onClick={isPlaying ? handlePause : handlePlay}
+              onMouseEnter={() => setIsHoveringButton(true)}
+              onMouseLeave={() => setIsHoveringButton(false)}
               disabled={isLoading}
             >
-              {isLoading ? '⟳' : isPlaying ? '⏸' : '▶'}
+              {showRangerPic && !isHoveringButton ? (
+                <img src="rangersmyth-pic.png" alt="Ranger" className="ranger-overlay-pic" />
+              ) : isLoading ? '⟳' : isPlaying ? '⏸' : '▶'}
             </button>
             <button className="radio-ctrl-btn" onClick={handleNextStation} title="Next">⏭</button>
 
@@ -564,11 +600,15 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
             <div className="radio-exp-main-controls">
               <button className="radio-ctrl-btn lg" onClick={handlePrevStation}>⏮</button>
               <button
-                className={`radio-ctrl-btn xl play ${isPlaying ? 'playing' : ''}`}
+                className={`radio-ctrl-btn xl play ${isPlaying ? 'playing' : ''} ${showRangerPic && !isHoveringButton ? 'ranger-pic-active' : ''}`}
                 onClick={isPlaying ? handlePause : handlePlay}
+                onMouseEnter={() => setIsHoveringButton(true)}
+                onMouseLeave={() => setIsHoveringButton(false)}
                 disabled={isLoading}
               >
-                {isLoading ? '⟳' : isPlaying ? '⏸' : '▶'}
+                {showRangerPic && !isHoveringButton ? (
+                  <img src="rangersmyth-pic.png" alt="Ranger" className="ranger-overlay-pic" />
+                ) : isLoading ? '⟳' : isPlaying ? '⏸' : '▶'}
               </button>
               <button className="radio-ctrl-btn lg" onClick={handleNextStation}>⏭</button>
             </div>
