@@ -76,11 +76,14 @@ const PERMISSION_COLORS: Record<PermissionLevel, string> = {
 
 // Machine Registry - All RangerBlock Network Nodes
 // These sync across the network when machines connect
-const NODE_NETWORK: Record<string, Omit<NodeInfo, 'online' | 'permission' | 'key'>> = {
+// Supreme Admin userId - IrishRanger
+const SUPREME_ADMIN_USERID = 'rb_c5d415076f04e989';
+
+const NODE_NETWORK: Record<string, Omit<NodeInfo, 'online' | 'permission' | 'key'> & { userId?: string }> = {
     // === MACOS MACHINES (RangerPlex Full Install) ===
-    'M3Pro': { name: 'M3 Pro Genesis', ip: '192.168.1.35', type: 'genesis', emoji: '🏛️' },
-    'M1Air': { name: 'M1 Air Peer', ip: '192.168.1.31', type: 'peer', emoji: '🍎' },
-    'M4Max': { name: 'M4 Max Compute', ip: '192.168.1.4', type: 'compute', emoji: '⚡' },
+    'M3Pro': { name: 'M3 Pro Genesis', ip: '192.168.1.35', type: 'genesis', emoji: '🏛️', userId: SUPREME_ADMIN_USERID },
+    'M1Air': { name: 'M1 Air Peer', ip: '192.168.1.31', type: 'peer', emoji: '🍎', userId: SUPREME_ADMIN_USERID },
+    'M4Max': { name: 'M4 Max Compute', ip: '192.168.1.4', type: 'compute', emoji: '⚡', userId: SUPREME_ADMIN_USERID },
     // === CLOUD SERVERS (24/7 Relay) ===
     'AWSKali': { name: 'AWS Kali (24/7)', ip: '44.222.101.125', type: 'relay', emoji: '🌩️' },
     'GCloudKali': { name: 'GCloud Kali (offline)', ip: '34.26.30.249', type: 'relay', emoji: '☁️' },
@@ -1265,11 +1268,14 @@ const BlockchainChat: React.FC<BlockchainChatProps> = ({ isOpen, onClose }) => {
 
         // Send via WebSocket broadcast to all peers
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            const nodeInfo = currentNode ? NODE_NETWORK[currentNode] : null;
             wsRef.current.send(JSON.stringify({
                 type: 'broadcast',
                 payload: {
                     type: 'chatMessage',
                     from: currentNode,
+                    nickname: nodeInfo?.name || currentNode,
+                    userId: nodeInfo?.userId,  // Include userId for admin recognition
                     message: inputMessage,
                     channel: currentChannel,
                     timestamp: Date.now()

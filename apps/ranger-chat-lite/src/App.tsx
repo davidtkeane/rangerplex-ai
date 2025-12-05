@@ -774,7 +774,15 @@ function App() {
                         break
                     case 'broadcast':
                     case 'nodeMessage':
-                        if (data.payload) handlePayload(data.payload)
+                        if (data.payload) {
+                            // Pass sender info from root level if not in payload
+                            const enrichedPayload = {
+                                ...data.payload,
+                                nickname: data.payload.nickname || data.fromName || data.from,
+                                from: data.payload.from || data.fromNodeId || data.from
+                            }
+                            handlePayload(enrichedPayload)
+                        }
                         break
                     case 'broadcastSent':
                         break

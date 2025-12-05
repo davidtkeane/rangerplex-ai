@@ -622,7 +622,10 @@ Rangers lead the way!`;
             payload: {
                 type: 'chat',
                 content: content,
-                channel: '#rangers'
+                channel: '#rangers',
+                // Include sender info in payload for clients
+                nickname: this.name,
+                from: this.id
             },
             isBot: true,
             timestamp: Date.now()
@@ -1382,8 +1385,9 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
             }));
 
             // 🤖 RangerBot - Check for bot commands in chat messages
-            if (msg.payload && msg.payload.content && typeof msg.payload.content === 'string') {
-                const content = msg.payload.content.trim();
+            const msgContent = msg.payload?.content || msg.payload?.message;
+            if (msgContent && typeof msgContent === 'string') {
+                const content = msgContent.trim();
                 if (content.startsWith('!')) {
                     const parts = content.split(' ');
                     const command = parts[0];

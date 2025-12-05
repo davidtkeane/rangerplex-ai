@@ -4,6 +4,55 @@ All notable changes to RangerBlock will be documented here.
 
 ---
 
+## [5.4.0] - 2025-12-04
+
+### Added - Mesh Network Architecture (MESH PROTOCOL)
+
+#### GCP Relay Bridge
+- GCP relay server (34.139.148.91) now bridges to AWS relay (44.222.101.125)
+- Full redundancy: if one relay goes down, other continues operation
+- Messages automatically relay between both cloud providers
+
+#### Setup Script v3.0.0 (MESH NETWORK EDITION)
+- **New modes**: PRIMARY, MESH, CLIENT
+- **Bridge peer configuration**: Auto-generates proper JSON with host/port
+- **Systemd service**: Auto-starts relay on boot
+- **Premium features**: AI bots (RangerBot, EagleEye) via BuyMeACoffee
+
+#### Network Topology
+```
+┌─────────────────────────────────────────────────────┐
+│                 MESH NETWORK                         │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│   ┌─────────────┐         ┌─────────────┐          │
+│   │   AWS EC2   │◄═══════►│    GCP VM   │          │
+│   │ 44.222.101  │  BRIDGE │ 34.139.148  │          │
+│   ├─────────────┤         ├─────────────┤          │
+│   │ RangerBot   │         │  EagleEye   │          │
+│   │    🤖       │         │     🦅      │          │
+│   └─────────────┘         └─────────────┘          │
+│          │                       │                  │
+│          └───────┬───────────────┘                  │
+│                  ▼                                   │
+│           ┌─────────────┐                           │
+│           │ Chat Clients│                           │
+│           └─────────────┘                           │
+└─────────────────────────────────────────────────────┘
+```
+
+#### Files Updated
+| File | Changes |
+|------|---------|
+| `server-only/setup-relay-universal.sh` | v3.0.0 with mesh mode |
+| `relay-server.cjs` | Bridge peer connection support |
+
+#### Known Issues
+- `!peers` command not yet implemented (relay-server.cjs)
+- Duplicate messages when both bots respond to `!commands`
+
+---
+
 ## [5.3.0] - 2025-12-04
 
 ### Added - File Transfer Smart Contracts (COURIER PROTOCOL)

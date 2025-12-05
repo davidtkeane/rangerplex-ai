@@ -46,6 +46,14 @@ INSTALL_DIR="$HOME/rangerblock-server"
 SKIP_MENU=false
 BOLD='\033[1m'
 
+# NEW: Mesh Network Defaults
+RELAY_MODE="primary"          # primary, mesh, client
+BRIDGE_PEERS=""               # comma-separated list of peer addresses
+INSTALL_RANGERBOT=false
+INSTALL_EAGLEEYE=false
+GEMINI_API_KEY=""
+AWS_RELAY="44.222.101.125:5555"   # Default AWS relay
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -81,6 +89,26 @@ while [[ $# -gt 0 ]]; do
             SKIP_MENU=true
             shift
             ;;
+        --mode)
+            RELAY_MODE="$2"
+            shift 2
+            ;;
+        --bridge)
+            BRIDGE_PEERS="$2"
+            shift 2
+            ;;
+        --with-rangerbot)
+            INSTALL_RANGERBOT=true
+            shift
+            ;;
+        --with-eagleeye)
+            INSTALL_EAGLEEYE=true
+            shift
+            ;;
+        --gemini-key)
+            GEMINI_API_KEY="$2"
+            shift 2
+            ;;
         *)
             shift
             ;;
@@ -92,11 +120,12 @@ clear
 echo -e "${CYAN}"
 cat << 'EOF'
  ======================================================================
-       RANGERBLOCK RELAY SERVER - ONE-CLICK INSTALLER
+       RANGERBLOCK RELAY SERVER - MESH NETWORK INSTALLER
  ======================================================================
        🐉 P2P Blockchain Network for Security Professionals 🐉
        Created by IrishRanger + Claude Code (Ranger)
-       Version 2.2.0 - Multi-Cloud Auto-Detection (8 providers!)
+       Version 3.0.0 - MESH NETWORK EDITION
+       Supports: PRIMARY | MESH | CLIENT modes
  ======================================================================
 EOF
 echo -e "${NC}"
@@ -109,52 +138,88 @@ if [ "$SKIP_MENU" = false ]; then
     echo -e "${BOLD}What would you like to do?${NC}\n"
 
     echo -e "${GREEN}┌─────────────────────────────────────────────────────────────────┐${NC}"
-    echo -e "${GREEN}│  ${BOLD}1. 🚀 QUICK INSTALL (Recommended)${NC}${GREEN}                             │${NC}"
-    echo -e "${GREEN}│     Auto-detects your platform and installs everything         │${NC}"
-    echo -e "${GREEN}│     Works on: AWS, GCP, Azure, DigitalOcean, Linode, Vultr,    │${NC}"
-    echo -e "${GREEN}│               Oracle, Hetzner, VMs, and local Linux/Mac        │${NC}"
+    echo -e "${GREEN}│  ${BOLD}1. 🚀 PRIMARY RELAY (Standalone Server)${NC}${GREEN}                        │${NC}"
+    echo -e "${GREEN}│     Install as a PRIMARY relay server - accepts all connections │${NC}"
+    echo -e "${GREEN}│     Good for: First server, main hub, or isolated network       │${NC}"
     echo -e "${GREEN}└─────────────────────────────────────────────────────────────────┘${NC}"
     echo ""
+    echo -e "${CYAN}┌─────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│  ${BOLD}2. 🌐 MESH NODE (Relay + Bridge to Peers) [RECOMMENDED]${NC}${CYAN}        │${NC}"
+    echo -e "${CYAN}│     Full relay server that bridges to other relays              │${NC}"
+    echo -e "${CYAN}│     Messages sync between all mesh nodes - full redundancy!     │${NC}"
+    echo -e "${CYAN}│     Default bridge: AWS (44.222.101.125:5555)                   │${NC}"
+    echo -e "${CYAN}└─────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
     echo -e "${BLUE}┌─────────────────────────────────────────────────────────────────┐${NC}"
-    echo -e "${BLUE}│  ${BOLD}2. 🔧 CUSTOM INSTALL${NC}${BLUE}                                            │${NC}"
-    echo -e "${BLUE}│     Choose your machine name and enable ngrok                   │${NC}"
+    echo -e "${BLUE}│  ${BOLD}3. 📡 CLIENT ONLY (No Relay Server)${NC}${BLUE}                             │${NC}"
+    echo -e "${BLUE}│     Just install chat tools - connect to existing relay         │${NC}"
+    echo -e "${BLUE}│     Good for: End users who just want to chat                   │${NC}"
     echo -e "${BLUE}└─────────────────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "${MAGENTA}┌─────────────────────────────────────────────────────────────────┐${NC}"
-    echo -e "${MAGENTA}│  ${BOLD}3. 📖 SHOW HELP & MANUAL INSTRUCTIONS${NC}${MAGENTA}                        │${NC}"
+    echo -e "${MAGENTA}│  ${BOLD}4. 📖 SHOW HELP & MANUAL INSTRUCTIONS${NC}${MAGENTA}                        │${NC}"
     echo -e "${MAGENTA}└─────────────────────────────────────────────────────────────────┘${NC}"
     echo ""
 
-    read -p "Enter your choice [1-3] (default: 1): " menu_choice
-    menu_choice=${menu_choice:-1}
+    read -p "Enter your choice [1-4] (default: 2): " menu_choice
+    menu_choice=${menu_choice:-2}
 
     case $menu_choice in
         1)
-            echo -e "\n${GREEN}🚀 Starting Quick Install...${NC}\n"
+            echo -e "\n${GREEN}🚀 PRIMARY RELAY - Standalone Server${NC}\n"
+            RELAY_MODE="primary"
+            read -p "Enter machine name (or press Enter for auto-detect): " custom_name
+            if [ -n "$custom_name" ]; then
+                MACHINE_NAME="$custom_name"
+            fi
             ;;
         2)
-            echo -e "\n${BLUE}🔧 Custom Install${NC}\n"
+            echo -e "\n${CYAN}🌐 MESH NODE - Relay + Bridge to Peers${NC}\n"
+            RELAY_MODE="mesh"
+
             read -p "Enter machine name (or press Enter for auto-detect): " custom_name
             if [ -n "$custom_name" ]; then
                 MACHINE_NAME="$custom_name"
             fi
 
-            read -p "Install ngrok for internet tunneling? (y/N): " install_ngrok
-            if [ "$install_ngrok" = "y" ] || [ "$install_ngrok" = "Y" ]; then
-                WITH_NGROK=true
-                read -p "Enter ngrok authtoken (or press Enter to add later): " ngrok_input
-                if [ -n "$ngrok_input" ]; then
-                    NGROK_TOKEN="$ngrok_input"
-                fi
+            # Bridge peer configuration
+            echo ""
+            echo -e "${BOLD}Bridge Peer Configuration:${NC}"
+            echo -e "  Default: AWS Relay (44.222.101.125:5555)"
+            read -p "Use default AWS relay as bridge peer? (Y/n): " use_default
+            if [ "$use_default" != "n" ] && [ "$use_default" != "N" ]; then
+                BRIDGE_PEERS="$AWS_RELAY"
             fi
 
-            read -p "Auto-start relay after install? (Y/n): " auto_start_input
-            if [ "$auto_start_input" != "n" ] && [ "$auto_start_input" != "N" ]; then
-                AUTO_START=true
+            read -p "Add additional bridge peers? (comma-separated, or Enter to skip): " extra_peers
+            if [ -n "$extra_peers" ]; then
+                if [ -n "$BRIDGE_PEERS" ]; then
+                    BRIDGE_PEERS="$BRIDGE_PEERS,$extra_peers"
+                else
+                    BRIDGE_PEERS="$extra_peers"
+                fi
             fi
+            echo -e "${GREEN}  Bridge peers: $BRIDGE_PEERS${NC}"
+
+            # AI Bot info (premium feature)
+            echo ""
+            echo -e "${YELLOW}📢 AI Bots (RangerBot & EagleEye) are a premium feature!${NC}"
+            echo -e "   Support the project at: ${CYAN}https://buymeacoffee.com/irishranger${NC}"
+            echo -e "   \$5 gets you AI bot access with full setup instructions."
             echo ""
             ;;
         3)
+            echo -e "\n${BLUE}📡 CLIENT ONLY - Connect to Existing Relay${NC}\n"
+            RELAY_MODE="client"
+            read -p "Enter relay server address (default: $AWS_RELAY): " relay_addr
+            if [ -n "$relay_addr" ]; then
+                BRIDGE_PEERS="$relay_addr"
+            else
+                BRIDGE_PEERS="$AWS_RELAY"
+            fi
+            echo -e "${GREEN}  Will connect to: $BRIDGE_PEERS${NC}"
+            ;;
+        4)
             clear
             echo -e "${CYAN}"
             echo "╔═══════════════════════════════════════════════════════════════════╗"
@@ -761,6 +826,29 @@ IDENTITY_EOF
     echo -e "${GREEN}  ✅ Node identity created: $NODE_ID${NC}"
 fi
 
+# Convert bridge peers to JSON array with proper host/port objects
+BRIDGE_PEERS_JSON="[]"
+if [ -n "$BRIDGE_PEERS" ]; then
+    # Convert comma-separated list (e.g., "44.222.101.125:5555") to JSON peer objects
+    PEER_NUM=1
+    PEERS_ARRAY=""
+    IFS=',' read -ra PEER_ARRAY <<< "$BRIDGE_PEERS"
+    for peer in "${PEER_ARRAY[@]}"; do
+        # Parse host:port format
+        PEER_HOST=$(echo "$peer" | cut -d':' -f1 | tr -d ' ')
+        PEER_PORT=$(echo "$peer" | cut -d':' -f2 | tr -d ' ')
+        [ -z "$PEER_PORT" ] && PEER_PORT="5555"  # Default port
+
+        # Build JSON object
+        if [ -n "$PEERS_ARRAY" ]; then
+            PEERS_ARRAY="$PEERS_ARRAY,"
+        fi
+        PEERS_ARRAY="$PEERS_ARRAY{\"host\": \"$PEER_HOST\", \"port\": $PEER_PORT, \"name\": \"Peer-$PEER_NUM\", \"enabled\": true}"
+        PEER_NUM=$((PEER_NUM + 1))
+    done
+    BRIDGE_PEERS_JSON="[$PEERS_ARRAY]"
+fi
+
 # Create relay config
 cat > relay-config.json << CONFIG_EOF
 {
@@ -770,21 +858,33 @@ cat > relay-config.json << CONFIG_EOF
     "dashboardPort": 5556,
     "region": "$PLATFORM_TYPE",
     "vmType": "$VM_TYPE",
-    "networkMode": "$NETWORK_MODE"
+    "networkMode": "$NETWORK_MODE",
+    "relayMode": "$RELAY_MODE"
   },
   "bridge": {
-    "enabled": true,
+    "enabled": $([ "$RELAY_MODE" = "mesh" ] && echo "true" || echo "false"),
     "reconnectInterval": 5000,
     "heartbeatInterval": 30000,
-    "peers": []
+    "peers": $BRIDGE_PEERS_JSON
+  },
+  "premium": {
+    "botsAvailable": false,
+    "supportUrl": "https://buymeacoffee.com/irishranger"
   }
 }
 CONFIG_EOF
+echo -e "${GREEN}  ✅ Relay config created (Mode: $RELAY_MODE)${NC}"
+if [ -n "$BRIDGE_PEERS" ]; then
+    echo -e "${GREEN}  ✅ Bridge peers: $BRIDGE_PEERS${NC}"
+fi
 
 # Install npm dependencies
 echo -e "${BLUE}  📦 Installing npm packages...${NC}"
 npm install --production --silent 2>/dev/null || npm install --production
 echo -e "${GREEN}  ✅ Dependencies installed${NC}"
+
+# AI Bots are a PREMIUM feature - not included in public script
+# Supporters get access at: https://buymeacoffee.com/irishranger
 
 # =====================================================================
 # NGROK SETUP (IF REQUESTED)
@@ -994,10 +1094,6 @@ fi
 echo ""
 echo -e "${GREEN}Rangers lead the way! 🎖️${NC}"
 echo ""
-        sudo ufw allow 5556/tcp >/dev/null 2>&1 || true
-        echo -e "${GREEN}  ✅ Firewall configured (ports 5555, 5556)${NC}"
-    fi
-fi
 
 # =====================================================================
 # DONE!
