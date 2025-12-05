@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import RadioPlayer, { RadioSettings } from './components/RadioPlayer'
 
 // Electron API type declaration
 declare global {
@@ -252,7 +253,7 @@ const EMOJI_DATA = {
 }
 
 // App views
-type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
+type ViewType = 'login' | 'chat' | 'settings' | 'ledger' | 'radio'
 
 // Current app version
 const APP_VERSION = '1.7.6'
@@ -340,6 +341,31 @@ function App() {
     const [selectedMicId, setSelectedMicId] = useState<string>('default')
     const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([])
     const [selectedSpeakerId, setSelectedSpeakerId] = useState<string>('default')
+
+    // Radio state
+    const [radioSettings, setRadioSettings] = useState<RadioSettings>(() => {
+        const saved = localStorage.getItem('rangerRadioSettings')
+        if (saved) {
+            try {
+                return JSON.parse(saved)
+            } catch { }
+        }
+        return {
+            radioEnabled: false,
+            radioVolume: 0.5,
+            radioLastStation: 'soma-defcon',
+            radioMinimized: true
+        }
+    })
+
+    // Save radio settings to localStorage
+    useEffect(() => {
+        localStorage.setItem('rangerRadioSettings', JSON.stringify(radioSettings))
+    }, [radioSettings])
+
+    const handleRadioSettingsChange = (updates: Partial<RadioSettings>) => {
+        setRadioSettings(prev => ({ ...prev, ...updates }))
+    }
 
     const wsRef = useRef<WebSocket | null>(null)
     const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -1686,6 +1712,13 @@ function App() {
                                 🔍
                             </button>
                             <button
+                                className={`header-btn ${radioSettings.radioEnabled ? 'active' : ''}`}
+                                onClick={() => setView('radio')}
+                                title="Ranger Radio"
+                            >
+                                📻
+                            </button>
+                            <button
                                 className="header-btn"
                                 onClick={cycleTheme}
                                 title={`Theme: ${THEMES[theme].name} (click to change)`}
@@ -2655,6 +2688,48 @@ function App() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* RADIO VIEW */}
+            {view === 'radio' && (
+                <div className="radio-screen">
+                    <div className="radio-header">
+                        <button className="back-btn" onClick={() => setView('chat')}>
+                            ← Back to Chat
+                        </button>
+                        <div className="radio-mode-switch">
+                            <button
+                                className={view === 'chat' ? 'mode-btn active' : 'mode-btn'}
+                                onClick={() => setView('chat')}
+                            >
+                                💬 Chat
+                            </button>
+                            <button
+                                className={view === 'radio' ? 'mode-btn active' : 'mode-btn'}
+                                onClick={() => setView('radio')}
+                            >
+                                📻 Radio
+                            </button>
+                        </div>
+                    </div>
+                    <RadioPlayer
+                        settings={radioSettings}
+                        onSettingsChange={handleRadioSettingsChange}
+                        theme={theme}
+                        isFullMode={true}
+                        onClose={() => setView('chat')}
+                    />
+                </div>
+            )}
+
+            {/* Floating Radio Mini Player (when enabled and not in radio view) */}
+            {radioSettings.radioEnabled && view !== 'radio' && view !== 'login' && (
+                <RadioPlayer
+                    settings={radioSettings}
+                    onSettingsChange={handleRadioSettingsChange}
+                    theme={theme}
+                    isFullMode={false}
+                />
             )}
         </div>
     )

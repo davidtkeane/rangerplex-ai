@@ -3456,3 +3456,86 @@ body {
     background: #00d4ff;
     color: #000;
 }
+
+/* ========================================
+   RANGER RADIO STYLES
+   ======================================== */
+
+.radio-screen {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-chat);
+}
+
+.radio-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border);
+}
+
+.radio-mode-switch {
+    display: flex;
+    gap: 8px;
+}
+
+.mode-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+/* Theme-specific radio styles */
+.theme-matrix .radio-screen {
+    background: #000;
+}
+
+.theme-matrix .mode-btn.active {
+    background: #00ff00;
+    color: #000;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.theme-tron .radio-screen {
+    background: #050510;
+}
+
+.theme-tron .mode-btn.active {
+    background: #00d4ff;
+    color: #000;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+
+.theme-retro .radio-screen {
+    background: #fef3c7;
+}
+
+.theme-retro .mode-btn.active {
+    background: #f59e0b;
+    color: #fff;
+}
+
+/* Radio button in header */
+.header-btn.active {
+    background: var(--accent);
+    color: #fff;
+}
