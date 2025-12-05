@@ -3830,6 +3830,238 @@ body {
     border-color: #f59e0b;
 }
 
+/* ===== Podcast Mode Styles ===== */
+
+/* Mode Toggle (Radio / Podcasts) */
+.radio-mode-toggle {
+    display: flex;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.radio-mode-btn {
+    background: transparent;
+    border: none;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.radio-mode-btn:hover {
+    color: var(--text-primary);
+}
+
+.radio-mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* Playback Speed Control */
+.radio-speed-control {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.radio-speed-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-right: 4px;
+}
+
+.radio-speed-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.radio-speed-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.radio-speed-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+/* Progress Bar & Seek */
+.radio-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 0 4px;
+}
+
+.radio-time {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+}
+
+.radio-time:first-child {
+    text-align: right;
+}
+
+.radio-time:last-child {
+    text-align: left;
+}
+
+.radio-seek-bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.radio-seek-bar::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.radio-seek-bar::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+}
+
+/* Episode List */
+.radio-episode-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.radio-episode-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.2s;
+}
+
+.radio-episode-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.radio-episode-item.active {
+    background: rgba(var(--accent-rgb, 77, 166, 255), 0.15);
+    border-left: 3px solid var(--accent);
+}
+
+.radio-episode-item:last-child {
+    border-bottom: none;
+}
+
+.radio-episode-title {
+    font-size: 12px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.radio-episode-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+/* Loading State */
+.radio-loading {
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Mini Mode Additions */
+.radio-mini-mode {
+    font-size: 12px;
+    margin-right: 4px;
+}
+
+.radio-mini-time {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    margin-left: 8px;
+}
+
+/* Theme-specific podcast styles */
+.radio-bar.matrix .radio-mode-btn.active,
+.radio-bar.matrix .radio-speed-btn.active {
+    background: #00ff00;
+    color: #000;
+}
+
+.radio-bar.matrix .radio-seek-bar::-webkit-slider-thumb {
+    background: #00ff00;
+}
+
+.radio-bar.matrix .radio-episode-item.active {
+    background: rgba(0, 255, 0, 0.15);
+    border-left-color: #00ff00;
+}
+
+.radio-bar.tron .radio-mode-btn.active,
+.radio-bar.tron .radio-speed-btn.active {
+    background: #00d4ff;
+    color: #000;
+}
+
+.radio-bar.tron .radio-seek-bar::-webkit-slider-thumb {
+    background: #00d4ff;
+}
+
+.radio-bar.tron .radio-episode-item.active {
+    background: rgba(0, 212, 255, 0.15);
+    border-left-color: #00d4ff;
+}
+
+.radio-bar.retro .radio-mode-btn.active,
+.radio-bar.retro .radio-speed-btn.active {
+    background: #f59e0b;
+    color: #fff;
+}
+
+.radio-bar.retro .radio-seek-bar::-webkit-slider-thumb {
+    background: #f59e0b;
+}
+
+.radio-bar.retro .radio-episode-item.active {
+    background: rgba(245, 158, 11, 0.15);
+    border-left-color: #f59e0b;
+}
+
+.radio-bar.retro .radio-episode-title {
+    color: #92400e;
+}
+
 /* Radio button in header */
 .header-btn.active {
     background: var(--accent);

@@ -4,9 +4,23 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
-## [1.8.0] - 2025-12-05 - "Ranger Radio" 📻
+## [1.8.0] - 2025-12-05 - "Ranger Radio + Podcasts" 📻🎙️
 
 ### Added
+
+#### Ranger Podcasts 🎙️
+- **Podcast Mode Toggle**: Switch between 📻 Radio and 🎙️ Podcasts with mode toggle buttons
+- **10 Curated Podcast Feeds**:
+  - 🔒 **Security**: Darknet Diaries, Security Now, Risky Business, Malicious Life
+  - 💻 **Coding**: Syntax.fm, The Changelog, CodeNewbie, Software Engineering Daily
+  - 🎤 **Interviews**: Lex Fridman Podcast
+  - 🔓 **Hacking**: Hacker Public Radio
+- **Episode Browser**: Browse up to 20 recent episodes per podcast with title, date, and duration
+- **Playback Speed Control**: 0.5x, 0.75x, 1x, 1.25x, 1.5x, 2x speed options
+- **Seek Bar**: Scrub through podcast episodes with time display
+- **Progress Tracking**: Current time and total duration shown for podcasts
+- **CORS Proxy**: Uses allorigins.win to fetch RSS feeds from browser
+- **Theme-Aware Styling**: Podcast UI matches all 4 themes (Classic, Matrix, Tron, Retro)
 
 #### Ranger Radio Integration
 - **📻 Radio Button**: New radio button in header to toggle Ranger Radio on/off
@@ -50,12 +64,18 @@ All notable changes to RangerChat Lite will be documented in this file.
 - **Settings Persistence**: Radio settings (enabled, volume, last station, minimized) saved to localStorage
 - **crossOrigin="anonymous"**: Audio element configured for Web Audio API access
 
-### Accessibility (Planned for Phase 2)
+### Accessibility (Planned for Phase 3)
 - Large touch targets (48px minimum) per WCAG 2.1 AA
 - ARIA labels for screen readers
 - Keyboard navigation (Space=Play, M=Mute, arrows=Volume/Station)
 - High contrast mode support
 - Voice commands ("Ranger, play radio")
+
+### Coming in Phase 3
+- Podcast progress persistence (resume where you left off)
+- Custom podcast feed adding
+- Podcast favorites/bookmarks
+- Offline podcast downloads
 
 ---
 
