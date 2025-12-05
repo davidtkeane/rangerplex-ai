@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import ScreensaverBackground from './ScreensaverBackground';
 
 interface RadioStation {
   id: string;
@@ -40,6 +41,15 @@ export interface RadioSettings {
   podcastLastEpisode?: string | null;
   podcastPlaybackSpeed?: number;
   podcastProgress?: { [episodeId: string]: number };
+  // 🎬 Screensaver settings
+  screensaverEnabled?: boolean;
+  screensaverMode?: 'slideshow' | 'matrix' | 'none';
+  screensaverOpacity?: number; // 0-100, default 30
+  screensaverInterval?: number; // seconds between slides, default 10
+  screensaverTransition?: 'fade' | 'slide' | 'zoom' | 'blur' | 'random';
+  screensaverMatrixOnIdle?: boolean; // Matrix rain after inactivity
+  screensaverIdleTimeout?: number; // seconds before matrix rain, default 120 (2 min)
+  screensaverShowClock?: boolean;
 }
 
 // 🎵 SomaFM Radio Stations
@@ -495,6 +505,19 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
 
       {/* Radio/Podcast Bar */}
       <div className={`radio-bar ${theme} ${isMinimized ? 'minimized' : 'expanded'}`}>
+        {/* Screensaver Background */}
+        <ScreensaverBackground
+          enabled={settings.screensaverEnabled ?? false}
+          mode={settings.screensaverMode ?? 'slideshow'}
+          opacity={settings.screensaverOpacity ?? 30}
+          interval={settings.screensaverInterval ?? 10}
+          transition={settings.screensaverTransition ?? 'fade'}
+          matrixOnIdle={settings.screensaverMatrixOnIdle ?? false}
+          idleTimeout={settings.screensaverIdleTimeout ?? 120}
+          showClock={settings.screensaverShowClock ?? false}
+          theme={theme}
+        />
+
         {/* Visualizer Canvas */}
         <canvas
           ref={canvasRef}

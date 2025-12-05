@@ -3512,6 +3512,7 @@ body {
     height: 100%;
     opacity: 0.6;
     pointer-events: none;
+    z-index: 2;
 }
 
 .radio-bar.minimized .radio-visualizer {
@@ -4084,4 +4085,231 @@ body {
 .header-btn.active {
     background: var(--accent);
     color: #fff;
+}
+
+/* ========================================
+   SCREENSAVER BACKGROUND STYLES
+   ======================================== */
+
+.screensaver-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    border-radius: inherit;
+    overflow: hidden;
+}
+
+/* Slideshow Slides */
+.screensaver-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: opacity 1s ease-in-out, transform 1s ease-in-out, filter 1s ease-in-out;
+    z-index: 1;
+}
+
+.screensaver-slide.loaded {
+    opacity: 1;
+}
+
+/* Fallback gradient when no image */
+.screensaver-slide:not([style*="url"]),
+.screensaver-slide[style*="none"] {
+    background: linear-gradient(135deg,
+        rgba(77, 166, 255, 0.3) 0%,
+        rgba(45, 90, 135, 0.3) 50%,
+        rgba(30, 58, 95, 0.3) 100%);
+}
+
+/* Transition Effects */
+.screensaver-transition-fade {
+    opacity: 1 !important;
+}
+
+.screensaver-transition-slide {
+    opacity: 1 !important;
+    animation: screensaver-slide-in 1s ease-out forwards;
+}
+
+@keyframes screensaver-slide-in {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.screensaver-transition-zoom {
+    opacity: 1 !important;
+    animation: screensaver-zoom-in 1s ease-out forwards;
+}
+
+@keyframes screensaver-zoom-in {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.screensaver-transition-blur {
+    opacity: 1 !important;
+    animation: screensaver-blur-in 1s ease-out forwards;
+}
+
+@keyframes screensaver-blur-in {
+    from {
+        filter: blur(20px);
+        opacity: 0;
+    }
+    to {
+        filter: blur(0);
+        opacity: 1;
+    }
+}
+
+/* Matrix Rain Canvas */
+.screensaver-matrix-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Clock Display */
+.screensaver-clock {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 10px;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 6px;
+    border-radius: 4px;
+    z-index: 10;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Theme-specific clock colors */
+.radio-bar.matrix .screensaver-clock {
+    color: #00ff00;
+    text-shadow: 0 0 5px #00ff00;
+}
+
+.radio-bar.tron .screensaver-clock {
+    color: #00d4ff;
+    text-shadow: 0 0 5px #00d4ff;
+}
+
+.radio-bar.retro .screensaver-clock {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.2);
+}
+
+/* Screensaver Settings Section */
+.settings-screensaver-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.settings-screensaver-section h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.settings-screensaver-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.settings-screensaver-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.settings-screensaver-item label {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.settings-screensaver-item select,
+.settings-screensaver-item input[type="number"] {
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.settings-screensaver-item input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+}
+
+.settings-screensaver-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+}
+
+.settings-screensaver-toggle span {
+    font-size: 12px;
+    color: var(--text-primary);
+}
+
+.settings-toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.settings-toggle-switch.active {
+    background: var(--accent);
+}
+
+.settings-toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+.settings-toggle-switch.active::after {
+    transform: translateX(20px);
 }

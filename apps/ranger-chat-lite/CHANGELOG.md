@@ -4,6 +4,41 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.9.0] - 2025-12-05 - "Radio Screensaver" 🎬✨
+
+### Added
+
+#### Radio Screensaver Background
+- **New Settings Section**: "🎬 Radio Screensaver" in Settings panel
+- **Slideshow Mode**: Random HD images from picsum.photos with transition effects
+- **Matrix Rain Mode**: Digital rain effect matching app theme colors
+- **Idle Detection**: Matrix rain auto-activates after 2 minutes of inactivity
+- **Clock Display**: Optional clock overlay on radio panel
+
+#### Screensaver Settings
+- **Enable/Disable Toggle**: Turn screensaver on/off
+- **Background Mode**: Choose between Slideshow, Matrix Rain, or None
+- **Opacity Slider**: Adjust transparency (10-100%, default 30%)
+- **Slide Interval**: Time between slides (5-60 seconds)
+- **Transition Effects**: Fade, Slide, Zoom, Blur, or Random
+- **Matrix on Idle**: Toggle auto-Matrix rain after inactivity
+- **Idle Timeout**: Customize inactivity timeout (30-600 seconds)
+- **Show Clock**: Toggle clock display on radio panel
+
+#### RangerSmyth Easter Egg
+- **Play Button Overlay**: rangersmyth-pic.png appears on play button after 5 seconds of inactivity
+- **Hover to Dismiss**: Image hides when hovering over the button
+- **Both Views**: Works in minimized and expanded radio views
+
+### Technical
+- New `ScreensaverBackground` component with Canvas and CSS animations
+- `RadioSettings` interface extended with 8 new screensaver properties
+- Theme-aware Matrix rain colors (green, cyan, blue, amber)
+- Preloaded images with fallback gradient
+- Z-index stacking ensures screensaver stays behind controls
+
+---
+
 ## [1.8.0] - 2025-12-05 - "Ranger Radio + Podcasts" 📻🎙️
 
 ### Added

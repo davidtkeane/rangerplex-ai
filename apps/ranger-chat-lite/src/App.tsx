@@ -256,7 +256,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.7.6'
+const APP_VERSION = '1.9.0'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -2382,6 +2382,111 @@ function App() {
                                     </button>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Radio Screensaver Section */}
+                        <div className="settings-section">
+                            <h3>🎬 Radio Screensaver</h3>
+                            <p className="section-description">Background effects for the Radio/Podcast panel</p>
+
+                            {/* Enable Toggle */}
+                            <div className="settings-screensaver-toggle">
+                                <span>Enable Screensaver</span>
+                                <div
+                                    className={`settings-toggle-switch ${radioSettings.screensaverEnabled ? 'active' : ''}`}
+                                    onClick={() => handleRadioSettingsChange({ screensaverEnabled: !radioSettings.screensaverEnabled })}
+                                />
+                            </div>
+
+                            {radioSettings.screensaverEnabled && (
+                                <>
+                                    {/* Mode Selection */}
+                                    <div className="setting-item">
+                                        <label>Background Mode</label>
+                                        <select
+                                            value={radioSettings.screensaverMode || 'slideshow'}
+                                            onChange={(e) => handleRadioSettingsChange({ screensaverMode: e.target.value as 'slideshow' | 'matrix' | 'none' })}
+                                        >
+                                            <option value="slideshow">🖼️ Image Slideshow</option>
+                                            <option value="matrix">💚 Matrix Rain</option>
+                                            <option value="none">⬛ None (Solid)</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Opacity Slider */}
+                                    <div className="setting-item">
+                                        <label>Opacity: {radioSettings.screensaverOpacity ?? 30}%</label>
+                                        <input
+                                            type="range"
+                                            min="10"
+                                            max="100"
+                                            value={radioSettings.screensaverOpacity ?? 30}
+                                            onChange={(e) => handleRadioSettingsChange({ screensaverOpacity: parseInt(e.target.value) })}
+                                        />
+                                    </div>
+
+                                    {/* Slideshow-specific settings */}
+                                    {radioSettings.screensaverMode === 'slideshow' && (
+                                        <>
+                                            <div className="setting-item">
+                                                <label>Slide Interval (seconds)</label>
+                                                <input
+                                                    type="number"
+                                                    min="5"
+                                                    max="60"
+                                                    value={radioSettings.screensaverInterval ?? 10}
+                                                    onChange={(e) => handleRadioSettingsChange({ screensaverInterval: parseInt(e.target.value) })}
+                                                />
+                                            </div>
+
+                                            <div className="setting-item">
+                                                <label>Transition Effect</label>
+                                                <select
+                                                    value={radioSettings.screensaverTransition || 'fade'}
+                                                    onChange={(e) => handleRadioSettingsChange({ screensaverTransition: e.target.value as 'fade' | 'slide' | 'zoom' | 'blur' | 'random' })}
+                                                >
+                                                    <option value="fade">Fade</option>
+                                                    <option value="slide">Slide</option>
+                                                    <option value="zoom">Zoom</option>
+                                                    <option value="blur">Blur</option>
+                                                    <option value="random">🎲 Random</option>
+                                                </select>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Matrix on Idle Toggle */}
+                                    <div className="settings-screensaver-toggle">
+                                        <span>Matrix Rain on Idle (2 min)</span>
+                                        <div
+                                            className={`settings-toggle-switch ${radioSettings.screensaverMatrixOnIdle ? 'active' : ''}`}
+                                            onClick={() => handleRadioSettingsChange({ screensaverMatrixOnIdle: !radioSettings.screensaverMatrixOnIdle })}
+                                        />
+                                    </div>
+
+                                    {radioSettings.screensaverMatrixOnIdle && (
+                                        <div className="setting-item">
+                                            <label>Idle Timeout (seconds)</label>
+                                            <input
+                                                type="number"
+                                                min="30"
+                                                max="600"
+                                                value={radioSettings.screensaverIdleTimeout ?? 120}
+                                                onChange={(e) => handleRadioSettingsChange({ screensaverIdleTimeout: parseInt(e.target.value) })}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Show Clock Toggle */}
+                                    <div className="settings-screensaver-toggle">
+                                        <span>Show Clock on Radio</span>
+                                        <div
+                                            className={`settings-toggle-switch ${radioSettings.screensaverShowClock ? 'active' : ''}`}
+                                            onClick={() => handleRadioSettingsChange({ screensaverShowClock: !radioSettings.screensaverShowClock })}
+                                        />
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Login Picture Section */}
