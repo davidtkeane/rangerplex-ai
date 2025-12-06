@@ -10,6 +10,11 @@ interface ScreensaverBackgroundProps {
   idleTimeout: number; // seconds before matrix rain
   showClock: boolean;
   theme: 'classic' | 'matrix' | 'tron' | 'retro';
+  // Matrix settings
+  matrixDensity: number; // 1-5
+  matrixSpeed: number; // 1-5
+  matrixBrightness: number; // 1-5
+  matrixTrailLength: number; // 1-5
 }
 
 const ScreensaverBackground: React.FC<ScreensaverBackgroundProps> = ({
@@ -21,16 +26,22 @@ const ScreensaverBackground: React.FC<ScreensaverBackgroundProps> = ({
   matrixOnIdle,
   idleTimeout,
   showClock,
-  theme
+  theme,
+  matrixDensity,
+  matrixSpeed,
+  matrixBrightness,
+  matrixTrailLength
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const slideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const imageIndexRef = useRef(0);
+  const matrixDropsRef = useRef<number[]>([]);
+  const lastFrameTimeRef = useRef<number>(0);
 
   const [currentImage, setCurrentImage] = useState<string>('');
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isTransitioning, _setIsTransitioning] = useState(false);
   const [showMatrix, setShowMatrix] = useState(mode === 'matrix');
   const [currentTime, setCurrentTime] = useState('');
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -44,8 +55,8 @@ const ScreensaverBackground: React.FC<ScreensaverBackgroundProps> = ({
     return `screensaver-transition-${effect}`;
   }, [transition]);
 
-  // Matrix rain effect
-  const drawMatrix = useCallback(() => {
+  // Matrix rain effect - proper falling columns
+  const drawMatrix = useCallback((timestamp: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -55,41 +66,115 @@ const ScreensaverBackground: React.FC<ScreensaverBackgroundProps> = ({
     // Resize canvas to fit container
     const parent = canvas.parentElement;
     if (parent) {
-      canvas.width = parent.offsetWidth;
-      canvas.height = parent.offsetHeight;
+      if (canvas.width !== parent.offsetWidth || canvas.height !== parent.offsetHeight) {
+        canvas.width = parent.offsetWidth;
+        canvas.height = parent.offsetHeight;
+        // Reset drops when canvas resizes
+        matrixDropsRef.current = [];
+      }
     }
+
+    // Speed control - skip frames based on speed setting (1=slow, 5=fast)
+    const frameDelay = 100 - (matrixSpeed * 18); // 82ms at speed 1, 10ms at speed 5
+    if (timestamp - lastFrameTimeRef.current < frameDelay) {
+      if (showMatrix && enabled) {
+        animationRef.current = requestAnimationFrame(drawMatrix);
+      }
+      return;
+    }
+    lastFrameTimeRef.current = timestamp;
 
     // Matrix rain colors based on theme
     let matrixColor = '#00ff00'; // Default green
-    if (theme === 'tron') matrixColor = '#00d4ff';
-    if (theme === 'classic') matrixColor = '#4da6ff';
-    if (theme === 'retro') matrixColor = '#f59e0b';
+    let glowColor = 'rgba(0, 255, 0, 0.8)';
+    if (theme === 'tron') {
+      matrixColor = '#00d4ff';
+      glowColor = 'rgba(0, 212, 255, 0.8)';
+    }
+    if (theme === 'classic') {
+      matrixColor = '#4da6ff';
+      glowColor = 'rgba(77, 166, 255, 0.8)';
+    }
+    if (theme === 'retro') {
+      matrixColor = '#f59e0b';
+      glowColor = 'rgba(245, 158, 11, 0.8)';
+    }
 
-    // Semi-transparent black for trail effect
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    // Trail length - lower = longer trails (more visible)
+    const trailOpacity = 0.02 + ((6 - matrixTrailLength) * 0.03); // 0.17 at length 1, 0.02 at length 5
+    ctx.fillStyle = `rgba(0, 0, 0, ${trailOpacity})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw matrix characters
-    ctx.fillStyle = matrixColor;
-    ctx.font = '12px monospace';
+    // Character settings based on density (1-5)
+    const fontSize = 10 + matrixDensity * 2; // 12-20px
+    const columnWidth = fontSize + 2;
+    const columns = Math.floor(canvas.width / columnWidth);
 
-    const columns = Math.floor(canvas.width / 14);
-    for (let i = 0; i < columns; i++) {
-      const char = String.fromCharCode(33 + Math.floor(Math.random() * 94));
-      const x = i * 14;
-      const y = Math.random() * canvas.height;
-      ctx.fillText(char, x, y);
+    // Initialize drops if needed
+    if (matrixDropsRef.current.length !== columns) {
+      matrixDropsRef.current = Array(columns).fill(0).map(() => Math.random() * -100);
     }
+
+    // Glow effect based on brightness (1-5)
+    if (matrixBrightness >= 3) {
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = matrixBrightness * 3; // 9-15px blur
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.font = `${fontSize}px monospace`;
+
+    // Draw falling characters
+    for (let i = 0; i < columns; i++) {
+      // Random character (ASCII 33-126 for printable chars, or katakana-style)
+      const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const char = chars[Math.floor(Math.random() * chars.length)];
+
+      const x = i * columnWidth;
+      const y = matrixDropsRef.current[i] * fontSize;
+
+      // Brighter head character
+      ctx.fillStyle = matrixBrightness >= 4 ? '#fff' : matrixColor;
+      ctx.fillText(char, x, y);
+
+      // Draw trailing characters with fade based on density
+      if (matrixDensity >= 3) {
+        ctx.fillStyle = matrixColor;
+        for (let j = 1; j <= matrixDensity; j++) {
+          const trailChar = chars[Math.floor(Math.random() * chars.length)];
+          const trailY = y - (j * fontSize);
+          if (trailY > 0) {
+            ctx.globalAlpha = 1 - (j / (matrixDensity + 1));
+            ctx.fillText(trailChar, x, trailY);
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // Move drop down
+      matrixDropsRef.current[i]++;
+
+      // Reset drop to top with some randomness
+      if (y > canvas.height && Math.random() > 0.98) {
+        matrixDropsRef.current[i] = 0;
+      }
+    }
+
+    // Reset shadow
+    ctx.shadowBlur = 0;
 
     if (showMatrix && enabled) {
       animationRef.current = requestAnimationFrame(drawMatrix);
     }
-  }, [theme, showMatrix, enabled]);
+  }, [theme, showMatrix, enabled, matrixDensity, matrixSpeed, matrixBrightness, matrixTrailLength]);
 
   // Start matrix animation
   useEffect(() => {
     if (showMatrix && enabled) {
-      animationRef.current = requestAnimationFrame(drawMatrix);
+      // Reset drops when starting fresh
+      matrixDropsRef.current = [];
+      animationRef.current = requestAnimationFrame((ts) => drawMatrix(ts));
     }
 
     return () => {

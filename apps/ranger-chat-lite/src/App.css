@@ -419,11 +419,14 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
 }
 
 /* Chat Header */
 .chat-header {
     display: flex;
+    position: relative;
+    z-index: 10;
     align-items: center;
     justify-content: space-between;
     padding: 12px 15px;
@@ -629,6 +632,8 @@ body {
     flex-direction: column;
     gap: 10px;
     min-height: 0;
+    position: relative;
+    z-index: 10;
 }
 
 .message {
@@ -846,6 +851,8 @@ body {
     gap: 10px;
     background: var(--bg-input);
     border-top: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
     flex-shrink: 0;
 }
 
@@ -4312,4 +4319,109 @@ body {
 
 .settings-toggle-switch.active::after {
     transform: translateX(20px);
+}
+
+/* Matrix Settings Section */
+.matrix-settings-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    border-radius: 8px;
+}
+
+.matrix-settings-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: #00ff00;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* Theme-specific Matrix settings */
+.theme-tron .matrix-settings-section {
+    background: rgba(0, 212, 255, 0.05);
+    border-color: rgba(0, 212, 255, 0.2);
+}
+
+.theme-tron .matrix-settings-section h4 {
+    color: #00d4ff;
+    text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+}
+
+.theme-retro .matrix-settings-section {
+    background: rgba(245, 158, 11, 0.05);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.theme-retro .matrix-settings-section h4 {
+    color: #f59e0b;
+    text-shadow: none;
+}
+
+/* ========================================
+   CHAT SCREENSAVER ACTIVE STYLES
+   ======================================== */
+
+/* When screensaver is active, make backgrounds transparent */
+.chat-interface.screensaver-active .chat-history {
+    background: transparent !important;
+}
+
+.chat-interface.screensaver-active .chat-header {
+    background: rgba(30, 41, 59, 0.85) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.chat-interface.screensaver-active .chat-input-area {
+    background: rgba(30, 41, 59, 0.85) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Messages keep their backgrounds for readability */
+.chat-interface.screensaver-active .message {
+    background: rgba(51, 65, 85, 0.95) !important;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.chat-interface.screensaver-active .message.own {
+    background: rgba(59, 130, 246, 0.9) !important;
+}
+
+/* Theme-specific backgrounds for screensaver mode */
+.theme-matrix .chat-interface.screensaver-active .chat-header,
+.theme-matrix .chat-interface.screensaver-active .chat-input-area {
+    background: rgba(0, 10, 0, 0.85) !important;
+}
+
+.theme-matrix .chat-interface.screensaver-active .message {
+    background: rgba(0, 20, 0, 0.9) !important;
+}
+
+.theme-tron .chat-interface.screensaver-active .chat-header,
+.theme-tron .chat-interface.screensaver-active .chat-input-area {
+    background: rgba(0, 10, 20, 0.85) !important;
+}
+
+.theme-tron .chat-interface.screensaver-active .message {
+    background: rgba(0, 20, 40, 0.9) !important;
+}
+
+.theme-retro .chat-interface.screensaver-active .chat-header,
+.theme-retro .chat-interface.screensaver-active .chat-input-area {
+    background: rgba(30, 30, 25, 0.85) !important;
+}
+
+.theme-retro .chat-interface.screensaver-active .message {
+    background: rgba(50, 50, 40, 0.9) !important;
 }

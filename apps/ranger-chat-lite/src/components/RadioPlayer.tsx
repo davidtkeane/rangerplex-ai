@@ -50,6 +50,25 @@ export interface RadioSettings {
   screensaverMatrixOnIdle?: boolean; // Matrix rain after inactivity
   screensaverIdleTimeout?: number; // seconds before matrix rain, default 120 (2 min)
   screensaverShowClock?: boolean;
+  // Matrix rain settings
+  matrixDensity?: number; // 1-5, default 3 (how many chars per column)
+  matrixSpeed?: number; // 1-5, default 3 (animation speed)
+  matrixBrightness?: number; // 1-5, default 3 (glow intensity)
+  matrixTrailLength?: number; // 1-5, default 3 (fade trail length)
+  // 💬 Chat Screensaver settings
+  chatScreensaverEnabled?: boolean;
+  chatScreensaverMode?: 'slideshow' | 'matrix' | 'none';
+  chatScreensaverOpacity?: number; // 0-100, default 30
+  chatScreensaverInterval?: number; // seconds between slides, default 10
+  chatScreensaverTransition?: 'fade' | 'slide' | 'zoom' | 'blur' | 'random';
+  chatScreensaverMatrixOnIdle?: boolean; // Matrix rain after inactivity
+  chatScreensaverIdleTimeout?: number; // seconds before matrix rain, default 120 (2 min)
+  chatScreensaverShowClock?: boolean;
+  // Chat Matrix rain settings
+  chatMatrixDensity?: number; // 1-5, default 3
+  chatMatrixSpeed?: number; // 1-5, default 3
+  chatMatrixBrightness?: number; // 1-5, default 3
+  chatMatrixTrailLength?: number; // 1-5, default 3
 }
 
 // 🎵 SomaFM Radio Stations
@@ -516,6 +535,10 @@ const RadioPlayer: React.FC<RadioPlayerProps> = ({ settings, onSettingsChange, t
           idleTimeout={settings.screensaverIdleTimeout ?? 120}
           showClock={settings.screensaverShowClock ?? false}
           theme={theme}
+          matrixDensity={settings.matrixDensity ?? 3}
+          matrixSpeed={settings.matrixSpeed ?? 3}
+          matrixBrightness={settings.matrixBrightness ?? 4}
+          matrixTrailLength={settings.matrixTrailLength ?? 3}
         />
 
         {/* Visualizer Canvas */}

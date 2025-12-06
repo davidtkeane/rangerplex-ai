@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import ScreensaverBackground from './components/ScreensaverBackground'
 import './App.css'
 import RadioPlayer, { RadioSettings } from './components/RadioPlayer'
 
@@ -256,7 +257,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.9.0'
+const APP_VERSION = '1.9.2'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -1686,7 +1687,23 @@ function App() {
 
             {/* CHAT VIEW */}
             {view === 'chat' && (
-                <div className="chat-interface">
+                <div className={`chat-interface ${radioSettings.chatScreensaverEnabled ? 'screensaver-active' : ''}`}>
+                    {/* Chat Screensaver Background */}
+                    <ScreensaverBackground
+                        enabled={radioSettings.chatScreensaverEnabled ?? false}
+                        mode={radioSettings.chatScreensaverMode ?? 'matrix'}
+                        opacity={radioSettings.chatScreensaverOpacity ?? 30}
+                        interval={radioSettings.chatScreensaverInterval ?? 10}
+                        transition={radioSettings.chatScreensaverTransition ?? 'fade'}
+                        matrixOnIdle={radioSettings.chatScreensaverMatrixOnIdle ?? false}
+                        idleTimeout={radioSettings.chatScreensaverIdleTimeout ?? 120}
+                        showClock={radioSettings.chatScreensaverShowClock ?? false}
+                        theme={theme}
+                        matrixDensity={radioSettings.chatMatrixDensity ?? 3}
+                        matrixSpeed={radioSettings.chatMatrixSpeed ?? 3}
+                        matrixBrightness={radioSettings.chatMatrixBrightness ?? 4}
+                        matrixTrailLength={radioSettings.chatMatrixTrailLength ?? 3}
+                    />
                     <div className="chat-header">
                         <div className="header-left">
                             <span className="header-icon">🦅</span>
@@ -2485,6 +2502,216 @@ function App() {
                                             onClick={() => handleRadioSettingsChange({ screensaverShowClock: !radioSettings.screensaverShowClock })}
                                         />
                                     </div>
+
+                                    {/* Matrix Rain Settings */}
+                                    {(radioSettings.screensaverMode === 'matrix' || radioSettings.screensaverMatrixOnIdle) && (
+                                        <div className="matrix-settings-section">
+                                            <h4>💚 Matrix Rain Settings</h4>
+
+                                            <div className="setting-item">
+                                                <label>Density: {radioSettings.matrixDensity ?? 3} (character size)</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="5"
+                                                    value={radioSettings.matrixDensity ?? 3}
+                                                    onChange={(e) => handleRadioSettingsChange({ matrixDensity: parseInt(e.target.value) })}
+                                                />
+                                                <span className="range-labels"><span>Small</span><span>Large</span></span>
+                                            </div>
+
+                                            <div className="setting-item">
+                                                <label>Speed: {radioSettings.matrixSpeed ?? 3}</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="5"
+                                                    value={radioSettings.matrixSpeed ?? 3}
+                                                    onChange={(e) => handleRadioSettingsChange({ matrixSpeed: parseInt(e.target.value) })}
+                                                />
+                                                <span className="range-labels"><span>Slow</span><span>Fast</span></span>
+                                            </div>
+
+                                            <div className="setting-item">
+                                                <label>Brightness: {radioSettings.matrixBrightness ?? 4}</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="5"
+                                                    value={radioSettings.matrixBrightness ?? 4}
+                                                    onChange={(e) => handleRadioSettingsChange({ matrixBrightness: parseInt(e.target.value) })}
+                                                />
+                                                <span className="range-labels"><span>Dim</span><span>Bright</span></span>
+                                            </div>
+
+                                            <div className="setting-item">
+                                                <label>Trail Length: {radioSettings.matrixTrailLength ?? 3}</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="5"
+                                                    value={radioSettings.matrixTrailLength ?? 3}
+                                                    onChange={(e) => handleRadioSettingsChange({ matrixTrailLength: parseInt(e.target.value) })}
+                                                />
+                                                <span className="range-labels"><span>Long</span><span>Short</span></span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                        {/* Chat Screensaver Section */}
+                        <div className="settings-section">
+                            <h3>💬 Chat Screensaver</h3>
+                            <p className="section-description">Background effects for the Chat area</p>
+
+                            <div className="setting-item toggle-setting">
+                                <span>Enable Chat Screensaver</span>
+                                <div
+                                    className={`settings-toggle-switch ${radioSettings.chatScreensaverEnabled ? 'active' : ''}`}
+                                    onClick={() => handleRadioSettingsChange({ chatScreensaverEnabled: !radioSettings.chatScreensaverEnabled })}
+                                />
+                            </div>
+
+                            {radioSettings.chatScreensaverEnabled && (
+                                <>
+                                    <div className="setting-item">
+                                        <label>Background Mode</label>
+                                        <select
+                                            value={radioSettings.chatScreensaverMode ?? 'matrix'}
+                                            onChange={(e) => handleRadioSettingsChange({ chatScreensaverMode: e.target.value as 'slideshow' | 'matrix' | 'none' })}
+                                        >
+                                            <option value="matrix">Matrix Rain</option>
+                                            <option value="slideshow">Slideshow</option>
+                                            <option value="none">None</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="setting-item">
+                                        <label>Opacity: {radioSettings.chatScreensaverOpacity ?? 30}%</label>
+                                        <input
+                                            type="range"
+                                            min="10"
+                                            max="100"
+                                            value={radioSettings.chatScreensaverOpacity ?? 30}
+                                            onChange={(e) => handleRadioSettingsChange({ chatScreensaverOpacity: parseInt(e.target.value) })}
+                                        />
+                                    </div>
+
+                                    {radioSettings.chatScreensaverMode === 'slideshow' && (
+                                        <>
+                                            <div className="setting-item">
+                                                <label>Slide Interval: {radioSettings.chatScreensaverInterval ?? 10}s</label>
+                                                <input
+                                                    type="range"
+                                                    min="5"
+                                                    max="60"
+                                                    value={radioSettings.chatScreensaverInterval ?? 10}
+                                                    onChange={(e) => handleRadioSettingsChange({ chatScreensaverInterval: parseInt(e.target.value) })}
+                                                />
+                                            </div>
+
+                                            <div className="setting-item">
+                                                <label>Transition Effect</label>
+                                                <select
+                                                    value={radioSettings.chatScreensaverTransition ?? 'fade'}
+                                                    onChange={(e) => handleRadioSettingsChange({ chatScreensaverTransition: e.target.value as 'fade' | 'slide' | 'zoom' | 'blur' | 'random' })}
+                                                >
+                                                    <option value="fade">Fade</option>
+                                                    <option value="slide">Slide</option>
+                                                    <option value="zoom">Zoom</option>
+                                                    <option value="blur">Blur</option>
+                                                    <option value="random">Random</option>
+                                                </select>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="setting-item toggle-setting">
+                                        <span>Matrix Rain on Idle</span>
+                                        <div
+                                            className={`settings-toggle-switch ${radioSettings.chatScreensaverMatrixOnIdle ? 'active' : ''}`}
+                                            onClick={() => handleRadioSettingsChange({ chatScreensaverMatrixOnIdle: !radioSettings.chatScreensaverMatrixOnIdle })}
+                                        />
+                                    </div>
+
+                                    {radioSettings.chatScreensaverMatrixOnIdle && (
+                                        <div className="setting-item">
+                                            <label>Idle Timeout: {radioSettings.chatScreensaverIdleTimeout ?? 120}s</label>
+                                            <input
+                                                type="range"
+                                                min="30"
+                                                max="600"
+                                                step="30"
+                                                value={radioSettings.chatScreensaverIdleTimeout ?? 120}
+                                                onChange={(e) => handleRadioSettingsChange({ chatScreensaverIdleTimeout: parseInt(e.target.value) })}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="setting-item toggle-setting">
+                                        <span>Show Clock</span>
+                                        <div
+                                            className={`settings-toggle-switch ${radioSettings.chatScreensaverShowClock ? 'active' : ''}`}
+                                            onClick={() => handleRadioSettingsChange({ chatScreensaverShowClock: !radioSettings.chatScreensaverShowClock })}
+                                        />
+                                    </div>
+
+                                    {/* Chat Matrix Rain Settings */}
+                                    {(radioSettings.chatScreensaverMode === 'matrix' || radioSettings.chatScreensaverMatrixOnIdle) && (
+                                        <div className="matrix-settings-section">
+                                            <h4>💚 Chat Matrix Rain Settings</h4>
+
+                                            <div className="setting-item">
+                                                <label>Density: {radioSettings.chatMatrixDensity ?? 3} (character size)</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="5"
+                                                    value={radioSettings.chatMatrixDensity ?? 3}
+                                                    onChange={(e) => handleRadioSettingsChange({ chatMatrixDensity: parseInt(e.target.value) })}
+                                                />
+                                                <span className="range-labels"><span>Sparse</span><span>Dense</span></span>
+                                            </div>
+
+                                            <div className="setting-item">
+                                                <label>Speed: {radioSettings.chatMatrixSpeed ?? 3}</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="5"
+                                                    value={radioSettings.chatMatrixSpeed ?? 3}
+                                                    onChange={(e) => handleRadioSettingsChange({ chatMatrixSpeed: parseInt(e.target.value) })}
+                                                />
+                                                <span className="range-labels"><span>Slow</span><span>Fast</span></span>
+                                            </div>
+
+                                            <div className="setting-item">
+                                                <label>Brightness: {radioSettings.chatMatrixBrightness ?? 4}</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="5"
+                                                    value={radioSettings.chatMatrixBrightness ?? 4}
+                                                    onChange={(e) => handleRadioSettingsChange({ chatMatrixBrightness: parseInt(e.target.value) })}
+                                                />
+                                                <span className="range-labels"><span>Dim</span><span>Bright</span></span>
+                                            </div>
+
+                                            <div className="setting-item">
+                                                <label>Trail Length: {radioSettings.chatMatrixTrailLength ?? 3}</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="5"
+                                                    value={radioSettings.chatMatrixTrailLength ?? 3}
+                                                    onChange={(e) => handleRadioSettingsChange({ chatMatrixTrailLength: parseInt(e.target.value) })}
+                                                />
+                                                <span className="range-labels"><span>Long</span><span>Short</span></span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>

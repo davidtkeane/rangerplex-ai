@@ -4,6 +4,53 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.9.2] - 2025-12-06 - "Chat Matrix Complete" 🎬💬✨
+
+### Added
+
+#### Separate Chat Screensaver Settings
+- **New Settings Section**: "💬 Chat Screensaver" with independent controls
+- **12 New Settings**: Dedicated chat screensaver configuration separate from radio
+  - Enable/Disable toggle
+  - Background Mode (Matrix Rain, Slideshow, None)
+  - Opacity slider (10-100%)
+  - Slide interval and transition effects
+  - Matrix on idle with configurable timeout
+  - Clock display toggle
+  - Matrix density, speed, brightness, trail length
+
+#### Transparent Chat Backgrounds
+- **Screensaver Visibility**: Chat history background becomes transparent when screensaver enabled
+- **Frosted Glass Effect**: Header and input areas get blur + semi-transparency
+- **Message Readability**: Messages keep semi-opaque backgrounds
+- **Theme Support**: Custom colors for Matrix, Tron, and Retro themes
+
+### Fixed
+- **Chat Screensaver Not Visible**: Fixed solid backgrounds covering screensaver
+- **Settings Isolation**: Radio and Chat screensavers now have completely separate controls
+
+### Technical
+- Added `screensaver-active` class to chat-interface when enabled
+- Extended `RadioSettings` interface with 12 chat screensaver properties
+- Theme-aware CSS for transparent backgrounds in screensaver mode
+
+---
+
+## [1.9.1] - 2025-12-06 - "Chat Matrix" 🎬💬
+
+### Added
+
+#### Chat Area Screensaver
+- **Matrix Rain in Chat**: Screensaver now applies to the entire chat interface
+- **Full Coverage**: Matrix rain and slideshow behind chat messages
+- **Proper Layering**: Z-index ensures messages, header, and input stay visible above screensaver
+- **Shared Settings**: Uses same screensaver settings as radio panel
+
+### Fixed
+- **Chat History Z-Index**: Added `position: relative` and `z-index: 10` to `.chat-history` for proper screensaver layering
+
+---
+
 ## [1.9.0] - 2025-12-05 - "Radio Screensaver" 🎬✨
 
 ### Added
