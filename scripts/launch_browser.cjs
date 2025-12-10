@@ -3,6 +3,63 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+// --- HELP / USAGE ---
+const args = process.argv.slice(2);
+if (args.includes('--help') || args.includes('-h')) {
+    console.log(`
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   ██████╗  █████╗ ███╗   ██╗ ██████╗ ███████╗██████╗ ██████╗ ██╗     ███████╗██╗  ██╗   ║
+║   ██╔══██╗██╔══██╗████╗  ██║██╔════╝ ██╔════╝██╔══██╗██╔══██╗██║     ██╔════╝╚██╗██╔╝   ║
+║   ██████╔╝███████║██╔██╗ ██║██║  ███╗█████╗  ██████╔╝██████╔╝██║     █████╗   ╚███╔╝    ║
+║   ██╔══██╗██╔══██║██║╚██╗██║██║   ██║██╔══╝  ██╔══██╗██╔═══╝ ██║     ██╔══╝   ██╔██╗    ║
+║   ██║  ██║██║  ██║██║ ╚████║╚██████╔╝███████╗██║  ██║██║     ███████╗███████╗██╔╝ ██╗   ║
+║   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝╚═╝  ╚═╝   ║
+║                                                                              ║
+║                    🎖️  AI-Powered Command Center  🎖️                         ║
+║                      "Rangers Lead The Way!"                                 ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  USAGE:
+    npm run browser [options]
+
+  LAUNCH MODES:
+    npm run browser              Launch Electron app (default)
+    npm run browser:tab          Launch in browser tab only
+    npm run browser:both         Launch both Electron app AND browser tab
+
+  OPTIONS:
+    -t, --tab                    Open in browser tab instead of Electron app
+    -b, --both                   Open both Electron app and browser tab
+    --skip-docker, -sd           Skip Docker Desktop auto-start check
+    -h, --help                   Show this help message
+
+  EXAMPLES:
+    npm run browser              Start RangerPlex in Electron app
+    npm run browser:tab          Start RangerPlex in Chrome/Safari tab
+    npm run browser -- -t        Same as browser:tab (pass flag directly)
+    npm run browser -- -sd       Skip Docker check (faster startup)
+
+  STARTUP SEQUENCE:
+    1. Check Docker Desktop status (auto-start if needed)
+    2. Clean up ports (3000, 5173, 5555, 5005, 8808)
+    3. Launch UI (Electron or Browser)
+    4. Start MCP Gateway
+
+  PORTS USED:
+    3000  - Proxy Server (API)
+    5173  - Vite Dev Server (Frontend)
+    5555  - RangerBlock P2P (WebSocket)
+    5005  - RangerBlock Discovery (UDP)
+    8808  - MCP Gateway
+
+  Built with ❤️ by IrishRanger & AIRanger
+  iCanHelp Ltd - Transforming disabilities into superpowers
+`);
+    process.exit(0);
+}
+
 // --- NODE VERSION CHECK ---
 const nodeVersion = process.version; // e.g., 'v25.2.1'
 const majorVersion = parseInt(nodeVersion.replace('v', '').split('.')[0], 10);
@@ -44,8 +101,7 @@ if (majorVersion >= 25) {
 }
 // --------------------------
 
-// Parse arguments
-const args = process.argv.slice(2);
+// Parse arguments (args already defined at top for --help check)
 const mode = args[0] || ''; // '', '-t', or '-b'
 const skipDocker = args.includes('--skip-docker') || args.includes('-sd');
 
@@ -330,7 +386,8 @@ console.log(`🚀 Launch Mode: ${mode || 'Default (Electron Only)'}`);
 console.log('📋 Startup sequence: Docker → Port cleanup → UI → MCP Gateway\n');
 
 switch (mode) {
-    case '-t': // Tab Only (browser tab) - start servers and open browser
+    case '-t':
+    case '--tab': // Tab Only (browser tab) - start servers and open browser
         ensureDockerRunning()
             .then(cleanupPorts)
             .then(() => {
@@ -342,7 +399,8 @@ switch (mode) {
                 }, 3000); // Wait for servers to start
             });
         break;
-    case '-b': // Both (browser + Electron)
+    case '-b':
+    case '--both': // Both (browser + Electron)
         ensureDockerRunning()
             .then(cleanupPorts)
             .then(() => {

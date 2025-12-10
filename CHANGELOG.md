@@ -5,6 +5,42 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.7] - 2025-12-08 - Browser Launch Improvements
+
+### Summary
+Fixed `npm run browser` command behavior, critical race condition, and added comprehensive help system!
+
+### Critical Bug Fix
+- **Fixed**: Servers getting killed immediately after starting (SIGKILL crash)
+- **Root cause**: Race condition in `npm run start` - used `&` (background) instead of `;` (sequential)
+- **What happened**: `npm run stop` was killing servers WHILE they were starting
+- **Solution**: Changed `npm run stop 2>nul &` to `npm run stop 2>/dev/null ;` so stop completes FIRST
+
+### Bug Fix
+- **Fixed**: `npm run browser` now opens **Electron app** instead of Chrome tab
+- **Root cause**: Was using `open-browser.cjs` which always opened browser tabs
+- **Solution**: Now uses `launch_browser.cjs` which properly handles launch modes
+
+### New Features
+- **Help System**: `npm run browser -- --help` shows full usage guide with ASCII banner
+- **Long-form flags**: Added `--tab` and `--both` as aliases for `-t` and `-b`
+- **New script**: `browser:tab` for explicit tab-only mode
+
+### Updated Commands
+| Command | Action |
+|---------|--------|
+| `npm run browser` | Launch Electron app (default) |
+| `npm run browser:tab` | Launch in browser tab only |
+| `npm run browser:both` | Launch both Electron + browser tab |
+| `npm run browser -- --help` | Show help with ASCII banner |
+| `npm run browser -- --skip-docker` | Skip Docker Desktop check |
+
+### Files Changed
+- `package.json` - Fixed race condition in `start` script, updated browser scripts
+- `scripts/launch_browser.cjs` - Added help system, long-form flags (--tab, --both)
+
+---
+
 ## [RangerChat Lite 2.0.1] - 2025-12-03 - Clean Login
 
 ### Changes

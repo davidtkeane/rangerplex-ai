@@ -50,6 +50,13 @@
             "dist/**/*",
             "dist-electron/**/*"
         ],
+        "extraResources": [
+            {
+                "from": "lib",
+                "to": "lib",
+                "filter": ["**/*"]
+            }
+        ],
         "win": {
             "target": [
                 {

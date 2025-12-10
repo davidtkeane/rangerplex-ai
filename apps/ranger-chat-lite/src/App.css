@@ -4425,3 +4425,24 @@ body {
 .theme-retro .chat-interface.screensaver-active .message {
     background: rgba(50, 50, 40, 0.9) !important;
 }
+
+/* GitHub Download Button */
+.github-download-btn {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(46, 160, 67, 0.3);
+}
+
+.github-download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 160, 67, 0.4);
+    background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
+}

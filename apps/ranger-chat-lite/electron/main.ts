@@ -6,7 +6,11 @@ import os from 'node:os'
 import { identityService } from './identityService'
 
 // Ledger Service - using require for CommonJS module
-const { ledger } = require('../../../rangerblock/lib/ledger-service.cjs')
+// Use local lib in production, relative path in development
+const ledgerPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'lib', 'ledger-service.cjs')
+    : path.join(__dirname, '..', '..', '..', 'rangerblock', 'lib', 'ledger-service.cjs')
+const { ledger } = require(ledgerPath)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ADMIN DETECTION - Check ~/.claude/ranger/admin/data/users.json
@@ -397,6 +401,20 @@ ipcMain.handle('app:getVersion', () => {
 
 // IPC handler for running update commands (git pull, npm install, reload)
 ipcMain.handle('app:runUpdate', async () => {
+    // For packaged apps, git pull doesn't work - user needs to download new version
+    if (app.isPackaged) {
+        return {
+            success: false,
+            gitPull: {
+                success: false,
+                output: '',
+                error: 'This is a packaged app. Please download the latest version from GitHub releases.'
+            },
+            npmInstall: { success: false, output: '', error: 'Not applicable for packaged apps' },
+            isPackaged: true
+        }
+    }
+
     const { exec } = require('child_process')
     const util = require('util')
     const execPromise = util.promisify(exec)

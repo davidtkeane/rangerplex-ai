@@ -38,6 +38,7 @@ declare global {
                     success: boolean
                     gitPull: { success: boolean; output: string; error: string }
                     npmInstall: { success: boolean; output: string; error: string }
+                    isPackaged?: boolean
                 }>
                 reload: () => Promise<boolean>
                 checkForUpdates: () => Promise<{ updateAvailable: boolean; latestVersion: string | null }>
@@ -489,6 +490,14 @@ function App() {
 
         try {
             const result = await window.electronAPI.app.runUpdate()
+
+            // Handle packaged app - can't use git pull
+            if (result.isPackaged) {
+                setUpdateStatus('📦 Packaged App')
+                setUpdateError('Download the latest version from GitHub releases to update.')
+                setIsUpdating(false)
+                return
+            }
 
             if (!result.success) {
                 if (!result.gitPull.success) {
@@ -1640,7 +1649,7 @@ function App() {
                             {loginPicture === 'default' ? (
                                 '🦅'
                             ) : loginPicture === 'rangersmyth' ? (
-                                <img src="/rangersmyth-pic.png" alt="RangerSmyth" className="login-logo-image" />
+                                <img src="./rangersmyth-pic.png" alt="RangerSmyth" className="login-logo-image" />
                             ) : (
                                 <img src={loginPicture} alt="Custom" className="login-logo-image" />
                             )}
@@ -2725,7 +2734,7 @@ function App() {
                                 {loginPicture === 'default' ? (
                                     <div className="preview-emoji">🦅</div>
                                 ) : loginPicture === 'rangersmyth' ? (
-                                    <img src="/rangersmyth-pic.png" alt="RangerSmyth" className="preview-image" />
+                                    <img src="./rangersmyth-pic.png" alt="RangerSmyth" className="preview-image" />
                                 ) : (
                                     <img src={loginPicture} alt="Custom" className="preview-image" />
                                 )}
@@ -2872,6 +2881,16 @@ function App() {
                                     )}
                                     {!updateAvailable && updateError && (
                                         <p className="update-status error">{updateError}</p>
+                                    )}
+                                    {updateStatus === '📦 Packaged App' && (
+                                        <a
+                                            href="https://github.com/davidtkeane/rangerplex-ai/releases"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="github-download-btn"
+                                        >
+                                            📥 Download Latest from GitHub
+                                        </a>
                                     )}
                                 </div>
                                 <p className="mission">🎖️ Mission: Transform disabilities into superpowers</p>

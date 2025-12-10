@@ -1,9 +1,9 @@
 {
   "name": "rangerplex-ai",
-  "version": "4.1.6",
+  "version": "4.1.7",
   "type": "module",
   "scripts": {
-    "start": "npm run stop 2>nul & concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
+    "start": "npm run stop 2>/dev/null ; concurrently \"npm run server\" \"npm run dev\" --names \"SERVER,VITE\" --prefix-colors \"cyan,magenta\"",
     "stop": "node -e \"process.platform==='win32'?require('child_process').execSync('powershell -File scripts/shutdown.ps1'):require('child_process').execSync('bash scripts/shutdown.sh')\"",
     "stop:win": "powershell -ExecutionPolicy Bypass -File scripts/shutdown.ps1",
     "stop:unix": "bash scripts/shutdown.sh",
@@ -19,8 +19,8 @@
     "preview": "vite preview",
     "proxy": "node proxy_server.js",
     "server": "node proxy_server.js",
-    "browser": "concurrently \"npm run server\" \"npm run dev\" \"node scripts/open-browser.cjs\" --names \"SERVER,VITE,BROWSER\" --prefix-colors \"cyan,magenta,green\" --kill-others-on-fail",
-    "browser:electron": "node scripts/launch_browser.cjs",
+    "browser": "node scripts/launch_browser.cjs",
+    "browser:tab": "node scripts/launch_browser.cjs -t",
     "browser:both": "node scripts/launch_browser.cjs -b",
     "blockchain:install": "node rangerblock/install-rangerplexblock.cjs",
     "blockchain:setup": "node rangerblock/core/setup_new_user.cjs",
