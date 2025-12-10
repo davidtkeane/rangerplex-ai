@@ -64,8 +64,9 @@ export enum ModelType {
 }
 
 export interface GroundingSource {
-  title?: string;
-  uri?: string;
+  title: string;
+  uri: string;
+  snippet?: string;
 }
 
 export interface Attachment {
@@ -165,6 +166,8 @@ export interface AgentConfig {
   systemInstruction: string;
   model: string;
   temperature: number;
+  enableGrounding?: boolean; // 🌐 Enable Google Search for fact verification
+  citationStyle?: 'inline' | 'footnote' | 'apa' | 'mla'; // 📚 Citation format
 }
 
 export interface ModelParams {
@@ -265,8 +268,25 @@ export interface AppSettings {
 
   // Agents
   councilAgents: AgentConfig[];
+  studyModeAgents: AgentConfig[]; // 📖 NEW: Academic-focused agents
+  councilMode: 'standard' | 'study'; // 🎯 NEW: Toggle between modes
 
   mcpServers: MCPServerConfig[];
+
+  // Accessibility
+  dyslexiaSettings?: {
+    enabled: boolean;
+    font: 'opendyslexic' | 'comic-sans' | 'arial' | 'verdana';
+    fontSize: number;
+    lineSpacing: number;
+    letterSpacing: number;
+    wordSpacing: number;
+    colorScheme: 'default' | 'high-contrast' | 'cream' | 'blue-tint';
+    highlightLinks: boolean;
+    simplifyLanguage: boolean;
+    textToSpeech: boolean;
+    readingGuide: boolean;
+  };
 
   // UI
   userAvatar?: string;
@@ -362,27 +382,133 @@ export const DEFAULT_AGENTS: AgentConfig[] = [
     name: "Lead Researcher",
     role: "fact-gatherer",
     color: "bg-blue-600",
-    systemInstruction: "You are a Lead Researcher. Your goal is to provide comprehensive, factual, and well-sourced information. Focus on accuracy and breadth of data.",
-    model: ModelType.FAST,
-    temperature: 0.3
+    systemInstruction: "You are a Lead Researcher. Provide comprehensive, factual, well-sourced information. Use Google Search to verify facts and cite all sources inline. Focus on accuracy and breadth of data.",
+    model: 'gemini-3-flash', // 🎯 Gemini 3.0 Flash - Fast research
+    temperature: 0.3,
+    enableGrounding: true, // 🌐 Enable web search
+    citationStyle: 'inline'
   },
   {
     id: 'skeptic',
     name: "The Skeptic",
     role: "critic",
     color: "bg-red-600",
-    systemInstruction: "You are a Critical Reviewer (The Skeptic). Your job is to analyze research for bias, logical fallacies, or missing perspectives. Play Devil's Advocate.",
-    model: ModelType.FAST,
-    temperature: 0.7
+    systemInstruction: "You are a Critical Reviewer (The Skeptic). Analyze research for bias, logical fallacies, or missing perspectives. Verify claims with web search when needed. Play Devil's Advocate.",
+    model: 'gemini-3-flash',
+    temperature: 0.7,
+    enableGrounding: true, // 🌐 Enable web search
+    citationStyle: 'inline'
   },
   {
     id: 'synthesizer',
     name: "The Synthesizer",
     role: "mediator",
     color: "bg-purple-600",
-    systemInstruction: "You are the Creative Synthesizer. Your job is to read the Research and the Criticism, and produce a final, balanced, and innovative conclusion.",
-    model: ModelType.FAST,
-    temperature: 0.6
+    systemInstruction: "You are the Creative Synthesizer. Read all previous responses and produce a balanced, innovative conclusion with supporting evidence from verified sources.",
+    model: 'gemini-3-flash',
+    temperature: 0.6,
+    enableGrounding: true, // 🌐 Enable web search
+    citationStyle: 'inline'
+  },
+  {
+    id: 'judge',
+    name: "The Judge",
+    role: "final-arbiter",
+    color: "bg-amber-600",
+    systemInstruction: `You are The Judge - the final arbiter of the Council.
+
+Your mission: Review all previous agent responses and deliver a clear, actionable verdict.
+
+OUTPUT FORMAT:
+1. **Executive Summary** (2-3 sentences max)
+2. **Key Insights** (3-5 bullet points)
+3. **Consensus vs. Disagreements** (What do agents agree/disagree on?)
+4. **Final Recommendation** (Clear, actionable next steps)
+
+Be concise, decisive, and objective. Your verdict is final.`,
+    model: 'gemini-3-pro', // 🎯 Gemini 3.0 Pro - Most powerful for final analysis
+    temperature: 0.4,
+    enableGrounding: true, // 🌐 Enable web search
+    citationStyle: 'inline'
+  }
+];
+
+// 📖 STUDY MODE AGENTS - Optimized for Academic Research
+export const STUDY_MODE_AGENTS: AgentConfig[] = [
+  {
+    id: 'academic-researcher',
+    name: "Academic Researcher",
+    role: "literature-review",
+    color: "bg-indigo-600",
+    systemInstruction: `You are an Academic Researcher specializing in literature reviews.
+
+Your mission:
+1. Search for peer-reviewed sources, academic papers, and authoritative references
+2. Summarize key findings from each source
+3. Identify gaps in current research
+4. Use proper academic citation format (APA 7th edition)
+
+Always cite sources with: Author(s), Year, Title, Journal/Publisher, DOI/URL`,
+    model: 'gemini-3-pro',
+    temperature: 0.2, // Low temp for accuracy
+    enableGrounding: true,
+    citationStyle: 'apa'
+  },
+  {
+    id: 'methodology-expert',
+    name: "Methodology Expert",
+    role: "research-design",
+    color: "bg-teal-600",
+    systemInstruction: `You are a Research Methodology Expert.
+
+Your mission:
+1. Analyze research methodologies used in cited sources
+2. Evaluate strengths and limitations of each approach
+3. Recommend best practices for the student's assignment
+4. Cite methodological frameworks with proper references`,
+    model: 'gemini-3-flash',
+    temperature: 0.3,
+    enableGrounding: true,
+    citationStyle: 'apa'
+  },
+  {
+    id: 'critical-analyst',
+    name: "Critical Analyst",
+    role: "quality-assurance",
+    color: "bg-rose-600",
+    systemInstruction: `You are a Critical Analyst for academic work.
+
+Your mission:
+1. Evaluate the quality and credibility of all cited sources
+2. Identify potential biases or conflicts of interest
+3. Flag outdated or unreliable references
+4. Suggest higher-quality alternatives when needed`,
+    model: 'gemini-3-flash',
+    temperature: 0.5,
+    enableGrounding: true,
+    citationStyle: 'apa'
+  },
+  {
+    id: 'academic-judge',
+    name: "Academic Supervisor",
+    role: "final-review",
+    color: "bg-amber-600",
+    systemInstruction: `You are an Academic Supervisor reviewing student work.
+
+Your mission:
+1. **Executive Summary** - Synthesize all findings into 2-3 sentences
+2. **Key Arguments** - List 3-5 main points with supporting evidence
+3. **Methodology Recommendations** - Best approach for this assignment
+4. **Quality Assessment** - Evaluate source credibility and coverage
+5. **References Section** - Compile all sources in APA 7th edition format
+6. **Suggestions for Improvement** - What's missing or needs strengthening
+
+Format references as:
+Author, A. A. (Year). Title of work. Publisher. DOI/URL`,
+    model: 'gemini-3-pro',
+    temperature: 0.3,
+    enableGrounding: true,
+    citationStyle: 'apa'
   }
 ];
 
@@ -488,12 +614,18 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   availableModels: {
     gemini: [
+      // Gemini 3.0 Series (Latest - November 2025)
       'gemini-3-pro',
+      'gemini-3-flash',
+      'gemini-3-deep-think',
+      'gemini-3-pro-preview-11-2025',
       'gemini-3-pro-preview',
+      // Gemini 2.0 Series
+      'gemini-2.0-flash-thinking-exp-01-21',
+      // Gemini 2.5 Series
       'gemini-2.5-pro',
       'gemini-2.5-flash',
-      'gemini-2.5-flash-lite',
-      'gemini-2.0-flash-thinking-exp-01-21'
+      'gemini-2.5-flash-lite'
     ],
     openai: [
       'gpt-5.1',
@@ -550,6 +682,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
 
   councilAgents: DEFAULT_AGENTS,
+  studyModeAgents: STUDY_MODE_AGENTS, // 📖 Academic-focused agents
+  councilMode: 'standard', // 🎯 Default to standard mode
 
   mcpServers: [
     { id: 'internal-firecrawl', name: 'Built-in Firecrawl (HTML Parser)', url: 'internal', status: 'connected', type: 'internal' },

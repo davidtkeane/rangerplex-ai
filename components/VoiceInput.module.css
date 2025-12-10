@@ -1,0 +1,204 @@
+.voiceInputContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.voiceButton {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(20, 184, 166, 0.3);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(20, 184, 166, 0.05));
+  color: rgb(20, 184, 166);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voiceButton:hover:not(.disabled) {
+  border-color: rgb(20, 184, 166);
+  background: rgba(20, 184, 166, 0.2);
+  transform: scale(1.05);
+}
+
+.voiceButton.listening {
+  border-color: rgb(239, 68, 68);
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(239, 68, 68);
+  animation: pulse 2s infinite;
+}
+
+.voiceButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.audioLevelRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgb(239, 68, 68);
+  pointer-events: none;
+  transition: all 0.1s ease;
+}
+
+.micSettingsButton {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(161, 161, 170, 0.3);
+  background: rgba(39, 39, 42, 0.9);
+  color: rgba(161, 161, 170, 1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.micSettingsButton:hover {
+  background: rgba(63, 63, 70, 1);
+  color: white;
+}
+
+.micSelectorDropdown {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 280px;
+  background: rgba(24, 24, 27, 0.95);
+  border: 1px solid rgba(63, 63, 70, 0.5);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.micSelectorHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.5);
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.refreshButton {
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(63, 63, 70, 0.5);
+  background: transparent;
+  color: rgba(161, 161, 170, 1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refreshButton:hover {
+  background: rgba(63, 63, 70, 0.5);
+  color: white;
+}
+
+.micList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.micOption {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  color: rgba(228, 228, 231, 1);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.micOption:hover {
+  background: rgba(63, 63, 70, 0.5);
+}
+
+.micOption.selected {
+  background: rgba(20, 184, 166, 0.1);
+  color: rgb(20, 184, 166);
+}
+
+.micOption i:first-child {
+  font-size: 16px;
+}
+
+.micOption i:last-child {
+  margin-left: auto;
+}
+
+.micSelectorFooter {
+  padding: 8px 12px;
+  border-top: 1px solid rgba(63, 63, 70, 0.5);
+  background: rgba(39, 39, 42, 0.5);
+  color: rgba(161, 161, 170, 1);
+  text-align: center;
+}
+
+.listeningIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: rgb(239, 68, 68);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pulseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(239, 68, 68);
+  animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+
+  50% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes pulseDot {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Attachment, CommandState, AppSettings } from '../types';
 import CommandDeck from './CommandDeck';
-import { startListening, stopListening } from '../services/voiceService';
+import VoiceInput from './VoiceInput';
 import { aliasService, type Alias } from '../services/aliasService';
 
 interface InputAreaProps {
@@ -40,7 +40,6 @@ const InputArea: React.FC<InputAreaProps> = ({
     const [input, setInput] = useState('');
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [dragOver, setDragOver] = useState(false);
-    const [isListening, setIsListening] = useState(false);
     const [showPromptMenu, setShowPromptMenu] = useState(false);
     const [aliasSuggestions, setAliasSuggestions] = useState<Alias[]>([]);
     const [showAliasSuggestions, setShowAliasSuggestions] = useState(false);
@@ -149,26 +148,7 @@ const InputArea: React.FC<InputAreaProps> = ({
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
     };
 
-    const toggleVoice = () => {
-        if (isListening) {
-            stopListening();
-            setIsListening(false);
-        } else {
-            setIsListening(true);
-            startListening(
-                (text, isFinal) => {
-                    if (isFinal) {
-                        setInput(prev => prev + (prev ? ' ' : '') + text);
-                        setIsListening(false);
-                    }
-                },
-                (err) => {
-                    console.error(err);
-                    setIsListening(false);
-                }
-            );
-        }
-    };
+
 
     const processFiles = async (fileList: FileList | null) => {
         if (!fileList) return;
@@ -309,7 +289,7 @@ const InputArea: React.FC<InputAreaProps> = ({
                     value={input}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
-                    placeholder={isListening ? "Listening..." : "Ask anything... (Type '/' for prompts)"}
+                    placeholder="Ask anything... (Type '/' for prompts)"
                     rows={1}
                     aria-label="Chat message input"
                     className={`w-full bg-transparent text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 px-4 py-4 outline-none resize-none max-h-[200px] min-h-[56px] ${isTron ? 'font-tron' : ''}`}
@@ -322,9 +302,17 @@ const InputArea: React.FC<InputAreaProps> = ({
                         </button>
                         <input type="file" ref={fileInputRef} className="hidden" multiple onChange={(e) => processFiles(e.target.files)} />
 
-                        <button onClick={toggleVoice} className={`p-2 rounded-full transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-400 hover:text-teal-500'}`}>
-                            <i className={`fa-solid ${isListening ? 'fa-microphone-lines' : 'fa-microphone'}`}></i>
-                        </button>
+                        {/* Voice Input Component */}
+                        <VoiceInput
+                            onTranscript={(text) => {
+                                setInput(prev => prev + (prev ? ' ' : '') + text);
+                                textareaRef.current?.focus();
+                            }}
+                            onError={(error) => {
+                                console.error('[Voice]', error);
+                            }}
+                            disabled={isStreaming}
+                        />
                         <button
                             onClick={() => handleCommandToggle('web')}
                             className={`p-2 rounded-full transition-colors ${commandState.web ? (isTron ? 'text-tron-cyan' : 'text-blue-500') : 'text-gray-400 hover:text-blue-400'}`}
@@ -368,8 +356,8 @@ const InputArea: React.FC<InputAreaProps> = ({
                                 >
                                     <i className={
                                         holidayEffect === 'snow' ? 'fa-regular fa-snowflake' :
-                                        holidayEffect === 'confetti' ? 'fa-solid fa-party-popper' :
-                                        'fa-solid fa-wand-magic-sparkles'
+                                            holidayEffect === 'confetti' ? 'fa-solid fa-party-popper' :
+                                                'fa-solid fa-wand-magic-sparkles'
                                     }></i>
                                 </button>
                                 <button
@@ -391,8 +379,8 @@ const InputArea: React.FC<InputAreaProps> = ({
                             className={`
                     w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200
                     ${isStreaming
-                        ? (isTron ? 'bg-red-600 text-white hover:bg-red-500 shadow-[0_0_12px_rgba(255,0,0,0.6)]' : 'bg-red-600 text-white hover:bg-red-500 shadow-lg')
-                        : (isTron ? 'bg-tron-cyan text-black hover:bg-white hover:shadow-[0_0_10px_#00f3ff]' : 'bg-teal-600 text-white hover:bg-teal-500 shadow-lg')}
+                                    ? (isTron ? 'bg-red-600 text-white hover:bg-red-500 shadow-[0_0_12px_rgba(255,0,0,0.6)]' : 'bg-red-600 text-white hover:bg-red-500 shadow-lg')
+                                    : (isTron ? 'bg-tron-cyan text-black hover:bg-white hover:shadow-[0_0_10px_#00f3ff]' : 'bg-teal-600 text-white hover:bg-teal-500 shadow-lg')}
                     ${!isStreaming && (!input.trim() && attachments.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
                         >

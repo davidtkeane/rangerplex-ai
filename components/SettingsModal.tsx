@@ -18,6 +18,7 @@ import AliasManager from './AliasManager';
 import { WeatherTester } from './Weather/WeatherTester';
 import { ApiTester } from './ApiTester';
 import CyberSecPodcast from './CyberSecPodcast';
+import { DyslexiaModeControls } from './DyslexiaModeControls';
 import { RSSFeedManager } from './RSSFeedManager';
 import { rssService } from '../services/rssService';
 import type { RSSSettings } from '../types/rss';
@@ -61,7 +62,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, 
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll, initialTab }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'commands' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'console' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'commands' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'accessibility' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'console' | 'about' | 'github'>('general');
     const [commandSearch, setCommandSearch] = useState('');
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['system', 'recon', 'intel']));
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
@@ -942,7 +943,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                     {/* Tabs */}
                     <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                        {['general', 'commands', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'console', 'about', 'github'].map((tab) => (
+                        {['general', 'commands', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'accessibility', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'console', 'about', 'github'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -3012,8 +3013,114 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         {/* COUNCIL TAB */}
                         {activeTab === 'council' && (
                             <div className="space-y-6">
+                                {/* Council Mode Selector */}
+                                <div className="p-4 border-2 border-teal-500/30 rounded-lg bg-teal-500/5">
+                                    <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                        <i className="fa-solid fa-graduation-cap text-teal-500"></i>
+                                        Council Mode
+                                    </h4>
+
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <button
+                                            onClick={() => {
+                                                const { DEFAULT_AGENTS, STUDY_MODE_AGENTS } = require('../types');
+                                                setLocalSettings({
+                                                    ...localSettings,
+                                                    councilMode: 'standard',
+                                                    councilAgents: DEFAULT_AGENTS
+                                                });
+                                            }}
+                                            className={`p-4 rounded-lg border-2 transition-all ${localSettings.councilMode === 'standard'
+                                                ? 'border-teal-500 bg-teal-500/20'
+                                                : 'border-zinc-700 hover:border-zinc-600'
+                                                }`}
+                                        >
+                                            <div className="text-2xl mb-2">💼</div>
+                                            <div className="font-bold text-sm">Standard Mode</div>
+                                            <div className="text-xs opacity-70 mt-1">
+                                                General research & analysis
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                const { STUDY_MODE_AGENTS } = require('../types');
+                                                setLocalSettings({
+                                                    ...localSettings,
+                                                    councilMode: 'study',
+                                                    councilAgents: STUDY_MODE_AGENTS
+                                                });
+                                            }}
+                                            className={`p-4 rounded-lg border-2 transition-all ${localSettings.councilMode === 'study'
+                                                ? 'border-amber-500 bg-amber-500/20'
+                                                : 'border-zinc-700 hover:border-zinc-600'
+                                                }`}
+                                        >
+                                            <div className="text-2xl mb-2">📚</div>
+                                            <div className="font-bold text-sm">Study Mode</div>
+                                            <div className="text-xs opacity-70 mt-1">
+                                                Academic research with citations
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    <div className="text-xs opacity-60 bg-zinc-800/50 p-3 rounded">
+                                        <strong>💡 Study Mode Features:</strong>
+                                        <ul className="list-disc ml-4 mt-1 space-y-1">
+                                            <li>Academic-focused agents (Literature Review, Methodology, Critical Analysis)</li>
+                                            <li>Automatic APA 7th edition citations</li>
+                                            <li>Peer-reviewed source prioritization</li>
+                                            <li>Compiled references section</li>
+                                            <li>Perfect for college assignments!</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Judge Model Selector */}
+                                <div className="p-4 border-2 border-amber-500/30 rounded-lg bg-amber-500/5">
+                                    <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                        <i className="fa-solid fa-gavel text-amber-500"></i>
+                                        Judge Model (Final Arbiter)
+                                    </h4>
+
+                                    <select
+                                        value={localSettings.councilAgents.find(a => a.id === 'judge' || a.id === 'academic-judge')?.model || 'gemini-3-pro'}
+                                        onChange={(e) => {
+                                            const judgeId = localSettings.councilMode === 'study' ? 'academic-judge' : 'judge';
+                                            const updatedAgents = localSettings.councilAgents.map(a =>
+                                                a.id === judgeId ? { ...a, model: e.target.value } : a
+                                            );
+                                            setLocalSettings({ ...localSettings, councilAgents: updatedAgents });
+                                        }}
+                                        className={`w-full text-sm rounded px-3 py-2 ${inputClass}`}
+                                    >
+                                        <optgroup label="🎯 Gemini 3.0 (Recommended)">
+                                            <option value="gemini-3-pro">Gemini 3 Pro ⭐ (Most Powerful)</option>
+                                            <option value="gemini-3-flash">Gemini 3 Flash (Fast)</option>
+                                            <option value="gemini-3-deep-think">Gemini 3 Deep Think (Advanced Reasoning)</option>
+                                        </optgroup>
+
+                                        <optgroup label="🧠 Reasoning Models">
+                                            <option value="gemini-2.0-flash-thinking-exp-01-21">Gemini 2.0 Thinking</option>
+                                            <option value="o1-mini">OpenAI o1-mini</option>
+                                            <option value="o1">OpenAI o1</option>
+                                        </optgroup>
+
+                                        <optgroup label="💎 Premium Models">
+                                            <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+                                            <option value="gpt-4o">GPT-4o</option>
+                                            <option value="grok-3">Grok 3</option>
+                                        </optgroup>
+                                    </select>
+
+                                    <div className="mt-3 text-xs opacity-60 bg-zinc-800/50 p-2 rounded">
+                                        <strong>🌐 All agents now have internet access via Google Search Grounding!</strong>
+                                        <br />Facts are verified in real-time and sources are automatically cited.
+                                    </div>
+                                </div>
+
                                 <div className="flex justify-between items-center border-b border-inherit pb-2">
-                                    <h3 className="font-bold">Council of Agents</h3>
+                                    <h3 className="font-bold">Council Agents ({localSettings.councilAgents.length})</h3>
                                     <button onClick={addAgent} className="text-xs bg-blue-600 px-3 py-1 rounded text-white hover:bg-blue-500">+ Add Agent</button>
                                 </div>
 
@@ -3050,6 +3157,68 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+
+                        {/* ACCESSIBILITY TAB */}
+                        {activeTab === 'accessibility' && (
+                            <div className="space-y-6">
+                                <div className="border-b border-inherit pb-2">
+                                    <h3 className="font-bold flex items-center gap-2">
+                                        <i className="fa-solid fa-universal-access text-purple-500"></i>
+                                        Accessibility Settings
+                                    </h3>
+                                    <p className="text-sm opacity-70 mt-1">
+                                        Optimize RangerPlex for dyslexia and other accessibility needs
+                                    </p>
+                                </div>
+
+                                <DyslexiaModeControls
+                                    settings={localSettings.dyslexiaSettings || {
+                                        enabled: false,
+                                        font: 'opendyslexic',
+                                        fontSize: 16,
+                                        lineSpacing: 1.8,
+                                        letterSpacing: 1,
+                                        wordSpacing: 2,
+                                        colorScheme: 'default',
+                                        highlightLinks: true,
+                                        simplifyLanguage: false,
+                                        textToSpeech: false,
+                                        readingGuide: false,
+                                    }}
+                                    onChange={(newSettings) => {
+                                        setLocalSettings({
+                                            ...localSettings,
+                                            dyslexiaSettings: newSettings
+                                        });
+                                    }}
+                                />
+
+                                <div className="p-4 bg-blue-500/10 border-2 border-blue-500/30 rounded-lg">
+                                    <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
+                                        <i className="fa-solid fa-lightbulb text-blue-500"></i>
+                                        Accessibility Tips
+                                    </h4>
+                                    <ul className="text-sm space-y-2 opacity-80">
+                                        <li className="flex items-start gap-2">
+                                            <i className="fa-solid fa-check text-green-500 mt-1"></i>
+                                            <span><strong>Voice Input:</strong> Use the microphone button to speak instead of typing</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <i className="fa-solid fa-check text-green-500 mt-1"></i>
+                                            <span><strong>Text-to-Speech:</strong> Enable to have messages read aloud automatically</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <i className="fa-solid fa-check text-green-500 mt-1"></i>
+                                            <span><strong>Study Mode:</strong> Combine with Council tab for academic research with citations</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <i className="fa-solid fa-check text-green-500 mt-1"></i>
+                                            <span><strong>Keyboard Shortcuts:</strong> Use Ctrl+Enter to send messages quickly</span>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         )}
 
@@ -4478,24 +4647,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                 .map((entry) => (
                                                     <div
                                                         key={entry.id}
-                                                        className={`flex gap-2 py-0.5 border-b border-white/5 ${
-                                                            entry.type === 'error' ? 'text-red-400' :
+                                                        className={`flex gap-2 py-0.5 border-b border-white/5 ${entry.type === 'error' ? 'text-red-400' :
                                                             entry.type === 'warn' ? 'text-yellow-400' :
-                                                            entry.type === 'info' ? 'text-blue-400' :
-                                                            entry.type === 'debug' ? 'text-purple-400' :
-                                                            'text-gray-300'
-                                                        }`}
+                                                                entry.type === 'info' ? 'text-blue-400' :
+                                                                    entry.type === 'debug' ? 'text-purple-400' :
+                                                                        'text-gray-300'
+                                                            }`}
                                                     >
                                                         <span className="opacity-40 flex-shrink-0">
                                                             {entry.timestamp.toLocaleTimeString()}
                                                         </span>
-                                                        <span className={`uppercase text-[10px] px-1 rounded flex-shrink-0 ${
-                                                            entry.type === 'error' ? 'bg-red-500/20' :
+                                                        <span className={`uppercase text-[10px] px-1 rounded flex-shrink-0 ${entry.type === 'error' ? 'bg-red-500/20' :
                                                             entry.type === 'warn' ? 'bg-yellow-500/20' :
-                                                            entry.type === 'info' ? 'bg-blue-500/20' :
-                                                            entry.type === 'debug' ? 'bg-purple-500/20' :
-                                                            'bg-gray-500/20'
-                                                        }`}>
+                                                                entry.type === 'info' ? 'bg-blue-500/20' :
+                                                                    entry.type === 'debug' ? 'bg-purple-500/20' :
+                                                                        'bg-gray-500/20'
+                                                            }`}>
                                                             {entry.type}
                                                         </span>
                                                         <span className="break-all whitespace-pre-wrap">{entry.message}</span>
