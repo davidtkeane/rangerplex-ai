@@ -147,10 +147,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
         const parts: React.ReactNode[] = [];
         let cleanText = text;
 
-        const thoughtMatch = cleanText.match(/<thinking>([\s\S]*?)<\/thinking>/);
-        if (thoughtMatch) {
-            parts.push(<ThinkingBlock key="think" content={thoughtMatch[1].trim()} isTron={isTron} isMatrix={isMatrix} />);
-            cleanText = cleanText.replace(thoughtMatch[0], '');
+        // Check for complete thinking block (supports <thinking> and <think>)
+        const completeThoughtMatch = cleanText.match(/<(thinking|think)>([\s\S]*?)<\/\1>/);
+        if (completeThoughtMatch) {
+            parts.push(<ThinkingBlock key="think-complete" content={completeThoughtMatch[2].trim()} isTron={isTron} isMatrix={isMatrix} />);
+            cleanText = cleanText.replace(completeThoughtMatch[0], '');
+        } else {
+            // Check for incomplete/streaming thinking block (start tag but no end tag)
+            const openThoughtMatch = cleanText.match(/<(thinking|think)>([\s\S]*)$/);
+            if (openThoughtMatch) {
+                parts.push(<ThinkingBlock key="think-streaming" content={openThoughtMatch[2].trim()} isTron={isTron} isMatrix={isMatrix} />);
+                cleanText = cleanText.replace(openThoughtMatch[0], '');
+            }
         }
 
         const codeSplit = cleanText.split(/```/);

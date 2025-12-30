@@ -5,6 +5,18 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.1] - 2025-12-30 - Thinking Process Visualization 🧠
+
+### Summary
+**AI REASONING UPDATE**: Added visualization for the "Thinking Process" across all models (Ollama, LM Studio, etc.). Now you can see the AI's internal reasoning in real-time!
+
+### 🧠 Thinking Process
+- **Universal Support**: Works with standard `<thinking>` tags and DeepSeek's `<think>` tags.
+- **Real-Time Streaming**: Watch the thought process evolve line-by-line as it's generated.
+- **Enhanced System Prompts**: Instructed Ollama and LM Studio models to explicitly use thinking tags for complex reasoning.
+- **Visual Design**: Collapsible, styled blocks that match your current theme (Matrix/Tron/Standard).
+
+---
 ## [4.3.0] - 2025-12-11 - "Enter The Matrix" 🕶️
 
 ### Summary
