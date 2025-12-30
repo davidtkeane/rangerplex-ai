@@ -5,6 +5,18 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.2] - 2025-12-30 - LM Studio Status Agent 🕵️‍♂️
+
+### Summary
+Added intelligent monitoring for local AI servers. RangerPlex now knows if LM Studio is running and can even start it for you!
+
+### 🕵️‍♂️ Detection & Controls
+- **Live Status Indicator**: New badge in Settings tracks if LM Studio is Online (🟢) or Offline (🔴).
+- **Auto-Launch**: Added a "Start App" button that appears when LM Studio is offline.
+- **Headless Support**: Correctly detects background processes even if the main window isn't visible.
+
+---
+
 ## [4.3.1] - 2025-12-30 - Thinking Process Visualization 🧠
 
 ### Summary

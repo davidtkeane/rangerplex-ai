@@ -589,6 +589,35 @@ app.post('/api/import', (req, res) => {
     }
 });
 
+// Start App (LM Studio)
+app.post('/api/system/start-app', async (req, res) => {
+    try {
+        const { appName } = req.body;
+        if (appName !== 'lmstudio') {
+            return res.status(400).json({ error: 'App not supported' });
+        }
+
+        const platform = process.platform;
+        let cmd = null;
+
+        if (platform === 'darwin') {
+            cmd = 'open -a "LM Studio"';
+        } else if (platform === 'win32') {
+            cmd = 'start "" "LM Studio"';
+        } else {
+            // Linux fallback, might need specific path
+            cmd = 'lms server start';
+        }
+
+        console.log('🚀 Attempting to start LM Studio:', cmd);
+        await execAsync(cmd);
+        res.json({ success: true, message: 'Launch command executed' });
+    } catch (error) {
+        console.error('Failed to start app:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Clear all data
 app.delete('/api/clear', (req, res) => {
     try {

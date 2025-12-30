@@ -95,6 +95,59 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['system', 'recon', 'intel']));
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
 
+    // LM Studio Status Logic
+    const [lmStudioStatus, setLmStudioStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+
+    // Poll LM Studio status when tab is active
+    useEffect(() => {
+        if (activeTab !== 'lmstudio') return;
+
+        const checkStatus = async () => {
+            try {
+                // Short timeout for status check
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+                const res = await fetch(localSettings.lmstudioBaseUrl || 'http://localhost:1234/v1/models', {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (res.ok) setLmStudioStatus('online');
+                else setLmStudioStatus('offline');
+            } catch (e) {
+                setLmStudioStatus('offline');
+            }
+        };
+
+        checkStatus(); // Initial check
+        const interval = setInterval(checkStatus, 5000); // Poll every 5s
+        return () => clearInterval(interval);
+    }, [activeTab, localSettings.lmstudioBaseUrl]);
+
+    const handleStartLMStudio = async () => {
+        try {
+            const btn = document.getElementById('start-lmstudio-btn');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Launching...';
+
+            await fetch('http://localhost:3000/api/system/start-app', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appName: 'lmstudio' })
+            });
+
+            // Optimistic update
+            setTimeout(() => {
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-rocket"></i> Launching...';
+            }, 2000);
+        } catch (error) {
+            console.error('Failed to start LM Studio:', error);
+            const btn = document.getElementById('start-lmstudio-btn');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error Starting';
+        }
+    };
+
     // Window mode state (normal, fullscreen, minimized)
     const [windowMode, setWindowMode] = useState<'normal' | 'fullscreen' | 'minimized'>(() => {
         const saved = localStorage.getItem('settings_window_mode');
@@ -2277,6 +2330,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         Configure how RangerPlex connects to LM Studio. LM Studio uses an OpenAI-compatible API.
                                     </p>
                                     <div className="space-y-4">
+                                        <div className="flex justify-between items-center border-b border-inherit pb-2 mb-4">
+                                            <h3 className="font-bold">LM Studio Configuration</h3>
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <div className={`flex items-center gap-2 px-2 py-1 rounded bg-black/20 border border-white/10`}>
+                                                    <span className={`w-2 h-2 rounded-full ${lmStudioStatus === 'online' ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500'}`}></span>
+                                                    <span className="opacity-70 font-mono uppercase">{lmStudioStatus}</span>
+                                                </div>
+                                                {lmStudioStatus === 'offline' && (
+                                                    <button
+                                                        id="start-lmstudio-btn"
+                                                        onClick={handleStartLMStudio}
+                                                        className="px-3 py-1 bg-purple-600/20 text-purple-400 border border-purple-500/50 rounded hover:bg-purple-600/40 transition-all flex items-center gap-1 font-bold shadow-lg hover:shadow-purple-500/20"
+                                                    >
+                                                        <i className="fa-solid fa-power-off"></i> START APP
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
                                         <InputGroup
                                             label="LM Studio Base URL"
                                             value={localSettings.lmstudioBaseUrl}
