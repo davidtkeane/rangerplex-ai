@@ -1,24 +1,35 @@
 
 // Basic wrapper for Web Speech API
 
-export const speakText = (text: string, voiceName?: string) => {
+export const speakText = (text: string, voiceName?: string | string[]) => {
     if (!window.speechSynthesis) return;
-    
+
     // Cancel existing
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = window.speechSynthesis.getVoices();
-    
+
     // Try to find a good English voice if not specified
     if (!voiceName) {
-        const preferred = voices.find(v => v.name.includes('Google US English')) || 
-                          voices.find(v => v.lang === 'en-US') || 
-                          voices[0];
+        const preferred = voices.find(v => v.name.includes('Google US English')) ||
+            voices.find(v => v.lang === 'en-US') ||
+            voices[0];
         if (preferred) utterance.voice = preferred;
     } else {
-        const v = voices.find(v => v.name === voiceName);
-        if (v) utterance.voice = v;
+        if (Array.isArray(voiceName)) {
+            // Find the first available voice that matches any of the preferences
+            for (const name of voiceName) {
+                const v = voices.find(voice => voice.name === name || voice.name.includes(name));
+                if (v) {
+                    utterance.voice = v;
+                    break;
+                }
+            }
+        } else {
+            const v = voices.find(v => v.name === voiceName);
+            if (v) utterance.voice = v;
+        }
     }
 
     utterance.rate = 1.0;
@@ -61,7 +72,7 @@ export const startListening = (
                 interimTranscript += event.results[i][0].transcript;
             }
         }
-        
+
         if (finalTranscript) onResult(finalTranscript, true);
         else if (interimTranscript) onResult(interimTranscript, false);
     };

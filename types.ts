@@ -131,6 +131,15 @@ export interface Message {
   isThinking?: boolean; // Loading state
   thoughtProcess?: string; // The actual chain of thought text
   groundingSources?: GroundingSource[];
+  // AI Personality Metadata
+  personality?: {
+    id: string;
+    name: string;
+    emoji: string;
+    confidence?: number;
+    voicePreferences?: string[];
+    theme?: 'tron' | 'matrix' | 'default';
+  };
   contextUsed?: DocumentChunk[];
   stats?: MessageStats;
   scriptOutput?: ScriptOutput; // For Code Interpreter
@@ -291,6 +300,15 @@ export interface AppSettings {
     simplifyLanguage: boolean;
     textToSpeech: boolean;
     readingGuide: boolean;
+  };
+
+  // AI Personality
+  personalitySettings?: {
+    mode: 'fixed' | 'auto-match' | 'random' | 'conversation';
+    fixedPersonalityId?: string;
+    showBadge: boolean;
+    showConfidence: boolean;
+    allowManualOverride: boolean;
   };
 
   // UI
@@ -707,6 +725,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   chatHistoryMaxMessages: 24,
   chatHistoryMaxChars: 120000,
   currency: 'USD',
+
+  personalitySettings: {
+    mode: 'auto-match',
+    fixedPersonalityId: 'colonel-ranger',
+    showBadge: true,
+    showConfidence: true,
+    allowManualOverride: true,
+  },
 
   voiceConfig: {
     provider: 'browser',

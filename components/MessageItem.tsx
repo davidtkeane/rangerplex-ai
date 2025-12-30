@@ -221,18 +221,24 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, userAvatar, aiAvatar
                 {isUser ? (
                     userAvatar ? <img src={userAvatar} alt="User" className="w-full h-full object-cover" /> : <i className="fa-solid fa-user text-sm"></i>
                 ) : (
-                    (message.agentName && petAvatar) ? <img src={petAvatar} alt={message.agentName} className="w-full h-full object-cover" /> :
-                        (message.agentName) ? <i className="fa-solid fa-paw text-sm"></i> :
-                            aiAvatar ? <img src={aiAvatar} alt="AI" className="w-full h-full object-cover" /> :
-                                <i className="fa-solid fa-robot text-sm"></i>
+                    (message.personality) ? <div className="text-lg">{message.personality.emoji}</div> :
+                        (message.agentName && petAvatar) ? <img src={petAvatar} alt={message.agentName} className="w-full h-full object-cover" /> :
+                            (message.agentName) ? <i className="fa-solid fa-paw text-sm"></i> :
+                                aiAvatar ? <img src={aiAvatar} alt="AI" className="w-full h-full object-cover" /> :
+                                    <i className="fa-solid fa-robot text-sm"></i>
                 )}
             </div>
 
             <div className={`flex flex-col max-w-[90%] md:max-w-[85%] ${isUser ? 'items-end' : 'items-start'}`}>
 
                 <div className="flex items-center gap-2 mb-1 opacity-70 text-xs">
-                    <div className="font-bold">{isUser ? 'You' : (message.agentName || 'Ranger')}</div>
-                    {!isUser && message.agentName && (
+                    <div className="font-bold flex items-center gap-2">
+                        {isUser ? 'You' : (message.personality ? message.personality.name : (message.agentName || 'Ranger'))}
+                    </div>
+                    {!isUser && message.personality && (
+                        <span className="text-[10px] bg-white/10 px-2 rounded-full" title={`Confidence: ${message.personality.confidence || 0}%`}>{message.personality.emoji} {message.personality.name}</span>
+                    )}
+                    {!isUser && message.agentName && !message.personality && (
                         <span className={`px-2 py-[1px] rounded-full text-[9px] font-bold uppercase tracking-wider text-white ${message.agentColor || 'bg-zinc-600'}`}>{message.agentName}</span>
                     )}
                 </div>

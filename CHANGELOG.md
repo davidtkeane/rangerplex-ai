@@ -5,6 +5,55 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2025-12-11 - "Enter The Matrix" 🕶️
+
+### Summary
+**VISUAL & EASTER EGG UPDATE**: Introduces dynamic Visual Themes for message bubbles and a hidden set of Matrix-themed personalities! Plus, refined Voice Matching with complex preference lists.
+
+### 🕶️ Visual Themes & Easter Eggs
+
+#### New Features
+- **Dynamic Bubble Themes**: Message bubbles now adapt to the personality's theme.
+  - **Matrix Theme**: Green code rain aesthetic (used by The Hacker and Matrix crew).
+  - **Tron Theme**: Cyan neon glow (used by Tony Stark).
+- **Matrix Easter Egg**: 5 hidden personalities triggered by "Matrix" keywords:
+  - **Neo**: "Stoic, focused, powerful" (Theme: Matrix)
+  - **Morpheus**: "Wise, cryptic, believing" (Theme: Matrix)
+  - **Trinity**: "Precise, lethal, loyal" (Theme: Matrix)
+  - **The Oracle**: "Mystic Guide" (Theme: Matrix)
+  - **Agent Smith**: "System Agent" (Theme: Matrix)
+- **Enhanced Voice Matching**: Support for prioritized voice lists to ensure the best possible match on any OS (e.g. prioritizing "Daniel" for Colonel Ranger).
+
+#### Technical Details
+- **Theme Property**: Added `theme` to `AIPersonality` interface.
+- **Bubble Rendering**: `MessageItem` now supports dynamic styling based on message metadata.
+- **Robust Typing**: Updated `Message` interface to include full personality metadata.
+
+## [4.2.0-dev] - 2025-12-11 - "The Many Faces of Ranger" 🎭
+
+### Summary
+**MAJOR UPDATE**: AI Personality System! RangerPlex now supports 40 diverse AI personalities, from "Colonel Ranger" to "Dr. Science", tailored for specific domains. Features include Smart Auto-Matching, visual badges, and integrated Voice Matching.
+
+### 🎭 AI Personality System
+
+#### Key Features
+- **40 Unique Personalities**: Spanning Science, Creative, Strategy, Philosophy, and more.
+- **Smart Auto-Match**: Automatically selects the best expert based on your question topic.
+- **Modes**: Fixed, Auto-Match, Random, and Conversation Mode.
+- **Visual Identity**: Unique Emojis and Badges for every personality.
+- **Voice Matching**: Different personalities prefer different TTS voices (e.g. Colonel Ranger uses male voices).
+- **System Prompt Injection**: Dynamically alters AI behavior to match the persona.
+
+#### UI Components
+- **Personality Selector**: Dedicated tab in Settings with category filters and live preview.
+- **Message Badges**: Visual indicator of who is speaking (Emoji + Name + Confidence).
+- **Settings Integration**: Fully integrated into the user preferences system.
+
+#### Technical Details
+- **Architecture**: Modular `personalityService` handles matching logic.
+- **Data Structure**: Extensible `AIPersonality` interface with traits, expertise, and voice preferences.
+- **Voice Integration**: Enhanced `voiceService` supports fallback preference lists.
+
 ## [4.2.2] - 2025-12-30 - LM Studio Polish ✨
 
 ### Summary
@@ -59,8 +108,6 @@ Major overhaul of the Settings interface for **Ollama** and **LM Studio**, intro
 - **Type Definitions**: Updated `AppSettings` with new fields (`lmstudioContextLength`, `ollamaKeepAlive`, etc.).
 - **Service Layer**: Refactored `ollamaService.ts` and `lmstudioService.ts` to accept and process optional configuration objects.
 - **Chat Interface**: Updated `streamOllamaResponse` and `streamLMStudioResponse` calls to inject user preferences into API requests.
-
----
 
 ## [2.14.0] - 2025-12-10 - "Accessibility Commander" 🎖️
 

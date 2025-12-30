@@ -19,6 +19,7 @@ import { WeatherTester } from './Weather/WeatherTester';
 import { ApiTester } from './ApiTester';
 import CyberSecPodcast from './CyberSecPodcast';
 import { DyslexiaModeControls } from './DyslexiaModeControls';
+import { PersonalitySelector } from './PersonalitySelector';
 import { RSSFeedManager } from './RSSFeedManager';
 import { rssService } from '../services/rssService';
 import type { RSSSettings } from '../types/rss';
@@ -89,7 +90,7 @@ const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, 
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll, initialTab }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-    const [activeTab, setActiveTab] = useState<'general' | 'commands' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'accessibility' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'console' | 'about' | 'github'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'commands' | 'media' | 'params' | 'providers' | 'ollama' | 'lmstudio' | 'search' | 'mcp' | 'rss' | 'council' | 'accessibility' | 'personality' | 'prompts' | 'security' | 'canvas' | 'radio' | 'podcast' | 'tamagotchi' | 'rangerblock' | 'editor' | 'data' | 'memory' | 'weather' | 'console' | 'about' | 'github'>('general');
     const [commandSearch, setCommandSearch] = useState('');
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['system', 'recon', 'intel']));
     const [connectionStatus, setConnectionStatus] = useState<{ [key: string]: 'loading' | 'success' | 'error' | 'idle' }>({});
@@ -978,7 +979,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
                     {/* Tabs */}
                     <div className="flex flex-nowrap items-center gap-2 border-b border-inherit px-6 py-2 overflow-x-auto bg-opacity-50 scrollbar-thin">
-                        {['general', 'commands', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'accessibility', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'console', 'about', 'github'].map((tab) => (
+                        {['general', 'commands', 'media', 'params', 'providers', 'ollama', 'lmstudio', 'search', 'mcp', 'rss', 'council', 'accessibility', 'personality', 'prompts', 'security', 'canvas', 'radio', 'podcast', 'tamagotchi', 'rangerblock', 'editor', 'data', 'memory', 'weather', 'console', 'about', 'github'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -3409,6 +3410,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                     </ul>
                                 </div>
                             </div>
+                        )}
+
+                        {/* PERSONALITY TAB */}
+                        {activeTab === 'personality' && (
+                            <PersonalitySelector
+                                settings={localSettings.personalitySettings || {
+                                    mode: 'auto-match',
+                                    fixedPersonalityId: 'colonel-ranger',
+                                    showBadge: true,
+                                    showConfidence: true,
+                                    allowManualOverride: true,
+                                }}
+                                onChange={(newSettings) => {
+                                    setLocalSettings({
+                                        ...localSettings,
+                                        personalitySettings: newSettings
+                                    });
+                                }}
+                            />
                         )}
 
                         {/* PROMPTS TAB */}

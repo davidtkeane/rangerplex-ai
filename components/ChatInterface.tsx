@@ -34,6 +34,7 @@ import { malwareCommandHandler } from '../src/commands/malwareCommandHandler';
 import { aliasService, type Alias } from '../services/aliasService';
 import AliasConfirmationModal from './AliasConfirmationModal';
 import AliasManager from './AliasManager';
+import { personalityService } from '../services/personalityService';
 
 interface ChatInterfaceProps {
     session: ChatSession;
@@ -935,6 +936,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 settings.chatHistoryMaxMessages,
                 settings.chatHistoryMaxChars
             );
+
+            // --- AI PERSONALITY HANDLING ---
+            let activePersonality: { id: string; name: string; emoji: string; confidence?: number; voicePreferences?: string[]; theme?: 'tron' | 'matrix' | 'default' } | undefined = undefined;
+            if (!isPetChat && settings.personalitySettings) {
+                const { personality, confidence } = personalityService.selectPersonality(
+                    settings.personalitySettings.mode,
+                    text,
+                    settings.personalitySettings.fixedPersonalityId,
+                    undefined
+                );
+
+                if (personality) {
+                    // Inject personality instructions
+                    const instruction = `[SYSTEM: ${personality.systemPromptModifier}]`;
+                    textToSend = `${instruction}\n\n${text}`;
+
+                    activePersonality = {
+                        id: personality.id,
+                        name: personality.name,
+                        emoji: personality.emoji,
+                        confidence: confidence,
+                        voicePreferences: personality.voicePreferences,
+                        theme: personality.theme
+                    };
+                }
+            }
 
             // --- PET CHAT HANDLING ---
             if (isPetChat) {
@@ -3730,9 +3757,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     contextUsed: relevantContext, stats: { model: modelToUse, latencyMs: Date.now() - startTime, ...stats },
                     agentName: isPetResponse ? (settings.petName || 'Pixel') : undefined,
                     agentColor: isPetResponse ? 'bg-purple-600' : undefined,
+                    personality: activePersonality,
                 };
                 onUpdateMessages([...currentMessages, msg]);
-                if (settings.enableVoiceResponse && !isPetResponse) speakText(fullText.replace(/<[^>]*>?/gm, ''));
+
+                // Voice Response Handling
+                if (settings.enableVoiceResponse && !isPetResponse) {
+                    const cleanText = fullText.replace(/<[^>]*>?/gm, '');
+                    // Phase 2: Voice Matching
+                    // Pass active personality's voice preferences to speakText
+                    speakText(cleanText, activePersonality?.voicePreferences);
+                }
             };
 
             // Provider Routing
@@ -3896,9 +3931,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         userAvatar={settings.userAvatar}
                         aiAvatar={settings.aiAvatar}
                         petAvatar={settings.petAvatar}
-                        isTron={isTron}
-                        isMatrix={settings.matrixMode}
-                        onRegenerate={handleRegenerate}
+                        isTron={isTron || msg.personality?.theme === 'tron'}
+                        isMatrix={settings.matrixMode || msg.personality?.theme === 'matrix'}
+                        onRegenerate={isStreaming ? undefined : handleRegenerate}
                         onRate={(rating, reason) => handleFeedback(msg.id, rating, reason)}
                         onMakeNote={onMakeNote ? (message) => {
                             const attachmentImg = (message.attachments || []).find(a => a.mimeType.startsWith('image/'));
