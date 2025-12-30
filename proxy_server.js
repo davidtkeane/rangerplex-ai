@@ -838,8 +838,25 @@ app.post('/api/rss/parse', async (req, res) => {
             setTimeout(() => reject(new Error('Feed request timed out (15s)')), 15000);
         });
 
-        const parsePromise = rssParser.parseURL(url);
-        const feed = await Promise.race([parsePromise, timeoutPromise]);
+        const fetchFeed = async () => {
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+            }
+
+            const text = await response.text();
+            // Remove BOM and leading whitespace/garbage
+            const cleanText = text.replace(/^\uFEFF/, '').trim();
+            return await rssParser.parseString(cleanText);
+        };
+
+        const feed = await Promise.race([fetchFeed(), timeoutPromise]);
 
         const items = feed.items.map(item => ({
             title: item.title || 'Untitled',
@@ -1522,39 +1539,7 @@ app.all('/api/lmstudio/*', async (req, res) => {
             throw error;
         }
 
-        // Set CORS headers
-        res.set({
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': response.headers.get('content-type') || 'application/json',
-            'Cache-Control': 'no-cache'
-        });
 
-        // Handle streaming responses
-        if (response.headers.get('content-type')?.includes('text/event-stream') ||
-            response.headers.get('transfer-encoding') === 'chunked') {
-            const reader = response.body.getReader();
-            const pump = async () => {
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        if (!res.write(value)) {
-                            await new Promise(resolve => res.once('drain', resolve));
-                        }
-                    }
-                    res.end();
-                    console.log('✅ LM Studio stream completed');
-                } catch (error) {
-                    console.error('❌ Stream pump error:', error);
-                    res.end();
-                }
-            };
-            pump();
-        } else {
-            // Non-streaming response
-            const data = await response.json();
-            res.json(data);
-        }
 
     } catch (error) {
         console.error('❌ LM Studio proxy error:', error);
