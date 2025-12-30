@@ -39,26 +39,53 @@ interface SettingsModalProps {
     initialTab?: string;
 }
 
-const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, inputClass }: any) => (
-    <div>
-        <label className="block text-xs font-bold mb-1 opacity-80"><i className={`${icon} w-4`}></i> {label}</label>
-        <div className="flex gap-2">
-            <input type={label.includes('Key') || label.includes('Token') ? 'password' : 'text'} value={value} onChange={e => onChange(e.target.value)} className={`flex-1 rounded px-4 py-2 outline-none ${inputClass}`} />
-            {onTest && (
-                <div className="flex gap-1">
-                    <button onClick={onTest} className={`px-4 py-1 rounded border border-inherit whitespace-nowrap min-w-[80px] flex items-center justify-center ${status === 'success' ? 'bg-green-500/10 text-green-500' : status === 'error' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5'}`}>
-                        {status === 'success' ? <i className="fa-solid fa-check"></i> : status === 'loading' ? <i className="fa-solid fa-circle-notch fa-spin"></i> : status === 'error' ? <i className="fa-solid fa-xmark"></i> : 'Test'}
-                    </button>
-                    {onAdvanced && (
-                        <button onClick={onAdvanced} className="px-3 py-1 rounded border border-inherit hover:bg-white/5 text-xs" title="Advanced Debugging">
-                            <i className="fa-solid fa-sliders"></i>
+const InputGroup = ({ label, value, onChange, icon, onTest, onAdvanced, status, inputClass }: any) => {
+    const [isAnimating, setIsAnimating] = useState(false);
+
+    useEffect(() => {
+        if (status === 'loading') setIsAnimating(true);
+        if (status === 'success' || status === 'error') {
+            setTimeout(() => setIsAnimating(false), 2000);
+        }
+    }, [status]);
+
+    return (
+        <div>
+            <label className="block text-xs font-bold mb-1 opacity-80"><i className={`${icon} w-4`}></i> {label}</label>
+            <div className="flex gap-2">
+                <input type={label.includes('Key') || label.includes('Token') ? 'password' : 'text'} value={value} onChange={e => onChange(e.target.value)} className={`flex-1 rounded px-4 py-2 outline-none ${inputClass}`} />
+                {onTest && (
+                    <div className="flex gap-1">
+                        <button
+                            onClick={onTest}
+                            disabled={status === 'loading'}
+                            className={`px-4 py-1 rounded border border-inherit whitespace-nowrap min-w-[100px] flex items-center justify-center transition-all duration-300 ${status === 'success' ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' :
+                                status === 'error' ? 'bg-red-500/20 border-red-500 text-red-400' :
+                                    status === 'loading' ? 'bg-blue-500/20 border-blue-500 text-blue-400' :
+                                        'hover:bg-white/5 opacity-80 hover:opacity-100'
+                                }`}
+                        >
+                            {status === 'success' ? (
+                                <><i className="fa-solid fa-check mr-2"></i> Active</>
+                            ) : status === 'loading' ? (
+                                <><i className="fa-solid fa-satellite-dish fa-spin mr-2"></i> Scanning</>
+                            ) : status === 'error' ? (
+                                <><i className="fa-solid fa-xmark mr-2"></i> Failed</>
+                            ) : (
+                                <><i className="fa-solid fa-bolt mr-2"></i> Test</>
+                            )}
                         </button>
-                    )}
-                </div>
-            )}
+                        {onAdvanced && (
+                            <button onClick={onAdvanced} className="px-3 py-1 rounded border border-inherit hover:bg-white/5 text-xs" title="Advanced Debugging">
+                                <i className="fa-solid fa-sliders"></i>
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, onOpenBackupManager, onOpenTraining, sessions, currentId, onExportChat, onExportAll, onPurgeAll, initialTab }) => {
     const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
@@ -627,7 +654,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
     const handleSave = () => {
         onSave(localSettings);
-        onClose();
+        // Do not close on save, just notify
+        const btn = document.getElementById('save-settings-btn');
+        if (btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Saved!';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
     };
 
     const fetchAllModels = async () => {
@@ -2007,7 +2042,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                             status={connectionStatus['ollama']}
                                             inputClass={inputClass}
                                         />
-                                        <div>
+
+                                        {/* Ollama Model Selection */}
+                                        <div className="p-3 border border-inherit rounded bg-black/20">
                                             <label className="block text-xs font-bold mb-1 opacity-80">
                                                 <i className="fa-solid fa-microchip w-4"></i> Ollama Model
                                             </label>
@@ -2025,18 +2062,70 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                                     ))}
                                                 </select>
                                                 <button
-                                                    onClick={fetchOllamaModelsOnly}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold uppercase hover:bg-blue-500 transition-colors flex items-center gap-2"
+                                                    onClick={async () => {
+                                                        const btn = document.getElementById('ollama-refresh-btn');
+                                                        if (btn) {
+                                                            btn.innerHTML = '<i class="fa-solid fa-terminal"></i> SCANNING...';
+                                                            btn.classList.add('bg-green-600', 'text-white', 'shadow-[0_0_15px_#22c55e]');
+                                                        }
+                                                        await new Promise(r => setTimeout(r, 1000));
+                                                        await fetchOllamaModelsOnly();
+                                                        if (btn) {
+                                                            btn.innerHTML = '<i class="fa-solid fa-rotate"></i> REFRESH LIST';
+                                                            btn.classList.remove('bg-green-600', 'text-white', 'shadow-[0_0_15px_#22c55e]');
+                                                        }
+                                                    }}
+                                                    id="ollama-refresh-btn"
+                                                    className="px-4 py-2 bg-green-500/10 border border-green-500/50 text-green-500 rounded text-xs font-bold uppercase hover:bg-green-500/20 transition-all whitespace-nowrap"
                                                     title="Refresh model list from Ollama"
                                                 >
-                                                    <i className="fa-solid fa-sync"></i>
-                                                    Refresh
+                                                    <i className="fa-solid fa-rotate"></i>
+                                                    Refresh List
                                                 </button>
                                             </div>
                                             <p className="text-[10px] opacity-60 mt-1">
                                                 💡 <strong>Tip:</strong> Use <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3000/api/ollama</code> as Base URL (proxy) instead of <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:11434</code> (direct) to avoid CORS errors.
                                             </p>
                                         </div>
+
+                                        {/* Advanced Options for Ollama */}
+                                        <div className="mt-4 p-3 border border-inherit rounded bg-black/20">
+                                            <h5 className="font-bold text-xs mb-2 flex items-center gap-2">
+                                                <i className="fa-solid fa-sliders text-teal-400"></i> Advanced Parameters
+                                            </h5>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold mb-1 opacity-70">Context Length (num_ctx)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={localSettings.ollamaContextLength || 4096}
+                                                        onChange={e => setLocalSettings({ ...localSettings, ollamaContextLength: parseInt(e.target.value) })}
+                                                        className={`w-full rounded px-2 py-1 text-xs outline-none ${inputClass}`}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold mb-1 opacity-70">Temperature ({localSettings.ollamaTemperature || 0.7})</label>
+                                                    <input
+                                                        type="range"
+                                                        min="0" max="1" step="0.1"
+                                                        value={localSettings.ollamaTemperature || 0.7}
+                                                        onChange={e => setLocalSettings({ ...localSettings, ollamaTemperature: parseFloat(e.target.value) })}
+                                                        className="w-full accent-teal-500"
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <label className="block text-[10px] font-bold mb-1 opacity-70">Keep Alive (e.g. 5m, 1h, -1)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={localSettings.ollamaKeepAlive || '5m'}
+                                                        onChange={e => setLocalSettings({ ...localSettings, ollamaKeepAlive: e.target.value })}
+                                                        className={`w-full rounded px-2 py-1 text-xs outline-none ${inputClass}`}
+                                                        placeholder="Duration to keep model loaded"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="mt-3">
                                             <label className="block text-xs font-bold mb-1 opacity-80">Docker Host Selection</label>
                                             <div className="flex gap-4">
@@ -2198,24 +2287,93 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         />
                                         <div>
                                             <label className="block text-xs font-bold mb-1 opacity-80">
-                                                <i className="fa-solid fa-microchip w-4"></i> LM Studio Model ID
+                                                <i className="fa-solid fa-microchip w-4"></i> LM Studio Model
                                             </label>
-                                            <input
-                                                type="text"
-                                                value={localSettings.lmstudioModelId}
-                                                onChange={e => setLocalSettings({ ...localSettings, lmstudioModelId: e.target.value })}
-                                                className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
-                                                placeholder="e.g. mistral-7b-instruct, llama-3-8b"
-                                            />
+
+                                            <div className="flex gap-2 mb-2">
+                                                <select
+                                                    value={localSettings.lmstudioModelId}
+                                                    onChange={e => setLocalSettings({ ...localSettings, lmstudioModelId: e.target.value })}
+                                                    className={`flex-1 rounded px-4 py-2 outline-none ${inputClass}`}
+                                                >
+                                                    {localSettings.availableModels.lmstudio && localSettings.availableModels.lmstudio.length > 0 ? (
+                                                        localSettings.availableModels.lmstudio.map(m => (
+                                                            <option key={m} value={m}>{m}</option>
+                                                        ))
+                                                    ) : (
+                                                        <option value="">No models detected - Is server running?</option>
+                                                    )}
+                                                </select>
+                                                <button
+                                                    onClick={async () => {
+                                                        const btn = document.getElementById('lmstudio-refresh-btn');
+                                                        if (btn) {
+                                                            btn.innerHTML = '<i class="fa-solid fa-dharmachakra fa-spin"></i> OPENING PORTAL...';
+                                                            btn.className = "px-6 py-2 bg-purple-600 text-white rounded text-sm font-bold uppercase shadow-[0_0_20px_#9333ea] scale-105 transition-all flex items-center gap-2";
+                                                        }
+                                                        await new Promise(r => setTimeout(r, 1500)); // Portal opening delay
+                                                        await fetchLMStudioModelsOnly();
+                                                        if (btn) {
+                                                            btn.innerHTML = '<i class="fa-solid fa-sync"></i> Refresh Models';
+                                                            btn.className = "px-4 py-2 bg-purple-600/20 border border-purple-500/50 text-purple-400 rounded text-sm font-bold uppercase hover:bg-purple-600/40 transition-all flex items-center gap-2";
+                                                        }
+                                                    }}
+                                                    id="lmstudio-refresh-btn"
+                                                    className="px-4 py-2 bg-purple-600/20 border border-purple-500/50 text-purple-400 rounded text-sm font-bold uppercase hover:bg-purple-600/40 transition-all flex items-center gap-2"
+                                                    title="Refresh model list from LM Studio"
+                                                >
+                                                    <i className="fa-solid fa-sync"></i>
+                                                    Refresh
+                                                </button>
+                                            </div>
+
+                                            {(!localSettings.availableModels.lmstudio || localSettings.availableModels.lmstudio.length === 0) && (
+                                                <div className="mb-2">
+                                                    <p className="text-[10px] opacity-70 mb-1">Or enter manually:</p>
+                                                    <input
+                                                        type="text"
+                                                        value={localSettings.lmstudioModelId}
+                                                        onChange={e => setLocalSettings({ ...localSettings, lmstudioModelId: e.target.value })}
+                                                        className={`w-full rounded px-4 py-2 outline-none ${inputClass}`}
+                                                        placeholder="e.g. mistral-7b-instruct, llama-3-8b"
+                                                    />
+                                                </div>
+                                            )}
+
                                             <p className="text-[10px] opacity-60 mt-1">
                                                 💡 <strong>Recommended:</strong> Use proxy URL <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:3000/api/lmstudio</code> to avoid CORS errors
                                             </p>
                                             <p className="text-[10px] opacity-60 mt-1">
                                                 🔧 <strong>Direct (advanced):</strong> <code className="px-1 py-0.5 bg-black/30 rounded">http://localhost:1234/v1</code> (may have CORS issues)
                                             </p>
-                                            <p className="text-[10px] opacity-60 mt-2">
-                                                📖 <strong>Note:</strong> Use the LM Studio app to download and load models. Once a model is loaded, it will appear in the model selector.
-                                            </p>
+                                        </div>
+
+                                        {/* Advanced Options for LM Studio */}
+                                        <div className="mt-4 p-3 border border-inherit rounded bg-black/20">
+                                            <h5 className="font-bold text-xs mb-2 flex items-center gap-2">
+                                                <i className="fa-solid fa-sliders text-purple-400"></i> Advanced Parameters
+                                            </h5>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold mb-1 opacity-70">Context Length</label>
+                                                    <input
+                                                        type="number"
+                                                        value={localSettings.lmstudioContextLength || 2048}
+                                                        onChange={e => setLocalSettings({ ...localSettings, lmstudioContextLength: parseInt(e.target.value) })}
+                                                        className={`w-full rounded px-2 py-1 text-xs outline-none ${inputClass}`}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold mb-1 opacity-70">Temperature ({localSettings.lmstudioTemperature || 0.7})</label>
+                                                    <input
+                                                        type="range"
+                                                        min="0" max="1" step="0.1"
+                                                        value={localSettings.lmstudioTemperature || 0.7}
+                                                        onChange={e => setLocalSettings({ ...localSettings, lmstudioTemperature: parseFloat(e.target.value) })}
+                                                        className="w-full accent-purple-500"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                         <div className="mt-3">
                                             <label className="block text-xs font-bold mb-1 opacity-80">Docker Host Selection</label>
@@ -2253,19 +2411,50 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                             </div>
                                         </div>
 
-                                        {/* Refresh Models Button */}
-                                        <div className="mt-4">
-                                            <button
-                                                onClick={fetchLMStudioModelsOnly}
-                                                className="w-full px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold uppercase hover:bg-blue-500 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <i className="fa-solid fa-sync"></i>
-                                                Refresh Models from LM Studio
-                                            </button>
-                                            <p className="text-[10px] opacity-60 mt-2 text-center">
-                                                Click after loading a new model in LM Studio
+                                        {/* LM Studio Loading Effects */}
+                                        <div className="mt-6 p-4 border border-inherit rounded bg-opacity-5">
+                                            <h4 className="font-bold text-sm mb-2">Loading Effects</h4>
+                                            <p className="text-xs opacity-70 mb-4">
+                                                Choose the visual feedback when switching to a local model.
                                             </p>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <label className={`flex items-center gap-3 p-3 rounded border cursor-pointer transition-all ${localSettings.lmstudioLoadingEffect === 'neural' ? 'border-teal-500 bg-teal-500/10' : 'border-inherit hover:bg-white/5'}`}>
+                                                    <input type="radio" name="lmstudioEffect" checked={localSettings.lmstudioLoadingEffect === 'neural'} onChange={() => setLocalSettings({ ...localSettings, lmstudioLoadingEffect: 'neural' })} className="accent-teal-500" />
+                                                    <div>
+                                                        <div className="font-bold text-sm">Neural Link</div>
+                                                        <div className="text-[10px] opacity-60">Sleek top bar with status updates.</div>
+                                                    </div>
+                                                </label>
+
+                                                <label className={`flex items-center gap-3 p-3 rounded border cursor-pointer transition-all ${localSettings.lmstudioLoadingEffect === 'terminal' ? 'border-green-500 bg-green-500/10' : 'border-inherit hover:bg-white/5'}`}>
+                                                    <input type="radio" name="lmstudioEffect" checked={localSettings.lmstudioLoadingEffect === 'terminal'} onChange={() => setLocalSettings({ ...localSettings, lmstudioLoadingEffect: 'terminal' })} className="accent-green-500" />
+                                                    <div>
+                                                        <div className="font-bold text-sm font-mono">Terminal Boot</div>
+                                                        <div className="text-[10px] opacity-60">Matrix-style boot sequence log.</div>
+                                                    </div>
+                                                </label>
+
+                                                <label className={`flex items-center gap-3 p-3 rounded border cursor-pointer transition-all ${localSettings.lmstudioLoadingEffect === 'pulse' ? 'border-purple-500 bg-purple-500/10' : 'border-inherit hover:bg-white/5'}`}>
+                                                    <input type="radio" name="lmstudioEffect" checked={localSettings.lmstudioLoadingEffect === 'pulse'} onChange={() => setLocalSettings({ ...localSettings, lmstudioLoadingEffect: 'pulse' })} className="accent-purple-500" />
+                                                    <div>
+                                                        <div className="font-bold text-sm">Brain Pulse</div>
+                                                        <div className="text-[10px] opacity-60">Subtle button heartbeat animation.</div>
+                                                    </div>
+                                                </label>
+
+                                                <label className={`flex items-center gap-3 p-3 rounded border cursor-pointer transition-all ${localSettings.lmstudioLoadingEffect === 'none' ? 'border-gray-500 bg-gray-500/10' : 'border-inherit hover:bg-white/5'}`}>
+                                                    <input type="radio" name="lmstudioEffect" checked={localSettings.lmstudioLoadingEffect === 'none'} onChange={() => setLocalSettings({ ...localSettings, lmstudioLoadingEffect: 'none' })} className="accent-gray-500" />
+                                                    <div>
+                                                        <div className="font-bold text-sm">None</div>
+                                                        <div className="text-[10px] opacity-60">No visual feedback.</div>
+                                                    </div>
+                                                </label>
+                                            </div>
                                         </div>
+
+                                        {/* Refresh Models Button */}
+
                                     </div>
                                 </div>
 
@@ -4950,9 +5139,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-inherit flex justify-end gap-3">
-                        <button onClick={onClose} className="px-4 py-2 opacity-70 hover:opacity-100 font-bold uppercase text-xs">Cancel</button>
-                        <button onClick={handleSave} className={`px-6 py-2 rounded font-bold uppercase text-xs shadow-lg ${localSettings.theme === 'tron' ? 'bg-tron-cyan text-black hover:bg-white' : 'bg-teal-600 text-white hover:bg-teal-500'}`}>Save Config</button>
+                    <div className="p-6 border-t border-inherit flex justify-between items-center gap-3">
+                        <button onClick={onClose} className="px-4 py-2 opacity-70 hover:opacity-100 font-bold uppercase text-xs flex items-center gap-2 hover:bg-white/10 rounded transition-all">
+                            <i className="fa-solid fa-door-open"></i> Exit
+                        </button>
+                        <button
+                            id="save-settings-btn"
+                            onClick={handleSave}
+                            className={`px-6 py-2 rounded font-bold uppercase text-xs shadow-lg transition-all transform active:scale-95 ${localSettings.theme === 'tron' ? 'bg-tron-cyan text-black hover:bg-white' : 'bg-teal-600 text-white hover:bg-teal-500'}`}
+                        >
+                            Save Config
+                        </button>
                     </div>
                 </div>
             </div >
@@ -4961,60 +5158,67 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     isOpen={showAliasManager}
                     onClose={() => setShowAliasManager(false)}
                 />
-            )}
+            )
+            }
             {/* Weather Tester Modal */}
-            {weatherTester && (
-                <WeatherTester
-                    isOpen={weatherTester.isOpen}
-                    onClose={() => setWeatherTester(null)}
-                    provider={weatherTester.provider}
-                    apiKey={weatherTester.apiKey}
-                    defaultLocation={localSettings.rainNotificationLocation}
-                />
-            )}
+            {
+                weatherTester && (
+                    <WeatherTester
+                        isOpen={weatherTester.isOpen}
+                        onClose={() => setWeatherTester(null)}
+                        provider={weatherTester.provider}
+                        apiKey={weatherTester.apiKey}
+                        defaultLocation={localSettings.rainNotificationLocation}
+                    />
+                )
+            }
             {/* Generic API Tester Modal */}
-            {apiTester && (
-                <ApiTester
-                    isOpen={apiTester.isOpen}
-                    onClose={() => setApiTester(null)}
-                    serviceName={apiTester.serviceName}
-                    testType={apiTester.testType}
-                    apiKey={apiTester.apiKey}
-                    baseUrl={apiTester.baseUrl}
-                    provider={apiTester.provider}
-                    defaultModel={apiTester.defaultModel}
-                />
-            )}
+            {
+                apiTester && (
+                    <ApiTester
+                        isOpen={apiTester.isOpen}
+                        onClose={() => setApiTester(null)}
+                        serviceName={apiTester.serviceName}
+                        testType={apiTester.testType}
+                        apiKey={apiTester.apiKey}
+                        baseUrl={apiTester.baseUrl}
+                        provider={apiTester.provider}
+                        defaultModel={apiTester.defaultModel}
+                    />
+                )
+            }
 
-            {showConfetti && !localSettings.disableConfetti && (
-                <>
-                    <style>{`
+            {
+                showConfetti && !localSettings.disableConfetti && (
+                    <>
+                        <style>{`
                         @keyframes confetti-fall {
                             0% { transform: translate3d(0, -15vh, 0) rotate(0deg); opacity: 1; }
                             100% { transform: translate3d(0, 110vh, 0) rotate(720deg); opacity: 0; }
                         }
                     `}</style>
-                    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
-                        {confettiPieces.map((piece, idx) => (
-                            <span
-                                key={idx}
-                                style={{
-                                    position: 'absolute',
-                                    top: '-10%',
-                                    left: `${piece.left}%`,
-                                    width: `${piece.size}px`,
-                                    height: `${piece.size * 0.4}px`,
-                                    background: piece.color,
-                                    borderRadius: '2px',
-                                    transform: `rotate(${piece.rotate}deg)`,
-                                    animation: `confetti-fall ${piece.duration}s linear ${piece.delay}s forwards`,
-                                    filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))'
-                                }}
-                            />
-                        ))}
-                    </div>
-                </>
-            )}
+                        <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
+                            {confettiPieces.map((piece, idx) => (
+                                <span
+                                    key={idx}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '-10%',
+                                        left: `${piece.left}%`,
+                                        width: `${piece.size}px`,
+                                        height: `${piece.size * 0.4}px`,
+                                        background: piece.color,
+                                        borderRadius: '2px',
+                                        transform: `rotate(${piece.rotate}deg)`,
+                                        animation: `confetti-fall ${piece.duration}s linear ${piece.delay}s forwards`,
+                                        filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))'
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </>
+                )
+            }
         </>
     );
 };

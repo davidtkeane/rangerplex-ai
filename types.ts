@@ -254,6 +254,11 @@ export interface AppSettings {
   ollamaModelId: string;
   lmstudioBaseUrl: string;
   lmstudioModelId: string;
+  lmstudioContextLength?: number;
+  lmstudioTemperature?: number;
+  ollamaContextLength?: number;
+  ollamaTemperature?: number;
+  ollamaKeepAlive?: string;
 
   // Lists (Cached)
   availableModels: {
@@ -315,6 +320,7 @@ export interface AppSettings {
   securityMode: 'none' | 'bribe' | 'hacker' | 'time' | 'panic' | 'escape';
   lockScreenEnabled: boolean;
   ollamaLoadingEffect: 'neural' | 'terminal' | 'pulse' | 'none';
+  lmstudioLoadingEffect: 'neural' | 'terminal' | 'pulse' | 'none';
 
   // Ranger Vision Mode
   visionModeEnabled: boolean;
@@ -720,6 +726,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   securityMode: 'hacker',
   lockScreenEnabled: false,
   ollamaLoadingEffect: 'terminal',
+  lmstudioLoadingEffect: 'pulse',
 
   visionModeEnabled: true,
   visionModeAutoActivate: true,

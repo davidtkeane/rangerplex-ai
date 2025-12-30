@@ -5,6 +5,63 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.2] - 2025-12-30 - LM Studio Polish ✨
+
+### Summary
+Refined LM Studio integration with better UI and new visual customization options.
+
+### 🎨 Visual & UX
+- **LM Studio Loading Effects**: Ported the cool loading effects (Neural, Terminal, Pulse) to LM Studio.
+- **Cleanup**: Removed redundant "Refresh Models" button to reduce clutter.
+- **Polish**: Improved alignment and consistency in the Settings modal.
+
+---
+
+## [4.2.1] - 2025-12-30 - Visual Polish 🎨
+
+### Summary
+Enhanced the "cool factor" of the Settings menu with new animations and improved button visibility requested by user.
+
+### 💄 Visual Upgrades
+- **Settings Modal**:
+    - **Test Connections**: Added "Scanning..." animation with satellite dish icon and glow effects.
+    - **LM Studio**: "Refresh Models" now triggers an epic "Portal Opening" animation (purple glow + scaling).
+    - **Ollama**: Made the "Refresh List" button prominent (full width, green) so it's easy to find when adding new models.
+- **Cleanup**: Refined button layouts for better usability.
+
+---
+
+## [4.2.0] - 2025-12-30 - Settings & Animatrix Upgrade
+
+### Summary
+Major overhaul of the Settings interface for **Ollama** and **LM Studio**, introducing "Animatrix" visual effects, automated model loading, and enhanced granular controls. Also includes UI fixes for dark mode.
+
+### 🚀 New Features
+
+#### Settings Interface
+- **LM Studio Integration**: 
+    - **Model Dropdown**: Automatically fetches and lists available models from LM Studio (`localhost:1234`).
+    - **Advanced Params**: Added controls for **Context Length** and **Temperature**.
+    - **Smart Inputs**: Input fields now support placeholder text and validation.
+- **Ollama Integration**:
+    - **Advanced Params**: Added controls for **Context Length (`num_ctx`)**, **Temperature**, and **Keep Alive**.
+    - **Docker Support**: Improved host selection (localhost vs host.docker.internal).
+- **"Animatrix" Effects**:
+    - **Matrix Rain**: Refresh buttons now trigger a digital rain text scrambling animation.
+    - **Visual Feedback**: Buttons pulse green (Ollama) or purple (LM Studio) during loading states.
+
+### 🐛 Bug Fixes
+- **Sidebar**: Fixed "New Thread" button visibility in dark mode (was white-on-white, now properly styled).
+- **Backend**: Fixed `ollamaService` duplicate keys issue.
+- **Backend**: Improved parameter passing to generic service handlers.
+
+### 🔧 Technical
+- **Type Definitions**: Updated `AppSettings` with new fields (`lmstudioContextLength`, `ollamaKeepAlive`, etc.).
+- **Service Layer**: Refactored `ollamaService.ts` and `lmstudioService.ts` to accept and process optional configuration objects.
+- **Chat Interface**: Updated `streamOllamaResponse` and `streamLMStudioResponse` calls to inject user preferences into API requests.
+
+---
+
 ## [2.14.0] - 2025-12-10 - "Accessibility Commander" 🎖️
 
 ### Summary

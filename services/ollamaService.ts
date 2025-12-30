@@ -57,7 +57,12 @@ export const streamOllamaResponse = async (
   history: Message[],
   baseUrl: string,
   modelId: string,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  options?: {
+    temperature?: number;
+    num_ctx?: number;
+    keep_alive?: string;
+  }
 ) => {
   const messages = history.map(msg => ({
     role: msg.sender === Sender.USER ? 'user' : 'assistant',
@@ -90,7 +95,12 @@ export const streamOllamaResponse = async (
       body: JSON.stringify({
         model: modelId,
         messages: messages,
-        stream: true
+        stream: true,
+        keep_alive: options?.keep_alive,
+        options: {
+          temperature: options?.temperature,
+          num_ctx: options?.num_ctx
+        }
       })
     });
 

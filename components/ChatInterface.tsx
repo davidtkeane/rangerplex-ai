@@ -3752,7 +3752,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
                     : textToSend;
                 const actualModelId = modelToUse === ModelType.LMSTUDIO ? settings.lmstudioModelId : modelToUse;
-                const res = await streamLMStudioResponse(promptWithSearch, imageAttachments, boundedHistory, settings.lmstudioBaseUrl, actualModelId, relevantContext, commonParams, settings.modelParams);
+                // Prepare LM Studio params
+                const lmStudioParams = {
+                    ...settings.modelParams,
+                    temperature: settings.lmstudioTemperature ?? settings.modelParams.temperature,
+                    maxOutputTokens: settings.lmstudioContextLength ?? settings.modelParams.maxOutputTokens
+                };
+                const res = await streamLMStudioResponse(promptWithSearch, imageAttachments, boundedHistory, settings.lmstudioBaseUrl, actualModelId, relevantContext, commonParams, lmStudioParams);
                 finalParams(res.text, res.usage);
             } else if ((modelToUse.includes('gpt') || modelToUse.includes('o1')) && !isPetChat) {
                 const promptWithSearch = (searchContext || studyContextText)
@@ -3777,7 +3783,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 const promptWithSearch = (searchContext || studyContextText)
                     ? `${studyContextText}${searchContext ? `[Web Search Results]:\n${searchContext}\n\n` : ''}User Query: ${textToSend}`
                     : textToSend;
-                const res = await streamOllamaResponse(promptWithSearch, boundedHistory, settings.ollamaBaseUrl, settings.ollamaModelId, commonParams);
+                const ollamaOptions = {
+                    num_ctx: settings.ollamaContextLength,
+                    temperature: settings.ollamaTemperature,
+                    keep_alive: settings.ollamaKeepAlive
+                };
+                const res = await streamOllamaResponse(promptWithSearch, boundedHistory, settings.ollamaBaseUrl, settings.ollamaModelId, commonParams, ollamaOptions);
                 finalParams(res.text, res.usage);
             } else {
                 // Gemini (Handles normal Gemini chats and the Pet Chat)

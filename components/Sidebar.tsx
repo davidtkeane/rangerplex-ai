@@ -257,7 +257,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 <div className="flex-shrink-0 p-3">
-                    <button onClick={onNew} className={`w-full flex items-center gap-3 px-4 py-3 rounded transition-all font-bold uppercase tracking-wider text-xs ${isTron ? 'bg-tron-cyan/10 border border-tron-cyan text-tron-cyan hover:bg-tron-cyan hover:text-black hover:shadow-[0_0_15px_#00f3ff]' : 'bg-white dark:bg-zinc-100 hover:bg-gray-50'}`}>
+                    <button onClick={onNew} className={`w-full flex items-center gap-3 px-4 py-3 rounded transition-all font-bold uppercase tracking-wider text-xs ${isTron ? 'bg-tron-cyan/10 border border-tron-cyan text-tron-cyan hover:bg-tron-cyan hover:text-black hover:shadow-[0_0_15px_#00f3ff]' : 'bg-white dark:bg-zinc-800 dark:text-zinc-200 hover:bg-gray-50 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700'}`}>
                         <i className="fa-solid fa-plus"></i> <span>{isTron ? 'NEW_PROGRAM' : 'New Thread'}</span>
                     </button>
                 </div>
