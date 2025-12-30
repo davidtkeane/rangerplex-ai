@@ -4961,22 +4961,41 @@ server.listen(PORT, async () => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('\n\n🛑 Shutting down RangerPlex...');
+let isShuttingDown = false;
 
-    // Stop blockchain
-    if (blockchainService.isRunning) {
-        console.log('🛑 Stopping RangerBlock...');
-        await blockchainService.stop();
+process.on('SIGINT', async () => {
+    if (isShuttingDown) {
+        console.log('\n🛑 Force quitting immediately.');
+        process.exit(1);
     }
 
-    // Close database
-    db.close();
-    console.log('✅ Database closed');
+    isShuttingDown = true;
+    console.log('\n\n🛑 Shutting down RangerPlex... (Press Ctrl+C again to force quit)');
 
-    // Exit
-    console.log('🎖️ Rangers lead the way!\n');
-    process.exit(0);
+    // Set a timeout to force exit if cleanup hangs
+    setTimeout(() => {
+        console.error('⚠️  Shutdown timed out, forcing exit.');
+        process.exit(1);
+    }, 5000);
+
+    try {
+        // Stop blockchain
+        if (blockchainService.isRunning) {
+            console.log('🛑 Stopping RangerBlock...');
+            await blockchainService.stop();
+        }
+
+        // Close database
+        db.close();
+        console.log('✅ Database closed');
+
+        // Exit
+        console.log('🎖️ Rangers lead the way!\n');
+        process.exit(0);
+    } catch (err) {
+        console.error('Error during shutdown:', err);
+        process.exit(1);
+    }
 });
 
 process.on('SIGTERM', async () => {

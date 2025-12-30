@@ -29,7 +29,8 @@ export const streamOpenAIResponse = async (
   INSTRUCTIONS:
   - If you need to search the web, fetch a page, or use any other tool, OUTPUT THE COMMAND DIRECTLY.
   - Do not say "I cannot access the internet". Instead, output: /mcp-brave_web_search <query>
-  - If reasoning is required, wrap your thought process in <thinking> tags before the answer.
+  - If you are capable of reasoning, YOU MUST wrap your thought process in <thinking> tags before answering.
+  - Example: <thinking>I will first analyze...</thinking> Here is the answer.
   `;
 
   if (modelParams?.systemPromptOverride) {
