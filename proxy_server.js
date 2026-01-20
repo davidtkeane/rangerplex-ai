@@ -4209,7 +4209,11 @@ function broadcastSync(message) {
     });
 }
 
-// Auto-backup every 5 minutes
+// Auto-backup every 5 minutes with retention policy
+// Keeps: 12 recent backups (~1 hour rolling) + 1 golden safety backup
+const BACKUP_RETENTION_COUNT = 12;
+const GOLDEN_BACKUP_NAME = 'RangerPlex_GOLDEN_Backup.json';
+
 setInterval(() => {
     try {
         const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
@@ -4236,6 +4240,43 @@ setInterval(() => {
 
         fs.writeFileSync(backupPath, JSON.stringify(backup, null, 2));
         console.log('💾 Auto-backup created:', backupPath);
+
+        // --- BACKUP RETENTION CLEANUP ---
+        try {
+            const goldenPath = path.join(backupsDir, GOLDEN_BACKUP_NAME);
+            
+            // Get all timestamped backup files (exclude golden backup)
+            const allBackups = fs.readdirSync(backupsDir)
+                .filter(f => f.startsWith('RangerPlex_Backup_') && f.endsWith('.json'))
+                .map(f => ({
+                    name: f,
+                    path: path.join(backupsDir, f),
+                    time: fs.statSync(path.join(backupsDir, f)).mtime.getTime()
+                }))
+                .sort((a, b) => b.time - a.time); // Newest first
+
+            // If we have more than RETENTION_COUNT, clean up
+            if (allBackups.length > BACKUP_RETENTION_COUNT) {
+                const toKeep = allBackups.slice(0, BACKUP_RETENTION_COUNT);
+                const toDelete = allBackups.slice(BACKUP_RETENTION_COUNT);
+
+                // Before deleting, ensure we have a golden backup
+                // If no golden backup exists, promote the oldest backup we're about to delete
+                if (!fs.existsSync(goldenPath) && toDelete.length > 0) {
+                    const oldestBackup = toDelete[toDelete.length - 1];
+                    fs.copyFileSync(oldestBackup.path, goldenPath);
+                    console.log('🏆 Golden safety backup created from:', oldestBackup.name);
+                }
+
+                // Delete old backups
+                for (const backup of toDelete) {
+                    fs.unlinkSync(backup.path);
+                }
+                console.log(`🧹 Backup cleanup: Deleted ${toDelete.length} old backups, keeping ${toKeep.length} + golden`);
+            }
+        } catch (cleanupError) {
+            console.error('⚠️ Backup cleanup warning:', cleanupError.message);
+        }
     } catch (error) {
         console.error('Auto-backup failed:', error);
     }
