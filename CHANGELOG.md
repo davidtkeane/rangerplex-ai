@@ -5,6 +5,96 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.8] - 2026-01-20 - Backup Retention System 💾🧹
+
+### Summary
+Implemented automatic backup retention policy to prevent disk bloat. The backup system now keeps only recent backups (~1 hour rolling window) plus one "golden" safety backup for disaster recovery. **Freed 10.8GB of disk space** from accumulated backup files!
+
+### 📁 Backup File Locations
+
+| File Type | Location | Purpose |
+|-----------|----------|---------|
+| **Rolling Backups** | `./backups/RangerPlex_Backup_YYYY-MM-DDTHH-MM-SS.json` | Last 12 backups (~1 hour) |
+| **Golden Backup** | `./backups/RangerPlex_GOLDEN_Backup.json` | Permanent safety backup |
+| **Database** | `./data/rangerplex.db` | SQLite database (chats, settings, users) |
+
+### 🔄 How Backup Retention Works
+
+```
+Every 5 Minutes:
+1. New backup created → RangerPlex_Backup_2026-01-20T21-05-00.json
+2. Cleanup runs automatically:
+   - Count all timestamped backups
+   - If > 12 backups exist:
+     a. Keep newest 12 backups (rolling 1-hour window)
+     b. If no golden backup exists, promote oldest to golden
+     c. Delete remaining old backups
+3. Max disk usage: ~110MB (12 × ~9MB + 1 golden)
+```
+
+### 📊 Retention Settings
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| **Backup Interval** | 5 minutes | Creates timestamped JSON backup |
+| **Retention Count** | 12 backups | ~1 hour of rolling history |
+| **Golden Backup** | 1 permanent | Never auto-deleted, safety net |
+| **Max Disk Usage** | ~110 MB | Previously grew to 11+ GB! |
+
+### 🆘 Recovery Scenarios
+
+#### Restore from Recent Backup (Last Hour)
+1. Stop the server
+2. Locate desired backup: `ls -la backups/RangerPlex_Backup_*.json`
+3. Import via Settings → Import/Export → Import Backup
+
+#### Restore from Golden Backup (Disaster Recovery)
+1. Stop the server
+2. Use: `backups/RangerPlex_GOLDEN_Backup.json`
+3. Import via Settings → Import/Export → Import Backup
+
+### 🔧 Technical Changes
+
+#### `proxy_server.js` (Lines 4212-4278)
+- Added `BACKUP_RETENTION_COUNT = 12` constant
+- Added `GOLDEN_BACKUP_NAME = 'RangerPlex_GOLDEN_Backup.json'` constant
+- Added cleanup logic after each backup creation:
+  - Lists all timestamped backups
+  - Sorts by modification time (newest first)
+  - Keeps newest 12, deletes the rest
+  - Creates golden backup from oldest before deletion
+
+### 📈 Disk Space Impact
+
+| Metric | Before | After |
+|--------|--------|-------|
+| **Backup Count** | 2,126 files | 13 files (12 + 1 golden) |
+| **Folder Size** | 11 GB | ~168 MB |
+| **Space Freed** | - | **~10.8 GB** |
+
+### 💡 Tips
+
+1. **Golden Backup is Sacred**: The `RangerPlex_GOLDEN_Backup.json` file is never automatically deleted. Keep it as your safety net!
+
+2. **Manual Backup Before Updates**: Before major updates, you can manually copy a backup:
+   ```bash
+   cp backups/RangerPlex_Backup_*.json ~/Desktop/rangerplex_manual_backup.json
+   ```
+
+3. **Check Backup Health**:
+   ```bash
+   ls -lah backups/
+   du -sh backups/
+   ```
+
+### 📝 Development Notes
+- **Developer**: Colonel Gemini Ranger 🎖️
+- **Date**: 2026-01-20
+- **Issue**: Backup folder grew to 12GB with 2,126 JSON files over 2 months
+- **Solution**: Auto-cleanup with rolling retention + golden safety backup
+
+---
+
 ## [4.3.7] - 2026-01-11 - Terminal UI Options 🖥️
 
 ### Summary
