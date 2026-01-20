@@ -50,7 +50,9 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
   onCreateBoard,
   canCreateBoard
 }) => {
+  console.log('[CanvasEditor] Component mounting with board:', board.id, board.name);
   const [isLoading, setIsLoading] = useState(true);
+  const hasContentRef = useRef(false); // Track if canvas has content worth saving (use ref for cleanup access)
   const [currentTool, setCurrentTool] = useState<DrawingTool>({
     type: 'pen',
     color: '#000000',
@@ -94,23 +96,36 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
     let isMounted = true;
     const load = async () => {
       setIsLoading(true);
+      console.log('[Canvas] Loading board image for:', board.id, board.name);
       try {
         const imageData = await canvasDbService.loadBoardImage(board.id);
-        if (isMounted && imageData && drawingCanvasRef.current) {
+        console.log('[Canvas] Loaded imageData:', {
+          hasData: !!imageData,
+          length: imageData?.length || 0,
+          preview: imageData?.substring(0, 50) || 'none'
+        });
+        if (isMounted && imageData && imageData.length > 100 && drawingCanvasRef.current) {
           const img = new Image();
           img.onload = () => {
             if (drawingCanvasRef.current) {
               const ctx = drawingCanvasRef.current.getContext('2d');
               ctx?.drawImage(img, 0, 0);
+              console.log('[Canvas] Image drawn to canvas');
+              hasContentRef.current = true; // Mark that we have loaded content
             }
+            setIsLoading(false);
+          };
+          img.onerror = (e) => {
+            console.error('[Canvas] Failed to load image:', e);
             setIsLoading(false);
           };
           img.src = imageData;
         } else {
+          console.log('[Canvas] No imageData to load or canvas not ready, imageData length:', imageData?.length || 0);
           setIsLoading(false);
         }
       } catch (e) {
-        console.error("Failed to load board image", e);
+        console.error("[Canvas] Failed to load board image", e);
         setIsLoading(false);
       }
     };
@@ -120,8 +135,27 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
 
   // 2. Save Logic
   const saveBoard = useCallback((force = false) => {
-    if (!drawingCanvasRef.current) return;
-    const imageData = drawingCanvasRef.current.toDataURL('image/jpeg', 0.7);
+    if (!drawingCanvasRef.current) {
+      console.warn('[Canvas] saveBoard: No canvas ref');
+      return;
+    }
+
+    // Ensure canvas has valid dimensions
+    const { width, height } = drawingCanvasRef.current;
+    if (width === 0 || height === 0) {
+      console.warn('[Canvas] saveBoard: Canvas has zero dimensions', { width, height });
+      return;
+    }
+
+    // Use PNG to preserve transparency (JPEG converts transparent to black!)
+    const imageData = drawingCanvasRef.current.toDataURL('image/png');
+
+    console.log('[Canvas] Saving board:', {
+      id: board.id,
+      name: board.name,
+      imageDataLength: imageData.length,
+      canvasSize: `${width}x${height}`
+    });
 
     // Queue save
     queueCanvasBoardSave({
@@ -131,9 +165,17 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
     }, true); // Enable cloud sync
   }, [board]);
 
-  // Save on Unmount
+  // Save on Unmount - ONLY if we have content worth saving
+  // This prevents empty canvas from overwriting saved data during rapid re-mounts
   useEffect(() => {
-    return () => saveBoard(true);
+    return () => {
+      if (hasContentRef.current) {
+        console.log('[Canvas] Unmount save: hasContent=true, saving...');
+        saveBoard(true);
+      } else {
+        console.log('[Canvas] Unmount save: hasContent=false, skipping save to prevent data loss');
+      }
+    };
   }, [saveBoard]);
 
   // Resize Observer
@@ -154,24 +196,29 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
   // Update Canvas Size & Redraw Background
   useEffect(() => {
     if (drawingCanvasRef.current && bgCanvasRef.current) {
-      // Save current content before resize
+      // Save current content before resize (only if canvas has content)
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d');
-      tempCanvas.width = drawingCanvasRef.current.width;
-      tempCanvas.height = drawingCanvasRef.current.height;
-      tempCtx?.drawImage(drawingCanvasRef.current, 0, 0);
+      const hadContent = drawingCanvasRef.current.width > 0 && drawingCanvasRef.current.height > 0;
+      if (hadContent) {
+        tempCanvas.width = drawingCanvasRef.current.width;
+        tempCanvas.height = drawingCanvasRef.current.height;
+        tempCtx?.drawImage(drawingCanvasRef.current, 0, 0);
+      }
 
-      // Resize
+      // Resize canvases
       drawingCanvasRef.current.width = dimensions.width;
       drawingCanvasRef.current.height = dimensions.height;
       bgCanvasRef.current.width = dimensions.width;
       bgCanvasRef.current.height = dimensions.height;
 
-      // Restore content
-      const ctx = drawingCanvasRef.current.getContext('2d');
-      ctx?.drawImage(tempCanvas, 0, 0);
+      // Restore content if we had any
+      if (hadContent) {
+        const ctx = drawingCanvasRef.current.getContext('2d');
+        ctx?.drawImage(tempCanvas, 0, 0);
+      }
 
-      // Redraw background
+      // Draw background immediately
       drawBackground(bgCanvasRef.current, localBackground, theme, board.color);
     }
   }, [dimensions, theme, localBackground, board.color]);
@@ -195,11 +242,16 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
     }
   };
   const handleMouseUp = () => {
+    console.log('[Canvas] handleMouseUp called, isDrawing:', isDrawing);
     if (isDrawing) {
       const data = stopDrawing();
+      console.log('[Canvas] stopDrawing returned data:', !!data);
       if (data) {
+        hasContentRef.current = true; // Mark that we have drawn content
         saveToHistory(data);
         saveBoard(); // Auto-save
+      } else {
+        console.warn('[Canvas] No data from stopDrawing, save skipped');
       }
     }
   };
@@ -262,7 +314,7 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
         <canvas ref={bgCanvasRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 0, pointerEvents: 'none' }} />
         <canvas
           ref={drawingCanvasRef}
-          className={`canvas canvas-${theme}`}
+          className="canvas"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -270,7 +322,7 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
           style={{
             position: 'absolute', top: 0, left: 0, zIndex: 1,
             cursor: currentTool.type === 'pen' ? 'crosshair' : 'default',
-            background: 'transparent'
+            background: 'none'
           }}
         />
         {isLoading && (
@@ -345,9 +397,20 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = (props) => {
 
   const [showBoardModal, setShowBoardModal] = useState(false);
 
+  // Debug: Log board state
+  useEffect(() => {
+    console.log('[CanvasBoard] State:', {
+      isLoaded,
+      boardCount: boards.length,
+      currentBoardId,
+      boards: boards.map(b => ({ id: b.id, name: b.name }))
+    });
+  }, [isLoaded, boards, currentBoardId]);
+
   // Create first board if none
   useEffect(() => {
     if (isLoaded && boards.length === 0) {
+      console.log('[CanvasBoard] No boards found, creating new one...');
       createBoard('blank', undefined, props.defaultColor || 'white');
     }
   }, [isLoaded, boards.length, createBoard, props.defaultColor]);

@@ -26,6 +26,10 @@ import { StudyClock } from './components/StudyClock'; // Import Study Clock
 import ManualViewer from './components/ManualViewer';
 import { EditorLayout, EditorTerminalSplit } from './src/components/CodeEditor'; // Monaco editor with full UI
 import { browserStateService } from './src/services/browserStateService';
+import { vscodeStateService } from './src/services/vscodeStateService';
+import { wordpressStateService } from './src/services/wordpressStateService';
+import { canvasStateService } from './src/services/canvasStateService';
+import { terminalStateService } from './src/services/terminalStateService';
 import { ChatSession, Message, Sender, ModelType, DocumentChunk, AppSettings, DEFAULT_SETTINGS, DEFAULT_SAVED_PROMPTS } from './types';
 import { generateTitle } from './services/geminiService';
 import { dbService } from './services/dbService';
@@ -45,6 +49,8 @@ import { rssService } from './services/rssService';
 import type { RSSSettings, RSSItem } from './types/rss';
 import { DEFAULT_RSS_SETTINGS } from './types/rss';
 import VSCodePage from './src/pages/VSCode/VSCodePage';
+import WordPressPage from './src/pages/WordPress/WordPressPage';
+import CanvasPage from './src/pages/Canvas/CanvasPage';
 import { isElectron } from './src/utils/environmentDetector';
 
 
@@ -53,6 +59,20 @@ const App: React.FC = () => {
   // If this window is opened as the floating terminal, render ONLY that component
   if (window.location.pathname === '/terminal-popup') {
     return <TerminalPopup />;
+  }
+
+  // Canvas Popup Route - For standalone Canvas window
+  if (window.location.pathname === '/canvas-popup') {
+    return (
+      <div className="dark">
+        <CanvasBoard
+          isOpen={true}
+          theme="dark"
+          onClose={() => window.close()}
+          onOpenSettings={() => {}}
+        />
+      </div>
+    );
   }
 
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -85,8 +105,9 @@ const App: React.FC = () => {
   const [isStudyClockOpen, setIsStudyClockOpen] = useState(false); // State for Study Clock visibility
   const [isManualOpen, setIsManualOpen] = useState(false); // Manual overlay
   const [isEditorOpen, setIsEditorOpen] = useState(false); // State for Code Editor visibility
-  const [isWordPressOpen, setIsWordPressOpen] = useState(false); // State for WordPress Dashboard visibility
+  const [isWordPressOpen, setIsWordPressOpen] = useState(false); // State for WordPress (localhost iframe) visibility
   const [isWordPressFullScreen, setIsWordPressFullScreen] = useState(false); // Full screen mode for WordPress
+  const [isWPDashboardOpen, setIsWPDashboardOpen] = useState(false); // State for WordPress Dashboard (Docker manager) visibility
   const [isBlockchainChatOpen, setIsBlockchainChatOpen] = useState(false); // State for Blockchain Chat visibility
   const [initialBrowserUrl, setInitialBrowserUrl] = useState<string | undefined>(undefined);
   const [browserOpenRequest, setBrowserOpenRequest] = useState<{ url?: string; ts: number } | null>(null);
@@ -130,7 +151,58 @@ const App: React.FC = () => {
 
   useEffect(() => {
     browserStateService.setUser(currentUser);
+    vscodeStateService.setUser(currentUser);
+    wordpressStateService.setUser(currentUser);
+    canvasStateService.setUser(currentUser);
+    terminalStateService.setUser(currentUser);
   }, [currentUser]);
+
+  // Listen for window state updates from separate Electron windows (VS Code, WordPress, Canvas)
+  useEffect(() => {
+    if (!isElectron()) return;
+
+    const cleanups: Array<() => void> = [];
+
+    // VS Code window state listener
+    if (window.electronAPI?.onVSCodeWindowState) {
+      const cleanup = window.electronAPI.onVSCodeWindowState((state: any) => {
+        vscodeStateService.saveWindowState(state.windowState, state.isMaximized);
+        console.log('[App] VS Code window state saved:', state.windowState);
+      });
+      if (cleanup) cleanups.push(cleanup);
+    }
+
+    // WordPress window state listener
+    if (window.electronAPI?.onWordPressWindowState) {
+      const cleanup = window.electronAPI.onWordPressWindowState((state: any) => {
+        wordpressStateService.saveWindowState(state.windowState, state.isMaximized);
+        console.log('[App] WordPress window state saved:', state.windowState);
+      });
+      if (cleanup) cleanups.push(cleanup);
+    }
+
+    // Canvas window state listener
+    if (window.electronAPI?.onCanvasWindowState) {
+      const cleanup = window.electronAPI.onCanvasWindowState((state: any) => {
+        canvasStateService.saveWindowState(state.windowState, state.isMaximized);
+        console.log('[App] Canvas window state saved:', state.windowState);
+      });
+      if (cleanup) cleanups.push(cleanup);
+    }
+
+    // Terminal window state listener
+    if (window.electronAPI?.onTerminalWindowState) {
+      const cleanup = window.electronAPI.onTerminalWindowState((state: any) => {
+        terminalStateService.saveWindowState(state.windowState, state.isMaximized);
+        console.log('[App] Terminal window state saved:', state.windowState);
+      });
+      if (cleanup) cleanups.push(cleanup);
+    }
+
+    return () => {
+      cleanups.forEach(cleanup => cleanup());
+    };
+  }, []);
 
   const ensureImagineFirst = (prompts: typeof DEFAULT_SETTINGS.savedPrompts) => {
     if (!prompts || prompts.length === 0) return DEFAULT_SAVED_PROMPTS;
@@ -498,13 +570,22 @@ const App: React.FC = () => {
     }
   }, [settings.notesOpenInTab, openInTab]);
 
-  const toggleTerminal = useCallback(() => {
+  const toggleTerminal = useCallback(async () => {
+    // Open in tab or as floating panel from bottom (original behavior)
     if (settings.terminalOpenInTab) {
       openInTab('terminal', 'Terminal', 'fa-solid fa-terminal');
     } else {
       setIsTerminalOpen(prev => !prev);
     }
   }, [settings.terminalOpenInTab, openInTab]);
+
+  // Open terminal in a separate popup window (triggered from Developer menu)
+  const openTerminalPopup = useCallback(async () => {
+    if (isElectron() && window.electronAPI?.openTerminalWindow) {
+      const windowBounds = terminalStateService.getWindowBounds();
+      await window.electronAPI.openTerminalWindow(windowBounds);
+    }
+  }, []);
 
   // Toggle radio playback (from external controls like screensaver)
   const toggleRadioPlayback = () => {
@@ -833,15 +914,42 @@ const App: React.FC = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
-  const openCanvas = useCallback(() => {
+  const openCanvas = useCallback(async () => {
+    // In Electron mode, open Canvas in a separate window directly (no overlay)
+    if (isElectron() && window.electronAPI?.openCanvasWindow) {
+      try {
+        const windowBounds = canvasStateService.getWindowBounds();
+        console.log('🎨 Opening Canvas with bounds:', windowBounds);
+        await window.electronAPI.openCanvasWindow(windowBounds);
+        console.log('🎨 Canvas window opened directly');
+        return; // Don't show overlay
+      } catch (err) {
+        console.error('Failed to open Canvas window:', err);
+      }
+    }
+    // Fallback: show in-app overlay (browser mode)
     setIsCanvasOpen(true);
     setActiveSurface('canvas');
     setIsWordPressOpen(false);
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
-  const openWordPress = useCallback((fullScreen: boolean = false) => {
+  const openWordPress = useCallback(async (fullScreen: boolean = false) => {
     console.log('🔵 openWordPress called, fullScreen:', fullScreen);
+    // In Electron mode, open WordPress in a separate window directly (no overlay)
+    if (isElectron() && window.electronAPI?.openWordPressWindow) {
+      try {
+        const windowBounds = wordpressStateService.getWindowBounds();
+        const port = wordpressStateService.getLastPort();
+        console.log('📝 Opening WordPress with bounds:', windowBounds, 'port:', port);
+        await window.electronAPI.openWordPressWindow(null, port, windowBounds);
+        console.log('📝 WordPress window opened directly');
+        return; // Don't show overlay
+      } catch (err) {
+        console.error('Failed to open WordPress window:', err);
+      }
+    }
+    // Fallback: show in-app overlay (browser mode)
     setIsWordPressOpen(true);
     setIsWordPressFullScreen(fullScreen);
     setActiveSurface('wordpress');
@@ -882,8 +990,22 @@ const App: React.FC = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
   }, []);
 
-  const openEditor = useCallback(() => {
+  const openEditor = useCallback(async () => {
     console.log('🟢 openEditor called - opening Code Editor');
+    // In Electron mode, open VS Code in a separate window directly (no overlay)
+    if (isElectron() && window.electronAPI?.openVSCodeWindow) {
+      try {
+        const windowBounds = vscodeStateService.getWindowBounds();
+        const port = vscodeStateService.getLastPort();
+        console.log('💻 Opening VS Code with bounds:', windowBounds, 'port:', port);
+        await window.electronAPI.openVSCodeWindow(port, windowBounds);
+        console.log('💻 VS Code window opened directly');
+        return; // Don't show overlay
+      } catch (err) {
+        console.error('Failed to open VS Code window:', err);
+      }
+    }
+    // Fallback: show in-app overlay (browser mode or if Electron IPC fails)
     setIsEditorOpen(true);
     setActiveSurface('editor');
     setIsWordPressOpen(false);
@@ -908,6 +1030,28 @@ const App: React.FC = () => {
       return cleanup;
     }
   }, [openBrowser]);
+
+  // Listen for "open-wordpress-dashboard" from Main Process (Developer menu)
+  useEffect(() => {
+    if (window.electronAPI?.on) {
+      const cleanup = window.electronAPI.on('open-wordpress-dashboard', () => {
+        console.log('📊 Opening WordPress Dashboard from Developer menu');
+        setIsWPDashboardOpen(true);
+      });
+      return cleanup;
+    }
+  }, []);
+
+  // Listen for "open-ranger-terminal" from Main Process (Developer menu)
+  useEffect(() => {
+    if (window.electronAPI?.on) {
+      const cleanup = window.electronAPI.on('open-ranger-terminal', () => {
+        console.log('🖥️ Opening Ranger Terminal popup from Developer menu');
+        openTerminalPopup();
+      });
+      return cleanup;
+    }
+  }, [openTerminalPopup]);
 
   // Sync "Open Links in App" setting to Main Process
   useEffect(() => {
@@ -1259,8 +1403,34 @@ const App: React.FC = () => {
 
             {/* Terminal Tab */}
             {tabs.some(t => t.type === 'terminal') && (
-              <div className={`absolute inset-0 bg-black ${activeTabId === 'terminal' ? 'z-10' : 'z-0 invisible'}`}>
-                <RangerTerminal />
+              <div className={`absolute inset-0 bg-black flex flex-col ${activeTabId === 'terminal' ? 'z-10' : 'z-0 invisible'}`}>
+                {/* Terminal Tab Header with Undock Button */}
+                <div className={`flex items-center justify-between px-4 py-1.5 text-xs font-bold uppercase tracking-wider border-b shrink-0 ${isTron ? 'bg-tron-cyan/10 border-tron-cyan/30 text-tron-cyan' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-terminal"></i>
+                    <span>Ranger Console</span>
+                    <span className="px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 text-[10px]">TAB MODE</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        // Undock: Close tab and switch to bottom panel mode
+                        setSettings(s => ({ ...s, terminalOpenInTab: false }));
+                        closeTab('terminal');
+                        setIsTerminalOpen(true);
+                      }}
+                      className="hover:text-white transition-colors flex items-center gap-1 px-2 py-1 rounded bg-zinc-700/50 hover:bg-zinc-600/50"
+                      title="Undock to Bottom Panel"
+                    >
+                      <i className="fa-solid fa-arrow-down"></i>
+                      <span className="text-[10px]">Undock</span>
+                    </button>
+                  </div>
+                </div>
+                {/* Terminal Content - flex-1 ensures it fills remaining space */}
+                <div className="flex-1 min-h-0">
+                  <RangerTerminal />
+                </div>
               </div>
             )}
 
@@ -1284,23 +1454,7 @@ const App: React.FC = () => {
 
             {activeSurface === 'wordpress' && !isWordPressFullScreen && (
               <div className="absolute inset-0 z-20 bg-gray-50 dark:bg-zinc-900">
-                {/* Full Screen Button */}
-                <button
-                  onClick={() => setIsWordPressFullScreen(true)}
-                  className="absolute top-4 right-16 z-50 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg"
-                  title="Full Screen"
-                >
-                  <i className="fa-solid fa-expand"></i>
-                </button>
-                {/* Close Button */}
-                <button
-                  onClick={() => { setIsWordPressOpen(false); setActiveSurface('chat'); }}
-                  className="absolute top-4 right-4 z-50 p-2 bg-white dark:bg-zinc-800 rounded-full shadow-lg"
-                  title="Close"
-                >
-                  <i className="fa-solid fa-xmark"></i>
-                </button>
-                <WordPressDashboard onOpenBrowser={openBrowser} onOpenFullScreen={openBrowserFullScreen} autoStart={true} />
+                <WordPressPage onClose={() => { setIsWordPressOpen(false); setActiveSurface('chat'); }} port={8081} />
               </div>
             )}
 
@@ -1492,13 +1646,17 @@ const App: React.FC = () => {
         {/* Canvas Board */}
         {isCanvasOpen && (
           <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm">
-            <CanvasBoard
-              isOpen={isCanvasOpen}
-              theme={settings.theme}
-              onClose={() => setIsCanvasOpen(false)}
-              defaultColor={settings.defaultCanvasColor}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-            />
+            {isElectron() ? (
+              <CanvasPage onClose={() => setIsCanvasOpen(false)} />
+            ) : (
+              <CanvasBoard
+                isOpen={isCanvasOpen}
+                theme={settings.theme}
+                onClose={() => setIsCanvasOpen(false)}
+                defaultColor={settings.defaultCanvasColor}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+              />
+            )}
           </div>
         )}
 
@@ -1526,18 +1684,7 @@ const App: React.FC = () => {
         {/* WordPress Full Screen Mode */}
         {isWordPressFullScreen && isWordPressOpen && (
           <div className="fixed inset-0 z-[9999] bg-gray-900">
-            <button
-              onClick={() => { setIsWordPressFullScreen(false); setIsWordPressOpen(false); setActiveSurface('chat'); }}
-              className="absolute top-4 right-4 z-[10000] p-3 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition-all"
-              title="Close WordPress"
-            >
-              <i className="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <WordPressDashboard
-              onOpenBrowser={openBrowser}
-              onOpenFullScreen={openBrowserFullScreen}
-              autoStart={true}
-            />
+            <WordPressPage onClose={() => { setIsWordPressFullScreen(false); setIsWordPressOpen(false); setActiveSurface('chat'); }} port={8081} />
           </div>
         )}
 
@@ -1546,6 +1693,28 @@ const App: React.FC = () => {
           isOpen={isBlockchainChatOpen}
           onClose={() => setIsBlockchainChatOpen(false)}
         />
+
+        {/* WordPress Dashboard Modal (Docker Manager) - accessible from Developer menu */}
+        {isWPDashboardOpen && (
+          <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
+            <div className="relative w-full max-w-6xl h-[90vh] bg-white dark:bg-zinc-900 rounded-xl shadow-2xl overflow-hidden">
+              <button
+                onClick={() => setIsWPDashboardOpen(false)}
+                className="absolute top-4 right-4 z-50 p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition-all"
+                title="Close WordPress Dashboard"
+              >
+                <i className="fa-solid fa-xmark text-lg"></i>
+              </button>
+              <div className="h-full overflow-auto">
+                <WordPressDashboard
+                  onOpenBrowser={openBrowser}
+                  onOpenFullScreen={openBrowserFullScreen}
+                  autoStart={false}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Save Status Indicator */}
         <SaveStatusIndicator

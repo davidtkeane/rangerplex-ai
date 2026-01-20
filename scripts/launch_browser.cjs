@@ -60,37 +60,51 @@ if (args.includes('--help') || args.includes('-h')) {
     process.exit(0);
 }
 
-// --- NODE VERSION CHECK ---
-const nodeVersion = process.version; // e.g., 'v25.2.1'
+// --- NODE VERSION CHECK & DEPENDENCY VERIFICATION ---
+// Enhanced: 2026-01-11 by Ranger (AIRanger) 🎖️
+const nodeVersion = process.version; // e.g., 'v22.21.1'
 const majorVersion = parseInt(nodeVersion.replace('v', '').split('.')[0], 10);
+const projectRoot = path.join(__dirname, '..');
 
+// Read expected version from .nvmrc
+let expectedMajorVersion = 22; // Default fallback
+const nvmrcPath = path.join(projectRoot, '.nvmrc');
+if (fs.existsSync(nvmrcPath)) {
+    const nvmrcContent = fs.readFileSync(nvmrcPath, 'utf8').trim();
+    expectedMajorVersion = parseInt(nvmrcContent, 10);
+    console.log(`📋 Expected Node.js version from .nvmrc: v${expectedMajorVersion}`);
+}
+
+console.log(`🟢 Current Node.js version: ${nodeVersion}`);
+
+// Block versions that are too new (v25+)
 if (majorVersion >= 25) {
     console.error('\n❌ CRITICAL ERROR: Node.js Version Too New!');
     console.error(`   You are running Node.js ${nodeVersion}, which breaks native modules.`);
-    console.error('   RangerPlex requires Node.js v22 (LTS) or v20 (LTS).\n');
+    console.error(`   RangerPlex requires Node.js v${expectedMajorVersion} (from .nvmrc).\n`);
 
-    console.error('👉 HOW TO FIX (Downgrade to v22):');
+    console.error('👉 HOW TO FIX (Downgrade to v' + expectedMajorVersion + '):');
 
     if (os.platform() === 'darwin') {
         console.error('\n🍎 macOS (using nvm):');
-        console.error('   nvm install 22');
-        console.error('   nvm use 22');
-        console.error('   nvm alias default 22');
+        console.error(`   nvm install ${expectedMajorVersion}`);
+        console.error(`   nvm use ${expectedMajorVersion}`);
+        console.error(`   nvm alias default ${expectedMajorVersion}`);
         console.error('\n🍎 macOS (using Homebrew):');
         console.error('   brew unlink node');
-        console.error('   brew install node@22');
-        console.error('   brew link --overwrite node@22');
+        console.error(`   brew install node@${expectedMajorVersion}`);
+        console.error(`   brew link --overwrite node@${expectedMajorVersion}`);
     } else if (os.platform() === 'win32') {
         console.error('\n🪟 Windows (using nvm-windows):');
-        console.error('   nvm install 22');
-        console.error('   nvm use 22');
+        console.error(`   nvm install ${expectedMajorVersion}`);
+        console.error(`   nvm use ${expectedMajorVersion}`);
         console.error('\n🪟 Windows (Manual):');
         console.error('   Uninstall Node.js from Control Panel.');
         console.error('   Download v22 LTS from: https://nodejs.org/');
     } else {
         console.error('\n🐧 Linux:');
-        console.error('   nvm install 22');
-        console.error('   nvm use 22');
+        console.error(`   nvm install ${expectedMajorVersion}`);
+        console.error(`   nvm use ${expectedMajorVersion}`);
     }
 
     console.error('\n⚠️  AFTER DOWNGRADING, RUN:');
@@ -99,6 +113,80 @@ if (majorVersion >= 25) {
     console.error('\n');
     process.exit(1);
 }
+
+// Check if node_modules exists
+const nodeModulesPath = path.join(projectRoot, 'node_modules');
+if (!fs.existsSync(nodeModulesPath)) {
+    console.log('\n📦 node_modules not found! Installing dependencies...');
+    const { execSync } = require('child_process');
+    try {
+        execSync('npm install', { cwd: projectRoot, stdio: 'inherit' });
+        console.log('✅ Dependencies installed successfully!\n');
+    } catch (err) {
+        console.error('❌ Failed to install dependencies:', err.message);
+        console.error('   Please run manually: npm install');
+        process.exit(1);
+    }
+}
+
+// Check for native module version mismatch (ALL native modules)
+const nativeModules = [
+    { name: 'node-pty', path: 'node-pty/build/Release/pty.node' },
+    { name: 'better-sqlite3', path: 'better-sqlite3/build/Release/better_sqlite3.node' },
+];
+
+let needsRebuild = false;
+for (const mod of nativeModules) {
+    const modPath = path.join(nodeModulesPath, mod.path);
+    if (fs.existsSync(modPath)) {
+        try {
+            require(modPath);
+        } catch (err) {
+            if (err.code === 'ERR_DLOPEN_FAILED' && err.message.includes('NODE_MODULE_VERSION')) {
+                console.log(`⚠️  ${mod.name}: compiled for different Node.js version`);
+                needsRebuild = true;
+            }
+        }
+    }
+}
+
+if (needsRebuild) {
+    console.log('\n🔧 Native module version mismatch detected!');
+    console.log('   Rebuilding ALL native modules for Node.js ' + nodeVersion + '...\n');
+    const { execSync } = require('child_process');
+    try {
+        execSync('npm rebuild', { cwd: projectRoot, stdio: 'inherit' });
+        console.log('\n✅ Native modules rebuilt successfully!\n');
+    } catch (rebuildErr) {
+        console.error('❌ Failed to rebuild native modules:', rebuildErr.message);
+        console.error('   Please run manually: npm rebuild');
+        process.exit(1);
+    }
+} else {
+    console.log('✅ Native modules OK');
+}
+
+// Check for missing critical dependencies
+const criticalDeps = ['electron', 'vite', 'node-pty'];
+const missingDeps = criticalDeps.filter(dep => {
+    const depPath = path.join(nodeModulesPath, dep);
+    return !fs.existsSync(depPath);
+});
+
+if (missingDeps.length > 0) {
+    console.log(`\n📦 Missing dependencies: ${missingDeps.join(', ')}`);
+    console.log('   Installing missing packages...\n');
+    const { execSync } = require('child_process');
+    try {
+        execSync('npm install', { cwd: projectRoot, stdio: 'inherit' });
+        console.log('✅ Missing dependencies installed!\n');
+    } catch (err) {
+        console.error('❌ Failed to install dependencies:', err.message);
+        process.exit(1);
+    }
+}
+
+console.log(''); // Empty line before startup sequence
 // --------------------------
 
 // Parse arguments (args already defined at top for --help check)

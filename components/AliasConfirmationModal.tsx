@@ -51,7 +51,7 @@ const AliasConfirmationModal: React.FC<AliasConfirmationModalProps> = ({
                     {/* Working Directory */}
                     <div>
                         <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">📂 Working Directory:</label>
-                        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400 font-mono">{alias.cwd || '/Users/ranger/rangerplex-ai'}</p>
+                        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400 font-mono">{alias.cwd || '(current directory)'}</p>
                     </div>
 
                     {/* Tags */}

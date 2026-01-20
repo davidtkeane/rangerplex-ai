@@ -21,12 +21,15 @@ export const useCanvasBoards = () => {
   // 1. Initial Load (Headers Only)
   useEffect(() => {
     const loadHeaders = async () => {
+      console.log('[useCanvasBoards] Starting to load board headers...');
       try {
         // Try to migrate if needed
         await canvasDbService.migrateFromLocalStorage();
 
         // Load lightweight headers
         const headers = await canvasDbService.loadBoardHeaders();
+        console.log('[useCanvasBoards] Loaded headers from DB:', headers.length, 'boards');
+        console.log('[useCanvasBoards] Board IDs:', headers.map(h => h.id));
 
         // Convert to CanvasBoard type (excluding imageData)
         const loadedBoards = headers.map(h => ({
@@ -40,6 +43,7 @@ export const useCanvasBoards = () => {
 
         setBoards(loadedBoards as CanvasBoard[]);
         if (loadedBoards.length > 0) {
+          console.log('[useCanvasBoards] Setting current board to:', loadedBoards[0].id);
           setCurrentBoardId(loadedBoards[0].id);
         }
       } catch (error) {

@@ -5,6 +5,516 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.7] - 2026-01-11 - Terminal UI Options 🖥️
+
+### Summary
+Added two ways to access the Ranger Terminal: the original in-app bottom panel (Console button) and a new popup window option from the Developer menu.
+
+### 🔄 Changes
+
+#### Console Button Reverted to Original Behavior
+- **Console button** now opens the terminal panel from the **bottom of the app** (original behavior)
+- This provides the familiar integrated terminal experience within RangerPlex
+
+#### New Developer Menu Option: Ranger Terminal (Popup)
+- Added **"Ranger Terminal (Popup)"** option to the **Developer** menu in the Electron app menu bar
+- Keyboard shortcut: `Cmd+Shift+T` (macOS) / `Ctrl+Shift+T` (Windows/Linux)
+- Opens terminal in a **separate floating window** with:
+  - Frameless design
+  - Always on top
+  - Transparent glass effect
+  - Position/size persistence (remembers where you left it)
+
+### 📁 Files Modified
+
+#### App.tsx
+- Reverted `toggleTerminal()` to use in-app panel (`setIsTerminalOpen`)
+- Added new `openTerminalPopup()` function for popup window functionality
+- Added listener for `'open-ranger-terminal'` event from main process
+
+#### electron/main.cjs
+- Added **"Ranger Terminal (Popup)"** menu item to Developer submenu
+- Shortcut: `CmdOrCtrl+Shift+T`
+- Sends `'open-ranger-terminal'` event to renderer
+
+### 📋 Two Terminal Access Methods
+
+| Method | Access | Behavior |
+|--------|--------|----------|
+| **Console Button** | Toolbar button | Opens panel from bottom of app (in-app) |
+| **Developer → Ranger Terminal** | Menu bar or `Cmd+Shift+T` | Opens floating popup window |
+
+### 🗺️ All Terminal Locations in RangerPlex
+
+All terminal instances use the **same core component**: `components/Terminal/RangerTerminal.tsx`
+
+| # | Location | File & Lines | How to Access |
+|---|----------|--------------|---------------|
+| 1 | **Bottom Panel** | `App.tsx:1560-1588` | Console button (default) |
+| 2 | **Workspace Tab** | `App.tsx:1405-1409` | Console button (if `terminalOpenInTab` setting ON) |
+| 3 | **Code Editor Split** | `EditorTerminalSplit.tsx:359` | Monaco editor → "Show Term" button |
+| 4 | **Popup Window** | `TerminalPopup.tsx` | Developer menu → Ranger Terminal |
+
+#### Core Terminal Component
+- **File**: `components/Terminal/RangerTerminal.tsx`
+- **Technology**: xterm.js + WebSocket connection to `ws://localhost:3000/terminal`
+- **Backend**: `proxy_server.js` uses `node-pty` to spawn shell process
+
+#### Code Editor Terminal (EditorTerminalSplit)
+- **File**: `src/components/CodeEditor/EditorTerminalSplit.tsx`
+- **Features**:
+  - Monaco editor on top, terminal on bottom
+  - Resizable split view (drag handle)
+  - "Show Term" / "Hide Term" toggle button
+  - Run code directly in terminal (Ctrl/Cmd + Enter)
+  - Auto-save workspace to localStorage
+
+### 🔍 Terminal Blank Window Investigation (Debug Session)
+
+When the terminal popup window was showing blank (no prompt), we conducted extensive debugging:
+
+#### Problem Reported
+- Terminal popup window opened but was completely blank
+- No shell prompt visible
+- No error messages displayed
+
+#### Architecture Reviewed
+1. **TerminalPopup.tsx** (`src/components/Browser/TerminalPopup.tsx`)
+   - Renders the popup window UI with drag handle and close button
+   - Imports RangerTerminal from `../../../components/Terminal/RangerTerminal`
+
+2. **RangerTerminal.tsx** (`components/Terminal/RangerTerminal.tsx`)
+   - Uses xterm.js for terminal rendering
+   - Connects to WebSocket at `ws://localhost:3000/terminal`
+   - Constructs URL from `window.location.hostname`
+
+3. **proxy_server.js** (lines 4097-4200)
+   - WebSocket server handles `/terminal` endpoint
+   - Uses `node-pty` to spawn shell process
+   - Forwards data between WebSocket and PTY
+
+4. **electron/main.cjs** (lines 280-360)
+   - `open-terminal-window` IPC handler
+   - Loads `http://localhost:${SERVER_PORT}/terminal-popup`
+   - SERVER_PORT = 5173 (Vite), PROXY_PORT = 3000 (WebSocket)
+
+#### Debug Logging Added (Then Removed)
+
+**RangerTerminal.tsx:**
+```javascript
+console.log('[RangerTerminal] useEffect starting - initializing terminal');
+console.log('[RangerTerminal] Container element:', container ? 'found' : 'null');
+console.log('[RangerTerminal] Container dimensions:', container.clientWidth, 'x', container.clientHeight);
+console.log('[RangerTerminal] Connecting to WebSocket:', socketUrl);
+term.writeln('[DEBUG] Terminal initialized, connecting...');
+term.writeln(`[DEBUG] WebSocket URL: ${socketUrl}`);
+
+// Proxy server health check
+fetch('http://localhost:3000/api/version')
+  .then(res => term.writeln(`[DEBUG] Proxy server responded: ${res.status}`))
+  .catch(err => term.writeln(`[ERROR] Proxy server (port 3000) not reachable!`));
+```
+
+**TerminalPopup.tsx:**
+```javascript
+console.log('[TerminalPopup] Component mounted');
+console.log('[TerminalPopup] Loading complete');
+```
+
+**electron/main.cjs:**
+```javascript
+floatingTerminalWindow.webContents.openDevTools({ mode: 'detach' });
+console.log(`[Terminal] Popup loading from: http://localhost:${SERVER_PORT}/terminal-popup`);
+floatingTerminalWindow.webContents.on('did-finish-load', () => console.log('[Terminal] Popup finished loading'));
+floatingTerminalWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => console.error(`[Terminal] Failed to load: ${errorCode} - ${errorDescription}`));
+```
+
+#### Potential Causes Identified
+
+1. **WebSocket Connection Failure**
+   - Proxy server on port 3000 not running
+   - WebSocket URL incorrectly constructed
+   - Connection blocked by security policy
+
+2. **Container Size Issue**
+   - If container has 0 dimensions, xterm.js won't render
+   - `fit()` returns early if `clientWidth === 0 || clientHeight === 0`
+
+3. **CSS Loading Issue**
+   - xterm.css might not load in popup context
+   - Import: `import 'xterm/css/xterm.css'`
+
+4. **Routing Issue**
+   - App.tsx checks `window.location.pathname === '/terminal-popup'`
+   - Vite SPA routing must serve index.html for all routes
+
+5. **Race Condition**
+   - Popup opens before proxy server (port 3000) is ready
+   - `npm run start` runs both Vite (5173) and proxy (3000) concurrently
+
+#### Resolution
+User decided to keep both terminal access methods:
+- **Console button** → Original bottom panel (works reliably)
+- **Developer menu** → Popup window (for those who prefer it)
+
+This provides flexibility while maintaining the stable in-app terminal option.
+
+---
+
+## [4.3.6] - 2026-01-11 - Console Window Persistence & Canvas Fix 🖥️🎨
+
+### Summary
+Added Sublime Text-style window state persistence to the Console (Terminal) button! Also fixed a critical Canvas bug where the drawing canvas was appearing black instead of white/transparent.
+
+### 🚀 New Features
+
+#### Console/Terminal Window Persistence
+- **Separate Electron Window**: Console now opens in a separate floating window (like VS Code/WordPress/Canvas)
+- **Position & Size Memory**: Window remembers exactly where you left it
+- **Debounced Saves**: State saves are debounced (500ms) to avoid excessive writes
+- **Close State Capture**: Final window state is saved on window close
+- **Always On Top**: Terminal window stays floating above other windows (preserved from original design)
+- **Frameless & Transparent**: Retains the sleek glass effect design
+
+### 📁 New Files Created
+
+- `src/services/terminalStateService.ts` - Terminal window state persistence service
+  - Saves window position/size (x, y, width, height)
+  - Saves maximized state
+  - Saves alwaysOnTop preference
+  - User-scoped localStorage keys (`ranger_terminal_state_{userId}`)
+
+### 🔧 Modified Files
+
+#### App.tsx
+- Added import for `terminalStateService`
+- Added `terminalStateService.setUser(currentUser)` in useEffect
+- Added `onTerminalWindowState` listener for receiving state updates
+- Modified `toggleTerminal()` to call IPC directly in Electron mode (bypasses in-app panel)
+
+#### electron/main.cjs
+- Added `open-terminal-window` IPC handler with:
+  - Window bounds parameter support
+  - Debounced save on move/resize (500ms)
+  - Final state save on window close
+  - Sends `terminal-window-state` IPC to main window
+- Updated `toggle-floating-terminal` for backwards compatibility
+
+#### electron/preload.cjs
+- Added `openTerminalWindow(windowBounds)` API method
+- Added `onTerminalWindowState(callback)` listener for Terminal state updates
+
+### 🎯 Window Defaults
+
+| App | Default Position | Default Size | Special |
+|-----|-----------------|--------------|---------|
+| VS Code | (100, 100) | 1600x1000 | - |
+| WordPress | (100, 100) | 1400x900 | - |
+| Canvas | (50, 50) | 1400x900 | - |
+| **Terminal** | (100, 100) | 600x400 | Frameless, Always On Top, Transparent |
+
+### 🔑 localStorage Keys (Complete Suite)
+
+- `ranger_vscode_state_{userId}` - VS Code window state
+- `ranger_wordpress_state_{userId}` - WordPress window state
+- `ranger_canvas_state_{userId}` - Canvas window state
+- `ranger_terminal_state_{userId}` - Terminal window state (NEW!)
+
+### 🐛 Bug Fixes
+
+#### Canvas Black Background Issue (FIXED)
+- **Problem**: Canvas was showing a BLACK background when opened, only showing white after clicking Clear
+- **Root Cause 1**: Drawing canvas had `.canvas-dark` CSS class applying `background: #2a2a2a`
+- **Root Cause 2**: Canvas was saved as JPEG (`toDataURL('image/jpeg')`) which doesn't support transparency - transparent areas became BLACK when saved, then loaded as black
+- **Fix 1**: Removed theme class from drawing canvas (it should always be transparent)
+- **Fix 2**: Changed save format from JPEG to PNG (`toDataURL('image/png')`) to preserve transparency
+- **Result**: Canvas now shows correct white/colored background from the start
+- **Note**: Existing boards saved as JPEG may still show black - click Clear once to reset
+
+#### Files Modified for Canvas Fix
+- `src/components/CanvasBoard.tsx`:
+  - Line 264: Removed `canvas-${theme}` class from drawing canvas
+  - Line 124: Changed from `toDataURL('image/jpeg', 0.7)` to `toDataURL('image/png')`
+  - Added `hadContent` check before resize to prevent unnecessary operations
+
+### 🔍 Canvas Autosave Debug Logging (Investigation)
+
+Added comprehensive debug logging to investigate canvas autosave issues:
+
+#### `src/components/CanvasBoard.tsx` - Debug Additions:
+- **Load function**: Logs board ID, name, and loaded imageData details
+  ```
+  [Canvas] Loading board image for: board_xxx Blank Board 1
+  [Canvas] Loaded imageData: {hasData: true/false, length: xxx, preview: ...}
+  ```
+- **Save function**: Logs board details and validates canvas dimensions before save
+  ```
+  [Canvas] Saving board: {id: xxx, name: xxx, imageDataLength: xxx, canvasSize: WxH}
+  ```
+- **handleMouseUp**: Logs drawing state and stopDrawing result
+  ```
+  [Canvas] handleMouseUp called, isDrawing: true/false
+  [Canvas] stopDrawing returned data: true/false
+  ```
+- **Dimension validation**: Prevents save if canvas has zero dimensions (logs warning)
+
+#### How to Debug Canvas Save Issues:
+1. Open DevTools (Cmd+Option+I) **in the Canvas popup window** (not main window!)
+2. Go to Console tab
+3. Open Canvas and draw something
+4. Watch for `[Canvas]` prefixed logs
+5. Check if saves are being triggered and with valid data
+
+#### Canvas Autosave Not Persisting Drawings (FIXED)
+
+**Problem**: Drawings were not persisting between canvas sessions. User would draw, close canvas, reopen, and drawing was gone - even though logs showed saves were succeeding.
+
+**Investigation Steps Taken**:
+1. Added debug logging to `saveBoard()` function - confirmed saves were being called
+2. Added debug logging to `loadBoardImage()` - confirmed data was being loaded
+3. Added debug logging to `handleMouseUp()` - confirmed drawing events were firing
+4. Added debug logging to `useCanvasBoards` hook - confirmed board IDs were consistent
+5. Added debug logging to `canvasDbService` - confirmed IndexedDB operations succeeded
+6. Added debug logging to `autoSaveService` - confirmed queue was flushing
+7. Observed console logs showed: `[Canvas] Image drawn to canvas` AND `[canvasDbService] Board saved successfully`
+8. BUT also saw: `[Canvas] No imageData to load or canvas not ready`
+9. Noticed `[CanvasEditor] Component mounting` appearing 4-6 times rapidly
+
+**Root Cause Found**:
+- React was causing rapid mount/unmount cycles of the CanvasEditor component
+- The `useEffect` cleanup (unmount) was calling `saveBoard()` every time
+- During rapid re-mounts, the cleanup would fire BEFORE the image finished loading
+- This saved an **EMPTY canvas** over the existing drawing data
+- Sequence: Mount → Start loading image → Unmount (save empty!) → Mount again → Load (but data is now empty)
+
+**Fix Implemented**:
+- Added `hasContentRef` (useRef) to track if canvas has content worth saving
+- `hasContentRef.current = true` set when:
+  1. Image successfully loads from database (`img.onload` callback)
+  2. User draws something (`handleMouseUp` after successful stroke)
+- Unmount save now checks: `if (hasContentRef.current)` before saving
+- If no content, logs: `[Canvas] Unmount save: hasContent=false, skipping save to prevent data loss`
+
+**Files Modified**:
+- `src/components/CanvasBoard.tsx`:
+  - Added `hasContentRef = useRef(false)` state
+  - Set `hasContentRef.current = true` in image load success callback
+  - Set `hasContentRef.current = true` in `handleMouseUp` after successful draw
+  - Updated unmount useEffect to check `hasContentRef.current` before saving
+
+**Lesson Learned**:
+- React StrictMode and component re-renders can cause rapid mount/unmount cycles
+- Cleanup functions that save state can overwrite data if the component hasn't fully initialized
+- Use refs (not state) for values that need to be accessed in cleanup functions
+- Always guard "save on unmount" with a flag indicating valid content exists
+
+### 📝 Development Notes
+- **Developer**: Ranger (AIRanger) 🎖️
+- **Date**: 2026-01-11
+- **Testing**: Restart Electron, click Console button, move/resize window, close and reopen to verify position persistence
+- **Canvas Testing**: Open Canvas, verify white background appears immediately (not black)
+- **Canvas Autosave Testing**: Draw something, close canvas, reopen - drawing should persist
+- **Canvas Debug**: Check browser console for `[Canvas]` logs when drawing/saving
+
+---
+
+## [4.3.5] - 2026-01-11 - Sublime Text-style Window Persistence 🪟
+
+### Summary
+Major update adding Sublime Text-style window state persistence for VS Code, WordPress, AND Canvas windows. When you close and reopen these windows, they remember their exact position and size! Also includes critical bug fixes for double window issues and singleton pattern fixes.
+
+### 🚀 New Features
+
+#### Window Persistence (All Three Apps)
+- **VS Code Window Persistence**: Code button remembers window position, size, and port (default: 8181)
+- **WordPress Window Persistence**: WP button remembers window position, size, and port (default: 8081)
+- **Canvas Window Persistence**: Canvas button opens in separate window with position/size memory
+- **Debounced Saves**: Window state saves are debounced (500ms) to avoid excessive writes
+- **Close State Capture**: Final window state is saved on window close event
+- **IPC State Sync**: Main process sends state updates back to renderer for localStorage persistence
+- **User-Scoped Storage**: Each user has their own saved window positions
+
+#### Canvas Separate Window
+- Canvas now opens in a **separate Electron window** (like VS Code/WordPress)
+- Loads the full Canvas drawing board with all tools via `/canvas-popup` route
+- Board data still persists via existing `canvasDbService`
+- Window position is now ALSO persisted via `canvasStateService`
+
+### 🐛 Bug Fixes
+
+#### Double Window Issue (FIXED)
+- **Problem**: Clicking WP/Code/Canvas buttons was opening TWO windows (overlay + new window)
+- **Cause**: Button handlers set state to show overlay, then Page components opened new window
+- **Fix**: In Electron mode, buttons now call IPC directly without showing overlay
+- **Result**: One click = One window (no overlay in Electron mode)
+
+#### Singleton Pattern Fix (FIXED)
+- **Problem**: Canvas state wasn't being saved properly
+- **Cause**: Dynamic imports (`await import(...)`) were creating separate module instances, breaking singleton pattern
+- **Fix**: All three state services are now imported at top-level of App.tsx
+- **Result**: State services work correctly with consistent localStorage saves
+
+### 📁 New Files Created
+
+#### State Services
+- `src/services/vscodeStateService.ts` - VS Code window state persistence
+- `src/services/wordpressStateService.ts` - WordPress window state persistence
+- `src/services/canvasStateService.ts` - Canvas window state persistence
+
+#### Page Components
+- `src/pages/Canvas/CanvasPage.tsx` - Opens Canvas in separate Electron window
+
+### 🔧 Modified Files
+
+#### App.tsx (Major Changes)
+- Added top-level imports for all three state services
+- Added `/canvas-popup` route for standalone Canvas window
+- Added `useEffect` to set user on all state services when `currentUser` changes
+- Added `useEffect` to listen for window state updates from all three windows
+- Modified `openCanvas()` - calls IPC directly in Electron mode (no overlay)
+- Modified `openWordPress()` - calls IPC directly in Electron mode (no overlay)
+- Modified `openEditor()` - calls IPC directly in Electron mode (no overlay)
+- Added debug logging for window bounds when opening windows
+- Canvas rendering now uses `CanvasPage` in Electron mode, `CanvasBoard` overlay in browser mode
+
+#### electron/main.cjs
+- Added `open-canvas-window` IPC handler with:
+  - Window bounds parameter support
+  - Loads `/canvas-popup` route
+  - Debounced save on move/resize (500ms)
+  - Final state save on window close
+  - Sends `canvas-window-state` IPC to main window
+- Updated `open-vscode-window` handler with window bounds support
+- Updated `open-wordpress-window` handler with window bounds support
+
+#### electron/preload.cjs
+- Added `openCanvasWindow(windowBounds)` API method
+- Added `onCanvasWindowState(callback)` listener for Canvas state updates
+- Updated `openVSCodeWindow(port, windowBounds)` to accept bounds
+- Updated `openWordPressWindow(url, port, windowBounds)` to accept bounds
+- Added `onVSCodeWindowState(callback)` listener
+- Added `onWordPressWindowState(callback)` listener
+
+#### Page Components Updated
+- `src/pages/VSCode/VSCodePage.tsx` - Uses state service, listens for window updates
+- `src/pages/WordPress/WordPressPage.tsx` - Uses state service, listens for window updates
+
+### 📝 How Window Persistence Works
+
+```
+1. User clicks Code/WP/Canvas button
+2. App.tsx handler gets saved bounds from state service
+3. Calls Electron IPC with bounds (e.g., openCanvasWindow(bounds))
+4. Main process creates BrowserWindow at saved position/size
+5. As user moves/resizes window:
+   - Main process detects move/resize events
+   - Debounces for 500ms
+   - Sends state back to main window via IPC
+   - App.tsx listener receives state
+   - State service saves to localStorage
+6. On window close:
+   - Final bounds are captured
+   - Sent to main window via IPC
+   - Saved to localStorage
+7. Next time user clicks button:
+   - State service loads saved bounds
+   - Window opens exactly where user left it!
+```
+
+### 🎯 Default Window Sizes
+
+| App | Default Position | Default Size |
+|-----|-----------------|--------------|
+| VS Code | (100, 100) | 1600x1000 |
+| WordPress | (100, 100) | 1400x900 |
+| Canvas | (50, 50) | 1400x900 |
+
+### 🔑 localStorage Keys
+
+- `ranger_vscode_state_{userId}` - VS Code window state
+- `ranger_wordpress_state_{userId}` - WordPress window state
+- `ranger_canvas_state_{userId}` - Canvas window state
+
+### 📝 Development Notes
+- **Developer**: Ranger (AIRanger) 🎖️
+- **Date**: 2026-01-11
+- **Testing**: Restart Electron after changes, check browser console for state save logs
+
+---
+
+## [4.3.4] - 2026-01-11 - Smart Dependency & Native Module Recovery 🔧
+
+### Summary
+Enhanced the launch script with intelligent dependency checking and automatic native module recovery. The script now detects Node.js version mismatches and automatically rebuilds native modules like `node-pty` without manual intervention.
+
+### 🚀 New Features
+- **Auto-Dependency Check**: Script checks if `node_modules` exists and runs `npm install` automatically if missing.
+- **Native Module Recovery**: Detects `NODE_MODULE_VERSION` mismatch errors and auto-runs `npm rebuild`.
+- **Critical Dependency Validation**: Verifies `electron`, `vite`, and `node-pty` are installed before launch.
+- **Dynamic .nvmrc Support**: Reads expected Node version from `.nvmrc` file for accurate version guidance.
+
+### 🐛 Bug Fixes
+- **Native Module Version Mismatch**: Fixed crashes when native modules were compiled for different Node.js version.
+  - Affected: `node-pty`, `better-sqlite3`
+  - Error: `NODE_MODULE_VERSION 115` vs `NODE_MODULE_VERSION 127`
+  - Fix: Auto-detects ALL native modules and rebuilds on startup.
+- **WordPress WP Button Black Screen**: Fixed `ERR_BLOCKED_BY_RESPONSE` error when clicking WP button.
+  - Cause: WordPress sends `X-Frame-Options: SAMEORIGIN` which blocks iframes.
+  - Fix: WordPress now opens in a separate Electron window instead of an iframe.
+- **VS Code Button Overlapping X**: Fixed Code button that had overlapping close button and iframe issues.
+  - Fix: VS Code now opens in a separate Electron window (1600x1000) matching WP behavior.
+
+### 🔧 Technical Changes
+- `scripts/launch_browser.cjs`: Complete rewrite of version check section (lines 63-160).
+  - Added `.nvmrc` file reading for expected version.
+  - Added `node_modules` existence check with auto-install.
+  - Added native module loading test with auto-rebuild on failure.
+  - Added critical dependency verification loop.
+- `electron/main.cjs`: Added `open-wordpress-window` and `open-vscode-window` IPC handlers.
+- `electron/preload.cjs`: Added `openWordPressWindow()` and `openVSCodeWindow()` API methods.
+- `src/pages/WordPress/WordPressPage.tsx`: Rewritten to use new window instead of iframe.
+- `src/pages/VSCode/VSCodePage.tsx`: Rewritten to use new window instead of iframe.
+
+### 📝 Investigation Notes
+- **Investigator**: Ranger (AIRanger) 🎖️
+- **Root Cause**: Native modules compiled for Node 20 (v115) but system running Node 22 (v127).
+- **Solution**: Try-catch block tests loading `pty.node`, triggers `npm rebuild` on `ERR_DLOPEN_FAILED`.
+
+### 📋 VS Code State Persistence
+**Status:** Moved to v4.3.5 (see above) - includes both VS Code AND WordPress persistence!
+
+---
+
+## [4.3.3] - 2026-01-11 - Code & WP Button Fix + Path Portability 🔧
+
+### Summary
+Fixed critical bug where Code button opened WordPress instead of VS Code. Separated the WP sidebar button (now opens localhost:8081 directly) from the WordPress Dashboard (now in Developer menu). Also improved codebase portability with relative paths.
+
+### 🐛 Bug Fixes
+- **Code Button Fixed**: The "Code" sidebar button now correctly opens code-server on port 8181 (was incorrectly pointing to 8081 where WordPress runs).
+- **Dynamic Port Detection**: VSCodePage now gets the actual port from VSCodeManager via IPC, supporting any configured code-server port.
+
+### 🔄 WP Button Redesign
+- **WP Button → Direct Access**: Sidebar "WP" button now opens `localhost:8081` directly in an iframe (simple, fast access to WordPress).
+- **WordPress Dashboard → Developer Menu**: The Docker/site management dashboard moved to `Developer → WordPress Dashboard` in the menu bar.
+- **Cleaner UI**: Sidebar buttons now exclusively launch apps; management tools are in menus.
+
+### 📦 Portability Improvements
+- **Relative Path Display**: Server startup banner now shows `./data/rangerplex.db` instead of full absolute paths.
+- **Generic Placeholders**: Updated UI placeholder text to use generic paths like `/path/to/project`.
+
+### 🔧 Technical Changes
+- `VSCodePage.tsx`: Now uses dynamic port from IPC (`{ running, port }`) with fallback to 8181.
+- `electron/main.cjs`: IPC handler `vscode-status` now returns port info; added "WordPress Dashboard" to Developer menu.
+- `electron/preload.cjs`: Added `open-wordpress-dashboard` to valid IPC channels.
+- `App.tsx`: Added `WordPressPage` component for simple iframe view; `WordPressDashboard` now opens as modal from Developer menu.
+- Created `src/pages/WordPress/WordPressPage.tsx`: New lightweight iframe component for localhost WordPress access.
+
+### 📝 Known Issue (TODO)
+- WordPress Dashboard auto-start disabled when opened from Developer menu (set `autoStart={false}` to prevent conflicts).
+
+---
+
 ## [4.3.2] - 2025-12-30 - LM Studio Status Agent 🕵️‍♂️
 
 ### Summary

@@ -43,12 +43,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Mini-OS: Floating Terminal
     toggleFloatingTerminal: () => ipcRenderer.invoke('toggle-floating-terminal'),
+    openTerminalWindow: (windowBounds) => ipcRenderer.invoke('open-terminal-window', { windowBounds }),
+
+    // Terminal State Persistence - receive window state updates from main process
+    onTerminalWindowState: (callback) => {
+        ipcRenderer.on('terminal-window-state', (event, state) => callback(state));
+        return () => ipcRenderer.removeListener('terminal-window-state', callback);
+    },
 
     // WordPress Integration (Project PRESS FORGE)
     scanLocalSites: () => ipcRenderer.invoke('wordpress-scan-local-sites'),
     checkDocker: () => ipcRenderer.invoke('docker-check'),
     dockerCompose: (command, file) => ipcRenderer.invoke('docker-compose', { command, file }),
     openExternal: (url) => ipcRenderer.invoke('open-external', url),
+    openWordPressWindow: (url, port, windowBounds) => ipcRenderer.invoke('open-wordpress-window', { url, port, windowBounds }),
+
+    // WordPress State Persistence - receive window state updates from main process
+    onWordPressWindowState: (callback) => {
+        ipcRenderer.on('wordpress-window-state', (event, state) => callback(state));
+        return () => ipcRenderer.removeListener('wordpress-window-state', callback);
+    },
     showNotification: (title, body) => ipcRenderer.invoke('show-notification', { title, body }),
     setLinkBehavior: (enabled) => ipcRenderer.invoke('set-link-behavior', enabled),
 
@@ -57,10 +71,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // VS Code
     checkVSCodeStatus: () => ipcRenderer.invoke('vscode-status'),
+    openVSCodeWindow: (port, windowBounds) => ipcRenderer.invoke('open-vscode-window', { port, windowBounds }),
+
+    // VS Code State Persistence - receive window state updates from main process
+    onVSCodeWindowState: (callback) => {
+        ipcRenderer.on('vscode-window-state', (event, state) => callback(state));
+        return () => ipcRenderer.removeListener('vscode-window-state', callback);
+    },
+
+    // Canvas
+    openCanvasWindow: (windowBounds) => ipcRenderer.invoke('open-canvas-window', { windowBounds }),
+
+    // Canvas State Persistence - receive window state updates from main process
+    onCanvasWindowState: (callback) => {
+        ipcRenderer.on('canvas-window-state', (event, state) => callback(state));
+        return () => ipcRenderer.removeListener('canvas-window-state', callback);
+    },
 
     // Generic Event Listener
     on: (channel, func) => {
-        const validChannels = ['fromMain', 'request-open-url'];
+        const validChannels = ['fromMain', 'request-open-url', 'open-wordpress-dashboard'];
         if (validChannels.includes(channel)) {
             const subscription = (event, ...args) => func(...args);
             ipcRenderer.on(channel, subscription);

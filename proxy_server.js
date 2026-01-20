@@ -83,6 +83,9 @@ if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir);
 
 // Initialize SQLite Database
 const dbPath = path.join(dataDir, 'rangerplex.db');
+// Relative paths for display (portable logging)
+const dbPathDisplay = './data/rangerplex.db';
+const backupsDirDisplay = './backups';
 const db = new Database(dbPath);
 
 // Create tables
@@ -122,7 +125,7 @@ db.exec(`
   );
 `);
 
-console.log('✅ Database initialized at:', dbPath);
+console.log('✅ Database initialized at:', dbPathDisplay);
 executionLogger.setDb(db);
 
 // REST API Endpoints
@@ -4962,8 +4965,8 @@ server.listen(PORT, async () => {
 ║                                                           ║
 ║   📡 REST API:      http://localhost:${PORT}                ║
 ║   🔌 WebSocket:     ws://localhost:${PORT}                  ║
-║   💾 Database:      ${dbPath}     ║
-║   📦 Backups:       ${backupsDir}                ║
+║   💾 Database:      ${dbPathDisplay}     ║
+║   📦 Backups:       ${backupsDirDisplay}                ║
 ║                                                           ║
 ║   Status: ✅ ONLINE                                       ║
 ║                                                           ║

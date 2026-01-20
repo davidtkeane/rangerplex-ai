@@ -229,7 +229,7 @@ const AliasManager: React.FC<AliasManagerProps> = ({ isOpen, onClose }) => {
                                 value={editingAlias.cwd || ''}
                                 onChange={e => setEditingAlias(prev => prev ? { ...prev, cwd: e.target.value } : prev)}
                                 className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800"
-                                placeholder="/Users/ranger/project"
+                                placeholder="/path/to/project"
                             />
                         </div>
                         <div>

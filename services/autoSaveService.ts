@@ -37,12 +37,14 @@ class AutoSaveService {
   }
 
   queueSave(key: string, task: () => Promise<void>) {
+    console.log('[AutoSave] Queueing save for:', key);
     this.saveQueue.set(key, task);
     const now = Date.now();
 
     // If we haven't saved in a while (maxWait), force a save immediately
     // This prevents long streams from delaying saves indefinitely
     if (now - this.lastFlushTime > this.maxWaitMs) {
+      console.log('[AutoSave] Max wait exceeded, flushing immediately');
       if (this.timer) clearTimeout(this.timer);
       void this.flushQueue();
       return;
@@ -50,12 +52,17 @@ class AutoSaveService {
 
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => {
+      console.log('[AutoSave] Debounce timer fired, flushing queue');
       void this.flushQueue();
     }, this.debounceMs);
   }
 
   private async flushQueue() {
-    if (this.saveQueue.size === 0) return;
+    if (this.saveQueue.size === 0) {
+      console.log('[AutoSave] flushQueue: Queue is empty, nothing to save');
+      return;
+    }
+    console.log('[AutoSave] flushQueue: Processing', this.saveQueue.size, 'items');
     this.emit('saving');
 
     const entries = Array.from(this.saveQueue.entries());
@@ -66,10 +73,12 @@ class AutoSaveService {
     }
 
     try {
-      for (const [, task] of entries) {
+      for (const [key, task] of entries) {
+        console.log('[AutoSave] Executing save task:', key);
         await task();
       }
       this.lastFlushTime = Date.now();
+      console.log('[AutoSave] All tasks completed successfully');
       this.emit('saved', this.lastFlushTime);
     } catch (error) {
       console.error('❌ Auto-save failed:', error);

@@ -27,8 +27,15 @@ export const canvasDbService = {
   },
 
   async saveBoard(board: CanvasBoardRecord): Promise<void> {
+    console.log('[canvasDbService] saveBoard called:', {
+      id: board.id,
+      name: board.name,
+      hasImageData: !!board.imageData,
+      imageDataLength: board.imageData?.length || 0
+    });
     const db = await dbService.getDB();
     await db.put(STORE, board);
+    console.log('[canvasDbService] Board saved successfully to IndexedDB');
   },
 
   // Heavy load - loads everything (Legacy/Full)
@@ -49,8 +56,14 @@ export const canvasDbService = {
 
   // Load specific board image data
   async loadBoardImage(boardId: string): Promise<string | null> {
+    console.log('[canvasDbService] loadBoardImage called for:', boardId);
     const db = await dbService.getDB();
     const board = await db.get(STORE, boardId);
+    console.log('[canvasDbService] loadBoardImage result:', {
+      found: !!board,
+      hasImageData: !!board?.imageData,
+      imageDataLength: board?.imageData?.length || 0
+    });
     return board ? board.imageData : null;
   },
 

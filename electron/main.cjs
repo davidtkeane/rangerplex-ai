@@ -258,8 +258,10 @@ function setupIpcHandlers() {
     });
 
     // 8. MINI-OS: Floating Terminal
+    // Updated: 2026-01-11 - Added Sublime Text-style window state persistence
     let floatingTerminalWindow = null;
 
+    // Keep old toggle handler for backwards compatibility
     ipcMain.handle('toggle-floating-terminal', () => {
         if (floatingTerminalWindow) {
             if (floatingTerminalWindow.isVisible()) {
@@ -267,29 +269,94 @@ function setupIpcHandlers() {
             } else {
                 floatingTerminalWindow.show();
             }
-            return;
+            return { success: true, action: floatingTerminalWindow.isVisible() ? 'shown' : 'hidden' };
         }
+        // If no window exists, return false so renderer knows to call open-terminal-window
+        return { success: false, needsOpen: true };
+    });
 
-        floatingTerminalWindow = new BrowserWindow({
-            width: 600,
-            height: 400,
-            frame: false, // Frameless
-            alwaysOnTop: true, // Floating
-            transparent: true, // Glass effect
-            webPreferences: {
-                preload: path.join(__dirname, 'preload.cjs'),
-                contextIsolation: true,
-                nodeIntegration: false,
-                webviewTag: true // Enable <webview> tag
+    // Open Terminal in a new Electron window with state persistence
+    // Added: 2026-01-11 by Ranger (AIRanger) 🎖️
+    ipcMain.handle('open-terminal-window', async (event, { windowBounds }) => {
+        try {
+            // If window already exists, just show it
+            if (floatingTerminalWindow && !floatingTerminalWindow.isDestroyed()) {
+                floatingTerminalWindow.show();
+                floatingTerminalWindow.focus();
+                return { success: true, action: 'focused' };
             }
-        });
 
-        // Load a specific route for the terminal
-        floatingTerminalWindow.loadURL(`http://localhost:${SERVER_PORT}/terminal-popup`);
+            // Use saved bounds or defaults
+            const bounds = windowBounds || { x: 100, y: 100, width: 600, height: 400 };
 
-        floatingTerminalWindow.on('closed', () => {
-            floatingTerminalWindow = null;
-        });
+            floatingTerminalWindow = new BrowserWindow({
+                x: bounds.x,
+                y: bounds.y,
+                width: bounds.width,
+                height: bounds.height,
+                frame: false, // Frameless
+                alwaysOnTop: true, // Floating
+                transparent: true, // Glass effect
+                title: 'Terminal - RangerPlex',
+                webPreferences: {
+                    preload: path.join(__dirname, 'preload.cjs'),
+                    contextIsolation: true,
+                    nodeIntegration: false,
+                    webviewTag: true // Enable <webview> tag
+                }
+            });
+
+            // Load a specific route for the terminal
+            floatingTerminalWindow.loadURL(`http://localhost:${SERVER_PORT}/terminal-popup`);
+
+            // Save window state on move/resize (debounced)
+            let saveTimeout = null;
+            const saveWindowState = () => {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    if (floatingTerminalWindow && !floatingTerminalWindow.isDestroyed()) {
+                        const newBounds = floatingTerminalWindow.getBounds();
+                        const isMaximized = floatingTerminalWindow.isMaximized();
+                        // Send state back to main window renderer
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            mainWindow.webContents.send('terminal-window-state', {
+                                windowState: newBounds,
+                                isMaximized
+                            });
+                        }
+                        console.log(`[Terminal] Window state saved: ${JSON.stringify(newBounds)}`);
+                    }
+                }, 500); // Debounce 500ms
+            };
+
+            floatingTerminalWindow.on('move', saveWindowState);
+            floatingTerminalWindow.on('resize', saveWindowState);
+
+            // Save final state on close
+            floatingTerminalWindow.on('close', () => {
+                if (floatingTerminalWindow && !floatingTerminalWindow.isDestroyed()) {
+                    const finalBounds = floatingTerminalWindow.getBounds();
+                    const isMaximized = floatingTerminalWindow.isMaximized();
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('terminal-window-state', {
+                            windowState: finalBounds,
+                            isMaximized,
+                            closed: true
+                        });
+                    }
+                    console.log(`[Terminal] Final window state saved on close: ${JSON.stringify(finalBounds)}`);
+                }
+            });
+
+            floatingTerminalWindow.on('closed', () => {
+                floatingTerminalWindow = null;
+            });
+
+            return { success: true, action: 'opened' };
+        } catch (error) {
+            console.error('Failed to open Terminal window:', error);
+            return { error: error.message };
+        }
     });
 
     // 9. WORDPRESS INTEGRATION (Project PRESS FORGE)
@@ -398,6 +465,236 @@ function setupIpcHandlers() {
             await shell.openExternal(url);
             return { success: true };
         } catch (error) {
+            return { error: error.message };
+        }
+    });
+
+    // Open WordPress in a new Electron window (bypasses X-Frame-Options)
+    // Added: 2026-01-11 by Ranger (AIRanger) 🎖️
+    // Updated: 2026-01-11 - Added Sublime Text-style window state persistence
+    ipcMain.handle('open-wordpress-window', async (event, { url, port = 8081, windowBounds }) => {
+        try {
+            const targetUrl = url || `http://localhost:${port}/wp-admin`;
+
+            // Use saved bounds or defaults
+            const bounds = windowBounds || { x: 100, y: 100, width: 1400, height: 900 };
+
+            const wpWindow = new BrowserWindow({
+                x: bounds.x,
+                y: bounds.y,
+                width: bounds.width,
+                height: bounds.height,
+                title: 'WordPress Admin',
+                icon: path.join(__dirname, '..', 'public', 'favicon.ico'),
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                }
+            });
+
+            wpWindow.loadURL(targetUrl);
+
+            // Handle login redirects gracefully
+            wpWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+                console.log(`WordPress window load issue: ${errorCode} - ${errorDescription}`);
+            });
+
+            // Save window state on move/resize (debounced)
+            let saveTimeout = null;
+            const saveWindowState = () => {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    if (!wpWindow.isDestroyed()) {
+                        const newBounds = wpWindow.getBounds();
+                        const isMaximized = wpWindow.isMaximized();
+                        // Send state back to main window renderer
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            mainWindow.webContents.send('wordpress-window-state', {
+                                windowState: newBounds,
+                                isMaximized,
+                                port
+                            });
+                        }
+                        console.log(`[WordPress] Window state saved: ${JSON.stringify(newBounds)}`);
+                    }
+                }, 500); // Debounce 500ms
+            };
+
+            wpWindow.on('move', saveWindowState);
+            wpWindow.on('resize', saveWindowState);
+
+            // Save final state on close
+            wpWindow.on('close', () => {
+                if (!wpWindow.isDestroyed()) {
+                    const finalBounds = wpWindow.getBounds();
+                    const isMaximized = wpWindow.isMaximized();
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('wordpress-window-state', {
+                            windowState: finalBounds,
+                            isMaximized,
+                            port,
+                            closed: true
+                        });
+                    }
+                    console.log(`[WordPress] Final window state saved on close: ${JSON.stringify(finalBounds)}`);
+                }
+            });
+
+            return { success: true, url: targetUrl, port };
+        } catch (error) {
+            console.error('Failed to open WordPress window:', error);
+            return { error: error.message };
+        }
+    });
+
+    // Open VS Code (code-server) in a new Electron window
+    // Added: 2026-01-11 by Ranger (AIRanger) 🎖️
+    // Updated: 2026-01-11 - Added Sublime Text-style window state persistence
+    ipcMain.handle('open-vscode-window', async (event, { port = 8181, windowBounds }) => {
+        try {
+            const targetUrl = `http://localhost:${port}`;
+
+            // Use saved bounds or defaults
+            const bounds = windowBounds || { x: 100, y: 100, width: 1600, height: 1000 };
+
+            const codeWindow = new BrowserWindow({
+                x: bounds.x,
+                y: bounds.y,
+                width: bounds.width,
+                height: bounds.height,
+                title: 'VS Code - RangerPlex',
+                icon: path.join(__dirname, '..', 'public', 'favicon.ico'),
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                }
+            });
+
+            codeWindow.loadURL(targetUrl);
+
+            codeWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+                console.log(`VS Code window load issue: ${errorCode} - ${errorDescription}`);
+            });
+
+            // Save window state on move/resize (debounced)
+            let saveTimeout = null;
+            const saveWindowState = () => {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    if (!codeWindow.isDestroyed()) {
+                        const newBounds = codeWindow.getBounds();
+                        const isMaximized = codeWindow.isMaximized();
+                        // Send state back to main window renderer
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            mainWindow.webContents.send('vscode-window-state', {
+                                windowState: newBounds,
+                                isMaximized,
+                                port
+                            });
+                        }
+                        console.log(`[VSCode] Window state saved: ${JSON.stringify(newBounds)}`);
+                    }
+                }, 500); // Debounce 500ms
+            };
+
+            codeWindow.on('move', saveWindowState);
+            codeWindow.on('resize', saveWindowState);
+
+            // Save final state on close
+            codeWindow.on('close', () => {
+                if (!codeWindow.isDestroyed()) {
+                    const finalBounds = codeWindow.getBounds();
+                    const isMaximized = codeWindow.isMaximized();
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('vscode-window-state', {
+                            windowState: finalBounds,
+                            isMaximized,
+                            port,
+                            closed: true
+                        });
+                    }
+                    console.log(`[VSCode] Final window state saved on close: ${JSON.stringify(finalBounds)}`);
+                }
+            });
+
+            return { success: true, url: targetUrl, port };
+        } catch (error) {
+            console.error('Failed to open VS Code window:', error);
+            return { error: error.message };
+        }
+    });
+
+    // Open Canvas in a new Electron window
+    // Added: 2026-01-11 by Ranger (AIRanger) 🎖️
+    // Sublime Text-style window state persistence
+    ipcMain.handle('open-canvas-window', async (event, { windowBounds }) => {
+        try {
+            // Use saved bounds or defaults
+            const bounds = windowBounds || { x: 50, y: 50, width: 1400, height: 900 };
+
+            const canvasWindow = new BrowserWindow({
+                x: bounds.x,
+                y: bounds.y,
+                width: bounds.width,
+                height: bounds.height,
+                title: 'Canvas - RangerPlex',
+                icon: path.join(__dirname, '..', 'public', 'favicon.ico'),
+                webPreferences: {
+                    preload: path.join(__dirname, 'preload.cjs'),
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                }
+            });
+
+            // Load the canvas-popup route
+            canvasWindow.loadURL(`http://localhost:${SERVER_PORT}/canvas-popup`);
+
+            canvasWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+                console.log(`Canvas window load issue: ${errorCode} - ${errorDescription}`);
+            });
+
+            // Save window state on move/resize (debounced)
+            let saveTimeout = null;
+            const saveWindowState = () => {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    if (!canvasWindow.isDestroyed()) {
+                        const newBounds = canvasWindow.getBounds();
+                        const isMaximized = canvasWindow.isMaximized();
+                        // Send state back to main window renderer
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            mainWindow.webContents.send('canvas-window-state', {
+                                windowState: newBounds,
+                                isMaximized
+                            });
+                        }
+                        console.log(`[Canvas] Window state saved: ${JSON.stringify(newBounds)}`);
+                    }
+                }, 500); // Debounce 500ms
+            };
+
+            canvasWindow.on('move', saveWindowState);
+            canvasWindow.on('resize', saveWindowState);
+
+            // Save final state on close
+            canvasWindow.on('close', () => {
+                if (!canvasWindow.isDestroyed()) {
+                    const finalBounds = canvasWindow.getBounds();
+                    const isMaximized = canvasWindow.isMaximized();
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('canvas-window-state', {
+                            windowState: finalBounds,
+                            isMaximized,
+                            closed: true
+                        });
+                    }
+                    console.log(`[Canvas] Final window state saved on close: ${JSON.stringify(finalBounds)}`);
+                }
+            });
+
+            return { success: true };
+        } catch (error) {
+            console.error('Failed to open Canvas window:', error);
             return { error: error.message };
         }
     });
@@ -523,6 +820,21 @@ function setupMenu() {
                     click: () => {
                         if (mainWindow) mainWindow.webContents.inspectElement(0, 0);
                     }
+                },
+                { type: 'separator' },
+                {
+                    label: 'WordPress Dashboard',
+                    click: () => {
+                        if (mainWindow) mainWindow.webContents.send('open-wordpress-dashboard');
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'Ranger Terminal (Popup)',
+                    accelerator: 'CmdOrCtrl+Shift+T',
+                    click: () => {
+                        if (mainWindow) mainWindow.webContents.send('open-ranger-terminal');
+                    }
                 }
             ]
         }
@@ -615,12 +927,13 @@ function activateGhostProtocol() {
     console.log('👻 RAM wiped. Views destroyed. Window hidden.');
 }
 
-// IPC Handler for VS Code Status
+// IPC Handler for VS Code Status - returns { running: boolean, port: number }
 ipcMain.handle('vscode-status', async () => {
-    if (!codeServer) return false;
-    // Simple check: is the process running?
-    // A more robust check would be to ping the health endpoint from here (Main process has no CORS)
-    return checkServerRunning(8081);
+    if (!codeServer) return { running: false, port: null };
+    // Get the actual port from VSCodeManager (defaults to 8181 from config)
+    const port = codeServer.port || 8181;
+    const running = await checkServerRunning(port);
+    return { running, port };
 });
 
 app.whenReady().then(async () => {
