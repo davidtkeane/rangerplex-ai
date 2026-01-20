@@ -109,3 +109,6 @@ software/
 
 # Contracts (keep local only)
 contracts/
+
+# Ranger Chat Lite planning docs (keep private)
+apps/ranger-chat-lite/theplan/
