@@ -52,7 +52,7 @@ const rssParser = new Parser({
         },
     },
 });
-const VERSION = '4.1.5';
+const VERSION = '4.3.8';
 const PORT = 3000;
 const startDockerDesktop = async () => {
     const platform = process.platform;
@@ -4244,7 +4244,7 @@ setInterval(() => {
         // --- BACKUP RETENTION CLEANUP ---
         try {
             const goldenPath = path.join(backupsDir, GOLDEN_BACKUP_NAME);
-            
+
             // Get all timestamped backup files (exclude golden backup)
             const allBackups = fs.readdirSync(backupsDir)
                 .filter(f => f.startsWith('RangerPlex_Backup_') && f.endsWith('.json'))

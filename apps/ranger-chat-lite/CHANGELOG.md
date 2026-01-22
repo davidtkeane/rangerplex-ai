@@ -4,6 +4,15 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.9.3] - 2026-01-22 - "Slash Command Help" ❔💬
+
+### Added
+- **Slash Commands Help**: New `?` button in chat header opens a quick command reference
+- **Command List**: `/call`, `/hangup` or `/end`, `/peers` or `/online`
+
+### Documentation
+- Added a **Slash Commands** section to the README with usage examples
+
 ## [1.9.2] - 2025-12-06 - "Chat Matrix Complete" 🎬💬✨
 
 ### Added

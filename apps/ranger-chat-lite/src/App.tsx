@@ -258,7 +258,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.9.2'
+const APP_VERSION = '1.9.3'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 
 function App() {
@@ -285,6 +285,7 @@ function App() {
     const [emojiSearch, setEmojiSearch] = useState('')
     const [showSearch, setShowSearch] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [showSlashHelp, setShowSlashHelp] = useState(false)
 
     // Settings state
     const [storagePaths, setStoragePaths] = useState<any>(null)
@@ -1736,6 +1737,13 @@ function App() {
                                 🔍
                             </button>
                             <button
+                                className={`header-btn ${showSlashHelp ? 'active' : ''}`}
+                                onClick={() => setShowSlashHelp(!showSlashHelp)}
+                                title="Slash commands"
+                            >
+                                ?
+                            </button>
+                            <button
                                 className={`header-btn ${radioSettings.radioEnabled ? 'active' : ''}`}
                                 onClick={() => handleRadioSettingsChange({ radioEnabled: !radioSettings.radioEnabled, radioMinimized: false })}
                                 title={radioSettings.radioEnabled ? 'Close Radio' : 'Open Radio'}
@@ -2011,6 +2019,35 @@ function App() {
                                     <div className="call-modal-tip">
                                         💡 Tip: Type <code>/call username</code> in chat
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Slash Commands Help */}
+                    {showSlashHelp && (
+                        <div className="slash-help-overlay" onClick={() => setShowSlashHelp(false)}>
+                            <div className="slash-help-modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="slash-help-header">
+                                    <span>Slash Commands</span>
+                                    <button className="slash-help-close" onClick={() => setShowSlashHelp(false)}>
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="slash-help-body">
+                                    <div className="slash-help-item">
+                                        <code>/call username</code>
+                                        <span>Start a 1-to-1 voice call.</span>
+                                    </div>
+                                    <div className="slash-help-item">
+                                        <code>/hangup</code> <span>or</span> <code>/end</code>
+                                        <span>Hang up the current call.</span>
+                                    </div>
+                                    <div className="slash-help-item">
+                                        <code>/peers</code> <span>or</span> <code>/online</code>
+                                        <span>List online users with voice capability.</span>
+                                    </div>
+                                    <div className="slash-help-note">Commands are case-insensitive.</div>
                                 </div>
                             </div>
                         </div>

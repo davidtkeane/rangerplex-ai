@@ -2,7 +2,7 @@
 
 A lightweight, retro-styled Electron chat client for connecting to RangerPlex blockchain chat network.
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.9.3-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -140,7 +140,14 @@ Once connected:
 - Other users' messages appear in white
 - System messages appear in yellow
 
-### 3. **Close App**
+### 3. **Slash Commands**
+
+Use these in the chat input:
+- `/call <username>` - Start a 1-to-1 voice call
+- `/hangup` or `/end` - End the current call
+- `/peers` or `/online` - List online users with voice capability
+
+### 4. **Close App**
 
 Click the **X** button in the top-right corner
 
@@ -442,6 +449,7 @@ Both connect to the same chat network and can communicate with each other.
 1. **Frameless window**: Minimize button doesn't work (aesthetic choice)
 2. **Transparent background**: May show artifacts on some Windows themes
 3. **DevTools**: Opens in main window (can't detach)
+4. **Antivirus False Positive**: Some antivirus software (1/65 on VirusTotal) may flag the app due to Electron's frameless overlay. This is a false positive - [View VirusTotal Report](https://www.virustotal.com/gui/file/aff8c67fc85e610f0a629853ab8b2d3cae56a300c1d0e581a77002c432fd8352/details)
 
 These are intentional design choices for the retro aesthetic.
 
@@ -491,7 +499,7 @@ If stuck, check:
 
 ---
 
-**Version:** 1.3.0
+**Version:** 1.9.3
 **Created:** December 2025
 **Platform:** Windows 11, macOS, Linux
 **Node.js:** v22.x

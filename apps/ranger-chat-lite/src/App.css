@@ -3051,6 +3051,93 @@ body {
     color: var(--accent);
 }
 
+/* Slash Commands Help */
+.slash-help-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: modal-fade-in 0.2s ease-out;
+}
+
+.slash-help-modal {
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent);
+    border-radius: 18px;
+    width: 90%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px var(--shadow);
+    animation: modal-slide-up 0.3s ease-out;
+}
+
+.slash-help-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+
+.slash-help-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.slash-help-close:hover {
+    background: var(--bg-message);
+    color: var(--text-primary);
+}
+
+.slash-help-body {
+    padding: 16px 20px 20px;
+    display: grid;
+    gap: 12px;
+}
+
+.slash-help-item {
+    display: grid;
+    gap: 6px;
+    padding: 12px;
+    background: var(--bg-message);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.slash-help-item code {
+    background: var(--bg-secondary);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+}
+
+.slash-help-item span {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.slash-help-note {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
 /* Incoming Call Banner */
 .incoming-call-banner {
     display: flex;
