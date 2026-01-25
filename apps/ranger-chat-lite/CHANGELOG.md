@@ -4,6 +4,17 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.9.4] - 2026-01-22 - "Local Weather Alerts" 🌦️
+
+### Added
+- **/weather command**: Quick local weather snapshot using Open-Meteo (auto-detect or `/weather Dublin`)
+- **Rain alerts (local)**: Optional in-app rain warnings while the app is open
+- **Weather settings**: Lookahead window, location refresh (IP/GPS), and preview button
+
+### Technical
+- IP-based auto-detect with optional GPS override
+- No API keys required; location cached in localStorage
+
 ## [1.9.3] - 2026-01-22 - "Slash Command Help" ❔💬
 
 ### Added

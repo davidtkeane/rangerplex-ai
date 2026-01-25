@@ -2,7 +2,7 @@
 
 A lightweight, retro-styled Electron chat client for connecting to RangerPlex blockchain chat network.
 
-![Version](https://img.shields.io/badge/version-1.9.3-blue)
+![Version](https://img.shields.io/badge/version-1.9.4-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -51,6 +51,7 @@ RangerChat Lite is a **standalone desktop application** that connects to the Ran
 - 🆔 **Device Identity** - Unique ID per device for moderation
 - 🎲 **Random Names** - Fun username generator
 - ⚙️ **Settings Page** - Profile, identity, themes, storage info
+- 🌦️ **Local Weather** - `/weather` command with optional rain alerts
 - 📊 **Blockchain Viewer** - See live network transactions
 - 💬 Real-time messaging via WebSocket
 - 📡 Connect to local or remote RangerPlex servers
@@ -146,6 +147,7 @@ Use these in the chat input:
 - `/call <username>` - Start a 1-to-1 voice call
 - `/hangup` or `/end` - End the current call
 - `/peers` or `/online` - List online users with voice capability
+- `/weather [city]` - Local weather (auto-detect or city override)
 
 ### 4. **Close App**
 
@@ -499,7 +501,7 @@ If stuck, check:
 
 ---
 
-**Version:** 1.9.3
+**Version:** 1.9.4
 **Created:** December 2025
 **Platform:** Windows 11, macOS, Linux
 **Node.js:** v22.x

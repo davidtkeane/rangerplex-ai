@@ -156,6 +156,14 @@ interface SmartContract {
     contractAddress?: string
 }
 
+interface WeatherLocation {
+    lat: number
+    lon: number
+    label: string
+    source: 'ip' | 'gps' | 'manual'
+    updatedAt: number
+}
+
 // Available Smart Contracts
 const SMART_CONTRACTS: SmartContract[] = [
     {
@@ -258,8 +266,43 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.9.3'
+const APP_VERSION = '1.9.4'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
+const WEATHER_CODE_LABELS: Record<number, string> = {
+    0: 'Clear sky',
+    1: 'Mainly clear',
+    2: 'Partly cloudy',
+    3: 'Overcast',
+    45: 'Fog',
+    48: 'Depositing rime fog',
+    51: 'Light drizzle',
+    53: 'Moderate drizzle',
+    55: 'Dense drizzle',
+    56: 'Freezing drizzle',
+    57: 'Dense freezing drizzle',
+    61: 'Slight rain',
+    63: 'Moderate rain',
+    65: 'Heavy rain',
+    66: 'Freezing rain',
+    67: 'Heavy freezing rain',
+    71: 'Slight snow fall',
+    73: 'Moderate snow fall',
+    75: 'Heavy snow fall',
+    77: 'Snow grains',
+    80: 'Slight rain showers',
+    81: 'Moderate rain showers',
+    82: 'Violent rain showers',
+    85: 'Slight snow showers',
+    86: 'Heavy snow showers',
+    95: 'Thunderstorm',
+    96: 'Thunderstorm with slight hail',
+    99: 'Thunderstorm with heavy hail'
+}
+const WEATHER_LOCATION_STORAGE_KEY = 'rangerChatWeatherLocation'
+const RAIN_ALERTS_ENABLED_KEY = 'rangerChatRainAlertsEnabled'
+const RAIN_ALERT_LOOKAHEAD_KEY = 'rangerChatRainAlertLookaheadHours'
+const WEATHER_LOCATION_MAX_AGE_MS = 6 * 60 * 60 * 1000
+const RAIN_ALERT_CHECK_INTERVAL_MS = 30 * 60 * 1000
 
 function App() {
     // View state
@@ -320,6 +363,28 @@ function App() {
     })
     const loginPictureInputRef = useRef<HTMLInputElement>(null)
 
+    // Weather state
+    const [weatherLocation, setWeatherLocation] = useState<WeatherLocation | null>(() => {
+        const stored = localStorage.getItem(WEATHER_LOCATION_STORAGE_KEY)
+        if (!stored) return null
+        try {
+            return JSON.parse(stored) as WeatherLocation
+        } catch {
+            return null
+        }
+    })
+    const [weatherStatus, setWeatherStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+    const [weatherError, setWeatherError] = useState<string | null>(null)
+    const [rainAlertsEnabled, setRainAlertsEnabled] = useState(() => {
+        const stored = localStorage.getItem(RAIN_ALERTS_ENABLED_KEY)
+        return stored ? stored === 'true' : true
+    })
+    const [rainAlertLookaheadHours, setRainAlertLookaheadHours] = useState(() => {
+        const stored = localStorage.getItem(RAIN_ALERT_LOOKAHEAD_KEY)
+        const parsed = stored ? parseInt(stored, 10) : 3
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 3
+    })
+
     // Ledger state
     const [ledgerStatus, setLedgerStatus] = useState<LedgerStatus | null>(null)
     const [ledgerBlocks, setLedgerBlocks] = useState<LedgerBlock[]>([])
@@ -376,6 +441,8 @@ function App() {
     const analyserRef = useRef<AnalyserNode | null>(null)
     const processorRef = useRef<ScriptProcessorNode | null>(null)
     const ringIntervalRef = useRef<NodeJS.Timeout | null>(null)
+    const rainAlertIntervalRef = useRef<NodeJS.Timeout | null>(null)
+    const lastRainAlertRef = useRef<{ at: number; rainTime: number | null }>({ at: 0, rainTime: null })
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const chatHistoryRef = useRef<HTMLDivElement>(null)
     const callStateRef = useRef<CallState>('idle')
@@ -553,6 +620,14 @@ function App() {
         localStorage.setItem('rangerChatUpdateNotifications', updateNotificationsEnabled.toString())
     }, [updateNotificationsEnabled])
 
+    useEffect(() => {
+        localStorage.setItem(RAIN_ALERTS_ENABLED_KEY, rainAlertsEnabled.toString())
+    }, [rainAlertsEnabled])
+
+    useEffect(() => {
+        localStorage.setItem(RAIN_ALERT_LOOKAHEAD_KEY, rainAlertLookaheadHours.toString())
+    }, [rainAlertLookaheadHours])
+
     // Save login picture preference
     useEffect(() => {
         localStorage.setItem('rangerChatLoginPicture', loginPicture)
@@ -600,6 +675,269 @@ function App() {
         // Reset input so same file can be selected again
         event.target.value = ''
     }
+
+    const saveWeatherLocation = (location: WeatherLocation) => {
+        setWeatherLocation(location)
+        setWeatherStatus('ready')
+        setWeatherError(null)
+        localStorage.setItem(WEATHER_LOCATION_STORAGE_KEY, JSON.stringify(location))
+    }
+
+    const formatLocationAge = (timestamp: number) => {
+        const minutes = Math.round((Date.now() - timestamp) / 60000)
+        if (minutes < 1) return 'just now'
+        if (minutes < 60) return `${minutes}m ago`
+        const hours = Math.round(minutes / 60)
+        return `${hours}h ago`
+    }
+
+    const fetchJson = async (url: string) => {
+        const response = await fetch(url)
+        if (!response.ok) {
+            throw new Error(`Request failed (${response.status})`)
+        }
+        return response.json()
+    }
+
+    const reverseGeocode = async (lat: number, lon: number) => {
+        try {
+            const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&count=1&language=en`
+            const data = await fetchJson(url)
+            const place = data?.results?.[0]
+            if (!place) return null
+            return [place.name, place.admin1, place.country_code].filter(Boolean).join(', ')
+        } catch (error) {
+            console.warn('Reverse geocode failed:', error)
+            return null
+        }
+    }
+
+    const detectLocationByIP = async () => {
+        setWeatherStatus('loading')
+        setWeatherError(null)
+        const data = await fetchJson('https://ipapi.co/json/')
+        if (!data?.latitude || !data?.longitude) {
+            throw new Error('IP location unavailable')
+        }
+        const label = [data.city, data.region, data.country_name].filter(Boolean).join(', ')
+        const location: WeatherLocation = {
+            lat: data.latitude,
+            lon: data.longitude,
+            label: label || `${data.latitude.toFixed(2)}, ${data.longitude.toFixed(2)}`,
+            source: 'ip',
+            updatedAt: Date.now()
+        }
+        saveWeatherLocation(location)
+        return location
+    }
+
+    const detectLocationByGPS = async () => {
+        if (!navigator.geolocation) {
+            throw new Error('Geolocation is not available')
+        }
+
+        setWeatherStatus('loading')
+        setWeatherError(null)
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 10 * 60 * 1000
+            })
+        })
+
+        const lat = position.coords.latitude
+        const lon = position.coords.longitude
+        const label = (await reverseGeocode(lat, lon)) || `${lat.toFixed(2)}, ${lon.toFixed(2)}`
+        const location: WeatherLocation = {
+            lat,
+            lon,
+            label,
+            source: 'gps',
+            updatedAt: Date.now()
+        }
+        saveWeatherLocation(location)
+        return location
+    }
+
+    const ensureWeatherLocation = async () => {
+        if (weatherLocation && Date.now() - weatherLocation.updatedAt < WEATHER_LOCATION_MAX_AGE_MS) {
+            return weatherLocation
+        }
+        try {
+            return await detectLocationByIP()
+        } catch (error: any) {
+            setWeatherStatus('error')
+            setWeatherError(error?.message || 'Unable to detect location')
+            return null
+        }
+    }
+
+    const geocodeLocation = async (query: string) => {
+        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`
+        const data = await fetchJson(url)
+        const result = data?.results?.[0]
+        if (!result) {
+            throw new Error('Location not found')
+        }
+        const label = [result.name, result.admin1, result.country_code].filter(Boolean).join(', ')
+        return {
+            lat: result.latitude,
+            lon: result.longitude,
+            label: label || `${result.latitude.toFixed(2)}, ${result.longitude.toFixed(2)}`
+        }
+    }
+
+    const describeWeatherCode = (code: number) => {
+        if (code in WEATHER_CODE_LABELS) return WEATHER_CODE_LABELS[code]
+        return 'Unknown conditions'
+    }
+
+    const fetchWeatherData = async (lat: number, lon: number) => {
+        const url = new URL('https://api.open-meteo.com/v1/forecast')
+        url.searchParams.set('latitude', lat.toString())
+        url.searchParams.set('longitude', lon.toString())
+        url.searchParams.set('current', 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m')
+        url.searchParams.set('hourly', 'temperature_2m,precipitation,precipitation_probability,weather_code')
+        url.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code')
+        url.searchParams.set('forecast_days', '3')
+        url.searchParams.set('timezone', 'auto')
+        return fetchJson(url.toString())
+    }
+
+    const getRainWindow = (data: any, hoursAhead: number) => {
+        const now = Date.now()
+        const times: string[] = data?.hourly?.time || []
+        const precipitation: number[] = data?.hourly?.precipitation || []
+        const probability: number[] = data?.hourly?.precipitation_probability || []
+
+        let firstRain: { time: number; precip: number; prob: number } | null = null
+        let maxProb = 0
+        let maxPrecip = 0
+
+        times.forEach((time, index) => {
+            const timestamp = new Date(time).getTime()
+            const hoursFromNow = (timestamp - now) / (1000 * 60 * 60)
+            if (hoursFromNow <= 0 || hoursFromNow > hoursAhead) return
+
+            const precip = precipitation[index] ?? 0
+            const prob = probability[index] ?? 0
+            maxProb = Math.max(maxProb, prob)
+            maxPrecip = Math.max(maxPrecip, precip)
+
+            if (!firstRain && (precip >= 0.5 || prob >= 60)) {
+                firstRain = { time: timestamp, precip, prob }
+            }
+        })
+
+        return { firstRain, maxProb, maxPrecip }
+    }
+
+    const buildWeatherMessage = (label: string, data: any) => {
+        const current = data?.current
+        if (!current) throw new Error('Weather data missing')
+
+        const temp = Math.round(current.temperature_2m)
+        const feels = Math.round(current.apparent_temperature)
+        const wind = Math.round(current.wind_speed_10m)
+        const condition = describeWeatherCode(current.weather_code)
+
+        const { maxProb, maxPrecip } = getRainWindow(data, 3)
+        const rainSummary = maxProb > 0 || maxPrecip > 0
+            ? `Next 3h rain chance: ${Math.round(maxProb)}% (max ${maxPrecip.toFixed(1)}mm)`
+            : 'Next 3h: no rain detected'
+
+        return `Weather: ${label} | ${temp}C (feels ${feels}C) | ${condition} | Wind ${wind} km/h | ${rainSummary}`
+    }
+
+    const handleWeatherCommand = async (query?: string) => {
+        try {
+            const trimmed = query?.trim()
+            const location = trimmed ? await geocodeLocation(trimmed) : await ensureWeatherLocation()
+            if (!location) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: 'Weather: unable to detect your location.',
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+                return
+            }
+
+            const data = await fetchWeatherData(location.lat, location.lon)
+            const message = buildWeatherMessage(location.label, data)
+            setMessages(prev => [...prev, {
+                type: 'chat',
+                sender: 'Weather',
+                content: message,
+                timestamp: new Date().toLocaleTimeString()
+            }])
+        } catch (error: any) {
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: `Weather error: ${error?.message || 'Unable to fetch weather.'}`,
+                timestamp: new Date().toLocaleTimeString()
+            }])
+        }
+    }
+
+    const checkForRainAlert = async () => {
+        if (!rainAlertsEnabled || view === 'login') return
+
+        const location = await ensureWeatherLocation()
+        if (!location) return
+
+        try {
+            const data = await fetchWeatherData(location.lat, location.lon)
+            const { firstRain } = getRainWindow(data, rainAlertLookaheadHours)
+
+            if (!firstRain) {
+                lastRainAlertRef.current.rainTime = null
+                return
+            }
+
+            const now = Date.now()
+            const hoursUntil = (firstRain.time - now) / (1000 * 60 * 60)
+            const lastAlert = lastRainAlertRef.current
+
+            if (lastAlert.rainTime === firstRain.time && now - lastAlert.at < 60 * 60 * 1000) {
+                return
+            }
+
+            lastRainAlertRef.current = { at: now, rainTime: firstRain.time }
+            const eta = hoursUntil < 1 ? `${Math.max(1, Math.round(hoursUntil * 60))} min` : `${Math.round(hoursUntil)} hr`
+            const detail = firstRain.prob ? `${Math.round(firstRain.prob)}% chance` : `${firstRain.precip.toFixed(1)}mm`
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: `Rain alert: ${location.label} in about ${eta} (${detail}).`,
+                timestamp: new Date().toLocaleTimeString()
+            }])
+        } catch (error) {
+            console.warn('Rain alert check failed:', error)
+        }
+    }
+
+    useEffect(() => {
+        if (!rainAlertsEnabled) {
+            if (rainAlertIntervalRef.current) {
+                clearInterval(rainAlertIntervalRef.current)
+                rainAlertIntervalRef.current = null
+            }
+            return
+        }
+
+        void checkForRainAlert()
+        rainAlertIntervalRef.current = setInterval(checkForRainAlert, RAIN_ALERT_CHECK_INTERVAL_MS)
+
+        return () => {
+            if (rainAlertIntervalRef.current) {
+                clearInterval(rainAlertIntervalRef.current)
+                rainAlertIntervalRef.current = null
+            }
+        }
+    }, [rainAlertsEnabled, rainAlertLookaheadHours, view, weatherLocation])
 
     // Load ledger status when entering ledger view
     const loadLedgerData = async () => {
@@ -879,10 +1217,21 @@ function App() {
     }
 
     const sendMessage = async () => {
-        if (!wsRef.current || !connected || !input.trim()) return
+        const trimmedInput = input.trim()
+        if (!trimmedInput) return
+
+        // Handle /weather command
+        const weatherMatch = trimmedInput.match(/^\/weather(?:\s+(.+))?$/i)
+        if (weatherMatch) {
+            await handleWeatherCommand(weatherMatch[1])
+            setInput('')
+            return
+        }
+
+        if (!wsRef.current || !connected) return
 
         // Handle /call command
-        const callMatch = input.match(/^\/call\s+(.+)$/i)
+        const callMatch = trimmedInput.match(/^\/call\s+(.+)$/i)
         if (callMatch) {
             const targetUser = callMatch[1].trim()
             if (targetUser) {
@@ -893,7 +1242,7 @@ function App() {
         }
 
         // Handle /hangup command
-        if (input.toLowerCase() === '/hangup' || input.toLowerCase() === '/end') {
+        if (trimmedInput.toLowerCase() === '/hangup' || trimmedInput.toLowerCase() === '/end') {
             if (callState !== 'idle') {
                 hangUp()
             } else {
@@ -909,7 +1258,7 @@ function App() {
         }
 
         // Handle /peers command
-        if (input.toLowerCase() === '/peers' || input.toLowerCase() === '/online') {
+        if (trimmedInput.toLowerCase() === '/peers' || trimmedInput.toLowerCase() === '/online') {
             if (peers.length === 0) {
                 setMessages(prev => [...prev, {
                     type: 'system',
@@ -2047,6 +2396,10 @@ function App() {
                                         <code>/peers</code> <span>or</span> <code>/online</code>
                                         <span>List online users with voice capability.</span>
                                     </div>
+                                    <div className="slash-help-item">
+                                        <code>/weather</code>
+                                        <span>Local weather (auto-detect) or /weather Dublin.</span>
+                                    </div>
                                     <div className="slash-help-note">Commands are case-insensitive.</div>
                                 </div>
                             </div>
@@ -2838,6 +3191,90 @@ function App() {
                                     {updateNotificationsEnabled
                                         ? 'You will be notified when updates are available'
                                         : 'Update notifications are disabled'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Weather Alerts Section */}
+                        <div className="settings-section">
+                            <h3>🌦️ Weather Alerts</h3>
+                            <div className="notification-toggle">
+                                <label className="toggle-row">
+                                    <span className="toggle-label">Rain Alerts (local)</span>
+                                    <button
+                                        className={`toggle-switch ${rainAlertsEnabled ? 'active' : ''}`}
+                                        onClick={() => setRainAlertsEnabled(!rainAlertsEnabled)}
+                                    >
+                                        <span className="toggle-slider"></span>
+                                    </button>
+                                </label>
+                                <p className="toggle-note">
+                                    {rainAlertsEnabled
+                                        ? 'Rain alerts are active while the app is open.'
+                                        : 'Rain alerts are disabled.'}
+                                </p>
+                            </div>
+                            <div className="setting-item">
+                                <label>Lookahead Window (hours)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="24"
+                                    value={rainAlertLookaheadHours}
+                                    onChange={(e) => {
+                                        const next = Math.max(1, Math.min(24, Number(e.target.value)))
+                                        setRainAlertLookaheadHours(Number.isFinite(next) ? next : 3)
+                                    }}
+                                />
+                            </div>
+                            <div className="setting-item">
+                                <label>Location (auto-detect)</label>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={weatherLocation?.label || ''}
+                                    placeholder="Not detected yet"
+                                />
+                                <div className="weather-actions">
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await detectLocationByIP()
+                                            } catch (error: any) {
+                                                setWeatherStatus('error')
+                                                setWeatherError(error?.message || 'Unable to detect location')
+                                            }
+                                        }}
+                                    >
+                                        Refresh (IP)
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await detectLocationByGPS()
+                                            } catch (error: any) {
+                                                setWeatherStatus('error')
+                                                setWeatherError(error?.message || 'Unable to access GPS')
+                                            }
+                                        }}
+                                    >
+                                        Use GPS
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            void handleWeatherCommand()
+                                        }}
+                                    >
+                                        Preview Weather
+                                    </button>
+                                </div>
+                                <p className="weather-location-status">
+                                    {weatherStatus === 'loading' && 'Detecting location...'}
+                                    {weatherStatus !== 'loading' && weatherError}
+                                    {weatherStatus !== 'loading' && !weatherError && weatherLocation && (
+                                        <>Updated {formatLocationAge(weatherLocation.updatedAt)} via {weatherLocation.source.toUpperCase()}.</>
+                                    )}
+                                    {weatherStatus !== 'loading' && !weatherError && !weatherLocation && 'No location detected yet.'}
                                 </p>
                             </div>
                         </div>

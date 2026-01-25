@@ -79,7 +79,7 @@ function getAdminStatus(userId: string): AdminStatus {
 // ═══════════════════════════════════════════════════════════════════════════
 // VERSION & UPDATE CHECK
 // ═══════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.7.6'
+const APP_VERSION = '1.9.4'
 const VERSIONS_URL = 'https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json'
 
 interface UpdateInfo {

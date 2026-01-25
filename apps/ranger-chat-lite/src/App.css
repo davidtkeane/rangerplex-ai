@@ -1256,6 +1256,36 @@ body {
     border-color: var(--accent);
 }
 
+.weather-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.weather-actions button {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-chat);
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.weather-actions button:hover {
+    border-color: var(--accent);
+    background: var(--bg-message-own);
+}
+
+.weather-location-status {
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 .save-btn {
     margin-top: 10px;
     padding: 10px 20px;
