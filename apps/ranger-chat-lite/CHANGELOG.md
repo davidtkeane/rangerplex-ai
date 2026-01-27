@@ -30,6 +30,25 @@ All notable changes to RangerChat Lite will be documented in this file.
 - Only authorized users can become relay nodes
 - Future: Option A will allow everyone to become relay nodes with proper controls
 
+### Network Configuration
+- **M3 Pro Fallback Server**: Configured at `ws://64.43.137.153:5555`
+- **Multi-Node Architecture**: Support for 4 main relay nodes:
+  - AWS Primary (☁️): `44.222.101.125:5555`
+  - M3 Pro (💻): `64.43.137.153:5555`
+  - M4 Max (🦾): `64.43.137.153:5556` (port forward required)
+  - MSI Vector (🎮): `64.43.137.153:5557` (port forward required)
+- **Port Forwarding Guide**: Multiple machines on same public IP using different external ports
+
+### Documentation
+- **NODE_STRUCTURE.md**: Comprehensive network architecture documentation in `theplan/`
+  - Network hierarchy diagrams (ASCII art)
+  - Port forwarding setup guide for home networks
+  - Internal IP mapping (M3 Pro: .3, M4 Max: .12, MSI: .11)
+  - Router configuration instructions for Irish ISPs (Eir, Virgin, Sky)
+  - Connection flow and failover sequence
+  - Admin role system and relay permissions
+  - Troubleshooting guide
+
 ---
 
 ## [1.9.7] - 2026-01-27 - "Quick Fix"
