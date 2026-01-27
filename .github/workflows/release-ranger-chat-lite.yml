@@ -1,0 +1,79 @@
+name: Release RangerChat Lite
+
+on:
+  push:
+    tags:
+      - 'ranger-chat-lite-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.3.1)'
+        required: true
+        default: '1.3.1'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag or input
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/ranger-chat-lite-v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: RangerChat Lite v${{ steps.version.outputs.VERSION }}
+          tag_name: ranger-chat-lite-v${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## RangerChat Lite v${{ steps.version.outputs.VERSION }}
+
+            Lightweight chat client for the RangerPlex blockchain network.
+
+            ### Features
+            - 🎨 4 Themes (Classic, Matrix, Tron, Retro)
+            - 😀 Emoji Picker (180+ emojis)
+            - 🔍 Message Search
+            - 🆔 Device-Bound Identity (hardware fingerprinting)
+            - 🎲 Random Username Generator
+            - ⚙️ Settings Page
+            - 📊 Live Blockchain Transaction Viewer
+            - 🚀 Update Notifications
+
+            ### Quick Install (Developer)
+
+            ```bash
+            git clone https://github.com/davidtkeane/rangerplex-ai.git
+            cd rangerplex-ai/apps/ranger-chat-lite
+            npm install
+            npm run dev
+            ```
+
+            ### One-Line Install Scripts
+
+            **Windows (PowerShell):**
+            ```powershell
+            irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install.ps1 | iex
+            ```
+
+            **macOS/Linux (Bash):**
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install.sh | bash
+            ```
+
+            ---
+            *Built with Electron + React + TypeScript*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
