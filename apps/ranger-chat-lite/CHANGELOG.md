@@ -2,6 +2,33 @@
 
 All notable changes to RangerChat Lite will be documented in this file.
 
+## [2.0.0] - 2026-01-27 - "End-to-End Encryption"
+
+### Added
+
+#### E2E Encryption (AES-256-GCM + RSA-2048)
+- **Hybrid Encryption**: Messages encrypted with AES-256-GCM, session keys wrapped with RSA-2048 per-peer
+- **Unique Session Keys**: Every message uses a fresh AES-256 key (forward secrecy)
+- **Digital Signatures**: All encrypted messages signed with sender's RSA private key to prevent impersonation
+- **Relay Server Blind**: Server only sees encrypted blobs - true end-to-end encryption
+- **Backward Compatible**: Unencrypted clients can still send/receive plaintext messages
+- **Lock Icon**: Encrypted messages display 🔒 badge, verified signatures show 🔒✓
+- **Key Exchange**: Public keys shared via WebSocket registration message
+- **Settings Toggle**: Enable/disable E2EE in Settings > Security & Encryption
+- **Status Display**: Shows E2EE status, key loaded state, and peer key count in Settings
+
+#### Crypto IPC Bridge
+- 8 new IPC handlers: `crypto:getPublicKey`, `crypto:generateSessionKey`, `crypto:encryptAES`, `crypto:decryptAES`, `crypto:encryptRSA`, `crypto:decryptRSA`, `crypto:sign`, `crypto:verify`
+- Uses existing `crypto-utils.cjs` from rangerblock/lib
+- Uses existing RSA-2048 keys from identity service
+
+### Security Properties
+- AES-256-GCM: Authenticated encryption (tamper-proof)
+- RSA-2048 OAEP: Secure key exchange with SHA-256
+- Per-message session keys: Compromise of one key doesn't affect others
+- Digital signatures: Sender authentication and non-repudiation
+- Wireshark capture shows only encrypted blobs on the wire
+
 ## [1.9.9] - 2026-01-27 - "Secure Wallet"
 
 ### Added

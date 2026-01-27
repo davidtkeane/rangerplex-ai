@@ -55,6 +55,16 @@ import { ipcRenderer } from 'electron'
         getAddress: () => ipcRenderer.invoke('wallet:getAddress'),
         getBalances: () => ipcRenderer.invoke('wallet:getBalances')
     },
+    crypto: {
+        getPublicKey: () => ipcRenderer.invoke('crypto:getPublicKey'),
+        generateSessionKey: () => ipcRenderer.invoke('crypto:generateSessionKey'),
+        encryptAES: (data: string, keyBase64: string) => ipcRenderer.invoke('crypto:encryptAES', data, keyBase64),
+        decryptAES: (encryptedData: { encrypted: string; iv: string; authTag: string }, keyBase64: string) => ipcRenderer.invoke('crypto:decryptAES', encryptedData, keyBase64),
+        encryptRSA: (data: string, publicKeyPem: string) => ipcRenderer.invoke('crypto:encryptRSA', data, publicKeyPem),
+        decryptRSA: (encryptedBase64: string) => ipcRenderer.invoke('crypto:decryptRSA', encryptedBase64),
+        sign: (message: string) => ipcRenderer.invoke('crypto:sign', message),
+        verify: (message: string, signature: string, publicKeyPem: string) => ipcRenderer.invoke('crypto:verify', message, signature, publicKeyPem)
+    },
     fileTransfer: {
         package: (filePath: string) => ipcRenderer.invoke('filetransfer:package', filePath),
         extract: (packagePath: string, outputDir?: string) => ipcRenderer.invoke('filetransfer:extract', packagePath, outputDir),
@@ -69,4 +79,4 @@ import { ipcRenderer } from 'electron'
     }
 }
 
-console.log('RangerChat Lite preload loaded - Identity, Ledger, Admin, Relay, Wallet, FileTransfer & App API ready')
+console.log('RangerChat Lite preload loaded - Identity, Ledger, Admin, Relay, Wallet, FileTransfer, Crypto & App API ready')

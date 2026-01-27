@@ -85,6 +85,16 @@ declare global {
                 getAddress: () => Promise<string | null>
                 getBalances: () => Promise<{ RC: number; RGD: number; HELL: number }>
             }
+            crypto: {
+                getPublicKey: () => Promise<string | null>
+                generateSessionKey: () => Promise<string | null>
+                encryptAES: (data: string, keyBase64: string) => Promise<{ encrypted: string; iv: string; authTag: string } | null>
+                decryptAES: (encryptedData: { encrypted: string; iv: string; authTag: string }, keyBase64: string) => Promise<string | null>
+                encryptRSA: (data: string, publicKeyPem: string) => Promise<string | null>
+                decryptRSA: (encryptedBase64: string) => Promise<string | null>
+                sign: (message: string) => Promise<string | null>
+                verify: (message: string, signature: string, publicKeyPem: string) => Promise<boolean>
+            }
             fileTransfer: {
                 package: (filePath: string) => Promise<any>
                 extract: (packagePath: string, outputDir?: string) => Promise<any>
@@ -161,6 +171,8 @@ interface Message {
     senderId?: string  // For tracking real identity
     content: string
     timestamp: string
+    encrypted?: boolean   // Was this message E2E encrypted?
+    verified?: boolean    // Was the signature verified?
 }
 
 interface UserIdentity {
@@ -732,6 +744,15 @@ function App() {
     // File transfer state
     const [fileAccepting, setFileAccepting] = useState(false)
 
+    // E2E Encryption state
+    const [e2eeEnabled, setE2eeEnabled] = useState(() => {
+        const saved = localStorage.getItem('rangerChatE2EE')
+        return saved !== null ? saved === 'true' : true // Default enabled
+    })
+    const [myPublicKey, setMyPublicKey] = useState<string | null>(null)
+    const [peerPublicKeys, setPeerPublicKeys] = useState<Record<string, string>>({}) // userId -> publicKeyPem
+    const peerPublicKeysRef = useRef<Record<string, string>>({})
+
     // Voice call state
     const [callState, setCallState] = useState<CallState>('idle')
     const [callPartner, setCallPartner] = useState<string | null>(null)
@@ -1028,6 +1049,19 @@ function App() {
                                 console.log('[Admin] Could not check admin status:', e)
                             }
 
+                            // Load public key for E2E encryption
+                            try {
+                                if (window.electronAPI.crypto) {
+                                    const pubKey = await window.electronAPI.crypto.getPublicKey()
+                                    if (pubKey) {
+                                        setMyPublicKey(pubKey)
+                                        console.log('[E2EE] Public key loaded')
+                                    }
+                                }
+                            } catch (e) {
+                                console.log('[E2EE] Could not load public key:', e)
+                            }
+
                             // Initialize wallet (auto-creates on first launch)
                             try {
                                 const walletStatus = await window.electronAPI.wallet.getStatus()
@@ -1284,6 +1318,16 @@ function App() {
     useEffect(() => {
         localStorage.setItem(RAIN_ALERT_LOOKAHEAD_KEY, rainAlertLookaheadHours.toString())
     }, [rainAlertLookaheadHours])
+
+    // Save E2EE preference
+    useEffect(() => {
+        localStorage.setItem('rangerChatE2EE', e2eeEnabled.toString())
+    }, [e2eeEnabled])
+
+    // Keep peerPublicKeys ref in sync
+    useEffect(() => {
+        peerPublicKeysRef.current = peerPublicKeys
+    }, [peerPublicKeys])
 
     // Save login picture preference
     useEffect(() => {
@@ -1916,7 +1960,7 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
 
                 switch (data.type) {
                     case 'welcome':
-                        const registerMsg = {
+                        const registerMsg: any = {
                             type: 'register',
                             address: nodeId,
                             userId: identity?.userId,
@@ -1925,7 +1969,11 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
                             ip: '0.0.0.0',
                             port: 0,
                             mode: 'lite-client',
-                            capabilities: ['chat', 'voice', 'call']
+                            capabilities: ['chat', 'voice', 'call', 'e2ee']
+                        }
+                        // Include public key for E2E encryption key exchange
+                        if (myPublicKey && e2eeEnabled) {
+                            registerMsg.publicKey = myPublicKey
                         }
                         ws.send(JSON.stringify(registerMsg))
                         logTransaction('system', 'out', nodeId, 'relay-server', registerMsg, 'broadcast')
@@ -1952,6 +2000,17 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
 
                         setPeers(normalizedPeers)
                         setPeerCount(normalizedPeers.length)
+
+                        // Extract peer public keys for E2E encryption
+                        {
+                            const newKeys: Record<string, string> = { ...peerPublicKeysRef.current }
+                            for (const p of rawPeerList) {
+                                if (p && typeof p === 'object' && p.userId && p.publicKey) {
+                                    newKeys[p.userId] = p.publicKey
+                                }
+                            }
+                            setPeerPublicKeys(newKeys)
+                        }
                         setMessages(prev => {
                             const newMessages: Message[] = [...prev, {
                                 type: 'system' as const,
@@ -1981,6 +2040,17 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
 
                         setPeers(normalizedUpdatedPeers)
                         setPeerCount(normalizedUpdatedPeers.length)
+
+                        // Update peer public keys
+                        {
+                            const updatedKeys: Record<string, string> = { ...peerPublicKeysRef.current }
+                            for (const p of rawUpdatedPeers) {
+                                if (p && typeof p === 'object' && p.userId && p.publicKey) {
+                                    updatedKeys[p.userId] = p.publicKey
+                                }
+                            }
+                            setPeerPublicKeys(updatedKeys)
+                        }
                         break
                     case 'broadcast':
                     case 'nodeMessage':
@@ -2057,8 +2127,126 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
                     timestamp: new Date().toLocaleTimeString()
                 }])
                 break
+            case 'encryptedMessage':
+                // E2E encrypted message - decrypt it
+                handleEncryptedMessage(payload)
+                break
             default:
                 console.log('Unknown payload type:', payload.type)
+        }
+    }
+
+    // Handle incoming E2E encrypted messages
+    const handleEncryptedMessage = async (payload: any) => {
+        const crypto = window.electronAPI?.crypto
+        if (!crypto) {
+            console.warn('[E2EE] Crypto API not available, cannot decrypt')
+            setMessages(prev => [...prev, {
+                type: 'chat',
+                sender: payload.nickname || payload.from || 'Unknown',
+                senderId: payload.userId,
+                content: '[Encrypted message - crypto not available]',
+                timestamp: new Date().toLocaleTimeString(),
+                encrypted: true,
+                verified: false
+            }])
+            return
+        }
+
+        try {
+            const myUserId = identity?.userId
+            if (!myUserId) {
+                console.warn('[E2EE] No user identity, cannot decrypt')
+                return
+            }
+
+            // Find our encrypted AES key in the payload
+            const myEncryptedKey = payload.encryptedKeys?.[myUserId]
+            if (!myEncryptedKey) {
+                console.warn('[E2EE] No encrypted key found for our userId')
+                setMessages(prev => [...prev, {
+                    type: 'chat',
+                    sender: payload.nickname || payload.from || 'Unknown',
+                    senderId: payload.userId,
+                    content: '[Encrypted message - not addressed to you]',
+                    timestamp: new Date().toLocaleTimeString(),
+                    encrypted: true,
+                    verified: false
+                }])
+                return
+            }
+
+            // Step 1: Decrypt AES session key with our RSA private key
+            const aesKeyBase64 = await crypto.decryptRSA(myEncryptedKey)
+            if (!aesKeyBase64) {
+                console.error('[E2EE] Failed to decrypt AES key')
+                setMessages(prev => [...prev, {
+                    type: 'chat',
+                    sender: payload.nickname || payload.from || 'Unknown',
+                    senderId: payload.userId,
+                    content: '[Encrypted message - decryption failed]',
+                    timestamp: new Date().toLocaleTimeString(),
+                    encrypted: true,
+                    verified: false
+                }])
+                return
+            }
+
+            // Step 2: Decrypt message content with AES-256-GCM
+            const decryptedContent = await crypto.decryptAES(
+                { encrypted: payload.encrypted, iv: payload.iv, authTag: payload.authTag },
+                aesKeyBase64
+            )
+
+            if (!decryptedContent) {
+                console.error('[E2EE] AES decryption failed')
+                setMessages(prev => [...prev, {
+                    type: 'chat',
+                    sender: payload.nickname || payload.from || 'Unknown',
+                    senderId: payload.userId,
+                    content: '[Encrypted message - AES decryption failed]',
+                    timestamp: new Date().toLocaleTimeString(),
+                    encrypted: true,
+                    verified: false
+                }])
+                return
+            }
+
+            // Step 3: Verify signature if sender's public key is known
+            let verified = false
+            if (payload.signature && payload.userId) {
+                const senderPubKey = peerPublicKeysRef.current[payload.userId]
+                if (senderPubKey) {
+                    verified = await crypto.verify(
+                        payload.encrypted,
+                        payload.signature,
+                        senderPubKey
+                    )
+                }
+            }
+
+            console.log(`[E2EE] Decrypted message from ${payload.nickname}, verified: ${verified}`)
+
+            setMessages(prev => [...prev, {
+                type: 'chat',
+                sender: payload.nickname || payload.from || 'Unknown',
+                senderId: payload.userId,
+                content: decryptedContent,
+                timestamp: new Date().toLocaleTimeString(),
+                encrypted: true,
+                verified
+            }])
+        } catch (e) {
+            console.error('[E2EE] Decryption error:', e)
+            setMessages(prev => [...prev, {
+                type: 'chat',
+                sender: payload.nickname || payload.from || 'Unknown',
+                senderId: payload.userId,
+                content: '[Encrypted message - error during decryption]',
+                timestamp: new Date().toLocaleTimeString(),
+                encrypted: true,
+                verified: false
+            }])
         }
     }
 
@@ -2866,29 +3054,122 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
             return
         }
 
-        const msg = {
-            type: 'broadcast',
-            payload: {
-                type: 'chatMessage',
-                from: identity?.nodeId,
-                userId: identity?.userId,  // Include for moderation
-                nickname: username,
-                message: input,
-                timestamp: Date.now()
+        // Check if E2EE is enabled and we have crypto + peer keys
+        const crypto = window.electronAPI?.crypto
+        const hasPeerKeys = Object.keys(peerPublicKeysRef.current).length > 0
+
+        if (e2eeEnabled && crypto && myPublicKey && hasPeerKeys) {
+            // === E2E ENCRYPTED SEND ===
+            try {
+                // Step 1: Generate random AES-256 session key
+                const aesKeyBase64 = await crypto.generateSessionKey()
+                if (!aesKeyBase64) throw new Error('Failed to generate session key')
+
+                // Step 2: Encrypt message content with AES-256-GCM
+                const aesResult = await crypto.encryptAES(input, aesKeyBase64)
+                if (!aesResult) throw new Error('AES encryption failed')
+
+                // Step 3: Encrypt AES key for each peer using their RSA public key
+                const encryptedKeys: Record<string, string> = {}
+
+                // Encrypt for each online peer
+                for (const [peerUserId, peerPubKey] of Object.entries(peerPublicKeysRef.current)) {
+                    const encKey = await crypto.encryptRSA(aesKeyBase64, peerPubKey)
+                    if (encKey) {
+                        encryptedKeys[peerUserId] = encKey
+                    }
+                }
+
+                // Also encrypt for ourselves (so we can read our own messages in the log)
+                if (identity?.userId && myPublicKey) {
+                    const selfKey = await crypto.encryptRSA(aesKeyBase64, myPublicKey)
+                    if (selfKey) {
+                        encryptedKeys[identity.userId] = selfKey
+                    }
+                }
+
+                // Step 4: Sign the encrypted payload
+                const signature = await crypto.sign(aesResult.encrypted)
+
+                // Step 5: Build encrypted message
+                const msg = {
+                    type: 'broadcast',
+                    payload: {
+                        type: 'encryptedMessage',
+                        from: identity?.nodeId,
+                        userId: identity?.userId,
+                        nickname: username,
+                        encrypted: aesResult.encrypted,
+                        iv: aesResult.iv,
+                        authTag: aesResult.authTag,
+                        encryptedKeys,
+                        signature,
+                        timestamp: Date.now()
+                    }
+                }
+
+                wsRef.current.send(JSON.stringify(msg))
+                logTransaction('send', 'out', identity?.nodeId || 'local', 'broadcast', msg, 'broadcast')
+
+                setMessages(prev => [...prev, {
+                    type: 'chat',
+                    sender: username,
+                    senderId: identity?.userId,
+                    content: input,
+                    timestamp: new Date().toLocaleTimeString(),
+                    encrypted: true,
+                    verified: true
+                }])
+            } catch (e) {
+                console.error('[E2EE] Encryption failed, falling back to plaintext:', e)
+                // Fall through to plaintext send below
+                const msg = {
+                    type: 'broadcast',
+                    payload: {
+                        type: 'chatMessage',
+                        from: identity?.nodeId,
+                        userId: identity?.userId,
+                        nickname: username,
+                        message: input,
+                        timestamp: Date.now()
+                    }
+                }
+                wsRef.current.send(JSON.stringify(msg))
+                logTransaction('send', 'out', identity?.nodeId || 'local', 'broadcast', msg, 'broadcast')
+                setMessages(prev => [...prev, {
+                    type: 'chat',
+                    sender: username,
+                    senderId: identity?.userId,
+                    content: input,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
             }
+        } else {
+            // === PLAINTEXT SEND (backward compatible) ===
+            const msg = {
+                type: 'broadcast',
+                payload: {
+                    type: 'chatMessage',
+                    from: identity?.nodeId,
+                    userId: identity?.userId,  // Include for moderation
+                    nickname: username,
+                    message: input,
+                    timestamp: Date.now()
+                }
+            }
+
+            wsRef.current.send(JSON.stringify(msg))
+            // Log outgoing chat transaction
+            logTransaction('send', 'out', identity?.nodeId || 'local', 'broadcast', msg, 'broadcast')
+
+            setMessages(prev => [...prev, {
+                type: 'chat',
+                sender: username,
+                senderId: identity?.userId,
+                content: input,
+                timestamp: new Date().toLocaleTimeString()
+            }])
         }
-
-        wsRef.current.send(JSON.stringify(msg))
-        // Log outgoing chat transaction
-        logTransaction('send', 'out', identity?.nodeId || 'local', 'broadcast', msg, 'broadcast')
-
-        setMessages(prev => [...prev, {
-            type: 'chat',
-            sender: username,
-            senderId: identity?.userId,
-            content: input,
-            timestamp: new Date().toLocaleTimeString()
-        }])
         setInput('')
 
         // Record message for stats
@@ -4934,7 +5215,14 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
                                         </>
                                     )}
                                 </div>
-                                <div className="message-content">{renderMessageContent(msg.content)}</div>
+                                <div className="message-content">
+                                    {renderMessageContent(msg.content)}
+                                    {msg.encrypted && (
+                                        <span className="e2ee-badge" title={msg.verified ? 'Encrypted & Verified' : 'Encrypted (unverified)'}>
+                                            {msg.verified ? '🔒✓' : '🔒'}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         ))}
                         <div ref={messagesEndRef} />
@@ -5672,6 +5960,44 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
                                         🔄 Check Connections
                                     </button>
                                 </div>
+                            </div>
+
+                            {/* E2E Encryption Section */}
+                            <div className="settings-section">
+                                <h3>🔒 Security & Encryption</h3>
+                                <p className="settings-note">
+                                    End-to-end encryption ensures only you and your peers can read messages. The relay server never sees plaintext.
+                                </p>
+                                <div className="setting-item">
+                                    <label>E2E Encryption</label>
+                                    <div
+                                        className={`settings-toggle-switch ${e2eeEnabled ? 'active' : ''}`}
+                                        onClick={() => setE2eeEnabled(!e2eeEnabled)}
+                                    >
+                                        <div className="toggle-knob"></div>
+                                    </div>
+                                </div>
+                                <div className="setting-item">
+                                    <label>Status</label>
+                                    <div className="e2ee-status-info">
+                                        <div className="info-row">
+                                            <span className="info-label">E2EE:</span>
+                                            <span className="info-value">{e2eeEnabled ? '🟢 Enabled' : '🔴 Disabled'}</span>
+                                        </div>
+                                        <div className="info-row">
+                                            <span className="info-label">My Key:</span>
+                                            <span className="info-value">{myPublicKey ? '🔑 Loaded' : '⚠️ Not loaded'}</span>
+                                        </div>
+                                        <div className="info-row">
+                                            <span className="info-label">Peer Keys:</span>
+                                            <span className="info-value">{Object.keys(peerPublicKeys).length} peer(s) with keys</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="setting-hint">
+                                    🔐 AES-256-GCM + RSA-2048 hybrid encryption. Each message uses a unique session key.
+                                    Messages are signed with your RSA key to prevent impersonation.
+                                </p>
                             </div>
 
                             {/* Video Calls Section */}

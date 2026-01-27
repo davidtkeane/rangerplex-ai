@@ -756,6 +756,26 @@ body {
     white-space: pre-wrap;
 }
 
+/* E2E Encryption badge */
+.e2ee-badge {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 11px;
+    opacity: 0.7;
+    vertical-align: middle;
+    cursor: default;
+}
+
+.e2ee-status-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    font-size: 13px;
+}
+
 /* Weather display styling */
 .weather-display {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;

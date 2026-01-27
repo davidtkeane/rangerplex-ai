@@ -173,6 +173,20 @@ process.stderr?.on('error', (err) => {
     if ((err as any).code === 'EPIPE') return // Ignore EPIPE
 })
 
+// Crypto Utils - for E2E encryption
+const cryptoUtilsPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'lib', 'crypto-utils.cjs')
+    : path.join(__dirname, '..', '..', '..', 'rangerblock', 'lib', 'crypto-utils.cjs')
+
+let cryptoUtils: any = null
+try {
+    const { cryptoUtils: cu } = require(cryptoUtilsPath)
+    cryptoUtils = cu
+    console.log('[Crypto] Crypto utils loaded successfully')
+} catch (e: any) {
+    console.log('[Crypto] Crypto utils not available:', e.message)
+}
+
 // Ledger Service - using require for CommonJS module
 // Use local lib in production, relative path in development
 const ledgerPath = app.isPackaged
@@ -819,6 +833,77 @@ ipcMain.handle('app:reload', () => {
         return true
     }
     return false
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IPC Handlers for E2E Encryption (Crypto Utils)
+// ═══════════════════════════════════════════════════════════════════════════
+
+ipcMain.handle('crypto:getPublicKey', () => {
+    return identityService.getPublicKey()
+})
+
+ipcMain.handle('crypto:generateSessionKey', () => {
+    if (!cryptoUtils) return null
+    return cryptoUtils.generateSessionKey().toString('base64')
+})
+
+ipcMain.handle('crypto:encryptAES', (_, data: string, keyBase64: string) => {
+    if (!cryptoUtils) return null
+    const key = Buffer.from(keyBase64, 'base64')
+    return cryptoUtils.encryptAES(data, key)
+})
+
+ipcMain.handle('crypto:decryptAES', (_, encryptedData: { encrypted: string; iv: string; authTag: string }, keyBase64: string) => {
+    if (!cryptoUtils) return null
+    try {
+        const key = Buffer.from(keyBase64, 'base64')
+        return cryptoUtils.decryptAES(encryptedData, key)
+    } catch (e: any) {
+        console.error('[Crypto] AES decrypt error:', e.message)
+        return null
+    }
+})
+
+ipcMain.handle('crypto:encryptRSA', (_, data: string, publicKeyPem: string) => {
+    if (!cryptoUtils) return null
+    try {
+        return cryptoUtils.encryptRSA(data, publicKeyPem)
+    } catch (e: any) {
+        console.error('[Crypto] RSA encrypt error:', e.message)
+        return null
+    }
+})
+
+ipcMain.handle('crypto:decryptRSA', (_, encryptedBase64: string) => {
+    if (!cryptoUtils) return null
+    try {
+        const privateKeyPath = path.join(os.homedir(), '.rangerblock', 'keys', 'master_private_key.pem')
+        if (!fs.existsSync(privateKeyPath)) {
+            console.error('[Crypto] Private key not found')
+            return null
+        }
+        const privateKey = fs.readFileSync(privateKeyPath, 'utf8')
+        const decrypted = cryptoUtils.decryptRSA(encryptedBase64, privateKey)
+        return decrypted.toString('base64')
+    } catch (e: any) {
+        console.error('[Crypto] RSA decrypt error:', e.message)
+        return null
+    }
+})
+
+ipcMain.handle('crypto:sign', (_, message: string) => {
+    return identityService.signMessage(message)
+})
+
+ipcMain.handle('crypto:verify', (_, message: string, signature: string, publicKeyPem: string) => {
+    if (!cryptoUtils) return false
+    try {
+        return cryptoUtils.verify(message, signature, publicKeyPem)
+    } catch (e: any) {
+        console.error('[Crypto] Verify error:', e.message)
+        return false
+    }
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
