@@ -1,8 +1,20 @@
 # RangerChat Lite - Changelog
 
 All notable changes to RangerChat Lite will be documented in this file.
+## [1.9.7] - 2026-01-27 - "Quick Fix"
+
+### Fixed
+- **Slash Command Crash**: Fixed syntax error in `/peers` command logic causing build failure.
+
 
 ---
+
+## [1.9.6] - 2026-01-27 - "Memes & GIFs"
+
+### Added
+- **Meme Command**: `/meme` and `/meme <subreddit>` using free API.
+- **GIF Command**: `/gif <search>` using Tenor API.
+- **Settings**: New "Media & API Keys" section to configure Tenor API Key.
 
 ## [1.9.5] - 2026-01-27 - "Video Calls"
 
@@ -68,6 +80,13 @@ All notable changes to RangerChat Lite will be documented in this file.
 - **Defensive Rendering**: Added robust safety checks for peer data processing
 - **Crash Recovery**: Added global Error Boundary with detailed crash report screen and reload button
 
+### Improved
+- **Update Notification**: Shows update alert in chat after connecting if new version available
+- **`/update` Command**: Type `/update` in chat to download and install updates with hard refresh
+- **`/version` Command**: Type `/version` to see current and latest version info
+- **Update Progress**: Chat messages show download progress and success/failure
+- **Hard Refresh**: Updates now do a page refresh instead of full app restart
+- **Hourly Version Check**: Automatic check every hour with fun Ranger-themed status messages
 
 ### Contributors
 - **Colonel Gemini Ranger** - WebRTC core, protocol, signaling

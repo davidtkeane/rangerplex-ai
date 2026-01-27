@@ -151,6 +151,8 @@ Use these in the chat input:
 - `/hangup` or `/end` - End the current call
 - `/peers` or `/online` - List online users with voice capability
 - `/weather [city]` - Local weather (auto-detect or city override)
+- `/update` - Check for and install app updates
+- `/version` - Show current and latest version
 
 ### 4. **Close App**
 
