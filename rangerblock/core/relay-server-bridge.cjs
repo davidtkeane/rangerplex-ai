@@ -93,6 +93,11 @@ const HTTP_PORT = config.relay.dashboardPort;
 const WS_PORT = config.relay.port;
 const RELAY_NAME = config.relay.name;
 const RELAY_REGION = config.relay.region;
+const WS_HOST = process.env.WS_HOST || '0.0.0.0'; // Set to 127.0.0.1 to bind locally only
+const WS_SHARED_TOKEN = process.env.RELAY_SHARED_TOKEN || process.env.SENTINEL_TOKEN || '';
+const HTTP_AUTH_USER = process.env.HTTP_AUTH_USER || '';
+const HTTP_AUTH_PASS = process.env.HTTP_AUTH_PASS || '';
+const HTTP_AUTH_ENABLED = Boolean(HTTP_AUTH_USER && HTTP_AUTH_PASS);
 
 // ═══════════════════════════════════════════════════════════════════
 // RANGERBOT - Cloud Relay Chatbot
@@ -635,6 +640,24 @@ Rangers lead the way!`;
 
 const app = express();
 
+// Basic auth guard for HTTP dashboard/chat (optional)
+if (HTTP_AUTH_ENABLED) {
+    app.use((req, res, next) => {
+        const authHeader = req.headers['authorization'] || '';
+        const match = authHeader.match(/^Basic (.+)$/);
+        if (!match) {
+            res.setHeader('WWW-Authenticate', 'Basic realm="Ranger Sentinel"');
+            return res.status(401).send('Auth required');
+        }
+        const [user, pass] = Buffer.from(match[1], 'base64').toString().split(':');
+        if (user === HTTP_AUTH_USER && pass === HTTP_AUTH_PASS) {
+            return next();
+        }
+        res.setHeader('WWW-Authenticate', 'Basic realm="Ranger Sentinel"');
+        return res.status(401).send('Invalid credentials');
+    });
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // DATA STRUCTURES
 // ═══════════════════════════════════════════════════════════════════
@@ -754,13 +777,13 @@ function broadcastJoinRequest(request) {
 // WEBSOCKET SERVER (for local nodes)
 // ═══════════════════════════════════════════════════════════════════
 
-const wss = new WebSocket.Server({ port: WS_PORT });
+const wss = new WebSocket.Server({ port: WS_PORT, host: WS_HOST });
 
 console.log('\n' + '🎖️ '.repeat(30));
 console.log('   RANGERBLOCK RELAY SERVER v2.0 (BRIDGE ENABLED)');
 console.log(`   Name: ${RELAY_NAME} | Region: ${RELAY_REGION}`);
 console.log('🎖️ '.repeat(30));
-console.log(`\n✅ WebSocket server listening on port ${WS_PORT}`);
+console.log(`\n✅ WebSocket server listening on ${WS_HOST}:${WS_PORT}`);
 
 wss.on('connection', (ws, req) => {
     const nodeId = generateNodeId();
@@ -1133,6 +1156,21 @@ function handleNodeMessage(ws, nodeId, msg, clientIP) {
             // Store userId for this connection (for admin checks)
             const registeredUserId = msg.userId || msg.address || nodeId;
             connectionUserId = registeredUserId;
+
+            // Optional shared secret check for zero-auth hardening
+            if (WS_SHARED_TOKEN) {
+                const provided = msg.token || msg.authToken || msg.sharedToken || msg.secret || msg.password;
+                if (provided !== WS_SHARED_TOKEN) {
+                    console.log(`🚫 Connection denied (bad token) from ${registeredUserId}`);
+                    ws.send(JSON.stringify({
+                        type: 'connectionDenied',
+                        reason: 'Invalid auth token',
+                        timestamp: Date.now()
+                    }));
+                    ws.close();
+                    return;
+                }
+            }
 
             // 🔐 Admin Check: Verify user can connect
             if (adminCheck) {
@@ -2088,11 +2126,18 @@ app.get('/chat', (req, res) => {
     res.send(chatHtml);
 });
 
-app.listen(HTTP_PORT, () => {
-    console.log(`✅ HTTP dashboard on port ${HTTP_PORT}`);
-    console.log(`\n📊 Dashboard: http://localhost:${HTTP_PORT}`);
-    console.log(`🔌 WebSocket: ws://localhost:${WS_PORT}`);
-});
+if (HTTP_PORT === 0) {
+    console.log('🚫 HTTP dashboard disabled (HTTP_PORT=0)');
+} else {
+    app.listen(HTTP_PORT, () => {
+        console.log(`✅ HTTP dashboard on port ${HTTP_PORT}`);
+        console.log(`\n📊 Dashboard: http://localhost:${HTTP_PORT}`);
+        console.log(`🔌 WebSocket: ws://${WS_HOST}:${WS_PORT}`);
+        if (HTTP_AUTH_ENABLED) {
+            console.log('🔒 HTTP basic auth enabled');
+        }
+    });
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // STARTUP & MAINTENANCE
