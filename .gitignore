@@ -28,6 +28,10 @@ dist-electron
 
 # Private Claude Code config (keep local!)
 .claude/
+.gemini/
+.agent/
+.vscode-data/
+.github/
 
 # Database files
 *.db
