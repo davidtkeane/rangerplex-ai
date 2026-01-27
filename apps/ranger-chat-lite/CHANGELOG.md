@@ -18,6 +18,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 - **Weather ASCII Art**: Weather display now shows cool ASCII art for different conditions (sunny, rain, snow, clouds, thunder, fog, night)
 - **`/weather large` Option**: Detailed weather view with 6-hour forecast and 3-day outlook
 - **Weather Submenu**: Quick select for cities (Dublin, London, New York, Tokyo) and large format in autocomplete
+- **`/img` Help Section**: Added clickable search suggestions in slash commands help (chuck norris, star wars, batman, programming, cats, dogs, nature, funny, wholesome, gaming, avengers, the office)
 
 ### Fixed
 - **Meme Command**: Fixed `/meme` not displaying images - added proper message display and image rendering
@@ -34,6 +35,7 @@ All notable changes to RangerChat Lite will be documented in this file.
 - **Chat Images**: Styled with rounded corners, max-height 280px, hover glow effect, accent border on hover
 - **Weather Display**: Enhanced weather output with emoji, temperature, feels-like, condition, wind, humidity, and rain chance
 - **Message Content**: Added `white-space: pre-wrap` to preserve line breaks and formatting in chat messages
+- **Smart Contracts Section**: Updated voice chat and video chat contracts - removed "COMING SOON" labels as features are now live. Use `/call <user>` for voice and `/video <user>` for video calls
 
 
 ---

@@ -282,11 +282,11 @@ const SMART_CONTRACTS: SmartContract[] = [
         status: 'available',
         features: ['SPL Token standard', '20 EUR/day limit', 'Admin freeze', 'Mint/burn controls', 'Treasury management']
     },
-    // === COMING SOON: SECURE COMMUNICATION CONTRACTS ===
+    // === SECURE COMMUNICATION CONTRACTS ===
     {
         id: 'ranger-text-chat',
         name: 'RangerTextChat',
-        description: 'COMING SOON: Secure text messaging with 99.99% identity verification',
+        description: 'Secure text messaging with 99.99% identity verification',
         chain: 'both',
         category: 'communication' as any,
         icon: '💬',
@@ -296,7 +296,7 @@ const SMART_CONTRACTS: SmartContract[] = [
     {
         id: 'ranger-voice-chat',
         name: 'RangerVoiceChat',
-        description: 'COMING SOON: Secure voice calls with blockchain identity verification',
+        description: 'Secure voice calls with blockchain identity verification. Use /call <user>',
         chain: 'both',
         category: 'communication' as any,
         icon: '🎙️',
@@ -306,7 +306,7 @@ const SMART_CONTRACTS: SmartContract[] = [
     {
         id: 'ranger-video-chat',
         name: 'RangerVideoChat',
-        description: 'COMING SOON: Secure video calls with verified identity before answering',
+        description: 'Secure video calls with verified identity. Use /video <user>',
         chain: 'both',
         category: 'communication' as any,
         icon: '📹',
@@ -4431,7 +4431,7 @@ return (
                                         <span>Search GIF*</span>
                                     </div>
                                     <div className="slash-help-memes">
-                                        <div className="slash-help-memes-title">📌 Popular Subreddits:</div>
+                                        <div className="slash-help-memes-title">📌 Popular Subreddits (for /meme):</div>
                                         <div className="slash-help-memes-grid">
                                             <span onClick={() => { setInput('/meme memes'); setShowSlashHelp(false); }}>memes</span>
                                             <span onClick={() => { setInput('/meme dankmemes'); setShowSlashHelp(false); }}>dankmemes</span>
@@ -4445,6 +4445,23 @@ return (
                                             <span onClick={() => { setInput('/meme cats'); setShowSlashHelp(false); }}>cats</span>
                                             <span onClick={() => { setInput('/meme aww'); setShowSlashHelp(false); }}>aww</span>
                                             <span onClick={() => { setInput('/meme memes'); setShowSlashHelp(false); }}>funny</span>
+                                        </div>
+                                    </div>
+                                    <div className="slash-help-memes slash-help-img">
+                                        <div className="slash-help-memes-title">🖼️ Image Search Ideas (for /img) - NO API KEY!</div>
+                                        <div className="slash-help-memes-grid">
+                                            <span onClick={() => { setInput('/img chuck norris'); setShowSlashHelp(false); }}>chuck norris</span>
+                                            <span onClick={() => { setInput('/img star wars'); setShowSlashHelp(false); }}>star wars</span>
+                                            <span onClick={() => { setInput('/img batman'); setShowSlashHelp(false); }}>batman</span>
+                                            <span onClick={() => { setInput('/img programming'); setShowSlashHelp(false); }}>programming</span>
+                                            <span onClick={() => { setInput('/img cats'); setShowSlashHelp(false); }}>cats</span>
+                                            <span onClick={() => { setInput('/img dogs'); setShowSlashHelp(false); }}>dogs</span>
+                                            <span onClick={() => { setInput('/img nature'); setShowSlashHelp(false); }}>nature</span>
+                                            <span onClick={() => { setInput('/img funny'); setShowSlashHelp(false); }}>funny</span>
+                                            <span onClick={() => { setInput('/img wholesome'); setShowSlashHelp(false); }}>wholesome</span>
+                                            <span onClick={() => { setInput('/img gaming'); setShowSlashHelp(false); }}>gaming</span>
+                                            <span onClick={() => { setInput('/img avengers'); setShowSlashHelp(false); }}>avengers</span>
+                                            <span onClick={() => { setInput('/img office'); setShowSlashHelp(false); }}>the office</span>
                                         </div>
                                     </div>
                                 </div>

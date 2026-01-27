@@ -3594,6 +3594,28 @@ body {
     transform: scale(1.05);
 }
 
+/* /img help section highlight */
+.slash-help-img {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(0, 255, 136, 0.05);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    border-radius: 8px;
+}
+
+.slash-help-img .slash-help-memes-title {
+    color: #00ff88;
+}
+
+.slash-help-img .slash-help-memes-grid span {
+    border-color: rgba(0, 255, 136, 0.3);
+}
+
+.slash-help-img .slash-help-memes-grid span:hover {
+    background: #00ff88;
+    border-color: #00ff88;
+}
+
 /* Slash Command Autocomplete Menu */
 .slash-autocomplete {
     position: absolute;
