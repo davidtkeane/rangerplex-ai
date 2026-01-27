@@ -19,6 +19,18 @@ All notable changes to RangerChat Lite will be documented in this file.
 - **`/weather large` Option**: Detailed weather view with 6-hour forecast and 3-day outlook
 - **Weather Submenu**: Quick select for cities (Dublin, London, New York, Tokyo) and large format in autocomplete
 - **`/img` Help Section**: Added clickable search suggestions in slash commands help (chuck norris, star wars, batman, programming, cats, dogs, nature, funny, wholesome, gaming, avengers, the office)
+- **Server Fallback System**: Automatic fallback to secondary servers if primary is unavailable
+  - AWS Primary (☁️) + M3 Pro Fallback (💻) configured
+  - 5-second timeout per server, automatic retry with next server
+  - Detailed connection error messages with troubleshooting tips
+- **Node Hierarchy System**: Main nodes (AWS, M3 Pro) vs Sub-nodes (regular users)
+  - Visual indicator in chat header showing connected server and node type
+  - Configurable in Settings with full server list
+- **Network & Servers Settings Section**: New prominent settings section showing:
+  - Current connection status with server name
+  - List of available relay servers with status
+  - Custom server URL input
+  - Node hierarchy explanation (Main vs Sub nodes)
 
 ### Fixed
 - **Meme Command**: Fixed `/meme` not displaying images - added proper message display and image rendering

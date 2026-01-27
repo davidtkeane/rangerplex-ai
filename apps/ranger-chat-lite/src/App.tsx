@@ -344,6 +344,36 @@ type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 // Current app version
 const APP_VERSION = '1.9.7'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
+
+// Server Node Configuration - Main nodes vs Sub-nodes
+interface ServerNode {
+    name: string
+    url: string
+    type: 'main' | 'fallback'
+    description: string
+    icon: string
+}
+
+const SERVER_NODES: ServerNode[] = [
+    {
+        name: 'AWS Primary',
+        url: 'ws://44.222.101.125:5555',
+        type: 'main',
+        description: 'Primary relay server (AWS Cloud)',
+        icon: '☁️'
+    },
+    {
+        name: 'M3 Pro Fallback',
+        url: 'ws://YOUR_M3PRO_IP:5555',  // TODO: Update with actual M3 Pro external IP
+        type: 'fallback',
+        description: 'Fallback relay server (David\'s M3 Pro)',
+        icon: '💻'
+    }
+]
+
+// Node types for connected clients
+type NodeType = 'main' | 'sub'
+
 const WEATHER_CODE_LABELS: Record<number, string> = {
     0: 'Clear sky',
     1: 'Mainly clear',
@@ -478,7 +508,11 @@ function App() {
     const [isGenerating, setIsGenerating] = useState(false)
 
     // Connection state
-    const [serverUrl, setServerUrl] = useState('ws://44.222.101.125:5555')
+    const [serverUrl, setServerUrl] = useState(SERVER_NODES[0].url)
+    const [connectedServer, setConnectedServer] = useState<ServerNode | null>(null)
+    const [_connectionAttempt, setConnectionAttempt] = useState(0)
+    const [connectionError, setConnectionError] = useState<string | null>(null)
+    const [nodeType, setNodeType] = useState<NodeType>('sub') // Users are sub-nodes by default
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [_peerCount, setPeerCount] = useState(0)
@@ -1611,19 +1645,91 @@ ${dailyStr}`
             console.error('Error creating identity:', error)
         }
 
-        // Connect to WebSocket
+        // Connect to WebSocket with fallback support
         if (wsRef.current) wsRef.current.close()
         const nodeId = identity?.nodeId || `lite-${Math.random().toString(36).substring(2, 10)}`
-        const ws = new WebSocket(serverUrl)
 
-        ws.onopen = () => {
-            logTransaction('system', 'in', 'relay-server', nodeId, 'WebSocket connected', 'confirmed')
+        // Try to connect with fallback
+        const connectWithFallback = async (serverIndex: number = 0): Promise<WebSocket | null> => {
+            const servers = SERVER_NODES.filter(s => s.url !== 'ws://YOUR_M3PRO_IP:5555') // Skip unconfigured fallback
+
+            if (serverIndex >= servers.length) {
+                // All servers failed
+                setConnectionError('All servers unavailable. Please check your connection or try again later.')
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `❌ Connection failed! Unable to reach any relay servers.
+
+📋 Server Status:
+${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ${s.url === 'ws://YOUR_M3PRO_IP:5555' ? '⚠️ Not configured' : '❌ Unreachable'}`).join('\n')}
+
+💡 What you can do:
+   • Check your internet connection
+   • The relay servers may be temporarily down
+   • Contact the admin if this persists
+   • Or configure a custom server in Settings`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+                return null
+            }
+
+            const server = servers[serverIndex]
+            setConnectionAttempt(serverIndex + 1)
             setMessages(prev => [...prev, {
                 type: 'system',
                 sender: 'System',
-                content: 'Connected to server, waiting for welcome...',
+                content: `${server.icon} Connecting to ${server.name}...`,
                 timestamp: new Date().toLocaleTimeString()
             }])
+
+            return new Promise((resolve) => {
+                const ws = new WebSocket(server.url)
+                const timeout = setTimeout(() => {
+                    ws.close()
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `⚠️ ${server.name} timed out, trying fallback...`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    resolve(connectWithFallback(serverIndex + 1))
+                }, 5000) // 5 second timeout
+
+                ws.onopen = () => {
+                    clearTimeout(timeout)
+                    setConnectedServer(server)
+                    setConnectionError(null)
+                    setServerUrl(server.url)
+                    logTransaction('system', 'in', server.name, nodeId, 'WebSocket connected', 'confirmed')
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `✅ Connected to ${server.icon} ${server.name} (${server.type === 'main' ? '🟢 Main Node' : '🟡 Fallback'})`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    resolve(ws)
+                }
+
+                ws.onerror = () => {
+                    clearTimeout(timeout)
+                    ws.close()
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `❌ ${server.name} unavailable${serverIndex < servers.length - 1 ? ', trying fallback...' : ''}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    resolve(connectWithFallback(serverIndex + 1))
+                }
+            })
+        }
+
+        const ws = await connectWithFallback()
+        if (!ws) return // All servers failed
+
+        ws.onopen = () => {
+            // Already handled in connectWithFallback
         }
 
         ws.onmessage = (event) => {
@@ -1658,10 +1764,11 @@ ${dailyStr}`
                     case 'registered':
                         setConnected(true)
                         setView('chat')
+                        setNodeType('sub') // Regular users are sub-nodes
                         setMessages(prev => [...prev, {
                             type: 'system',
                             sender: 'System',
-                            content: `Registered as ${username}`,
+                            content: `✅ Registered as ${username} (🔵 Sub-node)`,
                             timestamp: new Date().toLocaleTimeString()
                         }])
                         const getPeersMsg = { type: 'getPeers' }
@@ -1729,23 +1836,27 @@ ${dailyStr}`
         }
 
         ws.onclose = () => {
-            logTransaction('system', 'in', 'relay-server', nodeId, 'WebSocket disconnected', 'confirmed')
+            const serverName = connectedServer?.name || 'relay-server'
+            logTransaction('system', 'in', serverName, nodeId, 'WebSocket disconnected', 'confirmed')
             setConnected(false)
+            setConnectedServer(null)
             setMessages(prev => [...prev, {
                 type: 'system',
                 sender: 'System',
-                content: 'Disconnected from server',
+                content: `📡 Disconnected from ${serverName}`,
                 timestamp: new Date().toLocaleTimeString()
             }])
         }
 
         ws.onerror = (error) => {
-            logTransaction('system', 'in', 'relay-server', nodeId, 'Connection error', 'confirmed')
+            const serverName = connectedServer?.name || 'relay-server'
+            logTransaction('system', 'in', serverName, nodeId, 'Connection error', 'confirmed')
             console.error('WebSocket error:', error)
+            setConnectionError('Connection lost. Will attempt to reconnect...')
             setMessages(prev => [...prev, {
                 type: 'system',
                 sender: 'System',
-                content: 'Connection error',
+                content: `⚠️ Connection error with ${serverName}`,
                 timestamp: new Date().toLocaleTimeString()
             }])
         }
@@ -3758,6 +3869,19 @@ return (
                     <div className="header-left">
                         <span className="header-icon">🦅</span>
                         <span className="header-title">RangerChat</span>
+                        <div className="connection-status" title={connectedServer ? `Connected to ${connectedServer.name}\n${connectedServer.description}` : 'Disconnected'}>
+                            <span className={`status-dot ${connected ? 'online' : 'offline'}`}></span>
+                            <span className="status-server">
+                                {connected ? (
+                                    <>
+                                        {connectedServer?.icon} {connectedServer?.name || 'Server'}
+                                        <span className="node-badge">{nodeType === 'main' ? '🟢 Main' : '🔵 Sub'}</span>
+                                    </>
+                                ) : (
+                                    '❌ Disconnected'
+                                )}
+                            </span>
+                        </div>
                     </div>
                     <div className="header-right">
                         {/* Voice Call Button */}
@@ -4552,6 +4676,98 @@ return (
                             <button className="save-btn" onClick={updateDisplayName}>
                                 Save Name
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Network/Server Settings Section */}
+                    <div className="settings-section server-section">
+                        <h3>🌐 Network & Servers</h3>
+                        <p className="settings-note">
+                            RangerChat uses relay servers for communication. Main nodes (AWS, M3 Pro) handle traffic, sub-nodes connect through them.
+                        </p>
+
+                        {/* Current Connection Status */}
+                        <div className="server-status-card">
+                            <div className="server-status-header">
+                                <span className={`status-indicator ${connected ? 'online' : 'offline'}`}></span>
+                                <span className="status-text">
+                                    {connected ? 'Connected' : 'Disconnected'}
+                                </span>
+                            </div>
+                            {connectedServer && (
+                                <div className="server-info">
+                                    <div className="info-row">
+                                        <span className="info-label">Server:</span>
+                                        <span className="info-value">{connectedServer.icon} {connectedServer.name}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Type:</span>
+                                        <span className="info-value">{connectedServer.type === 'main' ? '🟢 Main Node' : '🟡 Fallback'}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Your Role:</span>
+                                        <span className="info-value">{nodeType === 'main' ? '🟢 Main Node' : '🔵 Sub-node'}</span>
+                                    </div>
+                                </div>
+                            )}
+                            {connectionError && (
+                                <div className="connection-error">
+                                    ⚠️ {connectionError}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Available Servers */}
+                        <div className="server-list">
+                            <h4>📡 Available Relay Servers</h4>
+                            {SERVER_NODES.map((server, idx) => (
+                                <div key={idx} className={`server-item ${connectedServer?.url === server.url ? 'active' : ''} ${server.url === 'ws://YOUR_M3PRO_IP:5555' ? 'unconfigured' : ''}`}>
+                                    <div className="server-item-header">
+                                        <span className="server-icon">{server.icon}</span>
+                                        <span className="server-name">{server.name}</span>
+                                        <span className={`server-type-badge ${server.type}`}>
+                                            {server.type === 'main' ? '🟢 Primary' : '🟡 Fallback'}
+                                        </span>
+                                    </div>
+                                    <div className="server-url">
+                                        {server.url === 'ws://YOUR_M3PRO_IP:5555' ? '⚠️ Not configured - update in code' : server.url}
+                                    </div>
+                                    <div className="server-desc">{server.description}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Custom Server URL */}
+                        <div className="setting-item">
+                            <label>Custom Server URL</label>
+                            <div className="server-input-row">
+                                <input
+                                    type="text"
+                                    value={serverUrl}
+                                    onChange={(e) => setServerUrl(e.target.value)}
+                                    placeholder="ws://your-server-ip:5555"
+                                />
+                            </div>
+                            <p className="setting-hint">
+                                💡 The app will automatically try AWS first, then fallback servers. Use this to connect to a specific server.
+                            </p>
+                        </div>
+
+                        {/* Node Type Info */}
+                        <div className="node-info-box">
+                            <h4>🔗 Node Hierarchy</h4>
+                            <div className="node-hierarchy">
+                                <div className="node-level main">
+                                    <span className="node-icon">🟢</span>
+                                    <span className="node-label">Main Nodes</span>
+                                    <span className="node-desc">AWS + M3 Pro - Route all traffic</span>
+                                </div>
+                                <div className="node-level sub">
+                                    <span className="node-icon">🔵</span>
+                                    <span className="node-label">Sub-nodes</span>
+                                    <span className="node-desc">Regular users - Connect through main nodes</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
