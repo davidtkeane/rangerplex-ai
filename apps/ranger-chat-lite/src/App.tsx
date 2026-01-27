@@ -376,7 +376,7 @@ const SERVER_NODES: ServerNode[] = [
     },
     {
         name: 'M3 Pro Fallback',
-        url: 'ws://YOUR_M3PRO_IP:5555',  // TODO: Update with actual M3 Pro external IP
+        url: 'ws://64.43.137.153:5555',
         type: 'fallback',
         description: 'Fallback relay server (David\'s M3 Pro)',
         icon: '💻'
@@ -1692,7 +1692,7 @@ ${dailyStr}`
 
         // Try to connect with fallback
         const connectWithFallback = async (serverIndex: number = 0): Promise<WebSocket | null> => {
-            const servers = SERVER_NODES.filter(s => s.url !== 'ws://YOUR_M3PRO_IP:5555') // Skip unconfigured fallback
+            const servers = SERVER_NODES // All servers now configured
 
             if (serverIndex >= servers.length) {
                 // All servers failed
@@ -1703,7 +1703,7 @@ ${dailyStr}`
                     content: `❌ Connection failed! Unable to reach any relay servers.
 
 📋 Server Status:
-${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ${s.url === 'ws://YOUR_M3PRO_IP:5555' ? '⚠️ Not configured' : '❌ Unreachable'}`).join('\n')}
+${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
 
 💡 What you can do:
    • Check your internet connection
@@ -4768,7 +4768,7 @@ return (
                         <div className="server-list">
                             <h4>📡 Available Relay Servers</h4>
                             {SERVER_NODES.map((server, idx) => (
-                                <div key={idx} className={`server-item ${connectedServer?.url === server.url ? 'active' : ''} ${server.url === 'ws://YOUR_M3PRO_IP:5555' ? 'unconfigured' : ''}`}>
+                                <div key={idx} className={`server-item ${connectedServer?.url === server.url ? 'active' : ''}`}>
                                     <div className="server-item-header">
                                         <span className="server-icon">{server.icon}</span>
                                         <span className="server-name">{server.name}</span>
@@ -4776,9 +4776,7 @@ return (
                                             {server.type === 'main' ? '🟢 Primary' : '🟡 Fallback'}
                                         </span>
                                     </div>
-                                    <div className="server-url">
-                                        {server.url === 'ws://YOUR_M3PRO_IP:5555' ? '⚠️ Not configured - update in code' : server.url}
-                                    </div>
+                                    <div className="server-url">{server.url}</div>
                                     <div className="server-desc">{server.description}</div>
                                 </div>
                             ))}
