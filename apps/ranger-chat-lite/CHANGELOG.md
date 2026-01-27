@@ -27,11 +27,13 @@ All notable changes to RangerChat Lite will be documented in this file.
 - **Weather Command**: Fixed missing `weatherMatch` regex definition causing build error
 - **EPIPE Crash**: Fixed "write EPIPE" error on app close with safe logging functions
 - **GIF Command**: Fixed `/gif` command not displaying results (was assigning to undefined variable)
+- **Weather Display Formatting**: Fixed `/weather large` output being all stuck together - now displays with proper line breaks, aligned columns, and clean ASCII art
 
 ### Improved
 - **Slash Commands UI**: Redesigned modal with organized sections (Calls, Info, Media, System), clear Close button at bottom, better layout and scrolling
 - **Chat Images**: Styled with rounded corners, max-height 280px, hover glow effect, accent border on hover
 - **Weather Display**: Enhanced weather output with emoji, temperature, feels-like, condition, wind, humidity, and rain chance
+- **Message Content**: Added `white-space: pre-wrap` to preserve line breaks and formatting in chat messages
 
 
 ---
