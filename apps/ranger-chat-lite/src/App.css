@@ -701,6 +701,64 @@ body {
     font-size: 14px;
     line-height: 1.4;
     word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Weather display styling */
+.weather-display {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 8px 0;
+    border: 1px solid var(--border);
+}
+
+.weather-ascii {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 12px;
+    line-height: 1.2;
+    color: var(--accent);
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.weather-header {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.weather-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 8px 0;
+}
+
+.weather-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px 16px;
+    margin-bottom: 12px;
+}
+
+.weather-forecast-title {
+    font-weight: 600;
+    margin: 12px 0 6px 0;
+    color: var(--accent);
+}
+
+.weather-hourly {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px 12px;
+    font-size: 13px;
+}
+
+.weather-daily {
+    font-size: 13px;
+    line-height: 1.6;
 }
 
 /* Chat images (memes, gifs) */

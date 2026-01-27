@@ -1340,35 +1340,42 @@ function App() {
                 precip: daily.precipitation_sum?.[i] || 0
             }))
 
-            const hourlyStr = hourlyForecast.map((h: any) =>
-                `${h.time.getHours().toString().padStart(2, '0')}:00 ${getWeatherEmoji(h.code)} ${h.temp}°C ${h.precip > 0 ? `💧${h.precip}%` : ''}`
-            ).join('\n')
-
-            const dailyStr = dailyForecast.map((d: any) => {
-                const day = d.date.toLocaleDateString('en', { weekday: 'short' })
-                return `${day}: ${getWeatherEmoji(d.code)} ${d.min}°/${d.max}°C ${d.precip > 0 ? `💧${d.precip.toFixed(1)}mm` : ''}`
+            // Format hourly with proper alignment
+            const hourlyStr = hourlyForecast.map((h: any) => {
+                const time = h.time.getHours().toString().padStart(2, '0') + ':00'
+                const tempStr = (h.temp + '°C').padEnd(5)
+                const precip = h.precip > 0 ? `💧${h.precip}%` : ''
+                return `  ${time}  ${getWeatherEmoji(h.code)}  ${tempStr}  ${precip}`
             }).join('\n')
 
-            return `\`\`\`
-${ascii}
-\`\`\`
-**${emoji} ${label}**
-━━━━━━━━━━━━━━━━━━━━
-🌡️ **${temp}°C** (feels ${feels}°C)
-☁️ ${condition}
-💨 Wind: ${wind} km/h
-🌧️ Rain: ${rainSummary}
+            // Format daily with proper alignment
+            const dailyStr = dailyForecast.map((d: any) => {
+                const day = d.date.toLocaleDateString('en', { weekday: 'short' }).padEnd(4)
+                const precip = d.precip > 0 ? `💧${d.precip.toFixed(1)}mm` : ''
+                return `  ${day} ${getWeatherEmoji(d.code)}  ${d.min}°/${d.max}°C  ${precip}`
+            }).join('\n')
 
-**⏰ Next 6 Hours:**
+            return `
+${ascii}
+
+${emoji} ${label}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌡️  ${temp}°C  (feels like ${feels}°C)
+☁️  ${condition}
+💨  Wind: ${wind} km/h
+🌧️  Rain: ${rainSummary}
+
+⏰ Next 6 Hours:
 ${hourlyStr}
 
-**📅 3-Day Forecast:**
+📅 3-Day Forecast:
 ${dailyStr}`
         } else {
-            // Normal format with emoji and key info
-            return `${emoji} **${label}**
-🌡️ ${temp}°C (feels ${feels}°C) | ☁️ ${condition}
-💨 ${wind} km/h | 🌧️ ${rainSummary}`
+            // Normal format - compact single message
+            return `${emoji} ${label}
+🌡️ ${temp}°C (feels ${feels}°C)  •  ${condition}
+💨 ${wind} km/h  •  🌧️ ${rainSummary}`
         }
     }
 
