@@ -1,5 +1,5 @@
 # RangerPlex AI Installer for Windows (PowerShell)
-# Version: 2.5.34
+# Version: 2.6.0
 # One-command setup for Windows. Installs Node.js 22, PM2, npm deps, and guides API key setup.
 #
 # USAGE: Right-click PowerShell -> Run as Administrator
@@ -91,25 +91,286 @@ function Show-Banner {
     Write-Host ""
 }
 
+function Get-SystemInfo {
+    $info = @{}
+
+    # Windows version and edition
+    try {
+        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+        $info.Caption = $os.Caption -replace "Microsoft ", ""
+        $info.BuildNumber = $os.BuildNumber
+        $info.Version = $os.Version
+
+        # Determine display version (23H2, 24H2, etc.)
+        try {
+            $displayVer = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction Stop).DisplayVersion
+            $info.DisplayVersion = $displayVer
+        } catch {
+            $info.DisplayVersion = ""
+        }
+
+        $info.OSPretty = "$($info.Caption)"
+        if ($info.DisplayVersion) {
+            $info.OSPretty += " ($($info.DisplayVersion))"
+        }
+    } catch {
+        $info.OSPretty = "Windows (unknown version)"
+    }
+
+    # Architecture
+    $info.Arch = $env:PROCESSOR_ARCHITECTURE
+    switch ($info.Arch) {
+        "AMD64" { $info.ArchDisplay = "x86_64" }
+        "ARM64" { $info.ArchDisplay = "ARM64" }
+        default { $info.ArchDisplay = $info.Arch }
+    }
+
+    # winget availability
+    $info.WingetAvailable = [bool](Test-Command "winget")
+    $info.PkgDisplay = if ($info.WingetAvailable) { "winget available" } else { "winget not found" }
+
+    # RAM
+    try {
+        $totalRAM = [math]::Round((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1GB)
+        $info.RAM = "$totalRAM GB"
+    } catch {
+        $info.RAM = "Unknown"
+    }
+
+    return $info
+}
+
+function Show-SystemInfo {
+    $si = Get-SystemInfo
+
+    Write-Host ""
+    Write-Host "  +-----------------------------------------------------+" -ForegroundColor Cyan
+    Write-Host "  |  " -ForegroundColor Cyan -NoNewline
+    Write-Host "System Detected" -ForegroundColor White -NoNewline
+    Write-Host "                                    |" -ForegroundColor Cyan
+    $fields = @(
+        @("OS:", $si.OSPretty),
+        @("Arch:", $si.ArchDisplay),
+        @("Pkg:", $si.PkgDisplay),
+        @("RAM:", $si.RAM)
+    )
+    foreach ($f in $fields) {
+        $label = $f[0].PadRight(8)
+        $value = "$($f[1])"
+        if ($value.Length -gt 43) { $value = $value.Substring(0, 40) + "..." }
+        $padding = 43 - $value.Length
+        if ($padding -lt 0) { $padding = 0 }
+        Write-Host "  |  " -ForegroundColor Cyan -NoNewline
+        Write-Host "$label" -ForegroundColor DarkGray -NoNewline
+        Write-Host "$value" -NoNewline
+        Write-Host (" " * $padding) -NoNewline
+        Write-Host "|" -ForegroundColor Cyan
+    }
+    Write-Host "  +-----------------------------------------------------+" -ForegroundColor Cyan
+    Write-Host ""
+}
+
+function Get-PreflightStatus {
+    # Returns a hashtable of tool detection results
+    $status = @{}
+
+    # Node.js
+    $status.NodeInstalled = $false
+    $status.NodeVersion = $null
+    $status.NodeOk = $false
+    if (Test-Command "node") {
+        $status.NodeInstalled = $true
+        $status.NodeVersion = (& node -v 2>$null)
+        $major = [int]($status.NodeVersion -replace 'v(\d+)\..*', '$1')
+        $status.NodeOk = ($major -eq 22)
+    }
+
+    # PM2
+    $status.PM2Installed = $false
+    $status.PM2Version = $null
+    if (Test-Command "pm2") {
+        $status.PM2Installed = $true
+        $status.PM2Version = (& pm2 -v 2>$null)
+    }
+
+    # Docker
+    $status.DockerInstalled = $false
+    $status.DockerVersion = $null
+    if (Test-Command "docker") {
+        $status.DockerInstalled = $true
+        $status.DockerVersion = (& docker --version 2>$null)
+    }
+
+    # Ollama
+    $status.OllamaInstalled = $false
+    if (Test-Command "ollama") {
+        $status.OllamaInstalled = $true
+    }
+
+    # LM Studio - check common install paths
+    $status.LMStudioInstalled = $false
+    $lmPaths = @(
+        "$env:LOCALAPPDATA\Programs\LM Studio\LM Studio.exe",
+        "$env:LOCALAPPDATA\lm-studio\LM Studio.exe",
+        "$env:ProgramFiles\LM Studio\LM Studio.exe"
+    )
+    foreach ($p in $lmPaths) {
+        if (Test-Path $p) { $status.LMStudioInstalled = $true; break }
+    }
+
+    # Git
+    $status.GitInstalled = $false
+    $status.GitVersion = $null
+    if (Test-Command "git") {
+        $status.GitInstalled = $true
+        $status.GitVersion = (& git --version 2>$null)
+    }
+
+    return $status
+}
+
 function Show-PreflightDownloads {
     Write-Host ""
-    Write-Host "Preflight Downloads (optional)" -ForegroundColor Cyan
-    Write-Host "If you want, download/install these now, then re-run this script:" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  * Docker Desktop: " -NoNewline; Write-Host "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe" -ForegroundColor Green
-    Write-Host "  * Ollama:         " -NoNewline; Write-Host "https://ollama.com/download/windows" -ForegroundColor Green
-    Write-Host "  * LM Studio:      " -NoNewline; Write-Host "https://lmstudio.ai/download" -ForegroundColor Green
-    Write-Host "  * Node.js 22:     " -NoNewline; Write-Host "https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi" -ForegroundColor Green
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host "  Preflight Check - Detecting installed software..." -ForegroundColor Cyan
+    Write-Host "============================================================" -ForegroundColor Cyan
+
+    Show-SystemInfo
+
+    $script:preflight = Get-PreflightStatus
+    $missingRequired = @()
+    $missingOptional = @()
+
+    # --- Required ---
+    # Node.js
+    if ($script:preflight.NodeOk) {
+        Write-Host "  [INSTALLED] " -ForegroundColor Green -NoNewline
+        Write-Host "Node.js $($script:preflight.NodeVersion)" -ForegroundColor White
+    } elseif ($script:preflight.NodeInstalled) {
+        Write-Host "  [WRONG VER] " -ForegroundColor Yellow -NoNewline
+        Write-Host "Node.js $($script:preflight.NodeVersion) (need v22.x)" -ForegroundColor White
+        $missingRequired += @{ Name = "Node.js 22"; Url = "https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi" }
+    } else {
+        Write-Host "  [MISSING]   " -ForegroundColor Red -NoNewline
+        Write-Host "Node.js 22" -ForegroundColor White
+        $missingRequired += @{ Name = "Node.js 22"; Url = "https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi" }
+    }
+
+    # PM2
+    if ($script:preflight.PM2Installed) {
+        Write-Host "  [INSTALLED] " -ForegroundColor Green -NoNewline
+        Write-Host "PM2 v$($script:preflight.PM2Version)" -ForegroundColor White
+    } else {
+        Write-Host "  [MISSING]   " -ForegroundColor Red -NoNewline
+        Write-Host "PM2 (will install via npm after Node.js)" -ForegroundColor White
+        $missingRequired += @{ Name = "PM2"; Url = $null }
+    }
+
+    # Git
+    if ($script:preflight.GitInstalled) {
+        Write-Host "  [INSTALLED] " -ForegroundColor Green -NoNewline
+        Write-Host "$($script:preflight.GitVersion)" -ForegroundColor White
+    } else {
+        Write-Host "  [MISSING]   " -ForegroundColor Red -NoNewline
+        Write-Host "Git" -ForegroundColor White
+        $missingRequired += @{ Name = "Git"; Url = "https://git-scm.com/download/win"; WingetId = "Git.Git" }
+    }
+
     Write-Host ""
 
-    $ans = Read-Host "Exit now to install these and rerun the script? (y/N)"
-    if ($ans -match "^[Yy]") {
-        Write-Host "Opening download pages..." -ForegroundColor DarkGray
-        Start-Process "https://nodejs.org/en/download/"
-        Start-Process "https://www.docker.com/products/docker-desktop/"
-        Start-Process "https://ollama.com/download/windows"
-        Write-Host "Okay! Download/install the apps above, then re-run install-me-now.ps1" -ForegroundColor DarkGray
-        exit 0
+    # --- Optional ---
+    Write-Host "  Optional:" -ForegroundColor DarkGray
+
+    # Docker
+    if ($script:preflight.DockerInstalled) {
+        Write-Host "  [INSTALLED] " -ForegroundColor Green -NoNewline
+        Write-Host "Docker ($($script:preflight.DockerVersion))" -ForegroundColor White
+    } else {
+        Write-Host "  [MISSING]   " -ForegroundColor Yellow -NoNewline
+        Write-Host "Docker Desktop (for WordPress + containers)" -ForegroundColor White
+        $missingOptional += @{ Name = "Docker Desktop"; Url = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"; WingetId = "Docker.DockerDesktop" }
+    }
+
+    # Ollama
+    if ($script:preflight.OllamaInstalled) {
+        Write-Host "  [INSTALLED] " -ForegroundColor Green -NoNewline
+        Write-Host "Ollama" -ForegroundColor White
+    } else {
+        Write-Host "  [MISSING]   " -ForegroundColor Yellow -NoNewline
+        Write-Host "Ollama (local AI models)" -ForegroundColor White
+        $missingOptional += @{ Name = "Ollama"; Url = "https://ollama.com/download/windows"; WingetId = "Ollama.Ollama" }
+    }
+
+    # LM Studio
+    if ($script:preflight.LMStudioInstalled) {
+        Write-Host "  [INSTALLED] " -ForegroundColor Green -NoNewline
+        Write-Host "LM Studio" -ForegroundColor White
+    } else {
+        Write-Host "  [MISSING]   " -ForegroundColor Yellow -NoNewline
+        Write-Host "LM Studio (local AI GUI)" -ForegroundColor White
+        $missingOptional += @{ Name = "LM Studio"; Url = "https://lmstudio.ai/download"; WingetId = "ElementLabs.LMStudio" }
+    }
+
+    Write-Host ""
+
+    # Summary
+    $totalMissing = $missingRequired.Count + $missingOptional.Count
+    if ($totalMissing -eq 0) {
+        Write-Host "  All software detected! Ready to proceed." -ForegroundColor Green
+        Write-Host ""
+        return
+    }
+
+    # Show download links only for missing items
+    if ($missingRequired.Count -gt 0 -or $missingOptional.Count -gt 0) {
+        Write-Host "  Download links for missing software:" -ForegroundColor DarkGray
+        $allMissing = $missingRequired + $missingOptional
+        foreach ($item in $allMissing) {
+            if ($item.Url) {
+                Write-Host "    * $($item.Name): " -NoNewline
+                Write-Host "$($item.Url)" -ForegroundColor Green
+            }
+        }
+
+        # Offer winget auto-install for missing optional tools
+        if ((Test-Command "winget") -and $missingOptional.Count -gt 0) {
+            Write-Host ""
+            Write-Host "  winget can auto-install missing optional tools!" -ForegroundColor Green
+            $wingetInstall = Read-Host "  Auto-install missing tools via winget? (y/N)"
+            if ($wingetInstall -match "^[Yy]") {
+                foreach ($item in $missingOptional) {
+                    if ($item.WingetId) {
+                        Write-Step "Installing $($item.Name) via winget..."
+                        & winget install $item.WingetId --accept-package-agreements --accept-source-agreements
+                        if ($LASTEXITCODE -eq 0) {
+                            Write-Ok "$($item.Name) installed!"
+                        } else {
+                            Write-Warn "Failed to install $($item.Name) via winget."
+                        }
+                    }
+                }
+                Write-Host ""
+            }
+        }
+        Write-Host ""
+    }
+
+    if ($missingRequired.Count -gt 0) {
+        $ans = Read-Host "Exit now to install missing software and rerun the script? (y/N)"
+        if ($ans -match "^[Yy]") {
+            Write-Host "Opening download pages for missing software..." -ForegroundColor DarkGray
+            foreach ($item in ($missingRequired + $missingOptional)) {
+                if ($item.Url) {
+                    Start-Process $item.Url
+                }
+            }
+            Write-Host "Install the missing apps above, then re-run install-me-now.ps1" -ForegroundColor DarkGray
+            exit 0
+        }
+    } else {
+        # Only optional stuff missing - just inform, don't push to exit
+        Write-Host "  Required software is installed. Optional tools can be added later." -ForegroundColor DarkGray
+        Write-Host ""
     }
 }
 
@@ -651,9 +912,21 @@ function Check-Ollama {
 
     $install = Read-Host "Install Ollama now? (y/N)"
     if ($install -match "^[Yy]") {
-        Write-Host "Opening Ollama download page..." -ForegroundColor DarkGray
-        Start-Process "https://ollama.com/download/windows"
-        Write-Host "Download and run the installer, then continue." -ForegroundColor DarkGray
+        if (Test-Command "winget") {
+            Write-Step "Installing Ollama via winget..."
+            & winget install Ollama.Ollama --accept-package-agreements --accept-source-agreements
+            if ($LASTEXITCODE -eq 0) {
+                Write-Ok "Ollama installed via winget!"
+                Write-Host "  You may need to restart your terminal for 'ollama' command to be available." -ForegroundColor DarkGray
+            } else {
+                Write-Warn "winget install failed. Opening download page instead..."
+                Start-Process "https://ollama.com/download/windows"
+            }
+        } else {
+            Write-Host "Opening Ollama download page..." -ForegroundColor DarkGray
+            Start-Process "https://ollama.com/download/windows"
+            Write-Host "Download and run the installer, then continue." -ForegroundColor DarkGray
+        }
     } else {
         Write-Host "Skipped Ollama. Install later from: https://ollama.com" -ForegroundColor DarkGray
     }
@@ -675,8 +948,20 @@ function Check-Docker {
 
     $install = Read-Host "Install Docker Desktop now? (y/N)"
     if ($install -match "^[Yy]") {
-        Write-Host "Opening Docker Desktop download page..." -ForegroundColor DarkGray
-        Start-Process "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+        if (Test-Command "winget") {
+            Write-Step "Installing Docker Desktop via winget..."
+            & winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements
+            if ($LASTEXITCODE -eq 0) {
+                Write-Ok "Docker Desktop installed via winget!"
+                Write-Host "  You may need to restart your computer for Docker to complete setup." -ForegroundColor DarkGray
+            } else {
+                Write-Warn "winget install failed. Opening download page instead..."
+                Start-Process "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+            }
+        } else {
+            Write-Host "Opening Docker Desktop download page..." -ForegroundColor DarkGray
+            Start-Process "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+        }
         Write-Host ""
         Write-Host "Docker Desktop includes:" -ForegroundColor Cyan
         Write-Host "  * Docker Engine (daemon)" -ForegroundColor DarkGray
@@ -684,7 +969,6 @@ function Check-Docker {
         Write-Host "  * Docker Compose" -ForegroundColor DarkGray
         Write-Host "  * WSL 2 integration" -ForegroundColor DarkGray
         Write-Host ""
-        Write-Host "Run the installer, restart if needed, then continue." -ForegroundColor DarkGray
     } else {
         Write-Host "Skipped Docker. Install later from: https://www.docker.com/get-started/" -ForegroundColor DarkGray
     }
@@ -984,38 +1268,71 @@ Write-Host "Project root: $projectRoot" -ForegroundColor DarkGray
 Write-Host ""
 
 # Step 1: Node.js
-$skipNode = Read-Host "Skip Node.js setup? (y/N)"
-if ($skipNode -notmatch "^[Yy]") {
+if ($script:preflight -and $script:preflight.NodeOk) {
+    Write-Ok "Node.js $($script:preflight.NodeVersion) already installed - skipping."
+} else {
     Install-NodeJS
 }
 
 # Step 2: PM2
-$skipPM2 = Read-Host "Skip PM2 installation? (y/N)"
-if ($skipPM2 -notmatch "^[Yy]") {
+if ($script:preflight -and $script:preflight.PM2Installed) {
+    Write-Ok "PM2 v$($script:preflight.PM2Version) already installed - skipping."
+} else {
     Install-PM2
 }
 
 # Step 3: Ollama
-$skipOllama = Read-Host "Skip Ollama check? (y/N)"
-if ($skipOllama -notmatch "^[Yy]") {
+if ($script:preflight -and $script:preflight.OllamaInstalled) {
+    Write-Ok "Ollama already installed - skipping."
+} else {
     Check-Ollama
 }
 
 # Step 4: Docker
-$skipDocker = Read-Host "Skip Docker check? (y/N)"
-if ($skipDocker -notmatch "^[Yy]") {
+if ($script:preflight -and $script:preflight.DockerInstalled) {
+    Write-Ok "Docker already installed - skipping."
+} else {
     Check-Docker
 }
 
 # Step 5: Dependencies
-$skipDeps = Read-Host "Skip dependency installation? (y/N)"
-if ($skipDeps -notmatch "^[Yy]") {
+$nodeModulesExist = Test-Path (Join-Path $projectRoot "node_modules")
+$criticalPkgs = @("vite", "pm2", "better-sqlite3", "express", "react")
+$allCriticalPresent = $true
+if ($nodeModulesExist) {
+    foreach ($pkg in $criticalPkgs) {
+        if (-not (Test-Path (Join-Path $projectRoot "node_modules\$pkg"))) {
+            $allCriticalPresent = $false
+            break
+        }
+    }
+}
+
+if ($nodeModulesExist -and $allCriticalPresent) {
+    $packageCount = (Get-ChildItem (Join-Path $projectRoot "node_modules") -Directory).Count
+    Write-Ok "Dependencies already installed ($packageCount packages) - skipping."
+    $reinstall = Read-Host "  Reinstall anyway? (y/N)"
+    if ($reinstall -match "^[Yy]") {
+        Install-Dependencies -projectRoot $projectRoot
+    }
+} else {
     Install-Dependencies -projectRoot $projectRoot
 }
 
 # Step 6: API Keys
-$skipKeys = Read-Host "Skip API key setup? (y/N)"
-if ($skipKeys -notmatch "^[Yy]") {
+$envFile = Join-Path $projectRoot ".env"
+if (Test-Path $envFile) {
+    $existingKeys = (Get-Content $envFile | Where-Object { $_ -match "^VITE_.*=.+" }).Count
+    if ($existingKeys -gt 0) {
+        Write-Ok "API keys file exists ($existingKeys keys configured)."
+        $reconfig = Read-Host "  Reconfigure API keys? (y/N)"
+        if ($reconfig -match "^[Yy]") {
+            Collect-APIKeys -projectRoot $projectRoot
+        }
+    } else {
+        Collect-APIKeys -projectRoot $projectRoot
+    }
+} else {
     Collect-APIKeys -projectRoot $projectRoot
 }
 

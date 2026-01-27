@@ -2,6 +2,25 @@
 
 All notable changes to RangerChat Lite will be documented in this file.
 
+## [2.0.1] - 2026-01-27 - "Smart Install Scripts"
+
+### Changed
+
+#### Install Scripts (`scripts/install-rangerchat-now.sh` & `.ps1`) - v1.8.0
+- **Bash**: Added full OS/distro detection (macOS with version name + chip type, Ubuntu, Kali, Debian, Fedora, Arch, Alpine, openSUSE, CentOS/RHEL, Raspberry Pi, WSL)
+- **Bash**: Added system info box displaying OS, Arch, Package Manager, Shell, and WSL status
+- **Bash**: Added Alpine (`apk`), openSUSE (`zypper`), and CentOS/RHEL (`yum`) package manager support
+- **Bash**: Added git check and auto-install (was missing)
+- **Bash**: Added npm fallback install if missing after Node install
+- **Bash**: macOS now uses `brew install node@22` for proper v22 targeting
+- **PowerShell**: Added system info box showing Windows edition/version, architecture, winget availability, and RAM
+- **PowerShell**: Git install via winget now verifies success and gives restart instructions
+
+### Fixed
+- **Bash**: NodeSource URL updated from `setup_20.x` to `setup_22.x` (was installing Node 20 instead of 22)
+- **PowerShell**: Direct download fallback updated from `node-v20.10.0` to `node-v22.11.0`
+- **PowerShell**: npm error message now points to correct Node 22 download URL
+
 ## [2.0.0] - 2026-01-27 - "End-to-End Encryption"
 
 ### Added

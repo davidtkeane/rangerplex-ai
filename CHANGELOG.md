@@ -5,6 +5,35 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0] - 2026-01-27 - Smart Install Scripts: OS Detection, Auto-Install & Cool UI
+
+### Summary
+Overhauled both install scripts (`install-me-now.sh` and `install-me-now.ps1`) to v2.6.0 with smart OS/distro detection, a visual system info dashboard, auto-install via package managers (brew, winget, apt, etc.), and broader Linux distro support.
+
+### Added
+
+#### Bash Script (`install-me-now.sh`)
+- **OS/Distro Detection**: New `detect_distro()` function identifies macOS (with version name + Apple Silicon/Intel), Ubuntu, Kali Linux, Debian, Fedora, Arch Linux, Alpine Linux, openSUSE, CentOS/RHEL, Raspberry Pi OS, and WSL
+- **System Info Box**: Displays a bordered dashboard showing OS, Architecture, Package Manager, Shell version, and WSL status before preflight check
+- **Alpine Linux support**: `apk` package manager now supported in `ensure_pkg`
+- **openSUSE support**: `zypper` package manager now supported in `ensure_pkg`
+- **CentOS/RHEL support**: `yum` package manager now supported in `ensure_pkg`
+- **Homebrew auto-install** (macOS): Docker Desktop (`brew install --cask docker`) and Ollama (`brew install ollama`) install automatically when Homebrew is available
+- **Direct Node.js install**: Users can now choose between nvm or system package manager (`brew install node@22` on macOS, `sudo apt install nodejs npm` on Linux with NodeSource for v22, plus dnf/pacman/apk/zypper/yum support)
+
+#### PowerShell Script (`install-me-now.ps1`)
+- **Windows System Info**: New `Get-SystemInfo` function detects Windows version/edition/display version (e.g. "Windows 11 Pro (23H2)"), architecture (x86_64/ARM64), winget availability, and total RAM
+- **System Info Box**: Displays a bordered dashboard showing OS, Arch, Package Manager, and RAM before preflight check
+- **winget auto-install**: Docker Desktop (`winget install Docker.DockerDesktop`), Ollama (`winget install Ollama.Ollama`), LM Studio (`winget install ElementLabs.LMStudio`), and Git (`winget install Git.Git`) can all be auto-installed via winget
+- **Batch winget install**: Preflight check now offers to auto-install all missing optional tools in one go via winget
+
+### Changed
+- Both scripts bumped to **v2.6.0**
+- OS detection in bash script now uses `detect_distro()` globals instead of inline `uname` checks
+- Package manager variable (`PM`) now seeded from early distro detection, with fallback detection retained
+
+---
+
 ## [4.3.8] - 2026-01-20 - Backup Retention System 💾🧹
 
 ### Summary

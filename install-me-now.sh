@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 
-# RangerPlex AI Installer (v2.5.33)
+# RangerPlex AI Installer (v2.6.0)
 # One-command setup for macOS/Linux/WSL. Installs Node.js 22, PM2, npm deps, and guides API key setup.
 # Safe defaults: prompts before package installs; writes .env only when you confirm.
 #
-# IMPROVEMENTS (v2.5.33):
-# ✅ NEW: Early preflight prompt to download core apps before continuing (Docker Desktop, Ollama, LM Studio) with OS-specific links.
-# ✅ NEW: Friendly RangerPlex banner refreshed for Windows install flow.
+# IMPROVEMENTS (v2.6.0):
+# ✅ NEW: Smart OS/distro detection (macOS, Ubuntu, Kali, Debian, Fedora, Arch, Alpine, openSUSE, CentOS/RHEL, Raspberry Pi, WSL)
+# ✅ NEW: Cool system info box showing OS, arch, package manager, shell, and WSL status
+# ✅ NEW: Alpine (apk) and openSUSE (zypper) package manager support
+# ✅ NEW: Auto-install via Homebrew on macOS (Docker, Ollama, LM Studio)
+# ✅ NEW: Auto-install Ollama on Linux via official script
 # ✅ KEPT: Existing install flow (Node, PM2, deps, key prompts, service checks) unchanged after preflight.
 #
 # Variable name mappings (app expects these exact names):
@@ -131,40 +134,340 @@ progress_bar() {
     tput cnorm 2>/dev/null || true
 }
 
-ask_skip() {
-    local step_name="$1"
-    printf "${yellow}Skip %s? (y/N): ${reset}" "$step_name"
-    read -r reply
-    if [[ "$reply" =~ ^[Yy]$ ]]; then
-        log "${dim}Skipping $step_name...${reset}"
-        return 0 # True, skip it
+###########################
+# OS / Distro Detection   #
+###########################
+DISTRO_NAME="Unknown"
+DISTRO_VERSION=""
+DISTRO_PRETTY="Unknown"
+ARCH="$(uname -m)"
+IS_WSL="No"
+PKG_MANAGER=""
+
+detect_distro() {
+  local os_type
+  os_type="$(uname -s)"
+
+  # Architecture friendly name
+  case "$ARCH" in
+    x86_64)       ARCH_LABEL="x86_64 (amd64)" ;;
+    aarch64|arm64) ARCH_LABEL="arm64 (aarch64)" ;;
+    armv7l)       ARCH_LABEL="armv7l (armhf)" ;;
+    *)            ARCH_LABEL="$ARCH" ;;
+  esac
+
+  # WSL detection (do this early)
+  if [ -f /proc/version ]; then
+    if grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
+      IS_WSL="Yes"
     fi
-    return 1 # False, don't skip
+  fi
+
+  case "$os_type" in
+    Darwin)
+      DISTRO_NAME="macOS"
+      local sw_ver sw_build sw_name chip_info
+      sw_ver="$(sw_vers -productVersion 2>/dev/null || echo '')"
+      sw_build="$(sw_vers -buildVersion 2>/dev/null || echo '')"
+      sw_name=""
+      # Map macOS version to name
+      case "${sw_ver%%.*}" in
+        15) sw_name="Sequoia" ;;
+        14) sw_name="Sonoma" ;;
+        13) sw_name="Ventura" ;;
+        12) sw_name="Monterey" ;;
+        11) sw_name="Big Sur" ;;
+        *)  sw_name="" ;;
+      esac
+      DISTRO_VERSION="$sw_ver"
+      if [ -n "$sw_name" ]; then
+        DISTRO_PRETTY="macOS $sw_name $sw_ver ($sw_build)"
+      else
+        DISTRO_PRETTY="macOS $sw_ver ($sw_build)"
+      fi
+      # Detect Apple Silicon vs Intel
+      if [ "$ARCH" = "arm64" ]; then
+        chip_info="Apple Silicon"
+      else
+        chip_info="Intel"
+      fi
+      DISTRO_PRETTY="$DISTRO_PRETTY [$chip_info]"
+      PKG_MANAGER="brew"
+      ;;
+    Linux)
+      # Use /etc/os-release (standard on all modern distros)
+      if [ -f /etc/os-release ]; then
+        # shellcheck source=/dev/null
+        . /etc/os-release
+        DISTRO_NAME="${ID:-Linux}"
+        DISTRO_VERSION="${VERSION_ID:-}"
+        DISTRO_PRETTY="${PRETTY_NAME:-Linux}"
+      elif [ -f /etc/lsb-release ]; then
+        # shellcheck source=/dev/null
+        . /etc/lsb-release
+        DISTRO_NAME="${DISTRIB_ID:-Linux}"
+        DISTRO_VERSION="${DISTRIB_RELEASE:-}"
+        DISTRO_PRETTY="${DISTRIB_DESCRIPTION:-Linux}"
+      else
+        DISTRO_NAME="Linux"
+        DISTRO_PRETTY="Linux (unknown distro)"
+      fi
+
+      # Raspberry Pi detection
+      if [ -f /proc/device-tree/model ] && grep -qi "raspberry" /proc/device-tree/model 2>/dev/null; then
+        local pi_model
+        pi_model="$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')"
+        DISTRO_PRETTY="$DISTRO_PRETTY [$pi_model]"
+      fi
+
+      # WSL annotation
+      if [ "$IS_WSL" = "Yes" ]; then
+        DISTRO_PRETTY="$DISTRO_PRETTY (WSL)"
+      fi
+
+      # Detect package manager
+      if command -v apt >/dev/null 2>&1; then PKG_MANAGER="apt"
+      elif command -v apt-get >/dev/null 2>&1; then PKG_MANAGER="apt-get"
+      elif command -v dnf >/dev/null 2>&1; then PKG_MANAGER="dnf"
+      elif command -v pacman >/dev/null 2>&1; then PKG_MANAGER="pacman"
+      elif command -v apk >/dev/null 2>&1; then PKG_MANAGER="apk"
+      elif command -v zypper >/dev/null 2>&1; then PKG_MANAGER="zypper"
+      elif command -v yum >/dev/null 2>&1; then PKG_MANAGER="yum"
+      fi
+      ;;
+    MINGW*|MSYS*|CYGWIN*)
+      DISTRO_NAME="Windows"
+      DISTRO_PRETTY="Windows (Git Bash / MSYS)"
+      PKG_MANAGER=""
+      ;;
+    *)
+      DISTRO_NAME="Unknown"
+      DISTRO_PRETTY="$os_type (unrecognized)"
+      ;;
+  esac
 }
 
-ask_redo() {
-    local step_name="$1"
-    printf "${yellow}Redo %s? (y/N): ${reset}" "$step_name"
-    read -r reply
-    if [[ "$reply" =~ ^[Yy]$ ]]; then
-        return 0 # True, redo it
-    fi
-    return 1 # False, don't redo
+show_system_info() {
+  local shell_ver=""
+  if [ -n "${BASH_VERSION:-}" ]; then
+    shell_ver="bash $BASH_VERSION"
+  elif [ -n "${ZSH_VERSION:-}" ]; then
+    shell_ver="zsh $ZSH_VERSION"
+  else
+    shell_ver="$(basename "${SHELL:-sh}")"
+  fi
+
+  local pkg_display="${PKG_MANAGER:-none detected}"
+  local box_width=53
+
+  log
+  log "  ${cyan}┌─────────────────────────────────────────────────────┐${reset}"
+  log "  ${cyan}│${reset}  ${bold}System Detected${reset}                                    ${cyan}│${reset}"
+  printf "  ${cyan}│${reset}  OS:     %-43s${cyan}│${reset}\n" "$DISTRO_PRETTY"
+  printf "  ${cyan}│${reset}  Arch:   %-43s${cyan}│${reset}\n" "${ARCH_LABEL:-$ARCH}"
+  printf "  ${cyan}│${reset}  Pkg:    %-43s${cyan}│${reset}\n" "$pkg_display"
+  printf "  ${cyan}│${reset}  Shell:  %-43s${cyan}│${reset}\n" "$shell_ver"
+  printf "  ${cyan}│${reset}  WSL:    %-43s${cyan}│${reset}\n" "$IS_WSL"
+  log "  ${cyan}└─────────────────────────────────────────────────────┘${reset}"
+  log
 }
 
-# Early preflight: offer to download core apps (Docker, Ollama, LM Studio) before continuing
+# Preflight detection variables (set by preflight_detect, used by main sequence)
+PF_NODE_INSTALLED=false
+PF_NODE_VERSION=""
+PF_NODE_OK=false
+PF_PM2_INSTALLED=false
+PF_PM2_VERSION=""
+PF_DOCKER_INSTALLED=false
+PF_DOCKER_VERSION=""
+PF_OLLAMA_INSTALLED=false
+PF_LMSTUDIO_INSTALLED=false
+PF_GIT_INSTALLED=false
+PF_GIT_VERSION=""
+PF_CURL_INSTALLED=false
+PF_NVM_INSTALLED=false
+PF_BREW_INSTALLED=false
+
+preflight_detect() {
+    # Node.js
+    if command -v node >/dev/null 2>&1; then
+        PF_NODE_INSTALLED=true
+        PF_NODE_VERSION="$(node -v 2>/dev/null)"
+        local major="${PF_NODE_VERSION#v}"
+        major="${major%%.*}"
+        if [ "$major" = "22" ]; then
+            PF_NODE_OK=true
+        fi
+    fi
+
+    # PM2
+    if command -v pm2 >/dev/null 2>&1; then
+        PF_PM2_INSTALLED=true
+        PF_PM2_VERSION="$(pm2 -v 2>/dev/null)"
+    fi
+
+    # Docker
+    if command -v docker >/dev/null 2>&1; then
+        PF_DOCKER_INSTALLED=true
+        PF_DOCKER_VERSION="$(docker --version 2>/dev/null)"
+    fi
+
+    # Ollama
+    if command -v ollama >/dev/null 2>&1; then
+        PF_OLLAMA_INSTALLED=true
+    fi
+
+    # LM Studio - check common install paths
+    local lm_paths=(
+        "$HOME/Applications/LM Studio.app"
+        "/Applications/LM Studio.app"
+        "$HOME/.local/bin/lms"
+    )
+    for p in "${lm_paths[@]}"; do
+        if [ -e "$p" ]; then
+            PF_LMSTUDIO_INSTALLED=true
+            break
+        fi
+    done
+
+    # Git
+    if command -v git >/dev/null 2>&1; then
+        PF_GIT_INSTALLED=true
+        PF_GIT_VERSION="$(git --version 2>/dev/null)"
+    fi
+
+    # Curl
+    if command -v curl >/dev/null 2>&1; then
+        PF_CURL_INSTALLED=true
+    fi
+
+    # nvm
+    load_nvm
+    if command -v nvm >/dev/null 2>&1; then
+        PF_NVM_INSTALLED=true
+    fi
+
+    # Homebrew
+    if command -v brew >/dev/null 2>&1; then
+        PF_BREW_INSTALLED=true
+    fi
+}
+
 preflight_downloads() {
-    log "${bold}${cyan}Preflight Downloads (optional)${reset}"
-    log "If you want, download/install these now, then re-run this script:"
-    printf "  ${cyan}•${reset} Docker Desktop (Windows/macOS): ${green}https://www.docker.com/get-started${reset}\n"
-    printf "    Windows direct: ${green}https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe${reset}\n"
-    printf "  ${cyan}•${reset} Ollama: ${green}https://ollama.com/download${reset}\n"
-    printf "  ${cyan}•${reset} LM Studio: ${green}https://lmstudio.ai/download${reset}\n\n"
-    printf "${yellow}Do you want to exit now to install these and rerun the script? (y/N): ${reset}"
-    read -r ans
-    if [[ "$ans" =~ ^[Yy]$ ]]; then
-        log "${dim}Okay! Download/install the apps above, then re-run install-me-now.sh${reset}"
-        exit 0
+    log "${bold}${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}"
+    log "${bold}  Preflight Check - Detecting installed software...${reset}"
+    log "${bold}${cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}"
+    log
+
+    detect_distro
+    show_system_info
+
+    preflight_detect
+
+    local missing_required=0
+    local missing_optional=0
+
+    # --- Required ---
+    # Node.js
+    if [ "$PF_NODE_OK" = true ]; then
+        log "  ${green}[INSTALLED]${reset}  Node.js $PF_NODE_VERSION"
+    elif [ "$PF_NODE_INSTALLED" = true ]; then
+        log "  ${yellow}[WRONG VER]${reset}  Node.js $PF_NODE_VERSION (need v22.x)"
+        missing_required=1
+    else
+        log "  ${red}[MISSING]${reset}    Node.js 22"
+        missing_required=1
+    fi
+
+    # PM2
+    if [ "$PF_PM2_INSTALLED" = true ]; then
+        log "  ${green}[INSTALLED]${reset}  PM2 v$PF_PM2_VERSION"
+    else
+        log "  ${red}[MISSING]${reset}    PM2 (will install via npm after Node.js)"
+        missing_required=1
+    fi
+
+    # Git
+    if [ "$PF_GIT_INSTALLED" = true ]; then
+        log "  ${green}[INSTALLED]${reset}  $PF_GIT_VERSION"
+    else
+        log "  ${red}[MISSING]${reset}    Git"
+        missing_required=1
+    fi
+
+    # Curl
+    if [ "$PF_CURL_INSTALLED" = true ]; then
+        log "  ${green}[INSTALLED]${reset}  curl"
+    else
+        log "  ${red}[MISSING]${reset}    curl"
+        missing_required=1
+    fi
+
+    log
+    log "  ${dim}Optional:${reset}"
+
+    # Docker
+    if [ "$PF_DOCKER_INSTALLED" = true ]; then
+        log "  ${green}[INSTALLED]${reset}  $PF_DOCKER_VERSION"
+    else
+        log "  ${yellow}[MISSING]${reset}    Docker Desktop (for WordPress + containers)"
+        missing_optional=1
+    fi
+
+    # Ollama
+    if [ "$PF_OLLAMA_INSTALLED" = true ]; then
+        log "  ${green}[INSTALLED]${reset}  Ollama"
+    else
+        log "  ${yellow}[MISSING]${reset}    Ollama (local AI models)"
+        missing_optional=1
+    fi
+
+    # LM Studio
+    if [ "$PF_LMSTUDIO_INSTALLED" = true ]; then
+        log "  ${green}[INSTALLED]${reset}  LM Studio"
+    else
+        log "  ${yellow}[MISSING]${reset}    LM Studio (local AI GUI)"
+        missing_optional=1
+    fi
+
+    log
+
+    # Summary
+    local total_missing=$((missing_required + missing_optional))
+    if [ $total_missing -eq 0 ]; then
+        log "  ${green}${bold}All software detected! Ready to proceed.${reset}"
+        log
+        return
+    fi
+
+    # Show download links only for missing items
+    if [ $missing_required -gt 0 ] || [ $missing_optional -gt 0 ]; then
+        log "  ${dim}Download links for missing software:${reset}"
+        if [ "$PF_NODE_OK" = false ]; then
+            log "    ${cyan}•${reset} Node.js 22: ${green}https://nodejs.org/dist/v22.11.0/${reset} (or use nvm)"
+        fi
+        if [ "$PF_DOCKER_INSTALLED" = false ]; then
+            log "    ${cyan}•${reset} Docker Desktop: ${green}https://www.docker.com/get-started${reset}"
+        fi
+        if [ "$PF_OLLAMA_INSTALLED" = false ]; then
+            log "    ${cyan}•${reset} Ollama: ${green}https://ollama.com/download${reset}"
+        fi
+        if [ "$PF_LMSTUDIO_INSTALLED" = false ]; then
+            log "    ${cyan}•${reset} LM Studio: ${green}https://lmstudio.ai/download${reset}"
+        fi
+        log
+    fi
+
+    if [ $missing_required -gt 0 ]; then
+        printf "${yellow}Exit now to install missing software and rerun the script? (y/N): ${reset}"
+        read -r ans
+        if [[ "$ans" =~ ^[Yy]$ ]]; then
+            log "${dim}Okay! Download/install the missing apps above, then re-run install-me-now.sh${reset}"
+            exit 0
+        fi
+    else
+        log "  ${dim}Required software is installed. Optional tools can be added later.${reset}"
+        log
     fi
 }
 
@@ -186,14 +489,20 @@ if [ ! -f "$PROJECT_ROOT/package.json" ]; then
 fi
 
 OS="$(uname -s)"
-PM=""
+PM="$PKG_MANAGER"
 case "$OS" in
-  Darwin) PM="brew" ;;
+  Darwin) PM="${PM:-brew}" ;;
   Linux)
-    if command -v apt >/dev/null 2>&1; then PM="apt"
-    elif command -v apt-get >/dev/null 2>&1; then PM="apt-get"
-    elif command -v dnf >/dev/null 2>&1; then PM="dnf"
-    elif command -v pacman >/dev/null 2>&1; then PM="pacman"
+    # PM already set by detect_distro; fallback detection if empty
+    if [ -z "$PM" ]; then
+      if command -v apt >/dev/null 2>&1; then PM="apt"
+      elif command -v apt-get >/dev/null 2>&1; then PM="apt-get"
+      elif command -v dnf >/dev/null 2>&1; then PM="dnf"
+      elif command -v pacman >/dev/null 2>&1; then PM="pacman"
+      elif command -v apk >/dev/null 2>&1; then PM="apk"
+      elif command -v zypper >/dev/null 2>&1; then PM="zypper"
+      elif command -v yum >/dev/null 2>&1; then PM="yum"
+      fi
     fi
     ;;
   MINGW*|MSYS*|CYGWIN*)
@@ -239,6 +548,9 @@ ensure_pkg() {
     apt|apt-get) spinner "Installing $pkg..." sudo "$PM" update && sudo "$PM" install -y "$pkg" ;;
     dnf) spinner "Installing $pkg..." sudo dnf install -y "$pkg" ;;
     pacman) spinner "Installing $pkg..." sudo pacman -Sy --noconfirm "$pkg" ;;
+    apk) spinner "Installing $pkg..." sudo apk add --no-cache "$pkg" ;;
+    zypper) spinner "Installing $pkg..." sudo zypper install -y "$pkg" ;;
+    yum) spinner "Installing $pkg..." sudo yum install -y "$pkg" ;;
   esac
   ok "$name installed."
 }
@@ -464,15 +776,108 @@ ensure_node() {
     fi
   fi
 
-  # Need to install Node 22
-  if ! command -v nvm >/dev/null 2>&1; then
-    install_nvm
-  fi
+  # Need to install Node 22 - offer multiple methods
+  log
+  log "${bold}${yellow}Choose Node.js install method:${reset}"
+  log "  ${green}1)${reset} nvm (recommended - manage multiple versions)"
 
-  step "Installing Node.js v22 via nvm..."
-  nvm install 22
-  nvm use 22
-  nvm alias default 22
+  case "$OS" in
+    Darwin)
+      log "  ${cyan}2)${reset} Homebrew: brew install node@22"
+      ;;
+    Linux)
+      if [ -n "$PM" ]; then
+        case "$PM" in
+          apt|apt-get) log "  ${cyan}2)${reset} System package manager: sudo $PM install nodejs npm" ;;
+          dnf)         log "  ${cyan}2)${reset} System package manager: sudo dnf install nodejs npm" ;;
+          pacman)      log "  ${cyan}2)${reset} System package manager: sudo pacman -S nodejs npm" ;;
+          apk)         log "  ${cyan}2)${reset} System package manager: sudo apk add nodejs npm" ;;
+          zypper)      log "  ${cyan}2)${reset} System package manager: sudo zypper install nodejs npm" ;;
+          yum)         log "  ${cyan}2)${reset} System package manager: sudo yum install nodejs npm" ;;
+        esac
+      fi
+      ;;
+  esac
+
+  log
+  printf "${yellow}Install via [1] nvm or [2] system package manager? (1/2): ${reset}"
+  read -r node_choice
+
+  case "$node_choice" in
+    2)
+      # Direct install via system package manager
+      case "$OS" in
+        Darwin)
+          if [ "$PF_BREW_INSTALLED" = true ]; then
+            step "Installing Node.js 22 via Homebrew..."
+            if brew install node@22; then
+              brew link --overwrite node@22 2>/dev/null || true
+              ok "Node.js installed via Homebrew!"
+            else
+              warn "Homebrew install failed. Falling back to nvm..."
+              node_choice="1"
+            fi
+          else
+            warn "Homebrew not found. Install Homebrew first: https://brew.sh"
+            log "${dim}Falling back to nvm...${reset}"
+            node_choice="1"
+          fi
+          ;;
+        Linux)
+          if [ -n "$PM" ]; then
+            step "Installing Node.js and npm via $PM..."
+            case "$PM" in
+              apt|apt-get)
+                # Use NodeSource for v22 on Debian/Ubuntu
+                if curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - 2>/dev/null; then
+                  sudo $PM install -y nodejs
+                else
+                  warn "NodeSource setup failed. Installing distro default Node..."
+                  sudo $PM update && sudo $PM install -y nodejs npm
+                fi
+                ;;
+              dnf)    sudo dnf install -y nodejs npm ;;
+              pacman) sudo pacman -Sy --noconfirm nodejs npm ;;
+              apk)    sudo apk add --no-cache nodejs npm ;;
+              zypper) sudo zypper install -y nodejs npm ;;
+              yum)    sudo yum install -y nodejs npm ;;
+            esac
+            if command -v node >/dev/null 2>&1; then
+              local sys_ver
+              sys_ver="$(node -v)"
+              ok "Node.js $sys_ver installed via $PM."
+              if [[ ! "$sys_ver" == v22.* ]]; then
+                warn "System package manager installed $sys_ver (not v22.x)."
+                log "${dim}Distro repos may not have Node 22 yet. For exact v22, use nvm.${reset}"
+              fi
+            else
+              warn "Node install via $PM may have failed. Falling back to nvm..."
+              node_choice="1"
+            fi
+          else
+            warn "No package manager detected. Falling back to nvm..."
+            node_choice="1"
+          fi
+          ;;
+        *)
+          warn "Direct install not supported on $OS. Falling back to nvm..."
+          node_choice="1"
+          ;;
+      esac
+      ;;
+  esac
+
+  # Fallback / explicit choice: nvm
+  if [ "$node_choice" != "2" ] || ! command -v node >/dev/null 2>&1; then
+    if ! command -v nvm >/dev/null 2>&1; then
+      install_nvm
+    fi
+
+    step "Installing Node.js v22 via nvm..."
+    nvm install 22
+    nvm use 22
+    nvm alias default 22
+  fi
 
   # Verify Node is now available and correct version
   if ! command -v node >/dev/null 2>&1; then
@@ -486,8 +891,11 @@ ensure_node() {
   installed_ver="$(node -v)"
   if [[ ! "$installed_ver" == v22.* ]]; then
     warn "Expected Node v22.x but got $installed_ver"
-    log "${dim}Attempting to switch to Node 22...${reset}"
-    nvm use 22
+    log "${dim}Attempting to switch to Node 22 via nvm...${reset}"
+    if command -v nvm >/dev/null 2>&1; then
+      nvm install 22 2>/dev/null
+      nvm use 22
+    fi
   fi
 
   ok "Node.js $(node -v) ready."
@@ -542,13 +950,24 @@ check_ollama() {
 
   case "$OS" in
     Darwin)
-      log "Opening Ollama download page in your browser..."
-      log "${dim}On macOS, the Ollama Desktop App INCLUDES the command-line tools.${reset}"
-      log "${dim}You do NOT need to install the CLI separately.${reset}"
-      log "${dim}1. Download the .zip/.dmg${reset}"
-      log "${dim}2. Drag to Applications${reset}"
-      log "${dim}3. Run 'Ollama' from Applications to start the server${reset}"
-      open "https://ollama.com/download/mac" 2>/dev/null || log "Visit: https://ollama.com/download/mac"
+      if [ "$PF_BREW_INSTALLED" = true ]; then
+        log "${green}Homebrew detected!${reset} Installing Ollama via brew..."
+        if brew install ollama; then
+          ok "Ollama installed via Homebrew!"
+          log "${dim}Start Ollama: ${bold}ollama serve${reset}"
+        else
+          warn "Brew install failed. Falling back to manual download..."
+          open "https://ollama.com/download/mac" 2>/dev/null || log "Visit: https://ollama.com/download/mac"
+        fi
+      else
+        log "Opening Ollama download page in your browser..."
+        log "${dim}On macOS, the Ollama Desktop App INCLUDES the command-line tools.${reset}"
+        log "${dim}You do NOT need to install the CLI separately.${reset}"
+        log "${dim}1. Download the .zip/.dmg${reset}"
+        log "${dim}2. Drag to Applications${reset}"
+        log "${dim}3. Run 'Ollama' from Applications to start the server${reset}"
+        open "https://ollama.com/download/mac" 2>/dev/null || log "Visit: https://ollama.com/download/mac"
+      fi
       ;;
     Linux)
       # Check for WSL
@@ -600,20 +1019,32 @@ check_docker() {
 
   case "$OS" in
     Darwin)
-      log "Opening Docker Desktop download page..."
-      log "${dim}${bold}Docker Desktop for Mac includes ALL CLI tools:${reset}"
-      log "${dim}  ✓ Docker Engine (daemon)${reset}"
-      log "${dim}  ✓ Docker CLI (docker command)${reset}"
-      log "${dim}  ✓ Docker Compose (multi-container management)${reset}"
-      log "${dim}  ✓ Docker Desktop GUI${reset}"
-      log
-      log "${dim}Installation steps:${reset}"
-      log "${dim}1. Download the .dmg (Apple Chip for M1/M2/M3/M4, Intel for others)${reset}"
-      log "${dim}2. Drag Docker.app to Applications folder${reset}"
-      log "${dim}3. Open Docker from Applications to start${reset}"
-      log "${dim}4. Wait for Docker to fully start (whale icon in menu bar)${reset}"
-      log
-      open "https://docs.docker.com/desktop/setup/install/mac-install/" 2>/dev/null || log "Visit: ${cyan}https://docs.docker.com/desktop/setup/install/mac-install/${reset}"
+      if [ "$PF_BREW_INSTALLED" = true ]; then
+        log "${green}Homebrew detected!${reset} Installing Docker Desktop via brew..."
+        if brew install --cask docker; then
+          ok "Docker Desktop installed via Homebrew!"
+          log "${dim}Open Docker from Applications to start the daemon.${reset}"
+          log "${dim}Wait for the whale icon in the menu bar before using docker commands.${reset}"
+        else
+          warn "Brew cask install failed. Falling back to manual download..."
+          open "https://docs.docker.com/desktop/setup/install/mac-install/" 2>/dev/null || log "Visit: ${cyan}https://docs.docker.com/desktop/setup/install/mac-install/${reset}"
+        fi
+      else
+        log "Opening Docker Desktop download page..."
+        log "${dim}${bold}Docker Desktop for Mac includes ALL CLI tools:${reset}"
+        log "${dim}  ✓ Docker Engine (daemon)${reset}"
+        log "${dim}  ✓ Docker CLI (docker command)${reset}"
+        log "${dim}  ✓ Docker Compose (multi-container management)${reset}"
+        log "${dim}  ✓ Docker Desktop GUI${reset}"
+        log
+        log "${dim}Installation steps:${reset}"
+        log "${dim}1. Download the .dmg (Apple Chip for M1/M2/M3/M4, Intel for others)${reset}"
+        log "${dim}2. Drag Docker.app to Applications folder${reset}"
+        log "${dim}3. Open Docker from Applications to start${reset}"
+        log "${dim}4. Wait for Docker to fully start (whale icon in menu bar)${reset}"
+        log
+        open "https://docs.docker.com/desktop/setup/install/mac-install/" 2>/dev/null || log "Visit: ${cyan}https://docs.docker.com/desktop/setup/install/mac-install/${reset}"
+      fi
       ;;
     Linux)
       # Check for WSL
@@ -662,6 +1093,18 @@ check_docker() {
       log "Visit ${cyan}https://www.docker.com/get-started/${reset} to download Docker."
       ;;
   esac
+}
+
+check_lmstudio() {
+  if [ "$PF_LMSTUDIO_INSTALLED" = true ]; then
+    ok "LM Studio already installed."
+    return 0
+  fi
+
+  # LM Studio is already shown as optional in preflight - only offer install
+  # if the user goes through the Ollama check and declines it, or as a bonus.
+  # This function is called from the main sequence if LM Studio is missing.
+  return 0
 }
 
 ########################
@@ -939,53 +1382,99 @@ EOF
 ########################
 # Main sequence        #
 ########################
-########################
-# Main sequence        #
-########################
 
 log
 progress_bar 1 "Initializing Installer"
 log
 
-if ! ask_skip "System Checks"; then
+# Step 1: System checks (curl, git)
+if [ "$PF_CURL_INSTALLED" = true ] && [ "$PF_GIT_INSTALLED" = true ]; then
+    ok "curl and git already installed - skipping system checks."
+else
     step "Checking essentials (curl, git)..."
     ensure_pkg curl
     ensure_pkg git
 fi
 
-if ! ask_skip "Node.js Setup"; then
+# Step 2: Node.js
+if [ "$PF_NODE_OK" = true ]; then
+    ok "Node.js $PF_NODE_VERSION already installed - skipping."
+else
     step "Ensuring Node.js 22.x..."
     ensure_node
 fi
 
-if ! ask_skip "PM2 Installation"; then
+# Step 3: PM2
+if [ "$PF_PM2_INSTALLED" = true ]; then
+    ok "PM2 v$PF_PM2_VERSION already installed - skipping."
+else
     step "Installing PM2 process manager..."
     install_pm2
 fi
 
-if ! ask_skip "Ollama Check"; then
+# Step 4: Ollama
+if [ "$PF_OLLAMA_INSTALLED" = true ]; then
+    ok "Ollama already installed - skipping."
+else
     step "Checking for Ollama (optional local AI)..."
     check_ollama
 fi
 
-if ! ask_skip "Docker Check"; then
+# Step 5: Docker
+if [ "$PF_DOCKER_INSTALLED" = true ]; then
+    ok "Docker already installed - skipping."
+else
     step "Checking for Docker (optional container support)..."
     check_docker
 fi
 
-if ! ask_skip "Dependency Installation"; then
+# Step 6: Dependencies
+cd "$PROJECT_ROOT"
+local_deps_ok=false
+if [ -d "node_modules" ]; then
+    deps_missing=false
+    for pkg in vite pm2 better-sqlite3 express react; do
+        if [ ! -d "node_modules/$pkg" ]; then
+            deps_missing=true
+            break
+        fi
+    done
+    if [ "$deps_missing" = false ]; then
+        local_pkg_count="$(ls -d node_modules/*/ 2>/dev/null | wc -l | tr -d ' ')"
+        ok "Dependencies already installed ($local_pkg_count packages) - skipping."
+        printf "${yellow}  Reinstall anyway? (y/N): ${reset}"
+        read -r reinstall_reply
+        if [[ "$reinstall_reply" =~ ^[Yy]$ ]]; then
+            step "Reinstalling project dependencies..."
+            prepare_deps
+        fi
+        local_deps_ok=true
+    fi
+fi
+if [ "$local_deps_ok" = false ]; then
     step "Installing project dependencies..."
     prepare_deps
 fi
 
-if ! ask_skip "API Key Setup"; then
+# Step 7: API Keys
+env_file="$PROJECT_ROOT/.env"
+if [ -f "$env_file" ]; then
+    existing_keys="$(grep -c "^VITE_.*=.\+" "$env_file" 2>/dev/null || echo 0)"
+    if [ "$existing_keys" -gt 0 ]; then
+        ok "API keys file exists ($existing_keys keys configured)."
+        printf "${yellow}  Reconfigure API keys? (y/N): ${reset}"
+        read -r reconfig_reply
+        if [[ "$reconfig_reply" =~ ^[Yy]$ ]]; then
+            step "Collecting API keys into .env..."
+            collect_env
+        fi
+    else
+        step "Collecting API keys into .env..."
+        collect_env
+    fi
+else
     step "Collecting API keys into .env..."
     collect_env
-    
-    # Redo option for API keys
-    while ask_redo "API Key Setup"; do
-        collect_env
-    done
 fi
 
 log

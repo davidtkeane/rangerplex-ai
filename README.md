@@ -1,10 +1,10 @@
 # ⚔️ RangerPlex AI
 
-> 🚀 Skip the bull and install right now: `bash install-me-now.sh`
+> 🚀 Skip the bull and install right now - pick your platform:
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-4.3.8-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-4.4.0-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
@@ -14,6 +14,25 @@
 [Features](#-features) • [Prerequisites](#-prerequisites) • [Installation](#-installation) • [Running the App](#-running-the-app-mission-start) • [Data Persistence](#-data-persistence) • [Troubleshooting](#-troubleshooting)
 
 </div>
+
+## Quick Install (One-Liner)
+
+### Windows (PowerShell - Run as Admin)
+```powershell
+.\install-me-now.ps1
+```
+
+### macOS (Terminal)
+```bash
+bash install-me-now.sh
+```
+
+### Linux / WSL (Terminal)
+```bash
+bash install-me-now.sh
+```
+
+> The install scripts auto-detect your OS, install Node.js 22 + npm + dependencies, and guide you through API key setup. Smart enough to use `brew` on macOS, `winget` on Windows, or `apt`/`dnf`/`pacman`/`apk`/`zypper` on Linux.
 
 ---
 

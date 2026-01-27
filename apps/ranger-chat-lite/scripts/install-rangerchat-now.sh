@@ -2,9 +2,11 @@
 #
 # RangerChat Lite - One-Command Installer
 # ============================================================
-# Works on: macOS (Intel & Apple Silicon), Linux (Ubuntu, Debian, Fedora, Arch)
+# Works on: macOS (Intel & Apple Silicon), Linux (Ubuntu, Debian, Fedora, Arch,
+#           Alpine, openSUSE, CentOS/RHEL, Raspberry Pi), WSL
 #
 # Created: December 4, 2025
+# Updated: January 27, 2026 (v1.8.0 - Smart OS detection & auto-install)
 # Author: David Keane (IrishRanger) + Claude Code (Ranger)
 #
 # Usage:
@@ -28,6 +30,7 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
 BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m' # No Color
 
 # Defaults
@@ -36,7 +39,7 @@ DEV_MODE=true
 BUILD_MODE=false
 AUTO_START=true
 SKIP_CONFIRM=false
-VERSION="1.7.3"
+VERSION="1.8.0"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -65,6 +68,113 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+###########################
+# OS / Distro Detection   #
+###########################
+DISTRO_PRETTY="Unknown"
+PKG_MANAGER=""
+IS_WSL="No"
+HAS_BREW=false
+
+detect_system() {
+    local os_type
+    os_type="$(uname -s)"
+    local arch
+    arch="$(uname -m)"
+
+    # Architecture friendly name
+    case "$arch" in
+        x86_64)        ARCH_LABEL="x86_64 (amd64)" ;;
+        aarch64|arm64) ARCH_LABEL="arm64 (aarch64)" ;;
+        armv7l)        ARCH_LABEL="armv7l (armhf)" ;;
+        *)             ARCH_LABEL="$arch" ;;
+    esac
+
+    # WSL detection
+    if [ -f /proc/version ]; then
+        if grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
+            IS_WSL="Yes"
+        fi
+    fi
+
+    # Homebrew detection
+    if command -v brew &>/dev/null; then
+        HAS_BREW=true
+    fi
+
+    case "$os_type" in
+        Darwin)
+            local sw_ver sw_name chip_info
+            sw_ver="$(sw_vers -productVersion 2>/dev/null || echo '')"
+            sw_name=""
+            case "${sw_ver%%.*}" in
+                15) sw_name="Sequoia" ;; 14) sw_name="Sonoma" ;;
+                13) sw_name="Ventura" ;; 12) sw_name="Monterey" ;;
+                11) sw_name="Big Sur" ;; *) sw_name="" ;;
+            esac
+            if [ "$arch" = "arm64" ]; then chip_info="Apple Silicon"; else chip_info="Intel"; fi
+            if [ -n "$sw_name" ]; then
+                DISTRO_PRETTY="macOS $sw_name $sw_ver ($chip_info)"
+            else
+                DISTRO_PRETTY="macOS $sw_ver ($chip_info)"
+            fi
+            PKG_MANAGER="brew"
+            ;;
+        Linux)
+            if [ -f /etc/os-release ]; then
+                # shellcheck source=/dev/null
+                . /etc/os-release
+                DISTRO_PRETTY="${PRETTY_NAME:-Linux}"
+            else
+                DISTRO_PRETTY="Linux (unknown distro)"
+            fi
+
+            # Raspberry Pi
+            if [ -f /proc/device-tree/model ] && grep -qi "raspberry" /proc/device-tree/model 2>/dev/null; then
+                local pi_model
+                pi_model="$(tr -d '\0' < /proc/device-tree/model 2>/dev/null)"
+                DISTRO_PRETTY="$DISTRO_PRETTY [$pi_model]"
+            fi
+
+            # WSL annotation
+            if [ "$IS_WSL" = "Yes" ]; then
+                DISTRO_PRETTY="$DISTRO_PRETTY (WSL)"
+            fi
+
+            # Detect package manager
+            if command -v apt &>/dev/null; then PKG_MANAGER="apt"
+            elif command -v apt-get &>/dev/null; then PKG_MANAGER="apt-get"
+            elif command -v dnf &>/dev/null; then PKG_MANAGER="dnf"
+            elif command -v pacman &>/dev/null; then PKG_MANAGER="pacman"
+            elif command -v apk &>/dev/null; then PKG_MANAGER="apk"
+            elif command -v zypper &>/dev/null; then PKG_MANAGER="zypper"
+            elif command -v yum &>/dev/null; then PKG_MANAGER="yum"
+            fi
+            ;;
+    esac
+}
+
+show_system_info() {
+    local shell_ver=""
+    if [ -n "${BASH_VERSION:-}" ]; then shell_ver="bash $BASH_VERSION"
+    elif [ -n "${ZSH_VERSION:-}" ]; then shell_ver="zsh $ZSH_VERSION"
+    else shell_ver="$(basename "${SHELL:-sh}")"
+    fi
+
+    local pkg_display="${PKG_MANAGER:-none detected}"
+
+    echo ""
+    echo -e "  ${CYAN}┌─────────────────────────────────────────────────────┐${NC}"
+    echo -e "  ${CYAN}│${NC}  ${BOLD}System Detected${NC}                                    ${CYAN}│${NC}"
+    printf "  ${CYAN}│${NC}  OS:     %-43s${CYAN}│${NC}\n" "$DISTRO_PRETTY"
+    printf "  ${CYAN}│${NC}  Arch:   %-43s${CYAN}│${NC}\n" "${ARCH_LABEL:-$(uname -m)}"
+    printf "  ${CYAN}│${NC}  Pkg:    %-43s${CYAN}│${NC}\n" "$pkg_display"
+    printf "  ${CYAN}│${NC}  Shell:  %-43s${CYAN}│${NC}\n" "$shell_ver"
+    printf "  ${CYAN}│${NC}  WSL:    %-43s${CYAN}│${NC}\n" "$IS_WSL"
+    echo -e "  ${CYAN}└─────────────────────────────────────────────────────┘${NC}"
+    echo ""
+}
+
 # Banner
 clear
 echo -e "${CYAN}"
@@ -83,8 +193,8 @@ cat << 'EOF'
                            ███████╗██║   ██║   ███████╗
                            ╚══════╝╚═╝   ╚═╝   ╚══════╝
  ══════════════════════════════════════════════════════════════════════
-            🦅 Lightweight Chat for RangerBlock Network 🦅
-            Version 1.7.3 - One-Command Installer
+            Lightweight Chat for RangerBlock Network
+            Version 1.8.0 - One-Command Installer
             Created by IrishRanger + Claude Code (Ranger)
  ══════════════════════════════════════════════════════════════════════
 EOF
@@ -94,19 +204,16 @@ echo -e "${NC}"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
-echo -e "${YELLOW}Detecting system...${NC}"
-echo -e "  OS: ${GREEN}$OS${NC}"
-echo -e "  Architecture: ${GREEN}$ARCH${NC}"
+detect_system
+show_system_info
 
 # Check if macOS or Linux
 if [[ "$OS" != "darwin" && "$OS" != "linux" ]]; then
     echo -e "${RED}Error: Unsupported operating system: $OS${NC}"
     echo "This installer supports macOS and Linux only."
-    echo "For Windows, please use install.ps1"
+    echo "For Windows, please use install-rangerchat-now.ps1"
     exit 1
 fi
-
-echo ""
 
 # ============================================================
 # STEP 1: Check/Install Node.js
@@ -122,10 +229,11 @@ else
     echo -e "${YELLOW}Node.js not found. Installing...${NC}"
 
     if [[ "$OS" == "darwin" ]]; then
-        # macOS - use Homebrew or direct download
-        if command -v brew &> /dev/null; then
-            echo -e "${BLUE}Installing via Homebrew...${NC}"
-            brew install node
+        # macOS - use Homebrew
+        if [ "$HAS_BREW" = true ]; then
+            echo -e "${BLUE}Installing Node.js 22 via Homebrew...${NC}"
+            brew install node@22
+            brew link --overwrite node@22 2>/dev/null || brew install node
         else
             echo -e "${BLUE}Installing Homebrew first...${NC}"
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -135,33 +243,63 @@ else
                 eval "$(/opt/homebrew/bin/brew shellenv)"
             fi
 
-            brew install node
+            brew install node@22
+            brew link --overwrite node@22 2>/dev/null || brew install node
         fi
     else
-        # Linux - detect package manager
-        if command -v apt-get &> /dev/null; then
-            echo -e "${BLUE}Installing via apt (Debian/Ubuntu)...${NC}"
-            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-            sudo apt-get install -y nodejs
-        elif command -v dnf &> /dev/null; then
-            echo -e "${BLUE}Installing via dnf (Fedora)...${NC}"
-            sudo dnf install -y nodejs npm
-        elif command -v yum &> /dev/null; then
-            echo -e "${BLUE}Installing via yum (CentOS/RHEL)...${NC}"
-            curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-            sudo yum install -y nodejs
-        elif command -v pacman &> /dev/null; then
-            echo -e "${BLUE}Installing via pacman (Arch)...${NC}"
-            sudo pacman -S --noconfirm nodejs npm
-        else
-            echo -e "${RED}Error: Could not detect package manager${NC}"
-            echo "Please install Node.js manually: https://nodejs.org"
-            exit 1
-        fi
+        # Linux - detect package manager and install Node + npm
+        case "$PKG_MANAGER" in
+            apt|apt-get)
+                echo -e "${BLUE}Installing Node.js 22 via NodeSource + apt (Debian/Ubuntu)...${NC}"
+                if curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - 2>/dev/null; then
+                    sudo $PKG_MANAGER install -y nodejs
+                else
+                    echo -e "${YELLOW}NodeSource setup failed. Installing distro default...${NC}"
+                    sudo $PKG_MANAGER update && sudo $PKG_MANAGER install -y nodejs npm
+                fi
+                ;;
+            dnf)
+                echo -e "${BLUE}Installing via dnf (Fedora)...${NC}"
+                sudo dnf install -y nodejs npm
+                ;;
+            yum)
+                echo -e "${BLUE}Installing Node.js 22 via NodeSource + yum (CentOS/RHEL)...${NC}"
+                if curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash - 2>/dev/null; then
+                    sudo yum install -y nodejs
+                else
+                    echo -e "${YELLOW}NodeSource setup failed. Installing distro default...${NC}"
+                    sudo yum install -y nodejs npm
+                fi
+                ;;
+            pacman)
+                echo -e "${BLUE}Installing via pacman (Arch)...${NC}"
+                sudo pacman -Sy --noconfirm nodejs npm
+                ;;
+            apk)
+                echo -e "${BLUE}Installing via apk (Alpine)...${NC}"
+                sudo apk add --no-cache nodejs npm
+                ;;
+            zypper)
+                echo -e "${BLUE}Installing via zypper (openSUSE)...${NC}"
+                sudo zypper install -y nodejs npm
+                ;;
+            *)
+                echo -e "${RED}Error: Could not detect package manager${NC}"
+                echo "Please install Node.js manually: https://nodejs.org"
+                exit 1
+                ;;
+        esac
     fi
 
-    NODE_VERSION=$(node -v)
-    echo -e "${GREEN}✓ Node.js installed: $NODE_VERSION${NC}"
+    # Verify Node was installed
+    if command -v node &> /dev/null; then
+        NODE_VERSION=$(node -v)
+        echo -e "${GREEN}✓ Node.js installed: $NODE_VERSION${NC}"
+    else
+        echo -e "${RED}Error: Node.js installation failed!${NC}"
+        echo -e "${YELLOW}Please install Node.js manually from: https://nodejs.org${NC}"
+        exit 1
+    fi
 fi
 
 # Check npm
@@ -169,8 +307,69 @@ if command -v npm &> /dev/null; then
     NPM_VERSION=$(npm -v)
     echo -e "${GREEN}✓ npm found: $NPM_VERSION${NC}"
 else
-    echo -e "${RED}Error: npm not found${NC}"
-    exit 1
+    echo -e "${YELLOW}npm not found. Attempting to install...${NC}"
+    case "$OS" in
+        darwin)
+            if [ "$HAS_BREW" = true ]; then brew install npm 2>/dev/null; fi
+            ;;
+        linux)
+            case "$PKG_MANAGER" in
+                apt|apt-get) sudo $PKG_MANAGER install -y npm 2>/dev/null ;;
+                dnf)         sudo dnf install -y npm 2>/dev/null ;;
+                pacman)      sudo pacman -S --noconfirm npm 2>/dev/null ;;
+                apk)         sudo apk add --no-cache npm 2>/dev/null ;;
+                zypper)      sudo zypper install -y npm 2>/dev/null ;;
+                yum)         sudo yum install -y npm 2>/dev/null ;;
+            esac
+            ;;
+    esac
+    if command -v npm &> /dev/null; then
+        NPM_VERSION=$(npm -v)
+        echo -e "${GREEN}✓ npm installed: $NPM_VERSION${NC}"
+    else
+        echo -e "${RED}Error: npm could not be installed. Install it manually.${NC}"
+        exit 1
+    fi
+fi
+
+# Check git
+echo ""
+if command -v git &> /dev/null; then
+    GIT_VERSION=$(git --version)
+    echo -e "${GREEN}✓ $GIT_VERSION${NC}"
+else
+    echo -e "${YELLOW}Git not found. Installing...${NC}"
+    case "$OS" in
+        darwin)
+            if [ "$HAS_BREW" = true ]; then
+                brew install git
+            else
+                echo -e "${YELLOW}Please install Xcode Command Line Tools:${NC}"
+                echo -e "  ${CYAN}xcode-select --install${NC}"
+                exit 1
+            fi
+            ;;
+        linux)
+            case "$PKG_MANAGER" in
+                apt|apt-get) sudo $PKG_MANAGER install -y git ;;
+                dnf)         sudo dnf install -y git ;;
+                pacman)      sudo pacman -S --noconfirm git ;;
+                apk)         sudo apk add --no-cache git ;;
+                zypper)      sudo zypper install -y git ;;
+                yum)         sudo yum install -y git ;;
+                *)
+                    echo -e "${RED}Error: Please install Git manually.${NC}"
+                    exit 1
+                    ;;
+            esac
+            ;;
+    esac
+    if command -v git &> /dev/null; then
+        echo -e "${GREEN}✓ $(git --version)${NC}"
+    else
+        echo -e "${RED}Error: Git installation failed!${NC}"
+        exit 1
+    fi
 fi
 
 echo ""

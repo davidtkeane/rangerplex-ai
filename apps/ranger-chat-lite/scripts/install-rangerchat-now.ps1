@@ -6,6 +6,7 @@
     Works on: Windows 10/11 (PowerShell 5.1+)
 
     Created: December 4, 2025
+    Updated: January 27, 2026 (v1.8.0 - Smart OS detection & auto-install)
     Author: David Keane (IrishRanger) + Claude Code (Ranger)
 .PARAMETER Dev
     Run in development mode (npm run dev) - DEFAULT
@@ -35,12 +36,17 @@ param(
 
 # Configuration
 $InstallDir = "$env:USERPROFILE\RangerChat-Lite"
-$Version = "1.7.3"
+$Version = "1.8.0"
 
 # Colors
 function Write-Color {
     param([string]$Text, [string]$Color = "White")
     Write-Host $Text -ForegroundColor $Color
+}
+
+function Test-Cmd {
+    param($cmd)
+    try { Get-Command $cmd -ErrorAction Stop | Out-Null; return $true } catch { return $false }
 }
 
 function Write-Banner {
@@ -57,10 +63,64 @@ function Write-Banner {
                            L    I    T    E
  ======================================================================
             Lightweight Chat for RangerBlock Network
-            Version 1.7.3 - One-Command Installer (Windows)
+            Version 1.8.0 - One-Command Installer (Windows)
             Created by IrishRanger + Claude Code (Ranger)
  ======================================================================
 "@ -Color Cyan
+}
+
+function Show-SystemInfo {
+    # Windows version and edition
+    $osPretty = "Windows"
+    try {
+        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+        $osPretty = ($os.Caption -replace "Microsoft ", "")
+        try {
+            $displayVer = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction Stop).DisplayVersion
+            if ($displayVer) { $osPretty += " ($displayVer)" }
+        } catch {}
+    } catch {}
+
+    # Architecture
+    $archDisplay = $env:PROCESSOR_ARCHITECTURE
+    if ($archDisplay -eq "AMD64") { $archDisplay = "x86_64" }
+
+    # winget
+    $pkgDisplay = if (Test-Cmd "winget") { "winget available" } else { "winget not found" }
+
+    # RAM
+    $ramDisplay = "Unknown"
+    try {
+        $totalRAM = [math]::Round((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1GB)
+        $ramDisplay = "$totalRAM GB"
+    } catch {}
+
+    Write-Host ""
+    Write-Host "  +-----------------------------------------------------+" -ForegroundColor Cyan
+    Write-Host "  |  " -ForegroundColor Cyan -NoNewline
+    Write-Host "System Detected" -ForegroundColor White -NoNewline
+    Write-Host "                                    |" -ForegroundColor Cyan
+
+    $fields = @(
+        @("OS:", $osPretty),
+        @("Arch:", $archDisplay),
+        @("Pkg:", $pkgDisplay),
+        @("RAM:", $ramDisplay)
+    )
+    foreach ($f in $fields) {
+        $label = $f[0].PadRight(8)
+        $value = "$($f[1])"
+        if ($value.Length -gt 43) { $value = $value.Substring(0, 40) + "..." }
+        $padding = 43 - $value.Length
+        if ($padding -lt 0) { $padding = 0 }
+        Write-Host "  |  " -ForegroundColor Cyan -NoNewline
+        Write-Host "$label" -ForegroundColor DarkGray -NoNewline
+        Write-Host "$value" -NoNewline
+        Write-Host (" " * $padding) -NoNewline
+        Write-Host "|" -ForegroundColor Cyan
+    }
+    Write-Host "  +-----------------------------------------------------+" -ForegroundColor Cyan
+    Write-Host ""
 }
 
 # ============================================================
@@ -68,11 +128,7 @@ function Write-Banner {
 # ============================================================
 
 Write-Banner
-
-Write-Color "`nDetecting system..." -Color Yellow
-Write-Color "  OS: Windows $([System.Environment]::OSVersion.Version)" -Color Green
-Write-Color "  Architecture: $env:PROCESSOR_ARCHITECTURE" -Color Green
-Write-Color "  PowerShell: $($PSVersionTable.PSVersion)" -Color Green
+Show-SystemInfo
 
 # ============================================================
 # STEP 1: Check/Install Node.js
@@ -80,6 +136,8 @@ Write-Color "  PowerShell: $($PSVersionTable.PSVersion)" -Color Green
 Write-Color "`n------------------------------------------------------------" -Color Cyan
 Write-Color "Step 1: Checking Node.js" -Color White
 Write-Color "------------------------------------------------------------" -Color Cyan
+
+$wingetAvailable = Test-Cmd "winget"
 
 $nodeInstalled = $false
 try {
@@ -95,31 +153,20 @@ try {
 if (-not $nodeInstalled) {
     Write-Color "Node.js not found. Installing..." -Color Yellow
 
-    # Try winget first (Windows 10 1709+ and Windows 11)
-    $wingetAvailable = $false
-    try {
-        $wingetVersion = winget -v 2>$null
-        if ($wingetVersion) {
-            $wingetAvailable = $true
-        }
-    } catch {
-        $wingetAvailable = $false
-    }
-
     if ($wingetAvailable) {
-        Write-Color "Installing via winget..." -Color Blue
-        winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
+        Write-Color "Installing Node.js LTS via winget..." -Color Blue
+        & winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
 
         # Refresh PATH
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
     } else {
         Write-Color "Installing via direct download..." -Color Blue
 
-        # Download Node.js installer
-        $nodeUrl = "https://nodejs.org/dist/v20.10.0/node-v20.10.0-x64.msi"
+        # Download Node.js 22 installer
+        $nodeUrl = "https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi"
         $installerPath = "$env:TEMP\node-installer.msi"
 
-        Write-Color "Downloading Node.js..." -Color Blue
+        Write-Color "Downloading Node.js 22 LTS..." -Color Blue
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri $nodeUrl -OutFile $installerPath -UseBasicParsing
 
@@ -150,11 +197,19 @@ if (-not $nodeInstalled) {
 }
 
 # Check npm
+$npmInstalled = $false
 try {
     $npmVersion = npm -v 2>$null
-    Write-Color "[OK] npm found: $npmVersion" -Color Green
-} catch {
-    Write-Color "ERROR: npm not found!" -Color Red
+    if ($npmVersion) {
+        Write-Color "[OK] npm found: v$npmVersion" -Color Green
+        $npmInstalled = $true
+    }
+} catch {}
+
+if (-not $npmInstalled) {
+    Write-Color "npm not found." -Color Red
+    Write-Color "npm should be included with Node.js. Try reinstalling Node.js." -Color Yellow
+    Write-Color "  Download: https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi" -Color Cyan
     exit 1
 }
 
@@ -163,7 +218,7 @@ $gitInstalled = $false
 try {
     $gitVersion = git --version 2>$null
     if ($gitVersion) {
-        Write-Color "[OK] Git found: $gitVersion" -Color Green
+        Write-Color "[OK] $gitVersion" -Color Green
         $gitInstalled = $true
     }
 } catch {
@@ -173,15 +228,23 @@ try {
 if (-not $gitInstalled) {
     Write-Color "Git not found. Installing..." -Color Yellow
 
-    $wingetAvailable = $false
-    try {
-        $wingetVersion = winget -v 2>$null
-        if ($wingetVersion) { $wingetAvailable = $true }
-    } catch {}
-
     if ($wingetAvailable) {
-        winget install Git.Git --accept-package-agreements --accept-source-agreements
+        Write-Color "Installing Git via winget..." -Color Blue
+        & winget install Git.Git --accept-package-agreements --accept-source-agreements
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+        # Verify
+        try {
+            $gitVersion = git --version 2>$null
+            if ($gitVersion) {
+                Write-Color "[OK] $gitVersion" -Color Green
+            } else {
+                throw "still not found"
+            }
+        } catch {
+            Write-Color "Git installed but not in PATH. Restart PowerShell and re-run." -Color Yellow
+            exit 1
+        }
     } else {
         Write-Color "ERROR: Please install Git from: https://git-scm.com/download/win" -Color Red
         exit 1
