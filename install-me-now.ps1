@@ -1274,6 +1274,21 @@ if ($script:preflight -and $script:preflight.NodeOk) {
     Install-NodeJS
 }
 
+# Step 1b: Update npm to latest
+Write-Step "Checking npm version..."
+$currentNpm = & npm -v 2>$null
+if ($currentNpm) {
+    Write-Ok "npm v$currentNpm installed."
+    Write-Step "Updating npm to latest..."
+    & npm install -g npm@latest 2>$null
+    $newNpm = & npm -v 2>$null
+    if ($newNpm -and ($newNpm -ne $currentNpm)) {
+        Write-Ok "npm updated: v$currentNpm -> v$newNpm"
+    } else {
+        Write-Ok "npm is already up to date (v$currentNpm)."
+    }
+}
+
 # Step 2: PM2
 if ($script:preflight -and $script:preflight.PM2Installed) {
     Write-Ok "PM2 v$($script:preflight.PM2Version) already installed - skipping."
@@ -1321,6 +1336,21 @@ if ($nodeModulesExist -and $allCriticalPresent) {
 
 # Step 6: API Keys
 $envFile = Join-Path $projectRoot ".env"
+$envExample = Join-Path $projectRoot ".env-example"
+
+# Helper: ensure .env exists (seed from .env-example if available)
+function Ensure-EnvFile {
+    if (-not (Test-Path $envFile)) {
+        if (Test-Path $envExample) {
+            Copy-Item $envExample $envFile
+            Write-Ok "Created .env from .env-example template."
+            Write-Host "  Edit .env anytime to add your API keys." -ForegroundColor DarkGray
+        } else {
+            New-Item -ItemType File -Path $envFile -Force | Out-Null
+        }
+    }
+}
+
 if (Test-Path $envFile) {
     $existingKeys = (Get-Content $envFile | Where-Object { $_ -match "^VITE_.*=.+" }).Count
     if ($existingKeys -gt 0) {
@@ -1330,10 +1360,39 @@ if (Test-Path $envFile) {
             Collect-APIKeys -projectRoot $projectRoot
         }
     } else {
-        Collect-APIKeys -projectRoot $projectRoot
+        Write-Host ""
+        Write-Host "API Key Setup" -ForegroundColor Yellow
+        Write-Host "  You need at least one AI provider key (Gemini, OpenAI, or Claude) to use RangerPlex." -ForegroundColor DarkGray
+        Write-Host "  You can also add keys later by editing .env or in the app's Settings." -ForegroundColor DarkGray
+        Write-Host ""
+        $keyChoice = Read-Host "Set up API keys now? (Y/n to skip)"
+        if ($keyChoice -match "^[NnSs]") {
+            Ensure-EnvFile
+            Write-Host "  Skipped API key setup. Add keys later:" -ForegroundColor DarkGray
+            Write-Host "    1. Edit .env in the project folder" -ForegroundColor DarkGray
+            Write-Host "    2. Or use Settings inside the app" -ForegroundColor DarkGray
+            Write-Host "    3. See .env-example for all available keys" -ForegroundColor DarkGray
+        } else {
+            Collect-APIKeys -projectRoot $projectRoot
+        }
     }
 } else {
-    Collect-APIKeys -projectRoot $projectRoot
+    Write-Host ""
+    Write-Host "API Key Setup" -ForegroundColor Yellow
+    Write-Host "  You need at least one AI provider key (Gemini, OpenAI, or Claude) to use RangerPlex." -ForegroundColor DarkGray
+    Write-Host "  You can also add keys later by editing .env or in the app's Settings." -ForegroundColor DarkGray
+    Write-Host ""
+    $keyChoice = Read-Host "Set up API keys now? (Y/n to skip)"
+    if ($keyChoice -match "^[NnSs]") {
+        Ensure-EnvFile
+        Write-Host "  Skipped API key setup. Add keys later:" -ForegroundColor DarkGray
+        Write-Host "    1. Edit .env in the project folder" -ForegroundColor DarkGray
+        Write-Host "    2. Or use Settings inside the app" -ForegroundColor DarkGray
+        Write-Host "    3. See .env-example for all available keys" -ForegroundColor DarkGray
+    } else {
+        Ensure-EnvFile
+        Collect-APIKeys -projectRoot $projectRoot
+    }
 }
 
 # Final: Start

@@ -332,6 +332,25 @@ else
     fi
 fi
 
+# Update npm to latest
+echo -e "${BLUE}Updating npm to latest...${NC}"
+CURRENT_NPM=$(npm -v 2>/dev/null)
+if npm install -g npm@latest >/dev/null 2>&1; then
+    NEW_NPM=$(npm -v 2>/dev/null)
+    if [ "$CURRENT_NPM" != "$NEW_NPM" ]; then
+        echo -e "${GREEN}✓ npm updated: v$CURRENT_NPM -> v$NEW_NPM${NC}"
+    else
+        echo -e "${GREEN}✓ npm is already up to date (v$NEW_NPM)${NC}"
+    fi
+else
+    # Try with sudo on Linux
+    if [ "$OS" = "linux" ] && sudo npm install -g npm@latest >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ npm updated to v$(npm -v 2>/dev/null)${NC}"
+    else
+        echo -e "${YELLOW}Could not update npm. Continuing with v$CURRENT_NPM.${NC}"
+    fi
+fi
+
 # Check git
 echo ""
 if command -v git &> /dev/null; then

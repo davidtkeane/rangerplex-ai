@@ -1404,6 +1404,29 @@ else
     ensure_node
 fi
 
+# Step 2b: Update npm to latest
+step "Checking npm version..."
+current_npm="$(npm -v 2>/dev/null)"
+if [ -n "$current_npm" ]; then
+    ok "npm v$current_npm installed."
+    step "Updating npm to latest..."
+    if npm install -g npm@latest >/dev/null 2>&1; then
+        new_npm="$(npm -v 2>/dev/null)"
+        if [ "$current_npm" != "$new_npm" ]; then
+            ok "npm updated: v$current_npm -> v$new_npm"
+        else
+            ok "npm is already up to date (v$new_npm)."
+        fi
+    else
+        warn "npm global update failed (may need sudo). Trying with sudo..."
+        if sudo npm install -g npm@latest >/dev/null 2>&1; then
+            ok "npm updated to v$(npm -v 2>/dev/null)."
+        else
+            warn "Could not update npm. Continuing with v$current_npm."
+        fi
+    fi
+fi
+
 # Step 3: PM2
 if [ "$PF_PM2_INSTALLED" = true ]; then
     ok "PM2 v$PF_PM2_VERSION already installed - skipping."
@@ -1458,6 +1481,21 @@ fi
 
 # Step 7: API Keys
 env_file="$PROJECT_ROOT/.env"
+env_example="$PROJECT_ROOT/.env-example"
+
+# Ensure .env exists (seed from .env-example if available)
+ensure_env_file() {
+    if [ ! -f "$env_file" ]; then
+        if [ -f "$env_example" ]; then
+            cp "$env_example" "$env_file"
+            ok "Created .env from .env-example template."
+            log "${dim}   Edit .env anytime to add your API keys.${reset}"
+        else
+            touch "$env_file"
+        fi
+    fi
+}
+
 if [ -f "$env_file" ]; then
     existing_keys="$(grep -c "^VITE_.*=.\+" "$env_file" 2>/dev/null || echo 0)"
     if [ "$existing_keys" -gt 0 ]; then
@@ -1469,12 +1507,41 @@ if [ -f "$env_file" ]; then
             collect_env
         fi
     else
-        step "Collecting API keys into .env..."
-        collect_env
+        log
+        log "${bold}${yellow}API Key Setup${reset}"
+        log "${dim}You need at least one AI provider key (Gemini, OpenAI, or Claude) to use RangerPlex.${reset}"
+        log "${dim}You can also add keys later by editing .env or in the app's Settings.${reset}"
+        log
+        printf "${yellow}Set up API keys now? (Y/n/s to skip): ${reset}"
+        read -r key_reply
+        if [[ "$key_reply" =~ ^[Ss]$ ]] || [[ "$key_reply" =~ ^[Nn]$ ]]; then
+            ensure_env_file
+            log "${dim}Skipped API key setup. Add keys later:${reset}"
+            log "${dim}  1. Edit .env in the project folder${reset}"
+            log "${dim}  2. Or use Settings inside the app${reset}"
+            log "${dim}  3. See .env-example for all available keys${reset}"
+        else
+            collect_env
+        fi
     fi
 else
-    step "Collecting API keys into .env..."
-    collect_env
+    log
+    log "${bold}${yellow}API Key Setup${reset}"
+    log "${dim}You need at least one AI provider key (Gemini, OpenAI, or Claude) to use RangerPlex.${reset}"
+    log "${dim}You can also add keys later by editing .env or in the app's Settings.${reset}"
+    log
+    printf "${yellow}Set up API keys now? (Y/n/s to skip): ${reset}"
+    read -r key_reply
+    if [[ "$key_reply" =~ ^[Ss]$ ]] || [[ "$key_reply" =~ ^[Nn]$ ]]; then
+        ensure_env_file
+        log "${dim}Skipped API key setup. Add keys later:${reset}"
+        log "${dim}  1. Edit .env in the project folder${reset}"
+        log "${dim}  2. Or use Settings inside the app${reset}"
+        log "${dim}  3. See .env-example for all available keys${reset}"
+    else
+        ensure_env_file
+        collect_env
+    fi
 fi
 
 log

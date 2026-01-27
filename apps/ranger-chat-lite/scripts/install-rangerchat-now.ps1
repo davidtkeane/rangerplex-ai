@@ -213,6 +213,17 @@ if (-not $npmInstalled) {
     exit 1
 }
 
+# Update npm to latest
+Write-Color "Updating npm to latest..." -Color Blue
+$currentNpm = npm -v 2>$null
+& npm install -g npm@latest 2>$null
+$newNpm = npm -v 2>$null
+if ($newNpm -and ($newNpm -ne $currentNpm)) {
+    Write-Color "[OK] npm updated: v$currentNpm -> v$newNpm" -Color Green
+} else {
+    Write-Color "[OK] npm is already up to date (v$currentNpm)" -Color Green
+}
+
 # Check git
 $gitInstalled = $false
 try {
