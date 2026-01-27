@@ -40,7 +40,15 @@ import { ipcRenderer } from 'electron'
     },
     media: {
         searchImages: (query: string) => ipcRenderer.invoke('media:searchImages', query)
+    },
+    relay: {
+        getStatus: () => ipcRenderer.invoke('relay:getStatus'),
+        start: () => ipcRenderer.invoke('relay:start'),
+        stop: () => ipcRenderer.invoke('relay:stop'),
+        onStatusChange: (callback: (status: any) => void) => {
+            ipcRenderer.on('relay-status', (_event, status) => callback(status))
+        }
     }
 }
 
-console.log('RangerChat Lite preload loaded - Identity, Ledger, Admin & App API ready')
+console.log('RangerChat Lite preload loaded - Identity, Ledger, Admin, Relay & App API ready')

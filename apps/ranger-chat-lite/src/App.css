@@ -1804,6 +1804,20 @@ body {
     flex: 1;
 }
 
+/* Relay active indicator */
+.info-row.relay-active {
+    background: rgba(0, 255, 136, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-top: 4px;
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.info-row.relay-active .info-value {
+    color: #00ff88;
+    font-weight: 600;
+}
+
 .weather-actions {
     display: flex;
     gap: 8px;

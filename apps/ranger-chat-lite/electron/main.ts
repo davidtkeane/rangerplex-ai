@@ -3,7 +3,157 @@ import path from 'node:path'
 import https from 'node:https'
 import fs from 'node:fs'
 import os from 'node:os'
+import { spawn, ChildProcess } from 'node:child_process'
 import { identityService } from './identityService'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RELAY SERVER MANAGEMENT (Admin-Only Feature)
+// ═══════════════════════════════════════════════════════════════════════════
+let relayProcess: ChildProcess | null = null
+let relayRunning = false
+let relayPort = 5555
+
+interface RelayStatus {
+    running: boolean
+    port: number
+    nodeType: 'main' | 'sub'
+    adminOnly: boolean
+    error?: string
+}
+
+// Path to relay server (in rangerblock/core)
+const getRelayPath = (): string => {
+    // In production, relay would be bundled. In dev, use relative path
+    if (app.isPackaged) {
+        return path.join(process.resourcesPath, 'relay', 'relay-server-bridge.cjs')
+    }
+    // Development: go up to rangerplex-ai root, then into rangerblock/core
+    return path.join(__dirname, '..', '..', '..', 'rangerblock', 'core', 'relay-server-bridge.cjs')
+}
+
+// Start relay server (admin-only)
+async function startRelayServer(adminStatus: AdminStatus): Promise<RelayStatus> {
+    const result: RelayStatus = {
+        running: false,
+        port: relayPort,
+        nodeType: 'sub',
+        adminOnly: true
+    }
+
+    // Only admins can run relay
+    if (!adminStatus.isAdmin && !adminStatus.isSupreme) {
+        safeLog('[Relay] User is not admin - relay disabled (sub-node mode)')
+        return result
+    }
+
+    const relayPath = getRelayPath()
+
+    // Check if relay server file exists
+    if (!fs.existsSync(relayPath)) {
+        safeLog('[Relay] Relay server not found at:', relayPath)
+        result.error = 'Relay server not found'
+        return result
+    }
+
+    // Check if port is already in use (another relay might be running)
+    try {
+        const net = require('net')
+        const portInUse = await new Promise<boolean>((resolve) => {
+            const server = net.createServer()
+            server.once('error', () => resolve(true))
+            server.once('listening', () => {
+                server.close()
+                resolve(false)
+            })
+            server.listen(relayPort)
+        })
+
+        if (portInUse) {
+            safeLog(`[Relay] Port ${relayPort} already in use - relay may already be running`)
+            relayRunning = true
+            result.running = true
+            result.nodeType = 'main'
+            return result
+        }
+    } catch (e) {
+        // Ignore port check errors
+    }
+
+    // Start the relay server
+    try {
+        safeLog('[Relay] Starting relay server for admin user...')
+        safeLog('[Relay] Path:', relayPath)
+
+        relayProcess = spawn('node', [relayPath], {
+            cwd: path.dirname(relayPath),
+            stdio: ['ignore', 'pipe', 'pipe'],
+            detached: false,
+            env: {
+                ...process.env,
+                RELAY_NAME: 'RangerChat-Lite-Relay',
+                WS_PORT: String(relayPort),
+                RELAY_REGION: 'local'
+            }
+        })
+
+        relayProcess.stdout?.on('data', (data) => {
+            safeLog(`[Relay] ${data.toString().trim()}`)
+        })
+
+        relayProcess.stderr?.on('data', (data) => {
+            safeError(`[Relay Error] ${data.toString().trim()}`)
+        })
+
+        relayProcess.on('close', (code) => {
+            safeLog(`[Relay] Server exited with code ${code}`)
+            relayRunning = false
+            relayProcess = null
+        })
+
+        relayProcess.on('error', (err) => {
+            safeError('[Relay] Failed to start:', err)
+            relayRunning = false
+            result.error = err.message
+        })
+
+        // Give it a moment to start
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        if (relayProcess && !relayProcess.killed) {
+            relayRunning = true
+            result.running = true
+            result.nodeType = 'main'
+            safeLog(`[Relay] ✅ Relay server started on port ${relayPort}`)
+            safeLog('[Relay] 🟢 This node is now a MAIN NODE')
+        }
+
+    } catch (e: any) {
+        safeError('[Relay] Failed to start relay:', e)
+        result.error = e.message
+    }
+
+    return result
+}
+
+// Stop relay server
+function stopRelayServer(): void {
+    if (relayProcess) {
+        safeLog('[Relay] Stopping relay server...')
+        relayProcess.kill('SIGTERM')
+        relayProcess = null
+        relayRunning = false
+    }
+}
+
+// Get relay status
+function getRelayStatus(): RelayStatus {
+    return {
+        running: relayRunning,
+        port: relayPort,
+        nodeType: relayRunning ? 'main' : 'sub',
+        adminOnly: true
+    }
+}
 
 // Handle EPIPE errors gracefully (happens when stdout closes during app quit)
 process.on('uncaughtException', (err) => {
@@ -425,6 +575,29 @@ ipcMain.handle('admin:getRegistryPath', () => {
     return ADMIN_REGISTRY_PATH
 })
 
+// ═══════════════════════════════════════════════════════════════════════════
+// IPC Handlers for Relay Server
+// ═══════════════════════════════════════════════════════════════════════════
+ipcMain.handle('relay:getStatus', () => {
+    return getRelayStatus()
+})
+
+ipcMain.handle('relay:start', async () => {
+    const storage = identityService.loadIdentity()
+    const identity = (storage as any)?.identity || storage
+    const userId = (identity as any)?.userId
+    if (userId) {
+        const adminStatus = getAdminStatus(userId)
+        return startRelayServer(adminStatus)
+    }
+    return { running: false, port: relayPort, nodeType: 'sub' as const, adminOnly: true, error: 'No user identity' }
+})
+
+ipcMain.handle('relay:stop', () => {
+    stopRelayServer()
+    return getRelayStatus()
+})
+
 // IPC handler for update check
 ipcMain.handle('app:checkForUpdates', async () => {
     return checkForUpdates()
@@ -706,6 +879,32 @@ app.whenReady().then(async () => {
         safeError('[Main] Failed to initialize ledger:', e)
     }
 
+    // Start relay server if user is admin (after a short delay to let identity load)
+    setTimeout(async () => {
+        try {
+            const identity = identityService.loadIdentity()
+            if (identity?.identity?.userId) {
+                const adminStatus = getAdminStatus(identity.identity.userId)
+                safeLog('[Main] Admin check for relay:', adminStatus.role)
+
+                if (adminStatus.isAdmin || adminStatus.isSupreme) {
+                    const relayStatus = await startRelayServer(adminStatus)
+                    if (relayStatus.running) {
+                        safeLog('[Main] 🟢 Relay server active - this is a MAIN NODE')
+                        // Notify renderer of relay status
+                        if (win) {
+                            win.webContents.send('relay-status', relayStatus)
+                        }
+                    }
+                } else {
+                    safeLog('[Main] 🔵 Running as SUB-NODE (relay requires admin privileges)')
+                }
+            }
+        } catch (e) {
+            safeError('[Main] Error checking admin status for relay:', e)
+        }
+    }, 2000) // Wait for identity to be loaded
+
     // Check for updates after window loads
     setTimeout(async () => {
         const updateInfo = await checkForUpdates()
@@ -728,6 +927,12 @@ app.whenReady().then(async () => {
 // Cleanup on quit
 app.on('before-quit', async (_event) => {
     safeLog('[Main] App is quitting - cleaning up...')
+
+    // Stop relay server if running
+    if (relayRunning) {
+        stopRelayServer()
+        safeLog('[Main] Relay server stopped')
+    }
 
     // Shutdown ledger if initialized
     if (ledgerInitialized) {

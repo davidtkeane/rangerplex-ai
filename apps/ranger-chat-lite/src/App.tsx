@@ -54,6 +54,18 @@ declare global {
                     error?: string
                 }>
             }
+            relay: {
+                getStatus: () => Promise<{
+                    running: boolean
+                    port: number
+                    nodeType: 'main' | 'sub'
+                    adminOnly: boolean
+                    error?: string
+                }>
+                start: () => Promise<any>
+                stop: () => Promise<any>
+                onStatusChange: (callback: (status: any) => void) => void
+            }
         }
     }
 }
@@ -513,6 +525,7 @@ function App() {
     const [_connectionAttempt, setConnectionAttempt] = useState(0)
     const [connectionError, setConnectionError] = useState<string | null>(null)
     const [nodeType, setNodeType] = useState<NodeType>('sub') // Users are sub-nodes by default
+    const [relayRunning, setRelayRunning] = useState(false) // Admin-only: local relay server running
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [_peerCount, setPeerCount] = useState(0)
@@ -721,6 +734,34 @@ function App() {
     useEffect(() => {
         localStorage.setItem('rangerChatTenorApiKey', tenorApiKey)
     }, [tenorApiKey])
+
+    // Check relay status on mount (admin-only feature)
+    useEffect(() => {
+        const checkRelayStatus = async () => {
+            if (window.electronAPI?.relay) {
+                try {
+                    const status = await window.electronAPI.relay.getStatus()
+                    setRelayRunning(status.running)
+                    if (status.running) {
+                        setNodeType('main')
+                    }
+                } catch (e) {
+                    console.log('Relay status check failed:', e)
+                }
+            }
+        }
+        checkRelayStatus()
+
+        // Listen for relay status changes from main process
+        if (window.electronAPI?.relay?.onStatusChange) {
+            window.electronAPI.relay.onStatusChange((status) => {
+                setRelayRunning(status.running)
+                if (status.running) {
+                    setNodeType('main')
+                }
+            })
+        }
+    }, [])
 
     const wsRef = useRef<WebSocket | null>(null)
     const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -3875,7 +3916,7 @@ return (
                                 {connected ? (
                                     <>
                                         {connectedServer?.icon} {connectedServer?.name || 'Server'}
-                                        <span className="node-badge">{nodeType === 'main' ? '🟢 Main' : '🔵 Sub'}</span>
+                                        <span className="node-badge">{relayRunning ? '🟢 Relay' : nodeType === 'main' ? '🟢 Main' : '🔵 Sub'}</span>
                                     </>
                                 ) : (
                                     '❌ Disconnected'
@@ -4706,8 +4747,14 @@ return (
                                     </div>
                                     <div className="info-row">
                                         <span className="info-label">Your Role:</span>
-                                        <span className="info-value">{nodeType === 'main' ? '🟢 Main Node' : '🔵 Sub-node'}</span>
+                                        <span className="info-value">{relayRunning ? '🟢 Relay Active (Main Node)' : nodeType === 'main' ? '🟢 Main Node' : '🔵 Sub-node'}</span>
                                     </div>
+                                    {relayRunning && (
+                                        <div className="info-row relay-active">
+                                            <span className="info-label">📡 Local Relay:</span>
+                                            <span className="info-value">Running on port 5555</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             {connectionError && (

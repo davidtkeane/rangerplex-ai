@@ -1,6 +1,37 @@
 # RangerChat Lite - Changelog
 
 All notable changes to RangerChat Lite will be documented in this file.
+## [1.9.8] - 2026-01-27 - "Relay Node"
+
+### Added
+
+#### Admin-Only Relay Server
+- **Relay Server Integration**: RangerChat Lite can now run as a relay node
+- **Admin Detection**: Only Supreme Admins and Admins can start relay servers
+- **Auto-Start on Launch**: Relay automatically starts if user is admin
+- **Relay Status Indicator**: 🟢 "Relay" badge appears in chat header when relay is active
+- **Node Type Display**: Shows "Main Node (Relay)" in Network settings when relay is running
+- **Start/Stop Relay**: IPC handlers for manual relay control (`relay:start`, `relay:stop`, `relay:getStatus`)
+
+#### Preload API
+- **relay.getStatus()**: Check if relay is running, get port and process info
+- **relay.start()**: Manually start relay server (admin-only)
+- **relay.stop()**: Manually stop relay server
+- **relay.onStatusChange()**: Subscribe to relay status change events
+
+### Technical
+- Uses `relay-server-bridge.cjs` from rangerblock core
+- Spawns relay as child process with proper cleanup on app quit
+- Environment variables: `RELAY_NAME`, `WS_PORT` passed to relay
+- Safe logging prevents EPIPE errors on shutdown
+
+### Security
+- Non-admin users run as "Sub-nodes" (clients only)
+- Only authorized users can become relay nodes
+- Future: Option A will allow everyone to become relay nodes with proper controls
+
+---
+
 ## [1.9.7] - 2026-01-27 - "Quick Fix"
 
 ### Added
