@@ -332,7 +332,7 @@ const EMOJI_DATA = {
 type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
 
 // Current app version
-const APP_VERSION = '1.9.6'
+const APP_VERSION = '1.9.7'
 const GITHUB_REPO = 'davidtkeane/rangerplex-ai'
 const WEATHER_CODE_LABELS: Record<number, string> = {
     0: 'Clear sky',
@@ -395,6 +395,9 @@ function App() {
     const [showSearch, setShowSearch] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [showSlashHelp, setShowSlashHelp] = useState(false)
+
+    // Image viewer state
+    const [expandedImage, setExpandedImage] = useState<{ url: string; title: string } | null>(null)
 
     // Settings state
     const [storagePaths, setStoragePaths] = useState<any>(null)
@@ -1569,6 +1572,7 @@ function App() {
         if (!trimmedInput) return
 
         // Handle /weather command
+        const weatherMatch = trimmedInput.match(/^\/weather(?:\s+(.+))?$/i)
         if (weatherMatch) {
             await handleWeatherCommand(weatherMatch[1])
             setInput('')
@@ -1577,21 +1581,31 @@ function App() {
 
         // Handle /meme command
         const memeMatch = trimmedInput.match(/^\/meme(?:\s+(.+))?$/i)
-        let processedContent = trimmedInput
-
         if (memeMatch) {
             try {
-                const sub = memeMatch[1] ? memeMatch[1].trim() : ''
-                const url = sub ? `https://meme-api.com/gimme/${sub}` : 'https://meme-api.com/gimme'
-                const res = await fetch(url)
+                // Clean subreddit name: remove spaces, lowercase
+                const rawSub = memeMatch[1] ? memeMatch[1].trim() : ''
+                const sub = rawSub.replace(/\s+/g, '').toLowerCase()
+                const apiUrl = sub ? `https://meme-api.com/gimme/${sub}` : 'https://meme-api.com/gimme'
+                const res = await fetch(apiUrl)
                 const data = await res.json()
                 if (data.url) {
-                    processedContent = `![${data.title}](${data.url})`
-                } else {
+                    // Display the meme as a system message with image
                     setMessages(prev => [...prev, {
                         type: 'system',
                         sender: 'System',
-                        content: `❌ No meme found${sub ? ` in r/${sub}` : ''}.`,
+                        content: `🎭 **${data.title}** (r/${data.subreddit})\n![meme](${data.url})`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    setInput('')
+                    return
+                } else {
+                    // Show API error message if available
+                    const errorMsg = data.message || `No meme found${sub ? ` in r/${sub}` : ''}`
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `❌ ${errorMsg}\n💡 Try: /meme memes, /meme dankmemes, /meme wholesomememes`,
                         timestamp: new Date().toLocaleTimeString()
                     }])
                     setInput('')
@@ -1602,7 +1616,7 @@ function App() {
                 setMessages(prev => [...prev, {
                     type: 'system',
                     sender: 'System',
-                    content: '❌ Failed to fetch meme.',
+                    content: '❌ Failed to fetch meme. Try /meme without a subreddit.',
                     timestamp: new Date().toLocaleTimeString()
                 }])
                 setInput('')
@@ -1715,10 +1729,8 @@ function App() {
             setInput('')
             return
         }
-        return
-    }
 
-    // Handle /update command - Added by Claude CLI
+        // Handle /update command - Added by Claude CLI
     if (trimmedInput.toLowerCase() === '/update') {
         if (!updateAvailable) {
             setMessages(prev => [...prev, {
@@ -1808,6 +1820,86 @@ const getFilteredMessages = () => {
         msg.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         msg.sender.toLowerCase().includes(searchQuery.toLowerCase())
     )
+}
+
+// Download image helper
+const downloadImage = async (url: string, filename: string) => {
+    try {
+        const response = await fetch(url)
+        const blob = await response.blob()
+        const blobUrl = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = blobUrl
+        link.download = filename || 'meme.png'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(blobUrl)
+    } catch (e) {
+        // Fallback: open in new tab
+        window.open(url, '_blank')
+    }
+}
+
+// Render message content with markdown image support
+const renderMessageContent = (content: string) => {
+    // Match markdown images: ![alt](url)
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g
+    const parts: (string | JSX.Element)[] = []
+    let lastIndex = 0
+    let match
+
+    while ((match = imageRegex.exec(content)) !== null) {
+        // Add text before the image
+        if (match.index > lastIndex) {
+            parts.push(content.slice(lastIndex, match.index))
+        }
+        const imgAlt = match[1]
+        const imgUrl = match[2]
+        // Add the image with container, click to expand, and download button
+        parts.push(
+            <div key={match.index} className="chat-image-container">
+                <img
+                    src={imgUrl}
+                    alt={imgAlt}
+                    className="chat-image"
+                    onClick={() => setExpandedImage({ url: imgUrl, title: imgAlt })}
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                />
+                <div className="chat-image-actions">
+                    <button
+                        className="chat-image-btn"
+                        onClick={() => setExpandedImage({ url: imgUrl, title: imgAlt })}
+                        title="Expand image"
+                    >
+                        🔍 View
+                    </button>
+                    <button
+                        className="chat-image-btn"
+                        onClick={() => downloadImage(imgUrl, `meme-${Date.now()}.png`)}
+                        title="Download image"
+                    >
+                        💾 Save
+                    </button>
+                </div>
+            </div>
+        )
+        lastIndex = match.index + match[0].length
+    }
+
+    // Add remaining text after last image
+    if (lastIndex < content.length) {
+        parts.push(content.slice(lastIndex))
+    }
+
+    // If no images found, return plain content
+    if (parts.length === 0) {
+        return content
+    }
+
+    return <>{parts}</>
 }
 
 const cycleTheme = () => {
@@ -3731,7 +3823,7 @@ return (
                                     </>
                                 )}
                             </div>
-                            <div className="message-content">{msg.content}</div>
+                            <div className="message-content">{renderMessageContent(msg.content)}</div>
                         </div>
                     ))}
                     <div ref={messagesEndRef} />
@@ -3880,41 +3972,123 @@ return (
                     <div className="slash-help-overlay" onClick={() => setShowSlashHelp(false)}>
                         <div className="slash-help-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="slash-help-header">
-                                <span>Slash Commands</span>
+                                <span>⌘ Slash Commands</span>
                                 <button className="slash-help-close" onClick={() => setShowSlashHelp(false)}>
-                                    ✕
+                                    ✕ Close
                                 </button>
                             </div>
                             <div className="slash-help-body">
-                                <div className="slash-help-item">
-                                    <code>/call username</code>
-                                    <span>Start a 1-to-1 voice call.</span>
+                                <div className="slash-help-section">
+                                    <div className="slash-help-section-title">📞 Calls</div>
+                                    <div className="slash-help-item">
+                                        <code>/call &lt;user&gt;</code>
+                                        <span>Voice call</span>
+                                    </div>
+                                    <div className="slash-help-item">
+                                        <code>/video &lt;user&gt;</code>
+                                        <span>Video call</span>
+                                    </div>
+                                    <div className="slash-help-item">
+                                        <code>/hangup</code>
+                                        <span>End call</span>
+                                    </div>
                                 </div>
-                                <div className="slash-help-item">
-                                    <code>/video username</code>
-                                    <span>Start a 1-to-1 video call.</span>
+                                <div className="slash-help-section">
+                                    <div className="slash-help-section-title">👥 Info</div>
+                                    <div className="slash-help-item">
+                                        <code>/peers</code>
+                                        <span>Online users</span>
+                                    </div>
+                                    <div className="slash-help-item">
+                                        <code>/weather [city]</code>
+                                        <span>Weather info</span>
+                                    </div>
+                                    <div className="slash-help-item">
+                                        <code>/version</code>
+                                        <span>App version</span>
+                                    </div>
                                 </div>
-                                <div className="slash-help-item">
-                                    <code>/hangup</code> <span>or</span> <code>/end</code>
-                                    <span>Hang up the current call.</span>
+                                <div className="slash-help-section">
+                                    <div className="slash-help-section-title">🎬 Media</div>
+                                    <div className="slash-help-item">
+                                        <code>/meme [sub]</code>
+                                        <span>Random meme</span>
+                                    </div>
+                                    <div className="slash-help-item">
+                                        <code>/gif &lt;search&gt;</code>
+                                        <span>Search GIF</span>
+                                    </div>
+                                    <div className="slash-help-memes">
+                                        <div className="slash-help-memes-title">📌 Popular Subreddits:</div>
+                                        <div className="slash-help-memes-grid">
+                                            <span onClick={() => { setInput('/meme memes'); setShowSlashHelp(false); }}>memes</span>
+                                            <span onClick={() => { setInput('/meme dankmemes'); setShowSlashHelp(false); }}>dankmemes</span>
+                                            <span onClick={() => { setInput('/meme wholesomememes'); setShowSlashHelp(false); }}>wholesomememes</span>
+                                            <span onClick={() => { setInput('/meme programmerhumor'); setShowSlashHelp(false); }}>programmerhumor</span>
+                                            <span onClick={() => { setInput('/meme prequelmemes'); setShowSlashHelp(false); }}>prequelmemes</span>
+                                            <span onClick={() => { setInput('/meme historymemes'); setShowSlashHelp(false); }}>historymemes</span>
+                                            <span onClick={() => { setInput('/meme me_irl'); setShowSlashHelp(false); }}>me_irl</span>
+                                            <span onClick={() => { setInput('/meme animemes'); setShowSlashHelp(false); }}>animemes</span>
+                                            <span onClick={() => { setInput('/meme gaming'); setShowSlashHelp(false); }}>gaming</span>
+                                            <span onClick={() => { setInput('/meme cats'); setShowSlashHelp(false); }}>cats</span>
+                                            <span onClick={() => { setInput('/meme aww'); setShowSlashHelp(false); }}>aww</span>
+                                            <span onClick={() => { setInput('/meme memes'); setShowSlashHelp(false); }}>funny</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="slash-help-item">
-                                    <code>/peers</code> <span>or</span> <code>/online</code>
-                                    <span>List online users with voice capability.</span>
+                                <div className="slash-help-section">
+                                    <div className="slash-help-section-title">⚙️ System</div>
+                                    <div className="slash-help-item">
+                                        <code>/update</code>
+                                        <span>Install update</span>
+                                    </div>
                                 </div>
-                                <div className="slash-help-item">
-                                    <code>/weather</code>
-                                    <span>Local weather (auto-detect) or /weather Dublin.</span>
-                                </div>
-                                <div className="slash-help-item">
-                                    <code>/update</code>
-                                    <span>Check for and install app updates.</span>
-                                </div>
-                                <div className="slash-help-item">
-                                    <code>/version</code>
-                                    <span>Show current and latest version.</span>
-                                </div>
-                                <div className="slash-help-note">Commands are case-insensitive.</div>
+                            </div>
+                            <div className="slash-help-footer">
+                                <button className="slash-help-close-btn" onClick={() => setShowSlashHelp(false)}>
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Image Viewer Lightbox */}
+                {expandedImage && (
+                    <div className="image-lightbox-overlay" onClick={() => setExpandedImage(null)}>
+                        <div className="image-lightbox" onClick={(e) => e.stopPropagation()}>
+                            <div className="image-lightbox-header">
+                                <span className="image-lightbox-title">{expandedImage.title || 'Image'}</span>
+                                <button className="image-lightbox-close" onClick={() => setExpandedImage(null)}>
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="image-lightbox-content">
+                                <img
+                                    src={expandedImage.url}
+                                    alt={expandedImage.title}
+                                    className="image-lightbox-img"
+                                />
+                            </div>
+                            <div className="image-lightbox-footer">
+                                <button
+                                    className="image-lightbox-btn"
+                                    onClick={() => downloadImage(expandedImage.url, `meme-${Date.now()}.png`)}
+                                >
+                                    💾 Download
+                                </button>
+                                <button
+                                    className="image-lightbox-btn"
+                                    onClick={() => window.open(expandedImage.url, '_blank')}
+                                >
+                                    🔗 Open Original
+                                </button>
+                                <button
+                                    className="image-lightbox-btn image-lightbox-btn-close"
+                                    onClick={() => setExpandedImage(null)}
+                                >
+                                    ✕ Close
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -3,8 +3,24 @@
 All notable changes to RangerChat Lite will be documented in this file.
 ## [1.9.7] - 2026-01-27 - "Quick Fix"
 
+### Added
+- **Image Lightbox**: Click any meme/image to expand in a beautiful fullscreen viewer
+- **Image Actions**: View and Save buttons below each image in chat
+- **Download Images**: Save memes directly to your computer from lightbox
+- **Open Original**: Button to open image in new browser tab
+- **Meme Subreddit Quick Select**: Clickable tags in slash commands for popular subreddits (memes, dankmemes, wholesomememes, programmerhumor, prequelmemes, etc.)
+
 ### Fixed
-- **Slash Command Crash**: Fixed syntax error in `/peers` command logic causing build failure.
+- **Meme Command**: Fixed `/meme` not displaying images - added proper message display and image rendering
+- **Image Rendering**: Added `renderMessageContent()` to parse markdown images `![alt](url)` into actual `<img>` tags
+- **Meme Error Messages**: Now shows actual API error and suggests working subreddits
+- **Brace Imbalance**: Fixed extra `return` and `}` that prematurely closed `sendMessage` function
+- **Weather Command**: Fixed missing `weatherMatch` regex definition causing build error
+- **EPIPE Crash**: Fixed "write EPIPE" error on app close with safe logging functions
+
+### Improved
+- **Slash Commands UI**: Redesigned modal with organized sections (Calls, Info, Media, System), clear Close button at bottom, better layout and scrolling
+- **Chat Images**: Styled with rounded corners, max-height 280px, hover glow effect, accent border on hover
 
 
 ---

@@ -57,6 +57,7 @@ RangerChat Lite is a **standalone desktop application** that connects to the Ran
 - 📡 Connect to local or remote RangerPlex servers
 - 📞 **Voice Calls** - 1-to-1 voice calls with push-to-talk
 - 📹 **Video Calls** - Peer-to-peer video calling with WebRTC
+- 🎭 **Memes & GIFs** - `/meme` and `/gif` commands with image viewer
 
 ---
 
@@ -151,8 +152,13 @@ Use these in the chat input:
 - `/hangup` or `/end` - End the current call
 - `/peers` or `/online` - List online users with voice capability
 - `/weather [city]` - Local weather (auto-detect or city override)
+- `/meme [subreddit]` - Get a random meme (click to expand, save)
+- `/gif <search>` - Search for a GIF (requires Tenor API key in Settings)
 - `/update` - Check for and install app updates
 - `/version` - Show current and latest version
+
+**Popular Meme Subreddits:**
+`/meme memes` | `/meme dankmemes` | `/meme wholesomememes` | `/meme programmerhumor` | `/meme prequelmemes` | `/meme cats` | `/meme aww`
 
 ### 4. **Close App**
 

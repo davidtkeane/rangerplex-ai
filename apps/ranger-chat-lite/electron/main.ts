@@ -5,6 +5,24 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { identityService } from './identityService'
 
+// Handle EPIPE errors gracefully (happens when stdout closes during app quit)
+process.on('uncaughtException', (err) => {
+    if (err.message?.includes('EPIPE') || (err as any).code === 'EPIPE') {
+        // Ignore EPIPE errors - they're expected during shutdown
+        return
+    }
+    // Re-throw other errors
+    console.error('Uncaught exception:', err)
+})
+
+process.stdout?.on('error', (err) => {
+    if ((err as any).code === 'EPIPE') return // Ignore EPIPE
+})
+
+process.stderr?.on('error', (err) => {
+    if ((err as any).code === 'EPIPE') return // Ignore EPIPE
+})
+
 // Ledger Service - using require for CommonJS module
 // Use local lib in production, relative path in development
 const ledgerPath = app.isPackaged
@@ -79,7 +97,7 @@ function getAdminStatus(userId: string): AdminStatus {
 // ═══════════════════════════════════════════════════════════════════════════
 // VERSION & UPDATE CHECK
 // ═══════════════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.9.4'
+const APP_VERSION = '1.9.7'
 const VERSIONS_URL = 'https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/rangerblock/versions.json'
 
 interface UpdateInfo {
@@ -145,6 +163,23 @@ let win: BrowserWindow | null
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
+// Safe logger that won't crash on EPIPE errors (when stdout is closed during quit)
+const safeLog = (...args: any[]) => {
+    try {
+        console.log(...args)
+    } catch (e) {
+        // Ignore EPIPE errors during shutdown
+    }
+}
+
+const safeError = (...args: any[]) => {
+    try {
+        console.error(...args)
+    } catch (e) {
+        // Ignore EPIPE errors during shutdown
+    }
+}
+
 function createWindow() {
     win = new BrowserWindow({
         width: 450,
@@ -185,7 +220,7 @@ function createWindow() {
 // Quit when all windows are closed - force quit on ALL platforms
 // (Including macOS - we want the app to fully close when window is closed)
 app.on('window-all-closed', () => {
-    console.log('[Main] All windows closed - quitting app')
+    safeLog('[Main] All windows closed - quitting app')
     app.quit()
 })
 
@@ -480,7 +515,7 @@ ipcMain.handle('app:runUpdate', async () => {
 // IPC handler to reload the app
 ipcMain.handle('app:reload', () => {
     if (win) {
-        console.log('[Update] Reloading app...')
+        safeLog('[Update] Reloading app...')
         win.webContents.reload()
         return true
     }
@@ -577,9 +612,9 @@ app.whenReady().then(async () => {
     try {
         await ledger.init()
         ledgerInitialized = true
-        console.log('[Main] Ledger initialized successfully')
+        safeLog('[Main] Ledger initialized successfully')
     } catch (e) {
-        console.error('[Main] Failed to initialize ledger:', e)
+        safeError('[Main] Failed to initialize ledger:', e)
     }
 
     // Check for updates after window loads
@@ -603,15 +638,15 @@ app.whenReady().then(async () => {
 
 // Cleanup on quit
 app.on('before-quit', async (_event) => {
-    console.log('[Main] App is quitting - cleaning up...')
+    safeLog('[Main] App is quitting - cleaning up...')
 
     // Shutdown ledger if initialized
     if (ledgerInitialized) {
         try {
             await ledger.shutdown()
-            console.log('[Main] Ledger shutdown complete')
+            safeLog('[Main] Ledger shutdown complete')
         } catch (e) {
-            console.error('[Main] Error shutting down ledger:', e)
+            safeError('[Main] Error shutting down ledger:', e)
         }
     }
 
@@ -624,7 +659,7 @@ app.on('before-quit', async (_event) => {
 
 // Force exit when quitting to ensure all processes are killed
 app.on('will-quit', (_event) => {
-    console.log('[Main] Will quit - forcing process exit')
+    safeLog('[Main] Will quit - forcing process exit')
     // Small delay to ensure cleanup completes, then force exit
     setTimeout(() => {
         process.exit(0)
