@@ -434,6 +434,95 @@ ipcMain.handle('app:getVersion', () => {
     return APP_VERSION
 })
 
+// IPC handler for image search via Reddit (bypasses CORS)
+// Prioritizes meme subreddits and funny content
+ipcMain.handle('media:searchImages', async (_event, query: string) => {
+    try {
+        const https = await import('https')
+
+        // Meme-focused subreddits to prioritize
+        const memeSubreddits = ['memes', 'dankmemes', 'funny', 'me_irl', 'wholesomememes', 'AdviceAnimals', 'MemeEconomy']
+
+        // Search with "meme" added for better results
+        const searchQuery = `${query} meme`
+        const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(searchQuery)}&type=link&sort=top&t=all&limit=100`
+
+        return new Promise((resolve) => {
+            const req = https.get(redditUrl, {
+                headers: { 'User-Agent': 'RangerChat/1.9.7' }
+            }, (res) => {
+                let data = ''
+                res.on('data', chunk => data += chunk)
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data)
+                        if (json.data && json.data.children) {
+                            // Filter for image posts
+                            let imagePosts = json.data.children.filter((post: any) => {
+                                const url = post.data.url || ''
+                                const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ||
+                                       url.includes('i.redd.it') ||
+                                       url.includes('i.imgur.com')
+                                // Filter out NSFW and very low score posts
+                                return isImage && !post.data.over_18 && post.data.score > 10
+                            })
+
+                            if (imagePosts.length > 0) {
+                                // Prioritize posts from meme subreddits
+                                const memePosts = imagePosts.filter((post: any) =>
+                                    memeSubreddits.some(sub =>
+                                        post.data.subreddit.toLowerCase() === sub.toLowerCase()
+                                    )
+                                )
+
+                                // Use meme subreddit posts if available, otherwise use all
+                                const postsToUse = memePosts.length > 0 ? memePosts : imagePosts
+
+                                // Sort by score (upvotes) and pick from top results
+                                postsToUse.sort((a: any, b: any) => b.data.score - a.data.score)
+
+                                // Pick randomly from top 15 results for variety
+                                const topPosts = postsToUse.slice(0, 15)
+                                const randomPost = topPosts[Math.floor(Math.random() * topPosts.length)]
+                                let imageUrl = randomPost.data.url
+
+                                // Fix imgur links
+                                if (imageUrl.includes('imgur.com') && !imageUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                                    imageUrl = imageUrl + '.jpg'
+                                }
+
+                                resolve({
+                                    success: true,
+                                    title: randomPost.data.title || query,
+                                    subreddit: randomPost.data.subreddit || 'reddit',
+                                    url: imageUrl,
+                                    score: randomPost.data.score
+                                })
+                                return
+                            }
+                        }
+                        resolve({ success: false, error: 'No memes found' })
+                    } catch (e) {
+                        resolve({ success: false, error: 'Failed to parse response' })
+                    }
+                })
+            })
+
+            req.on('error', (err) => {
+                safeLog('[Media] Search error:', err.message)
+                resolve({ success: false, error: err.message })
+            })
+
+            req.setTimeout(10000, () => {
+                req.destroy()
+                resolve({ success: false, error: 'Request timeout' })
+            })
+        })
+    } catch (e) {
+        return { success: false, error: 'Search failed' }
+    }
+})
+
 // IPC handler for running update commands (git pull, npm install, reload)
 ipcMain.handle('app:runUpdate', async () => {
     // For packaged apps, git pull doesn't work - user needs to download new version

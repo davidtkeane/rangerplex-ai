@@ -1668,6 +1668,50 @@ function App() {
             }
         }
 
+        // Handle /img command - Reddit image search via IPC (NO API KEY NEEDED!)
+        const imgMatch = trimmedInput.match(/^\/img\s+(.+)$/i)
+        if (imgMatch) {
+            const query = imgMatch[1].trim()
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: `🔍 Searching for "${query}"...`,
+                timestamp: new Date().toLocaleTimeString()
+            }])
+
+            try {
+                // Use Electron IPC to bypass CORS
+                const result = await window.electronAPI.media.searchImages(query)
+
+                if (result.success) {
+                    const scoreText = result.score ? ` ⬆️${result.score.toLocaleString()}` : ''
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `🎭 **${result.title}**\n📍 r/${result.subreddit}${scoreText}\n![${query}](${result.url})`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                } else {
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `❌ No images found for "${query}". Try different keywords!`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+            } catch (e) {
+                console.error('Image search failed', e)
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: '❌ Image search failed. Try again later.',
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
         if (!wsRef.current || !connected) return
 
         // Handle /call command (voice call)
@@ -4014,9 +4058,13 @@ return (
                                         <code>/meme [sub]</code>
                                         <span>Random meme</span>
                                     </div>
+                                    <div className="slash-help-item slash-help-item-highlight">
+                                        <code>/img &lt;search&gt;</code>
+                                        <span>🆓 Search images</span>
+                                    </div>
                                     <div className="slash-help-item">
                                         <code>/gif &lt;search&gt;</code>
-                                        <span>Search GIF</span>
+                                        <span>Search GIF*</span>
                                     </div>
                                     <div className="slash-help-memes">
                                         <div className="slash-help-memes-title">📌 Popular Subreddits:</div>

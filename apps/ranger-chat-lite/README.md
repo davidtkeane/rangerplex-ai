@@ -153,12 +153,16 @@ Use these in the chat input:
 - `/peers` or `/online` - List online users with voice capability
 - `/weather [city]` - Local weather (auto-detect or city override)
 - `/meme [subreddit]` - Get a random meme (click to expand, save)
+- `/img <search>` - **🆓 Search images by keyword (NO API KEY!)** - e.g., `/img chuck norris`
 - `/gif <search>` - Search for a GIF (requires Tenor API key in Settings)
 - `/update` - Check for and install app updates
 - `/version` - Show current and latest version
 
 **Popular Meme Subreddits:**
 `/meme memes` | `/meme dankmemes` | `/meme wholesomememes` | `/meme programmerhumor` | `/meme prequelmemes` | `/meme cats` | `/meme aww`
+
+**Image Search Examples:**
+`/img chuck norris` | `/img funny cat` | `/img star wars` | `/img nature` | `/img programming`
 
 ### 4. **Close App**
 

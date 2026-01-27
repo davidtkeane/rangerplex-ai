@@ -37,6 +37,9 @@ import { ipcRenderer } from 'electron'
         reload: () => ipcRenderer.invoke('app:reload'),
         checkForUpdates: () => ipcRenderer.invoke('app:checkForUpdates'),
         getVersion: () => ipcRenderer.invoke('app:getVersion')
+    },
+    media: {
+        searchImages: (query: string) => ipcRenderer.invoke('media:searchImages', query)
     }
 }
 

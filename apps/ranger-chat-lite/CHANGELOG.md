@@ -4,6 +4,12 @@ All notable changes to RangerChat Lite will be documented in this file.
 ## [1.9.7] - 2026-01-27 - "Quick Fix"
 
 ### Added
+- **`/img <search>` Command**: Search for memes by keyword using Reddit - **NO API KEY NEEDED!**
+  - Uses Electron IPC to bypass CORS restrictions
+  - Prioritizes meme subreddits (memes, dankmemes, funny, me_irl, wholesomememes)
+  - Sorts by upvotes for quality results
+  - Filters NSFW content and low-score posts
+  - Shows upvote count (⬆️) in results
 - **Image Lightbox**: Click any meme/image to expand in a beautiful fullscreen viewer
 - **Image Actions**: View and Save buttons below each image in chat
 - **Download Images**: Save memes directly to your computer from lightbox
