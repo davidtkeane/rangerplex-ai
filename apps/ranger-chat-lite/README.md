@@ -2,7 +2,7 @@
 
 Standalone Electron/React client for the RangerPlex blockchain network. Features secure P2P chat, voice/video calls, hardware-bound wallet, and blockchain ledger.
 
-**Version:** 1.9.9 "Secure Wallet"
+**Version:** 2.0.0 "End-to-End Encryption"
 
 ## Quick Install
 
@@ -21,6 +21,15 @@ The scripts clone, install dependencies, build, and launch from `~/RangerChat-Li
 ---
 
 ## Features
+
+### 🔒 E2E Encryption (NEW!)
+- **AES-256-GCM + RSA-2048** hybrid encryption
+- Unique session key per message (forward secrecy)
+- Digital signatures prevent impersonation
+- Relay server **never** sees plaintext (true E2EE)
+- Backward compatible with unencrypted clients
+- Lock icon on encrypted messages, checkmark on verified
+- Toggle on/off in Settings > Security & Encryption
 
 ### 💬 Secure Chat
 - P2P messaging via WebSocket relay
@@ -171,6 +180,9 @@ Relay binary: `rangerblock/core/relay-server-bridge.cjs`
 
 ## Security Features
 
+- **End-to-end encryption** - AES-256-GCM + RSA-2048 hybrid (relay server blind)
+- **Per-message session keys** - Unique AES key per message (forward secrecy)
+- **Digital signatures** - RSA-2048 sender authentication on every encrypted message
 - **Hardware-bound identity** - Tied to device UUID
 - **Encrypted wallet storage** - AES-256-GCM
 - **RSA-2048 signatures** - All transactions signed
