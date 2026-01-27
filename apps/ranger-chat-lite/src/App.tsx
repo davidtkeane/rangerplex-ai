@@ -44,6 +44,16 @@ declare global {
                 checkForUpdates: () => Promise<{ updateAvailable: boolean; latestVersion: string | null }>
                 getVersion: () => Promise<string>
             }
+            media: {
+                searchImages: (query: string) => Promise<{
+                    success: boolean
+                    url?: string
+                    title?: string
+                    subreddit?: string
+                    score?: number
+                    error?: string
+                }>
+            }
         }
     }
 }
@@ -364,6 +374,92 @@ const WEATHER_CODE_LABELS: Record<number, string> = {
     96: 'Thunderstorm with slight hail',
     99: 'Thunderstorm with heavy hail'
 }
+
+// Weather ASCII Art
+const WEATHER_ASCII: Record<string, string> = {
+    sunny: `
+    \\   /
+     .-.
+  ― (   ) ―
+     \`-'
+    /   \\`,
+    cloudy: `
+     .--.
+  .-(    ).
+ (___.__)__)`,
+    partlyCloudy: `
+   \\  /
+ _ /""-.
+   \\_(   ).
+   /(___(__) `,
+    rain: `
+     .-.
+    (   ).
+   (___(__)
+    ʻ ʻ ʻ ʻ
+   ʻ ʻ ʻ ʻ`,
+    heavyRain: `
+     .-.
+    (   ).
+   (___(__)
+  ‚ʻ‚ʻ‚ʻ‚ʻ
+  ‚ʻ‚ʻ‚ʻ‚ʻ`,
+    snow: `
+     .-.
+    (   ).
+   (___(__)
+    *  *  *
+   *  *  *`,
+    thunder: `
+     .-.
+    (   ).
+   (___(__)
+   ⚡ʻ ⚡ʻ
+    ʻ ʻ ʻ`,
+    fog: `
+ _ - _ - _ -
+  _ - _ - _
+ _ - _ - _ -`,
+    night: `
+    ☽
+  ✦    ✦
+     ✦
+  ✦      ✦`
+}
+
+// Get ASCII art based on weather code
+const getWeatherAscii = (code: number, isNight: boolean = false): string => {
+    if (isNight && code <= 1) return WEATHER_ASCII.night
+    if (code === 0 || code === 1) return WEATHER_ASCII.sunny
+    if (code === 2) return WEATHER_ASCII.partlyCloudy
+    if (code === 3) return WEATHER_ASCII.cloudy
+    if (code >= 45 && code <= 48) return WEATHER_ASCII.fog
+    if (code >= 51 && code <= 57) return WEATHER_ASCII.rain
+    if (code >= 61 && code <= 67) return WEATHER_ASCII.rain
+    if (code >= 80 && code <= 82) return WEATHER_ASCII.heavyRain
+    if (code >= 71 && code <= 77) return WEATHER_ASCII.snow
+    if (code >= 85 && code <= 86) return WEATHER_ASCII.snow
+    if (code >= 95) return WEATHER_ASCII.thunder
+    return WEATHER_ASCII.cloudy
+}
+
+// Get weather emoji
+const getWeatherEmoji = (code: number): string => {
+    if (code === 0) return '☀️'
+    if (code === 1) return '🌤️'
+    if (code === 2) return '⛅'
+    if (code === 3) return '☁️'
+    if (code >= 45 && code <= 48) return '🌫️'
+    if (code >= 51 && code <= 57) return '🌧️'
+    if (code >= 61 && code <= 65) return '🌧️'
+    if (code >= 66 && code <= 67) return '🌨️'
+    if (code >= 71 && code <= 77) return '❄️'
+    if (code >= 80 && code <= 82) return '🌧️'
+    if (code >= 85 && code <= 86) return '🌨️'
+    if (code >= 95) return '⛈️'
+    return '🌡️'
+}
+
 const WEATHER_LOCATION_STORAGE_KEY = 'rangerChatWeatherLocation'
 const RAIN_ALERTS_ENABLED_KEY = 'rangerChatRainAlertsEnabled'
 const RAIN_ALERT_LOOKAHEAD_KEY = 'rangerChatRainAlertLookaheadHours'
@@ -395,6 +491,44 @@ function App() {
     const [showSearch, setShowSearch] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [showSlashHelp, setShowSlashHelp] = useState(false)
+
+    // Slash command autocomplete state
+    const [showSlashMenu, setShowSlashMenu] = useState(false)
+    const [slashMenuIndex, setSlashMenuIndex] = useState(0)
+    const [slashSubMenu, setSlashSubMenu] = useState<string | null>(null)
+
+    // Slash commands definition with submenus
+    const SLASH_COMMANDS = [
+        { cmd: '/call', desc: 'Voice call', icon: '📞', args: '<username>' },
+        { cmd: '/video', desc: 'Video call', icon: '📹', args: '<username>' },
+        { cmd: '/hangup', desc: 'End call', icon: '📵' },
+        { cmd: '/peers', desc: 'Online users', icon: '👥' },
+        {
+            cmd: '/weather',
+            desc: 'Weather info',
+            icon: '🌦️',
+            args: '[city] [large]',
+            submenu: ['large', 'Dublin', 'London', 'New York', 'Tokyo', 'Paris', 'Dublin large', 'London large']
+        },
+        {
+            cmd: '/meme',
+            desc: 'Random meme',
+            icon: '🎭',
+            args: '[subreddit]',
+            submenu: ['memes', 'dankmemes', 'wholesomememes', 'programmerhumor', 'prequelmemes', 'historymemes', 'me_irl', 'animemes', 'gaming', 'cats', 'aww', 'funny']
+        },
+        {
+            cmd: '/img',
+            desc: 'Search memes (FREE!)',
+            icon: '🖼️',
+            args: '<search>',
+            highlight: true,
+            submenu: ['chuck norris', 'star wars', 'batman', 'programming', 'cats', 'dogs', 'nature', 'funny', 'wholesome', 'gaming']
+        },
+        { cmd: '/gif', desc: 'Search GIF', icon: '🎬', args: '<search>' },
+        { cmd: '/update', desc: 'Install update', icon: '🔄' },
+        { cmd: '/version', desc: 'App version', icon: 'ℹ️' },
+    ]
 
     // Image viewer state
     const [expandedImage, setExpandedImage] = useState<{ url: string; title: string } | null>(null)
@@ -736,9 +870,6 @@ function App() {
         '🔒 Security scan complete. v${version} is battle-ready!',
         '🌟 Code status: Peak performance. v${version} at your service!',
     ]
-
-    // Track if this is the first update check (don't show message on initial load)
-    const isFirstUpdateCheck = useRef(true)
 
     // Check for updates on load and every hour
     useEffect(() => {
@@ -1160,38 +1291,115 @@ function App() {
         const current = data?.current
         if (!current) throw new Error('Weather data missing')
 
+        const weatherCode = current.weather_code
         const temp = Math.round(current.temperature_2m)
         const feels = Math.round(current.apparent_temperature)
         const wind = Math.round(current.wind_speed_10m)
-        const condition = describeWeatherCode(current.weather_code)
+        const precip = current.precipitation || 0
+        const condition = describeWeatherCode(weatherCode)
+        const emoji = getWeatherEmoji(weatherCode)
 
         const { maxProb, maxPrecip } = getRainWindow(data, 3)
         const rainSummary = maxProb > 0 || maxPrecip > 0
-            ? `Next 3h rain chance: ${Math.round(maxProb)}% (max ${maxPrecip.toFixed(1)}mm)`
-            : 'Next 3h: no rain detected'
+            ? `${Math.round(maxProb)}% chance (${maxPrecip.toFixed(1)}mm)`
+            : 'None expected'
 
-        return `Weather: ${label} | ${temp}C (feels ${feels}C) | ${condition} | Wind ${wind} km/h | ${rainSummary}`
+        return { weatherCode, temp, feels, wind, precip, condition, emoji, maxProb, maxPrecip, rainSummary, label, data }
+    }
+
+    // Build weather message (normal or large format)
+    const formatWeatherMessage = (weather: any, large: boolean = false): string => {
+        const { weatherCode, temp, feels, wind, condition, emoji, rainSummary, label, data } = weather
+        const hour = new Date().getHours()
+        const isNight = hour < 6 || hour > 20
+
+        if (large) {
+            // Large format with ASCII art and forecast
+            const ascii = getWeatherAscii(weatherCode, isNight)
+            const daily = data?.daily
+            const hourly = data?.hourly
+
+            // Get next 6 hours forecast
+            const now = Date.now()
+            const hourlyForecast = (hourly?.time || [])
+                .map((t: string, i: number) => ({
+                    time: new Date(t),
+                    temp: Math.round(hourly.temperature_2m[i]),
+                    code: hourly.weather_code[i],
+                    precip: hourly.precipitation_probability?.[i] || 0
+                }))
+                .filter((h: any) => h.time.getTime() > now)
+                .slice(0, 6)
+
+            // Get 3-day forecast
+            const dailyForecast = (daily?.time || []).map((t: string, i: number) => ({
+                date: new Date(t),
+                max: Math.round(daily.temperature_2m_max[i]),
+                min: Math.round(daily.temperature_2m_min[i]),
+                code: daily.weather_code[i],
+                precip: daily.precipitation_sum?.[i] || 0
+            }))
+
+            const hourlyStr = hourlyForecast.map((h: any) =>
+                `${h.time.getHours().toString().padStart(2, '0')}:00 ${getWeatherEmoji(h.code)} ${h.temp}°C ${h.precip > 0 ? `💧${h.precip}%` : ''}`
+            ).join('\n')
+
+            const dailyStr = dailyForecast.map((d: any) => {
+                const day = d.date.toLocaleDateString('en', { weekday: 'short' })
+                return `${day}: ${getWeatherEmoji(d.code)} ${d.min}°/${d.max}°C ${d.precip > 0 ? `💧${d.precip.toFixed(1)}mm` : ''}`
+            }).join('\n')
+
+            return `\`\`\`
+${ascii}
+\`\`\`
+**${emoji} ${label}**
+━━━━━━━━━━━━━━━━━━━━
+🌡️ **${temp}°C** (feels ${feels}°C)
+☁️ ${condition}
+💨 Wind: ${wind} km/h
+🌧️ Rain: ${rainSummary}
+
+**⏰ Next 6 Hours:**
+${hourlyStr}
+
+**📅 3-Day Forecast:**
+${dailyStr}`
+        } else {
+            // Normal format with emoji and key info
+            return `${emoji} **${label}**
+🌡️ ${temp}°C (feels ${feels}°C) | ☁️ ${condition}
+💨 ${wind} km/h | 🌧️ ${rainSummary}`
+        }
     }
 
     const handleWeatherCommand = async (query?: string) => {
         try {
-            const trimmed = query?.trim()
-            const location = trimmed ? await geocodeLocation(trimmed) : await ensureWeatherLocation()
+            const trimmed = query?.trim().toLowerCase() || ''
+
+            // Check for "large" or "full" option
+            const isLarge = trimmed === 'large' || trimmed === 'full' || trimmed.endsWith(' large') || trimmed.endsWith(' full')
+            const locationQuery = trimmed
+                .replace(/\s*(large|full)$/i, '')
+                .trim()
+
+            const location = locationQuery ? await geocodeLocation(locationQuery) : await ensureWeatherLocation()
             if (!location) {
                 setMessages(prev => [...prev, {
                     type: 'system',
                     sender: 'System',
-                    content: 'Weather: unable to detect your location.',
+                    content: '❌ Weather: unable to detect your location. Try `/weather Dublin` or `/weather large`',
                     timestamp: new Date().toLocaleTimeString()
                 }])
                 return
             }
 
             const data = await fetchWeatherData(location.lat, location.lon)
-            const message = buildWeatherMessage(location.label, data)
+            const weather = buildWeatherMessage(location.label, data)
+            const message = formatWeatherMessage(weather, isLarge)
+
             setMessages(prev => [...prev, {
-                type: 'chat',
-                sender: 'Weather',
+                type: 'system',
+                sender: 'System',
                 content: message,
                 timestamp: new Date().toLocaleTimeString()
             }])
@@ -1199,7 +1407,7 @@ function App() {
             setMessages(prev => [...prev, {
                 type: 'system',
                 sender: 'System',
-                content: `Weather error: ${error?.message || 'Unable to fetch weather.'}`,
+                content: `❌ Weather error: ${error?.message || 'Unable to fetch weather.'}`,
                 timestamp: new Date().toLocaleTimeString()
             }])
         }
@@ -1462,8 +1670,8 @@ function App() {
                         setPeers(normalizedPeers)
                         setPeerCount(normalizedPeers.length)
                         setMessages(prev => {
-                            const newMessages = [...prev, {
-                                type: 'system',
+                            const newMessages: Message[] = [...prev, {
+                                type: 'system' as const,
                                 sender: 'System',
                                 content: `${normalizedPeers.length} peer(s) online`,
                                 timestamp: new Date().toLocaleTimeString()
@@ -1472,7 +1680,7 @@ function App() {
                             // Show update notification after welcome if update is available
                             if (updateAvailable && latestVersion) {
                                 newMessages.push({
-                                    type: 'system',
+                                    type: 'system' as const,
                                     sender: 'System',
                                     content: `🚀 UPDATE AVAILABLE! You are on v${APP_VERSION}, latest is v${latestVersion}. Type /update to install, then the app will refresh automatically.`,
                                     timestamp: new Date().toLocaleTimeString()
@@ -1644,7 +1852,14 @@ function App() {
                 const data = await res.json()
                 if (data.results && data.results.length > 0) {
                     const gifUrl = data.results[0].media_formats.gif.url
-                    processedContent = `![${query}](${gifUrl})`
+                    setMessages(prev => [...prev, {
+                        type: 'system' as const,
+                        sender: 'System',
+                        content: `🎬 **${query}**\n![${query}](${gifUrl})`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    setInput('')
+                    return
                 } else {
                     setMessages(prev => [...prev, {
                         type: 'system',
@@ -1681,6 +1896,9 @@ function App() {
 
             try {
                 // Use Electron IPC to bypass CORS
+                if (!window.electronAPI?.media) {
+                    throw new Error('Media API not available')
+                }
                 const result = await window.electronAPI.media.searchImages(query)
 
                 if (result.success) {
@@ -3919,6 +4137,72 @@ return (
                     />
                 )}
 
+                {/* Slash Command Autocomplete Menu */}
+                {showSlashMenu && (
+                    <div className="slash-autocomplete">
+                        {slashSubMenu ? (
+                            // Submenu for meme/img commands
+                            <div className="slash-submenu">
+                                <div className="slash-submenu-header">
+                                    <button className="slash-back-btn" onClick={() => { setSlashSubMenu(null); setSlashMenuIndex(0); }}>
+                                        ← Back
+                                    </button>
+                                    <span>{slashSubMenu === '/meme' ? '🎭 Subreddits' : slashSubMenu === '/weather' ? '🌦️ Weather Options' : '🖼️ Search Ideas'}</span>
+                                </div>
+                                <div className="slash-submenu-items">
+                                    {SLASH_COMMANDS.find(c => c.cmd === slashSubMenu)?.submenu?.map((item, i) => (
+                                        <div
+                                            key={item}
+                                            className={`slash-submenu-item ${i === slashMenuIndex ? 'selected' : ''}`}
+                                            onClick={() => {
+                                                setInput(`${slashSubMenu} ${item}`)
+                                                setShowSlashMenu(false)
+                                                setSlashSubMenu(null)
+                                            }}
+                                        >
+                                            <span className="submenu-text">{item}</span>
+                                            {slashSubMenu === '/meme' && <span className="submenu-hint">r/{item}</span>}
+                                            {slashSubMenu === '/weather' && item === 'large' && <span className="submenu-hint">Full forecast</span>}
+                                            {slashSubMenu === '/weather' && item !== 'large' && <span className="submenu-hint">City</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            // Main command menu
+                            <div className="slash-menu-items">
+                                {SLASH_COMMANDS
+                                    .filter(c => c.cmd.toLowerCase().startsWith(input.toLowerCase().split(' ')[0]))
+                                    .map((cmd, i) => (
+                                        <div
+                                            key={cmd.cmd}
+                                            className={`slash-menu-item ${i === slashMenuIndex ? 'selected' : ''} ${cmd.highlight ? 'highlighted' : ''}`}
+                                            onClick={() => {
+                                                if (cmd.submenu) {
+                                                    setSlashSubMenu(cmd.cmd)
+                                                    setSlashMenuIndex(0)
+                                                    setInput(cmd.cmd + ' ')
+                                                } else {
+                                                    setInput(cmd.cmd + (cmd.args ? ' ' : ''))
+                                                    setShowSlashMenu(false)
+                                                }
+                                            }}
+                                        >
+                                            <span className="cmd-icon">{cmd.icon}</span>
+                                            <span className="cmd-text">{cmd.cmd}</span>
+                                            <span className="cmd-args">{cmd.args || ''}</span>
+                                            <span className="cmd-desc">{cmd.desc}</span>
+                                            {cmd.submenu && <span className="cmd-arrow">▶</span>}
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
+                        <div className="slash-menu-hint">
+                            ↑↓ Navigate • Enter Select • Esc Close
+                        </div>
+                    </div>
+                )}
+
                 <div className="chat-input-area">
                     <button
                         className={`emoji-toggle ${showEmojiPicker ? 'active' : ''}`}
@@ -3929,9 +4213,82 @@ return (
                     <input
                         type="text"
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                        placeholder="Type a message..."
+                        onChange={(e) => {
+                            const val = e.target.value
+                            setInput(val)
+                            // Show slash menu when typing /
+                            if (val.startsWith('/')) {
+                                setShowSlashMenu(true)
+                                setSlashMenuIndex(0)
+                                // Reset submenu when typing new command
+                                if (!val.includes(' ')) {
+                                    setSlashSubMenu(null)
+                                }
+                            } else {
+                                setShowSlashMenu(false)
+                                setSlashSubMenu(null)
+                            }
+                        }}
+                        onKeyDown={(e) => {
+                            // Handle slash menu navigation
+                            if (showSlashMenu) {
+                                const filteredCmds = SLASH_COMMANDS.filter(c =>
+                                    c.cmd.toLowerCase().startsWith(input.toLowerCase().split(' ')[0])
+                                )
+                                if (slashSubMenu) {
+                                    const subCmd = SLASH_COMMANDS.find(c => c.cmd === slashSubMenu)
+                                    const subItems = subCmd?.submenu || []
+                                    if (e.key === 'ArrowDown') {
+                                        e.preventDefault()
+                                        setSlashMenuIndex(i => Math.min(i + 1, subItems.length - 1))
+                                    } else if (e.key === 'ArrowUp') {
+                                        e.preventDefault()
+                                        setSlashMenuIndex(i => Math.max(i - 1, 0))
+                                    } else if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        const selected = subItems[slashMenuIndex]
+                                        if (slashSubMenu === '/meme') {
+                                            setInput(`/meme ${selected}`)
+                                        } else if (slashSubMenu === '/img') {
+                                            setInput(`/img ${selected}`)
+                                        }
+                                        setShowSlashMenu(false)
+                                        setSlashSubMenu(null)
+                                    } else if (e.key === 'Escape') {
+                                        e.preventDefault()
+                                        setSlashSubMenu(null)
+                                        setSlashMenuIndex(0)
+                                    }
+                                } else {
+                                    if (e.key === 'ArrowDown') {
+                                        e.preventDefault()
+                                        setSlashMenuIndex(i => Math.min(i + 1, filteredCmds.length - 1))
+                                    } else if (e.key === 'ArrowUp') {
+                                        e.preventDefault()
+                                        setSlashMenuIndex(i => Math.max(i - 1, 0))
+                                    } else if (e.key === 'Enter' || e.key === 'Tab') {
+                                        e.preventDefault()
+                                        const selected = filteredCmds[slashMenuIndex]
+                                        if (selected) {
+                                            if (selected.submenu) {
+                                                setSlashSubMenu(selected.cmd)
+                                                setSlashMenuIndex(0)
+                                                setInput(selected.cmd + ' ')
+                                            } else {
+                                                setInput(selected.cmd + (selected.args ? ' ' : ''))
+                                                setShowSlashMenu(false)
+                                            }
+                                        }
+                                    } else if (e.key === 'Escape') {
+                                        setShowSlashMenu(false)
+                                        setSlashSubMenu(null)
+                                    }
+                                }
+                            } else if (e.key === 'Enter') {
+                                sendMessage()
+                            }
+                        }}
+                        placeholder="Type / for commands..."
                         className="message-input"
                     />
                     <button className="send-btn" onClick={sendMessage}>

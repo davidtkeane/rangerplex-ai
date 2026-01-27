@@ -15,6 +15,9 @@ All notable changes to RangerChat Lite will be documented in this file.
 - **Download Images**: Save memes directly to your computer from lightbox
 - **Open Original**: Button to open image in new browser tab
 - **Meme Subreddit Quick Select**: Clickable tags in slash commands for popular subreddits (memes, dankmemes, wholesomememes, programmerhumor, prequelmemes, etc.)
+- **Weather ASCII Art**: Weather display now shows cool ASCII art for different conditions (sunny, rain, snow, clouds, thunder, fog, night)
+- **`/weather large` Option**: Detailed weather view with 6-hour forecast and 3-day outlook
+- **Weather Submenu**: Quick select for cities (Dublin, London, New York, Tokyo) and large format in autocomplete
 
 ### Fixed
 - **Meme Command**: Fixed `/meme` not displaying images - added proper message display and image rendering
@@ -23,10 +26,12 @@ All notable changes to RangerChat Lite will be documented in this file.
 - **Brace Imbalance**: Fixed extra `return` and `}` that prematurely closed `sendMessage` function
 - **Weather Command**: Fixed missing `weatherMatch` regex definition causing build error
 - **EPIPE Crash**: Fixed "write EPIPE" error on app close with safe logging functions
+- **GIF Command**: Fixed `/gif` command not displaying results (was assigning to undefined variable)
 
 ### Improved
 - **Slash Commands UI**: Redesigned modal with organized sections (Calls, Info, Media, System), clear Close button at bottom, better layout and scrolling
 - **Chat Images**: Styled with rounded corners, max-height 280px, hover glow effect, accent border on hover
+- **Weather Display**: Enhanced weather output with emoji, temperature, feels-like, condition, wind, humidity, and rain chance
 
 
 ---
