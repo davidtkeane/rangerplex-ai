@@ -15,37 +15,48 @@
 
 </div>
 
-## Quick Install (One-Liner)
+## Quick Install
 
 ### Step 1. Install Everything
 
 > The install scripts auto-detect your OS, install Node.js 22 + npm + dependencies, and guide you through API key setup. Smart enough to use `brew` on macOS, `winget` on Windows, or `apt`/`dnf`/`pacman`/`apk`/`zypper` on Linux.
 
-**Windows (PowerShell - Run as Admin):**
+**Option A: One-liner (clone + install in one command):**
+
+Windows (PowerShell - Run as Admin):
 ```powershell
-irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/install-me-now.ps1 | iex
+git clone https://github.com/davidtkeane/rangerplex-ai.git; cd rangerplex-ai; .\install-me-now.ps1
 ```
 
-**macOS (Terminal):**
+macOS (Terminal):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/install-me-now.sh | bash
+git clone https://github.com/davidtkeane/rangerplex-ai.git && cd rangerplex-ai && bash install-me-now.sh
 ```
 
-**Linux / WSL (Terminal):**
+Linux / WSL (Terminal):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/install-me-now.sh | bash
+git clone https://github.com/davidtkeane/rangerplex-ai.git && cd rangerplex-ai && bash install-me-now.sh
 ```
 
-**Already cloned? Run locally:**
+**Option B: Already cloned? Run the installer directly:**
 ```bash
 # macOS / Linux / WSL:
+cd rangerplex-ai
 bash install-me-now.sh
 
-# Windows:
+# Windows (PowerShell):
+cd rangerplex-ai
 .\install-me-now.ps1
 ```
 
+**Option C: Don't have Git? Download the ZIP:**
+1. Download: https://github.com/davidtkeane/rangerplex-ai/archive/refs/heads/main.zip
+2. Unzip and open a terminal in the `rangerplex-ai` folder
+3. Run `bash install-me-now.sh` (macOS/Linux) or `.\install-me-now.ps1` (Windows)
+
 > The installer will offer to start RangerPlex for you at the end via PM2. If you skip that, use Step 2 below.
+>
+> **Note:** If you run the install script outside the repo folder, it will offer to `git clone` the repo for you automatically.
 
 ### Step 2. Start RangerPlex (after install)
 

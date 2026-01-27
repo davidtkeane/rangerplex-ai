@@ -9,35 +9,44 @@ Standalone Electron/React client for the RangerPlex blockchain network. Features
 
 **Version:** 2.0.1 "Smart Install Scripts"
 
-## Quick Install (One-Liner)
+## Quick Install
 
 ### Step 1. Install Everything
 
 > The scripts auto-detect your OS, install Node.js 22 + npm + Git, clone the repo, install dependencies, and launch from `~/RangerChat-Lite`. Uses `brew` on macOS, `winget` on Windows, or `apt`/`dnf`/`pacman`/`apk`/`zypper` on Linux.
 
-**Windows (PowerShell):**
+**Option A: One-liner (clone + install in one command):**
+
+Windows (PowerShell):
 ```powershell
-irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install-rangerchat-now.ps1 | iex
+git clone https://github.com/davidtkeane/rangerplex-ai.git; cd rangerplex-ai\apps\ranger-chat-lite; .\scripts\install-rangerchat-now.ps1
 ```
 
-**macOS (Terminal):**
+macOS (Terminal):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install-rangerchat-now.sh | bash
+git clone https://github.com/davidtkeane/rangerplex-ai.git && cd rangerplex-ai/apps/ranger-chat-lite && bash scripts/install-rangerchat-now.sh
 ```
 
-**Linux / WSL (Terminal):**
+Linux / WSL (Terminal):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install-rangerchat-now.sh | bash
+git clone https://github.com/davidtkeane/rangerplex-ai.git && cd rangerplex-ai/apps/ranger-chat-lite && bash scripts/install-rangerchat-now.sh
 ```
 
-**Already cloned? Run locally:**
+**Option B: Already cloned? Run the installer directly:**
 ```bash
 # macOS / Linux / WSL:
+cd rangerplex-ai/apps/ranger-chat-lite
 bash scripts/install-rangerchat-now.sh
 
-# Windows:
+# Windows (PowerShell):
+cd rangerplex-ai\apps\ranger-chat-lite
 .\scripts\install-rangerchat-now.ps1
 ```
+
+**Option C: Don't have Git? Download the ZIP:**
+1. Download: https://github.com/davidtkeane/rangerplex-ai/archive/refs/heads/main.zip
+2. Unzip and open a terminal in `rangerplex-ai/apps/ranger-chat-lite`
+3. Run `bash scripts/install-rangerchat-now.sh` (macOS/Linux) or `.\scripts\install-rangerchat-now.ps1` (Windows)
 
 > The installer will auto-start RangerChat Lite at the end. If you skip that, use Step 2 below.
 

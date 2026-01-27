@@ -483,9 +483,62 @@ log
 preflight_downloads
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_URL="https://github.com/davidtkeane/rangerplex-ai.git"
+REPO_DIR="rangerplex-ai"
+
 if [ ! -f "$PROJECT_ROOT/package.json" ]; then
-  fail "Run this script from the project root (package.json not found)."
-  exit 1
+  log
+  warn "package.json not found in current directory."
+  log "${dim}This script needs to run from inside the RangerPlex AI repo.${reset}"
+  log
+  log "${bold}${yellow}How would you like to get the repo?${reset}"
+  log "  ${green}1)${reset} git clone (recommended)"
+  log "  ${cyan}2)${reset} I'll download it manually - exit for now"
+  log
+  printf "${yellow}Choose [1/2]: ${reset}"
+  read -r clone_choice
+
+  case "$clone_choice" in
+    2)
+      log
+      log "${bold}Download the repo:${reset}"
+      log "  ${cyan}git clone $REPO_URL${reset}"
+      log "  ${cyan}cd $REPO_DIR${reset}"
+      log "  ${cyan}bash install-me-now.sh${reset}"
+      log
+      log "${dim}Or download the ZIP from:${reset}"
+      log "  ${cyan}https://github.com/davidtkeane/rangerplex-ai/archive/refs/heads/main.zip${reset}"
+      exit 0
+      ;;
+    *)
+      # Auto-clone
+      if ! command -v git >/dev/null 2>&1; then
+        fail "Git is not installed. Install git first, then re-run."
+        log "${dim}macOS: ${cyan}xcode-select --install${reset}"
+        log "${dim}Linux: ${cyan}sudo apt install git${dim} (or your distro's package manager)${reset}"
+        exit 1
+      fi
+
+      local_clone="$HOME/$REPO_DIR"
+      if [ -d "$local_clone" ] && [ -f "$local_clone/package.json" ]; then
+        ok "Repo already exists at $local_clone"
+        PROJECT_ROOT="$local_clone"
+      else
+        step "Cloning RangerPlex AI repo..."
+        if git clone "$REPO_URL" "$local_clone"; then
+          ok "Repo cloned to $local_clone"
+          PROJECT_ROOT="$local_clone"
+        else
+          fail "git clone failed. Check your internet connection."
+          exit 1
+        fi
+      fi
+
+      cd "$PROJECT_ROOT"
+      log "${dim}Continuing install from $PROJECT_ROOT${reset}"
+      log
+      ;;
+  esac
 fi
 
 OS="$(uname -s)"

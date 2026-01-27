@@ -1256,12 +1256,63 @@ Show-Banner
 Show-PreflightDownloads
 
 $projectRoot = Get-ProjectRoot
+$repoUrl = "https://github.com/davidtkeane/rangerplex-ai.git"
+$repoDir = "rangerplex-ai"
 
-# Check for package.json
+# Check for package.json - if missing, offer to clone the repo
 if (-not (Test-Path (Join-Path $projectRoot "package.json"))) {
-    Write-Fail "Run this script from the project root (package.json not found)."
-    Write-Host "Current directory: $projectRoot" -ForegroundColor DarkGray
-    exit 1
+    Write-Host ""
+    Write-Warn "package.json not found in current directory."
+    Write-Host "  This script needs to run from inside the RangerPlex AI repo." -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "How would you like to get the repo?" -ForegroundColor Yellow
+    Write-Host "  1) git clone (recommended)" -ForegroundColor Green
+    Write-Host "  2) I'll download it manually - exit for now" -ForegroundColor Cyan
+    Write-Host ""
+    $cloneChoice = Read-Host "Choose [1/2]"
+
+    if ($cloneChoice -eq "2") {
+        Write-Host ""
+        Write-Host "Download the repo:" -ForegroundColor White
+        Write-Host "  git clone $repoUrl" -ForegroundColor Cyan
+        Write-Host "  cd $repoDir" -ForegroundColor Cyan
+        Write-Host "  .\install-me-now.ps1" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Or download the ZIP from:" -ForegroundColor DarkGray
+        Write-Host "  https://github.com/davidtkeane/rangerplex-ai/archive/refs/heads/main.zip" -ForegroundColor Cyan
+        exit 0
+    }
+
+    # Auto-clone
+    if (-not (Test-Cmd "git")) {
+        Write-Fail "Git is not installed. Install git first, then re-run."
+        if (Test-Cmd "winget") {
+            Write-Host "  Run: winget install Git.Git" -ForegroundColor Cyan
+        } else {
+            Write-Host "  Download: https://git-scm.com/download/win" -ForegroundColor Cyan
+        }
+        exit 1
+    }
+
+    $localClone = Join-Path $env:USERPROFILE $repoDir
+    if ((Test-Path $localClone) -and (Test-Path (Join-Path $localClone "package.json"))) {
+        Write-Ok "Repo already exists at $localClone"
+        $projectRoot = $localClone
+    } else {
+        Write-Step "Cloning RangerPlex AI repo..."
+        & git clone $repoUrl $localClone
+        if ($LASTEXITCODE -eq 0) {
+            Write-Ok "Repo cloned to $localClone"
+            $projectRoot = $localClone
+        } else {
+            Write-Fail "git clone failed. Check your internet connection."
+            exit 1
+        }
+    }
+
+    Set-Location $projectRoot
+    Write-Host "Continuing install from $projectRoot" -ForegroundColor DarkGray
+    Write-Host ""
 }
 
 Write-Host "Project root: $projectRoot" -ForegroundColor DarkGray
