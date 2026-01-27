@@ -5,6 +5,15 @@ All notable changes to the **RangerPlex Browser** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.1] - 2026-01-27 - README Quick Start Guide
+
+### Added
+- **README.md**: Added Step 1 / Step 2 quick start guide at the top of the README with one-liner install commands for Windows (`irm ... | iex`), macOS (`curl ... | bash`), and Linux/WSL
+- **README.md**: Added Step 2 "Start RangerPlex" section with `npm run pm2:start` (recommended) and `npm run dev` commands, plus PM2 cheat sheet
+- **README.md**: Added note clarifying `npm run build` is NOT required to run the app
+
+---
+
 ## [4.4.0] - 2026-01-27 - Smart Install Scripts: OS Detection, Auto-Install & Cool UI
 
 ### Summary

@@ -2,35 +2,59 @@
 
 Standalone Electron/React client for the RangerPlex blockchain network. Features secure P2P chat, voice/video calls, hardware-bound wallet, and blockchain ledger.
 
+![Version](https://img.shields.io/badge/version-2.0.1-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
+![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
+![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
+
 **Version:** 2.0.1 "Smart Install Scripts"
 
 ## Quick Install (One-Liner)
 
-### Windows (PowerShell)
+### Step 1. Install Everything
+
+> The scripts auto-detect your OS, install Node.js 22 + npm + Git, clone the repo, install dependencies, and launch from `~/RangerChat-Lite`. Uses `brew` on macOS, `winget` on Windows, or `apt`/`dnf`/`pacman`/`apk`/`zypper` on Linux.
+
+**Windows (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install-rangerchat-now.ps1 | iex
 ```
 
-### macOS (Terminal)
+**macOS (Terminal):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install-rangerchat-now.sh | bash
 ```
 
-### Linux / WSL (Terminal)
+**Linux / WSL (Terminal):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/apps/ranger-chat-lite/scripts/install-rangerchat-now.sh | bash
 ```
 
-> The scripts auto-detect your OS, install Node.js 22 + npm + Git, clone the repo, install dependencies, and launch from `~/RangerChat-Lite`. Uses `brew` on macOS, `winget` on Windows, or `apt`/`dnf`/`pacman`/`apk`/`zypper` on Linux.
-
-### Already cloned? Run locally:
+**Already cloned? Run locally:**
 ```bash
-# From the ranger-chat-lite directory:
+# macOS / Linux / WSL:
 bash scripts/install-rangerchat-now.sh
 
 # Windows:
 .\scripts\install-rangerchat-now.ps1
 ```
+
+> The installer will auto-start RangerChat Lite at the end. If you skip that, use Step 2 below.
+
+### Step 2. Start RangerChat Lite (after install)
+
+```bash
+# Start the dev server (all platforms):
+cd ~/RangerChat-Lite
+npm run dev
+```
+
+```bash
+# Or build a distributable Electron app:
+npm run build
+```
+
+> **Note:** You do NOT need to run `npm run build` first. The installer handles everything and `npm run dev` launches the app directly. Build is only needed if you want to package the Electron app for distribution.
 
 ---
 

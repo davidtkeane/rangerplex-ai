@@ -17,22 +17,55 @@
 
 ## Quick Install (One-Liner)
 
-### Windows (PowerShell - Run as Admin)
+### Step 1. Install Everything
+
+> The install scripts auto-detect your OS, install Node.js 22 + npm + dependencies, and guide you through API key setup. Smart enough to use `brew` on macOS, `winget` on Windows, or `apt`/`dnf`/`pacman`/`apk`/`zypper` on Linux.
+
+**Windows (PowerShell - Run as Admin):**
 ```powershell
+irm https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/install-me-now.ps1 | iex
+```
+
+**macOS (Terminal):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/install-me-now.sh | bash
+```
+
+**Linux / WSL (Terminal):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/davidtkeane/rangerplex-ai/main/install-me-now.sh | bash
+```
+
+**Already cloned? Run locally:**
+```bash
+# macOS / Linux / WSL:
+bash install-me-now.sh
+
+# Windows:
 .\install-me-now.ps1
 ```
 
-### macOS (Terminal)
+> The installer will offer to start RangerPlex for you at the end via PM2. If you skip that, use Step 2 below.
+
+### Step 2. Start RangerPlex (after install)
+
 ```bash
-bash install-me-now.sh
+# Recommended - runs in background via PM2 (all platforms):
+npm run pm2:start
+
+# Or run in foreground (dev mode):
+npm run dev
 ```
 
-### Linux / WSL (Terminal)
+**Useful PM2 commands:**
 ```bash
-bash install-me-now.sh
+npm run pm2:status   # Check server status
+npm run pm2:logs     # View real-time logs
+npm run pm2:stop     # Stop all servers
+npm run pm2:restart  # Restart servers
 ```
 
-> The install scripts auto-detect your OS, install Node.js 22 + npm + dependencies, and guide you through API key setup. Smart enough to use `brew` on macOS, `winget` on Windows, or `apt`/`dnf`/`pacman`/`apk`/`zypper` on Linux.
+> **Note:** You do NOT need to run `npm run build` first. The installer handles everything and the dev server runs directly. Build is only needed if you want to create a production bundle.
 
 ---
 

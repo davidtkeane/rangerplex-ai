@@ -2,6 +2,15 @@
 
 All notable changes to RangerChat Lite will be documented in this file.
 
+## [2.0.2] - 2026-01-27 - "README Quick Start Guide"
+
+### Added
+- **README.md**: Added Step 1 / Step 2 quick start guide with one-liner install commands for Windows, macOS, and Linux/WSL
+- **README.md**: Added Step 2 "Start RangerChat Lite" section with `npm run dev` and `npm run build` commands
+- **README.md**: Added note clarifying `npm run build` is NOT required - only needed for packaging the Electron app
+
+---
+
 ## [2.0.1] - 2026-01-27 - "Smart Install Scripts"
 
 ### Changed
