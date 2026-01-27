@@ -3275,6 +3275,115 @@ body {
     border: 1px solid rgba(255, 200, 0, 0.3);
 }
 
+/* Secure Wallet Section */
+.wallet-section {
+    background: linear-gradient(135deg, rgba(255, 200, 0, 0.05), rgba(255, 150, 0, 0.08));
+    border: 1px solid rgba(255, 200, 0, 0.3);
+}
+
+.wallet-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.wallet-address-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.wallet-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.wallet-address {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 11px;
+    background: var(--bg-tertiary);
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    word-break: break-all;
+}
+
+.wallet-balances {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.balance-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.coin-icon {
+    font-size: 16px;
+    width: 24px;
+    text-align: center;
+}
+
+.coin-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.coin-balance {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.wallet-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0;
+    padding: 8px;
+    background: rgba(0, 200, 100, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(0, 200, 100, 0.2);
+}
+
+.wallet-loading {
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 12px;
+    text-align: center;
+}
+
+/* Theme-specific wallet styling */
+[data-theme="matrix"] .wallet-section {
+    background: linear-gradient(135deg, rgba(0, 255, 0, 0.05), rgba(0, 200, 0, 0.08));
+    border-color: rgba(0, 255, 0, 0.3);
+}
+
+[data-theme="matrix"] .wallet-address {
+    color: #00ff00;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+[data-theme="tron"] .wallet-section {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(0, 150, 200, 0.08));
+    border-color: rgba(0, 212, 255, 0.3);
+}
+
+[data-theme="tron"] .wallet-address {
+    color: #00d4ff;
+    text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+}
+
 /* Theme-specific ledger styling */
 [data-theme="matrix"] .status-value {
     text-shadow: 0 0 10px var(--accent);

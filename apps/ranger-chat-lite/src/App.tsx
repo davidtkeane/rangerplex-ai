@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import ScreensaverBackground from './components/ScreensaverBackground'
 import './App.css'
 import RadioPlayer, { RadioSettings } from './components/RadioPlayer'
+import PodcastPlayer from './components/PodcastPlayer'
 import { apiTestingService } from './services/apiTestingService'
 
 // Electron API type declaration
@@ -66,6 +67,43 @@ declare global {
                 start: () => Promise<any>
                 stop: () => Promise<any>
                 onStatusChange: (callback: (status: any) => void) => void
+            }
+            wallet: {
+                init: () => Promise<{
+                    success: boolean
+                    address?: string
+                    balances?: { RC: number; RGD: number; HELL: number }
+                    error?: string
+                }>
+                getStatus: () => Promise<{
+                    available: boolean
+                    initialized: boolean
+                    address?: string
+                    balances?: { RC: number; RGD: number; HELL: number }
+                    error?: string
+                }>
+                getAddress: () => Promise<string | null>
+                getBalances: () => Promise<{ RC: number; RGD: number; HELL: number }>
+            }
+            fileTransfer: {
+                package: (filePath: string) => Promise<any>
+                extract: (packagePath: string, outputDir?: string) => Promise<any>
+                acceptToggle: (enable: boolean) => Promise<{ success: boolean; message: string }>
+                isAccepting: () => Promise<boolean>
+                createContract: (receiverId: string, filePath: string) => Promise<any>
+                acceptContract: (contractId: string) => Promise<any>
+                rejectContract: (contractId: string, reason?: string) => Promise<any>
+                status: () => Promise<{ available: boolean; accepting?: boolean }>
+                checksum: (filePath: string) => Promise<{
+                    success: boolean; fileName?: string; fileSize?: number
+                    sha256?: string; md5?: string; error?: string
+                }>
+                verify: (packagePath: string) => Promise<{
+                    success: boolean; verified?: boolean; fileName?: string
+                    originalHash?: string; extractedHash?: string; packageHash?: string
+                    hashMatch?: boolean; originalSize?: number; compressionRatio?: number
+                    signed?: boolean; error?: string
+                }>
             }
         }
     }
@@ -352,7 +390,7 @@ const EMOJI_DATA = {
 }
 
 // App views
-type ViewType = 'login' | 'chat' | 'settings' | 'ledger'
+type ViewType = 'login' | 'chat' | 'settings' | 'ledger' | 'podcast'
 
 // Current app version
 const APP_VERSION = '1.9.7'
@@ -592,7 +630,29 @@ function App() {
             highlight: true,
             submenu: ['chuck norris', 'star wars', 'batman', 'programming', 'cats', 'dogs', 'nature', 'funny', 'wholesome', 'gaming']
         },
+        // Podcast Commands (v2.3.0)
+        {
+            cmd: '/podcast',
+            desc: 'RangerCast Player',
+            icon: '🎙️',
+            submenu: ['open', 'listen']
+        },
+        {
+            cmd: '/listen',
+            desc: 'Open Podcast Hub',
+            icon: '🎧'
+        },
         { cmd: '/gif', desc: 'Search GIF', icon: '🎬', args: '<search>' },
+        { cmd: '/wallet', desc: 'Wallet info', icon: '💰' },
+        { cmd: '/balance', desc: 'Check balance', icon: '🪙' },
+        { cmd: '/address', desc: 'Wallet address', icon: '📋' },
+        { cmd: '/file accept', desc: 'Toggle file accept', icon: '📁', submenu: ['on', 'off'] },
+        { cmd: '/file send', desc: 'Send file', icon: '📤', args: '<user> <path>' },
+        { cmd: '/contract send', desc: 'Formal transfer', icon: '📜', args: '<user> <path>' },
+        { cmd: '/contract accept', desc: 'Accept contract', icon: '✅', args: '<id>' },
+        { cmd: '/contract reject', desc: 'Reject contract', icon: '❌', args: '<id>' },
+        { cmd: '/checksum', desc: 'SHA-256 hash', icon: '🔐', args: '<file path>' },
+        { cmd: '/verify', desc: 'Verify .rangerblock', icon: '✅', args: '<file path>' },
         { cmd: '/update', desc: 'Install update', icon: '🔄' },
         { cmd: '/version', desc: 'App version', icon: 'ℹ️' },
     ]
@@ -663,6 +723,14 @@ function App() {
 
     // Admin state
     const [adminStatus, setAdminStatus] = useState<AdminStatus | null>(null)
+
+    // Wallet state
+    const [walletAddress, setWalletAddress] = useState<string | null>(null)
+    const [walletBalances, setWalletBalances] = useState<{ RC: number; RGD: number; HELL: number }>({ RC: 0, RGD: 0, HELL: 0 })
+    const [walletInitialized, setWalletInitialized] = useState(false)
+
+    // File transfer state
+    const [fileAccepting, setFileAccepting] = useState(false)
 
     // Voice call state
     const [callState, setCallState] = useState<CallState>('idle')
@@ -958,6 +1026,30 @@ function App() {
                                 console.log('[Admin] isSupreme:', status.isSupreme, 'isAdmin:', status.isAdmin, 'role:', status.role)
                             } catch (e) {
                                 console.log('[Admin] Could not check admin status:', e)
+                            }
+
+                            // Initialize wallet (auto-creates on first launch)
+                            try {
+                                const walletStatus = await window.electronAPI.wallet.getStatus()
+                                if (walletStatus.available) {
+                                    if (walletStatus.initialized && walletStatus.address) {
+                                        setWalletAddress(walletStatus.address)
+                                        setWalletBalances(walletStatus.balances || { RC: 0, RGD: 0, HELL: 0 })
+                                        setWalletInitialized(true)
+                                        console.log('[Wallet] Loaded:', walletStatus.address)
+                                    } else {
+                                        // Wallet available but not initialized - init it
+                                        const initResult = await window.electronAPI.wallet.init()
+                                        if (initResult.success && initResult.address) {
+                                            setWalletAddress(initResult.address)
+                                            setWalletBalances(initResult.balances || { RC: 0, RGD: 0, HELL: 0 })
+                                            setWalletInitialized(true)
+                                            console.log('[Wallet] Initialized:', initResult.address)
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.log('[Wallet] Could not initialize wallet:', e)
                             }
                         }
                     }
@@ -2008,12 +2100,33 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
                 if (!foundModel && models.length > 0) foundModel = models[0]
             }
 
-            // Auto-select model if none selected and we found one
-            if (!currentAiModel && foundModel) {
-                setCurrentAiModel(foundModel)
-                statusMsg += `\n\n🎯 **Auto-selected model:** ${foundModel}`
-            } else if (currentAiModel) {
-                statusMsg += `\n\n🎯 **Current model:** ${currentAiModel}`
+            // Collect all available models
+            const allModels: string[] = [];
+            if (ollamaRes.success && ollamaRes.data?.models) {
+                allModels.push(...ollamaRes.data.models.map((m: any) => m.name));
+            }
+            if (lmStudioRes.success && lmStudioRes.data?.data) {
+                allModels.push(...lmStudioRes.data.data.map((m: any) => m.id));
+            }
+
+            // Auto-select or Auto-correct logic
+            if (allModels.length > 0) {
+                if (!currentAiModel) {
+                    // Case 1: No model selected -> Pick first available
+                    const newModel = allModels[0];
+                    setCurrentAiModel(newModel);
+                    statusMsg += `\n\n🎯 **Auto-selected model:** ${newModel}`;
+                } else if (!allModels.includes(currentAiModel)) {
+                    // Case 2: Current model is invalid/offline -> Switch to first available
+                    const newModel = allModels[0];
+                    setCurrentAiModel(newModel);
+                    statusMsg += `\n\n⚠️ **Model '${currentAiModel}' not found.**\n🔄 **Auto-switched to:** ${newModel}`;
+                } else {
+                    // Case 3: Current model is valid
+                    statusMsg += `\n\n🎯 **Current model:** ${currentAiModel}`;
+                }
+            } else {
+                statusMsg += `\n\n⚠️ **No models found.** Please download a model in Ollama or LM Studio.`;
             }
 
             setMessages(prev => [...prev, {
@@ -2114,6 +2227,15 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
             setSlashSubMenu(null)
 
             await handleAiCommand(trimmedInput)
+            setInput('')
+            return
+        }
+
+        // Handle Podcast commands (v2.3.0)
+        if (trimmedInput.startsWith('/podcast') || trimmedInput.startsWith('/listen')) {
+            setShowSlashMenu(false)
+            setSlashSubMenu(null)
+            setView('podcast')
             setInput('')
             return
         }
@@ -2365,6 +2487,381 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
                 content: `RangerChat Lite ${versionInfo}`,
                 timestamp: new Date().toLocaleTimeString()
             }])
+            setInput('')
+            return
+        }
+
+        // Handle /wallet command - Show full wallet info
+        if (trimmedInput.toLowerCase() === '/wallet') {
+            if (walletInitialized && walletAddress) {
+                const walletInfo = [
+                    `💰 **Secure Wallet**`,
+                    ``,
+                    `📋 Address: \`${walletAddress}\``,
+                    ``,
+                    `**Balances:**`,
+                    `🪙 RangerDollar: ${walletBalances.RGD.toLocaleString()} RGD`,
+                    `💎 RangerCoin: ${walletBalances.RC.toLocaleString()} RC`,
+                    `🔥 HellCoin: ${walletBalances.HELL.toLocaleString()} HELL`,
+                    ``,
+                    `✅ Hardware-bound • Encrypted • RSA-2048 signed`
+                ].join('\n')
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: walletInfo,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            } else {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: '⏳ Wallet not initialized yet. Please wait...',
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /balance command - Quick balance check
+        if (trimmedInput.toLowerCase() === '/balance') {
+            if (walletInitialized) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `🪙 ${walletBalances.RGD.toLocaleString()} RGD | 💎 ${walletBalances.RC.toLocaleString()} RC | 🔥 ${walletBalances.HELL.toLocaleString()} HELL`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            } else {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: '⏳ Wallet not initialized yet.',
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /address command - Show wallet address (easy to copy)
+        if (trimmedInput.toLowerCase() === '/address') {
+            if (walletInitialized && walletAddress) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `📋 Your wallet address:\n\`${walletAddress}\``,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            } else {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: '⏳ Wallet not initialized yet.',
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /file accept on|off - Toggle file receiving
+        const fileAcceptMatch = trimmedInput.match(/^\/file\s+accept\s+(on|off)$/i)
+        if (fileAcceptMatch) {
+            const enable = fileAcceptMatch[1].toLowerCase() === 'on'
+            try {
+                if (window.electronAPI) {
+                    await window.electronAPI.fileTransfer.acceptToggle(enable)
+                    setFileAccepting(enable)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: enable
+                            ? '📁 Now accepting files. Waiting for incoming transfers...'
+                            : '📁 File acceptance disabled.',
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+            } catch (e) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: '❌ File transfer service not available.',
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /file send <user> <path> - Informal file transfer
+        const fileSendMatch = trimmedInput.match(/^\/file\s+send\s+(\S+)\s+(.+)$/i)
+        if (fileSendMatch) {
+            // fileSendMatch[1] = receiverId (used when P2P relay available)
+            const filePath = fileSendMatch[2]
+            try {
+                if (window.electronAPI) {
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `📤 Packaging ${filePath} as .rangerblock...`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    const result = await window.electronAPI.fileTransfer.package(filePath)
+                    if (result.success) {
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: [
+                                `✅ File packaged as .rangerblock!`,
+                                `📦 ${result.packageName}`,
+                                `📏 ${result.originalSize} → ${result.packageSize} bytes (${result.compressionRatio}% compression)`,
+                                `🔐 Hash: ${result.originalHash.slice(0, 16)}...`,
+                                `📋 Stored: ${result.packagePath}`
+                            ].join('\n'),
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    } else {
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: `❌ Failed to package file: ${result.error}`,
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    }
+                }
+            } catch (e: any) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `❌ File transfer error: ${e.message}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /contract send <user> <path> - Formal contract transfer
+        const contractSendMatch = trimmedInput.match(/^\/contract\s+send\s+(\S+)\s+(.+)$/i)
+        if (contractSendMatch) {
+            const receiverId = contractSendMatch[1]
+            const filePath = contractSendMatch[2]
+            try {
+                if (window.electronAPI) {
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `📜 Creating formal transfer contract for ${filePath}...`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    const result = await window.electronAPI.fileTransfer.createContract(receiverId, filePath)
+                    if (result.success) {
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: [
+                                `✅ Transfer contract created!`,
+                                `📜 Contract ID: ${result.contractId}`,
+                                `📤 To: ${receiverId}`,
+                                `⏳ Waiting for receiver to accept (24h expiry)`,
+                                `📋 Receiver runs: /contract accept ${result.contractId}`
+                            ].join('\n'),
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    } else {
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: `❌ Failed to create contract: ${result.error}`,
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    }
+                }
+            } catch (e: any) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `❌ Contract error: ${e.message}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /contract accept <id> - Accept pending contract
+        const contractAcceptMatch = trimmedInput.match(/^\/contract\s+accept\s+(\S+)$/i)
+        if (contractAcceptMatch) {
+            const contractId = contractAcceptMatch[1]
+            try {
+                if (window.electronAPI) {
+                    const result = await window.electronAPI.fileTransfer.acceptContract(contractId)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: result.success
+                            ? `✅ Contract accepted! Ready to receive file.`
+                            : `❌ ${result.error}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+            } catch (e: any) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `❌ Error: ${e.message}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /contract reject <id> - Reject pending contract
+        const contractRejectMatch = trimmedInput.match(/^\/contract\s+reject\s+(\S+)$/i)
+        if (contractRejectMatch) {
+            const contractId = contractRejectMatch[1]
+            try {
+                if (window.electronAPI) {
+                    const result = await window.electronAPI.fileTransfer.rejectContract(contractId)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: result.success
+                            ? `❌ Contract rejected.`
+                            : `❌ ${result.error}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+            } catch (e: any) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `❌ Error: ${e.message}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /checksum <path> - SHA-256 hash of any file
+        const checksumMatch = trimmedInput.match(/^\/checksum\s+(.+)$/i)
+        if (checksumMatch) {
+            const filePath = checksumMatch[1].trim()
+            try {
+                if (window.electronAPI) {
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `🔐 Calculating SHA-256 for ${filePath}...`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    const result = await window.electronAPI.fileTransfer.checksum(filePath)
+                    if (result.success) {
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: [
+                                `🔐 **Checksum Report**`,
+                                ``,
+                                `📄 File: ${result.fileName}`,
+                                `📏 Size: ${(result.fileSize! / 1024).toFixed(1)} KB (${result.fileSize!.toLocaleString()} bytes)`,
+                                ``,
+                                `**SHA-256:**`,
+                                `\`${result.sha256}\``,
+                                ``,
+                                `**MD5:**`,
+                                `\`${result.md5}\``,
+                                ``,
+                                `📋 Share the SHA-256 hash with the receiver to verify file integrity`
+                            ].join('\n'),
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    } else {
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: `❌ ${result.error}`,
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    }
+                }
+            } catch (e: any) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `❌ Checksum error: ${e.message}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+            setInput('')
+            return
+        }
+
+        // Handle /verify <path> - Verify .rangerblock file integrity
+        const verifyMatch = trimmedInput.match(/^\/verify\s+(.+)$/i)
+        if (verifyMatch) {
+            const filePath = verifyMatch[1].trim()
+            try {
+                if (window.electronAPI) {
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `🔍 Verifying .rangerblock integrity...`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    const result = await window.electronAPI.fileTransfer.verify(filePath)
+                    if (result.success) {
+                        const statusIcon = result.verified ? '✅' : '❌'
+                        const statusText = result.verified ? 'VERIFIED - File integrity confirmed!' : 'FAILED - File may be tampered with!'
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: [
+                                `🔐 **Verification Report**`,
+                                ``,
+                                `${statusIcon} **${statusText}**`,
+                                ``,
+                                `📄 Original: ${result.fileName}`,
+                                `📏 Size: ${(result.originalSize! / 1024).toFixed(1)} KB`,
+                                `🗜️ Compression: ${result.compressionRatio}%`,
+                                `✍️ Signed: ${result.signed ? 'Yes (RSA-2048)' : 'No'}`,
+                                ``,
+                                `**Original SHA-256:**`,
+                                `\`${result.originalHash}\``,
+                                ``,
+                                `**Extracted SHA-256:**`,
+                                `\`${result.extractedHash}\``,
+                                ``,
+                                `**Package SHA-256:**`,
+                                `\`${result.packageHash}\``,
+                                ``,
+                                result.hashMatch
+                                    ? `✅ Hashes match - file has NOT been tampered with`
+                                    : `❌ HASH MISMATCH - file may have been modified!`
+                            ].join('\n'),
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    } else {
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: `❌ ${result.error}`,
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    }
+                }
+            } catch (e: any) {
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `❌ Verify error: ${e.message}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
             setInput('')
             return
         }
@@ -4831,6 +5328,56 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
                                         </div>
                                     </div>
                                     <div className="slash-help-section">
+                                        <div className="slash-help-section-title">💰 Wallet</div>
+                                        <div className="slash-help-item">
+                                            <code>/wallet</code>
+                                            <span>Full wallet info</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/balance</code>
+                                            <span>Quick balance check</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/address</code>
+                                            <span>Show wallet address</span>
+                                        </div>
+                                    </div>
+                                    <div className="slash-help-section">
+                                        <div className="slash-help-section-title">📁 File Transfer</div>
+                                        <div className="slash-help-item">
+                                            <code>/file accept on</code>
+                                            <span>Start accepting files</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/file accept off</code>
+                                            <span>Stop accepting files</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/file send &lt;user&gt; &lt;path&gt;</code>
+                                            <span>Send file (.rangerblock)</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/contract send &lt;user&gt; &lt;path&gt;</code>
+                                            <span>Formal blockchain transfer</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/contract accept &lt;id&gt;</code>
+                                            <span>Accept transfer contract</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/contract reject &lt;id&gt;</code>
+                                            <span>Reject transfer contract</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/checksum &lt;path&gt;</code>
+                                            <span>SHA-256 + MD5 hash</span>
+                                        </div>
+                                        <div className="slash-help-item">
+                                            <code>/verify &lt;path&gt;</code>
+                                            <span>Verify .rangerblock file</span>
+                                        </div>
+                                    </div>
+                                    <div className="slash-help-section">
                                         <div className="slash-help-section-title">⚙️ System</div>
                                         <div className="slash-help-item">
                                             <code>/update</code>
@@ -6437,14 +6984,91 @@ ${SERVER_NODES.map(s => `   ${s.icon} ${s.name}: ❌ Unreachable`).join('\n')}
                                     Every message is recorded on an immutable blockchain. Blocks are mined
                                     automatically every 10 messages or 5 minutes using Proof of Work.
                                 </p>
-                                <p className="wallet-preview">
-                                    💰 <strong>Coming Soon:</strong> Wallet integration with token rewards!
-                                </p>
+                            </div>
+
+                            {/* Wallet Section */}
+                            <div className="ledger-section wallet-section">
+                                <h3>💰 Secure Wallet</h3>
+                                {walletInitialized && walletAddress ? (
+                                    <div className="wallet-info">
+                                        <div className="wallet-address-row">
+                                            <span className="wallet-label">Address:</span>
+                                            <code className="wallet-address">{walletAddress}</code>
+                                        </div>
+                                        <div className="wallet-balances">
+                                            <div className="balance-item">
+                                                <span className="coin-icon">🪙</span>
+                                                <span className="coin-name">RangerDollar</span>
+                                                <span className="coin-balance">{walletBalances.RGD.toLocaleString()} RGD</span>
+                                            </div>
+                                            <div className="balance-item">
+                                                <span className="coin-icon">💎</span>
+                                                <span className="coin-name">RangerCoin</span>
+                                                <span className="coin-balance">{walletBalances.RC.toLocaleString()} RC</span>
+                                            </div>
+                                            <div className="balance-item">
+                                                <span className="coin-icon">🔥</span>
+                                                <span className="coin-name">HellCoin</span>
+                                                <span className="coin-balance">{walletBalances.HELL.toLocaleString()} HELL</span>
+                                            </div>
+                                        </div>
+                                        <p className="wallet-note">
+                                            ✅ Hardware-bound wallet • Encrypted storage • RSA-2048 signatures
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <p className="wallet-loading">
+                                        ⏳ Wallet initializing...
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* File Transfer Section */}
+                            <div className="ledger-section file-transfer-section">
+                                <h3>📁 File Transfer (COURIER Protocol)</h3>
+                                <div className="file-transfer-info">
+                                    <div className="file-transfer-status">
+                                        <span className="wallet-label">Status:</span>
+                                        <span style={{ color: fileAccepting ? 'var(--accent)' : 'var(--text-muted)' }}>
+                                            {fileAccepting ? '✅ Accepting files' : '⏸️ Not accepting files'}
+                                        </span>
+                                    </div>
+                                    <div className="file-transfer-commands">
+                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '8px 0 4px' }}>Commands:</p>
+                                        <code>/file accept on</code> - Start accepting files<br />
+                                        <code>/file accept off</code> - Stop accepting<br />
+                                        <code>/file send &lt;user&gt; &lt;path&gt;</code> - Send file<br />
+                                        <code>/contract send &lt;user&gt; &lt;path&gt;</code> - Formal transfer<br />
+                                        <code>/contract accept &lt;id&gt;</code> - Accept contract<br />
+                                        <code>/contract reject &lt;id&gt;</code> - Reject contract
+                                    </div>
+                                    <p className="wallet-note" style={{ marginTop: '8px' }}>
+                                        📦 Files packaged as .rangerblock (compressed + SHA-256 verified + signed)
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )
             }
+
+            {/* PODCAST VIEW (v2.3.0) */}
+            {view === 'podcast' && (
+                <div className="podcast-screen">
+                    <div className="settings-header">
+                        <button className="back-btn" onClick={() => setView('chat')}>
+                            ← Back to Chat
+                        </button>
+                        <h2>🎙️ RangerCast Studio</h2>
+                    </div>
+                    <PodcastPlayer
+                        onBackendAction={async (action, data) => {
+                            console.log('Podcast Action:', action, data);
+                            return null;
+                        }}
+                    />
+                </div>
+            )}
         </div >
     )
 }

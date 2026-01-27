@@ -48,7 +48,25 @@ import { ipcRenderer } from 'electron'
         onStatusChange: (callback: (status: any) => void) => {
             ipcRenderer.on('relay-status', (_event, status) => callback(status))
         }
+    },
+    wallet: {
+        init: () => ipcRenderer.invoke('wallet:init'),
+        getStatus: () => ipcRenderer.invoke('wallet:getStatus'),
+        getAddress: () => ipcRenderer.invoke('wallet:getAddress'),
+        getBalances: () => ipcRenderer.invoke('wallet:getBalances')
+    },
+    fileTransfer: {
+        package: (filePath: string) => ipcRenderer.invoke('filetransfer:package', filePath),
+        extract: (packagePath: string, outputDir?: string) => ipcRenderer.invoke('filetransfer:extract', packagePath, outputDir),
+        acceptToggle: (enable: boolean) => ipcRenderer.invoke('filetransfer:acceptToggle', enable),
+        isAccepting: () => ipcRenderer.invoke('filetransfer:isAccepting'),
+        createContract: (receiverId: string, filePath: string) => ipcRenderer.invoke('filetransfer:createContract', receiverId, filePath),
+        acceptContract: (contractId: string) => ipcRenderer.invoke('filetransfer:acceptContract', contractId),
+        rejectContract: (contractId: string, reason?: string) => ipcRenderer.invoke('filetransfer:rejectContract', contractId, reason),
+        status: () => ipcRenderer.invoke('filetransfer:status'),
+        checksum: (filePath: string) => ipcRenderer.invoke('filetransfer:checksum', filePath),
+        verify: (packagePath: string) => ipcRenderer.invoke('filetransfer:verify', packagePath)
     }
 }
 
-console.log('RangerChat Lite preload loaded - Identity, Ledger, Admin, Relay & App API ready')
+console.log('RangerChat Lite preload loaded - Identity, Ledger, Admin, Relay, Wallet, FileTransfer & App API ready')

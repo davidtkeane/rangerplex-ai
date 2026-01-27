@@ -1,6 +1,82 @@
 # RangerChat Lite - Changelog
 
 All notable changes to RangerChat Lite will be documented in this file.
+
+## [1.9.9] - 2026-01-27 - "Secure Wallet"
+
+### Added
+
+#### Hardware-Bound Secure Wallet
+- **Wallet Auto-Init**: Wallet automatically created on first launch, bound to device hardware
+- **Wallet Address Display**: Shows your unique wallet address in Settings (format: `RB_XXXX-XXXX-...`)
+- **RGD Balance Display**: Shows RangerDollar balance (new users start with 1000 RGD)
+- **Accessible Address Format**: Uses only clear characters (`23456789ABCDEFGHJKMNPQRSTUVWXYZ`) - no confusing 0/O, 1/l/I
+
+#### Wallet Security Features
+- **Hardware Binding**: Wallet cryptographically tied to device hardware UUID
+- **RSA-2048 Signatures**: All transactions signed with hardware-bound keys
+- **Replay Protection**: Nonce tracking prevents transaction reuse
+- **Double-Spend Prevention**: Same transaction can't be submitted twice
+- **Rate Limiting**: 10 transactions/minute, 20 EUR daily cap for real-value coins
+
+#### Supported Coins
+| Coin | Symbol | Purpose |
+|------|--------|---------|
+| RangerCoin | RC | Real value (Solana-linked), 10% education tithe |
+| RangerDollar | RGD | Free play token, 100B supply |
+| HellCoin | HELL | Experimental testing |
+
+#### Slash Commands (New)
+- `/wallet` - Show full wallet info (address + all balances)
+- `/balance` - Quick balance check (one-liner)
+- `/address` - Show wallet address (easy to copy)
+- `/file accept on|off` - Toggle file receiving
+- `/file send <user> <path>` - Send file as .rangerblock (informal)
+- `/contract send <user> <path>` - Create formal blockchain transfer contract
+- `/contract accept <id>` - Accept pending contract
+- `/contract reject <id>` - Reject pending contract
+- `/checksum <path>` - SHA-256 + MD5 hash of any file (sender shares hash for verification)
+- `/verify <path>` - Verify .rangerblock file integrity (receiver confirms file untampered)
+
+#### Blockchain Recording for File Transfers
+- **File Package → Block**: Every `.rangerblock` file packaging is recorded on the blockchain ledger
+- **Contract Create → Block**: Formal transfer contracts are recorded with sender, receiver, and contract ID
+- **Contract Accept → Block**: Contract acceptance and completion recorded on-chain
+- **Contract Reject → Block**: Rejections recorded for audit trail with reason
+- **Channel**: All file transfer events stored on the `file-transfers` channel
+- **Full Audit Trail**: Every file operation is immutable and verifiable on the blockchain
+
+#### IPC Handlers (New)
+- `wallet:init` - Initialize hardware-bound wallet
+- `wallet:getStatus` - Get wallet address and balances
+- `wallet:getAddress` - Get wallet address only
+- `wallet:getBalances` - Get all coin balances
+- `filetransfer:package` - Package file as .rangerblock
+- `filetransfer:extract` - Extract .rangerblock back to original
+- `filetransfer:acceptToggle` - Toggle file acceptance
+- `filetransfer:isAccepting` - Check if accepting files
+- `filetransfer:createContract` - Create formal transfer contract
+- `filetransfer:acceptContract` - Accept contract
+- `filetransfer:rejectContract` - Reject contract
+- `filetransfer:status` - Get file transfer service status
+- `filetransfer:checksum` - SHA-256 + MD5 hash of any file
+- `filetransfer:verify` - Verify .rangerblock integrity (hash match, signature, metadata)
+
+### Technical
+- Uses `secure-wallet.cjs` and `wallet-ledger-integration.cjs` from rangerblock/lib
+- Wallet data stored encrypted in `~/.rangerblock-secure/wallet.enc`
+- Hardware attestation in `~/.rangerblock-secure/hardware_attestation.json`
+- Integrates with existing ledger for on-chain balance tracking
+
+### Documentation
+- **GENESIS_WALLET_HISTORY.md**: Historical record of first wallet transaction (Jan 27, 2026)
+- **SECURITY_HARDENING.md**: Updated with wallet security details
+
+### Changed
+- Updated author email to `david.keane.1974@gmail.com`
+
+---
+
 ## [1.9.8] - 2026-01-27 - "Relay Node"
 
 ### Added

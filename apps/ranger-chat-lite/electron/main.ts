@@ -181,6 +181,43 @@ const ledgerPath = app.isPackaged
 const { ledger } = require(ledgerPath)
 
 // ═══════════════════════════════════════════════════════════════════════════
+// FILE TRANSFER SERVICE - .rangerblock packaging & transfers
+// ═══════════════════════════════════════════════════════════════════════════
+const fileTransferPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'lib', 'file-transfer-service.cjs')
+    : path.join(__dirname, '..', '..', '..', 'rangerblock', 'lib', 'file-transfer-service.cjs')
+
+let fileTransferService: any = null
+
+try {
+    const { FileTransferService } = require(fileTransferPath)
+    fileTransferService = new FileTransferService()
+    fileTransferService.init()
+    console.log('[FileTransfer] Service loaded successfully')
+} catch (e: any) {
+    console.log('[FileTransfer] Service not available (optional):', e.message)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WALLET INTEGRATION - Hardware-bound secure wallet
+// ═══════════════════════════════════════════════════════════════════════════
+const walletPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'lib', 'wallet-ledger-integration.cjs')
+    : path.join(__dirname, '..', '..', '..', 'rangerblock', 'lib', 'wallet-ledger-integration.cjs')
+
+let walletIntegration: any = null
+let walletInitialized = false
+
+// Try to load wallet module (graceful failure if not available)
+try {
+    const { WalletLedgerIntegration } = require(walletPath)
+    walletIntegration = new WalletLedgerIntegration()
+    console.log('[Wallet] Module loaded successfully')
+} catch (e: any) {
+    console.log('[Wallet] Module not available (optional feature):', e.message)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ADMIN DETECTION - Check ~/.claude/ranger/admin/data/users.json
 // ═══════════════════════════════════════════════════════════════════════════
 const ADMIN_REGISTRY_PATH = path.join(os.homedir(), '.claude', 'ranger', 'admin', 'data', 'users.json')
@@ -866,6 +903,316 @@ ipcMain.handle('ledger:addReward', async (_, userId: string, amount: number, rea
     return ledger.addReward(userId, amount, reason)
 })
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FILE TRANSFER IPC HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+ipcMain.handle('filetransfer:package', async (_, filePath: string) => {
+    if (!fileTransferService) {
+        return { success: false, error: 'File transfer service not available' }
+    }
+    try {
+        const result = fileTransferService.packageFile(filePath)
+
+        // Record file packaging on blockchain ledger
+        if (result && result.success && ledgerInitialized) {
+            try {
+                const identity = identityService.loadIdentity()
+                const userId = (identity as any)?.identity?.userId || 'unknown'
+                const userName = (identity as any)?.identity?.username || 'unknown'
+                await ledger.addMessage({
+                    sender: userId,
+                    senderName: userName,
+                    content: `[FILE_PACKAGE] ${result.fileName || path.basename(filePath)} | SHA256: ${result.sha256 || 'N/A'} | Size: ${result.originalSize || 'N/A'}`,
+                    channel: 'file-transfers',
+                    type: 'file_package'
+                })
+                safeLog('[FileTransfer] Recorded file packaging on blockchain')
+            } catch (ledgerErr) {
+                safeError('[FileTransfer] Failed to record on ledger:', ledgerErr)
+            }
+        }
+
+        return result
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+})
+
+ipcMain.handle('filetransfer:extract', async (_, packagePath: string, outputDir?: string) => {
+    if (!fileTransferService) {
+        return { success: false, error: 'File transfer service not available' }
+    }
+    try {
+        return fileTransferService.extractFile(packagePath, outputDir)
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+})
+
+ipcMain.handle('filetransfer:acceptToggle', async (_, enable: boolean) => {
+    if (!fileTransferService) {
+        return { success: false, error: 'File transfer service not available' }
+    }
+    return enable ? fileTransferService.enableAccept() : fileTransferService.disableAccept()
+})
+
+ipcMain.handle('filetransfer:isAccepting', async () => {
+    if (!fileTransferService) return false
+    return fileTransferService.isAcceptingFiles()
+})
+
+ipcMain.handle('filetransfer:createContract', async (_, receiverId: string, filePath: string) => {
+    if (!fileTransferService) {
+        return { success: false, error: 'File transfer service not available' }
+    }
+    try {
+        const result = fileTransferService.createTransferContract(receiverId, filePath)
+
+        // Record contract creation on blockchain ledger
+        if (result && result.success && ledgerInitialized) {
+            try {
+                const identity = identityService.loadIdentity()
+                const userId = (identity as any)?.identity?.userId || 'unknown'
+                const userName = (identity as any)?.identity?.username || 'unknown'
+                await ledger.addMessage({
+                    sender: userId,
+                    senderName: userName,
+                    content: `[FILE_CONTRACT] Created transfer contract → ${receiverId} | File: ${path.basename(filePath)} | Contract: ${result.contractId || 'N/A'}`,
+                    channel: 'file-transfers',
+                    type: 'file_contract_create'
+                })
+                safeLog('[FileTransfer] Recorded contract creation on blockchain')
+            } catch (ledgerErr) {
+                safeError('[FileTransfer] Failed to record on ledger:', ledgerErr)
+            }
+        }
+
+        return result
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+})
+
+ipcMain.handle('filetransfer:acceptContract', async (_, contractId: string) => {
+    if (!fileTransferService) {
+        return { success: false, error: 'File transfer service not available' }
+    }
+    const result = fileTransferService.acceptContract(contractId)
+
+    // Record contract acceptance on blockchain ledger
+    if (result && result.success && ledgerInitialized) {
+        try {
+            const identity = identityService.loadIdentity()
+            const userId = (identity as any)?.identity?.userId || 'unknown'
+            const userName = (identity as any)?.identity?.username || 'unknown'
+            await ledger.addMessage({
+                sender: userId,
+                senderName: userName,
+                content: `[FILE_CONTRACT_ACCEPTED] Contract: ${contractId} | Transfer completed and verified`,
+                channel: 'file-transfers',
+                type: 'file_contract_accept'
+            })
+            safeLog('[FileTransfer] Recorded contract acceptance on blockchain')
+        } catch (ledgerErr) {
+            safeError('[FileTransfer] Failed to record on ledger:', ledgerErr)
+        }
+    }
+
+    return result
+})
+
+ipcMain.handle('filetransfer:rejectContract', async (_, contractId: string, reason?: string) => {
+    if (!fileTransferService) {
+        return { success: false, error: 'File transfer service not available' }
+    }
+    const result = fileTransferService.rejectContract(contractId, reason)
+
+    // Record contract rejection on blockchain ledger (audit trail)
+    if (result && result.success && ledgerInitialized) {
+        try {
+            const identity = identityService.loadIdentity()
+            const userId = (identity as any)?.identity?.userId || 'unknown'
+            const userName = (identity as any)?.identity?.username || 'unknown'
+            await ledger.addMessage({
+                sender: userId,
+                senderName: userName,
+                content: `[FILE_CONTRACT_REJECTED] Contract: ${contractId} | Reason: ${reason || 'No reason given'}`,
+                channel: 'file-transfers',
+                type: 'file_contract_reject'
+            })
+            safeLog('[FileTransfer] Recorded contract rejection on blockchain')
+        } catch (ledgerErr) {
+            safeError('[FileTransfer] Failed to record on ledger:', ledgerErr)
+        }
+    }
+
+    return result
+})
+
+ipcMain.handle('filetransfer:status', async () => {
+    if (!fileTransferService) {
+        return { available: false }
+    }
+    return {
+        available: true,
+        accepting: fileTransferService.isAcceptingFiles()
+    }
+})
+
+// SHA-256 checksum for any file
+ipcMain.handle('filetransfer:checksum', async (_, filePath: string) => {
+    try {
+        const crypto = require('crypto')
+        const fileFs = require('fs')
+        const resolvedPath = require('path').resolve(filePath)
+
+        if (!fileFs.existsSync(resolvedPath)) {
+            return { success: false, error: `File not found: ${filePath}` }
+        }
+
+        const stats = fileFs.statSync(resolvedPath)
+        const data = fileFs.readFileSync(resolvedPath)
+        const sha256 = crypto.createHash('sha256').update(data).digest('hex')
+        const md5 = crypto.createHash('md5').update(data).digest('hex')
+
+        return {
+            success: true,
+            filePath: resolvedPath,
+            fileName: require('path').basename(resolvedPath),
+            fileSize: stats.size,
+            sha256,
+            md5,
+            timestamp: new Date().toISOString()
+        }
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+})
+
+// Verify .rangerblock file integrity
+ipcMain.handle('filetransfer:verify', async (_, packagePath: string) => {
+    if (!fileTransferService) {
+        return { success: false, error: 'File transfer service not available' }
+    }
+    try {
+        const fileFs = require('fs')
+        const resolvedPath = require('path').resolve(packagePath)
+
+        if (!fileFs.existsSync(resolvedPath)) {
+            return { success: false, error: `File not found: ${packagePath}` }
+        }
+
+        // Read the package to extract metadata and verify
+        const packageData = fileFs.readFileSync(resolvedPath)
+        const crypto = require('crypto')
+        const packageHash = crypto.createHash('sha256').update(packageData).digest('hex')
+
+        // Read metadata
+        const metaLength = packageData.readUInt32BE(0)
+        const metadataJson = packageData.slice(4, 4 + metaLength).toString()
+        const metadata = JSON.parse(metadataJson)
+
+        // Verify magic
+        if (metadata.magic !== 'RNGBLK01') {
+            return { success: false, error: 'Not a valid .rangerblock file', verified: false }
+        }
+
+        // Decompress and verify hash
+        const zlib = require('zlib')
+        const compressedData = packageData.slice(4 + metaLength)
+        const originalData = zlib.gunzipSync(compressedData)
+        const extractedHash = crypto.createHash('sha256').update(originalData).digest('hex')
+        const hashMatch = extractedHash === metadata.originalHash
+
+        return {
+            success: true,
+            verified: hashMatch,
+            fileName: metadata.originalName,
+            originalSize: metadata.originalSize,
+            compressedSize: metadata.compressedSize,
+            compressionRatio: metadata.compressionRatio,
+            originalHash: metadata.originalHash,
+            extractedHash,
+            packageHash,
+            hashMatch,
+            createdAt: metadata.createdAt,
+            senderId: metadata.senderId,
+            signed: !!metadata.signature,
+            timestamp: new Date().toISOString()
+        }
+    } catch (e: any) {
+        return { success: false, error: e.message, verified: false }
+    }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WALLET IPC HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+ipcMain.handle('wallet:init', async () => {
+    if (!walletIntegration) {
+        return { success: false, error: 'Wallet module not available' }
+    }
+
+    if (walletInitialized) {
+        return { success: true, address: walletIntegration.getMyAddress() }
+    }
+
+    try {
+        const result = await walletIntegration.init()
+        if (result) {
+            walletInitialized = true
+            safeLog('[Wallet] Initialized successfully')
+            return {
+                success: true,
+                address: walletIntegration.getMyAddress(),
+                balances: walletIntegration.getAllBalances()
+            }
+        }
+        return { success: false, error: 'Wallet initialization failed' }
+    } catch (e: any) {
+        safeError('[Wallet] Init error:', e)
+        return { success: false, error: e.message }
+    }
+})
+
+ipcMain.handle('wallet:getStatus', async () => {
+    if (!walletIntegration) {
+        return { available: false, initialized: false }
+    }
+
+    if (!walletInitialized) {
+        return { available: true, initialized: false }
+    }
+
+    try {
+        return {
+            available: true,
+            initialized: true,
+            address: walletIntegration.getMyAddress(),
+            balances: walletIntegration.getAllBalances(),
+            status: walletIntegration.getStatus()
+        }
+    } catch (e: any) {
+        return { available: true, initialized: false, error: e.message }
+    }
+})
+
+ipcMain.handle('wallet:getAddress', async () => {
+    if (!walletIntegration || !walletInitialized) {
+        return null
+    }
+    return walletIntegration.getMyAddress()
+})
+
+ipcMain.handle('wallet:getBalances', async () => {
+    if (!walletIntegration || !walletInitialized) {
+        return { RC: 0, RGD: 0, HELL: 0 }
+    }
+    return walletIntegration.getAllBalances()
+})
+
 app.whenReady().then(async () => {
     createMenu()
     createWindow()
@@ -877,6 +1224,23 @@ app.whenReady().then(async () => {
         safeLog('[Main] Ledger initialized successfully')
     } catch (e) {
         safeError('[Main] Failed to initialize ledger:', e)
+    }
+
+    // Initialize wallet on startup (auto-creates if first launch)
+    if (walletIntegration) {
+        try {
+            const walletResult = await walletIntegration.init()
+            if (walletResult) {
+                walletInitialized = true
+                const address = walletIntegration.getMyAddress()
+                const balances = walletIntegration.getAllBalances()
+                safeLog('[Main] Wallet initialized successfully')
+                safeLog(`[Main] Wallet address: ${address}`)
+                safeLog(`[Main] Balances: RC=${balances.RC}, RGD=${balances.RGD}, HELL=${balances.HELL}`)
+            }
+        } catch (e) {
+            safeError('[Main] Failed to initialize wallet:', e)
+        }
     }
 
     // Start relay server if user is admin (after a short delay to let identity load)
