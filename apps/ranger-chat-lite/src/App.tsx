@@ -134,6 +134,72 @@ interface BlockchainTx {
 // Voice call states
 type CallState = 'idle' | 'calling' | 'ringing' | 'in_call'
 
+// Video call types (Phase 1 - Video Call Foundation)
+type CallType = 'voice' | 'video'
+type TransportMode = 'webrtc' | 'blockchain' | 'hybrid'
+
+// Video quality presets
+type VideoQuality = 'low' | 'medium' | 'high' | 'hd'
+
+// Video settings interface
+interface VideoSettings {
+    quality: VideoQuality
+    maxBandwidth: number // kbps
+    frameRate: 15 | 24 | 30
+    autoQuality: boolean
+    lowBandwidthMode: boolean
+    mirrorLocal: boolean
+    muteVideoOnJoin: boolean
+    muteAudioOnJoin: boolean
+    transportMode: TransportMode
+    noiseSupression: boolean
+    echoCancellation: boolean
+    backgroundBlur: 'off' | 'light' | 'heavy'
+    hardwareAcceleration: boolean
+    highContrastControls: boolean
+    largeControlButtons: boolean
+    screenReaderAnnouncements: boolean
+    keyboardShortcuts: boolean
+}
+
+// Default video settings
+const DEFAULT_VIDEO_SETTINGS: VideoSettings = {
+    quality: 'medium',
+    maxBandwidth: 1024,
+    frameRate: 15,
+    autoQuality: true,
+    lowBandwidthMode: false,
+    mirrorLocal: true,
+    muteVideoOnJoin: false,
+    muteAudioOnJoin: false,
+    transportMode: 'hybrid',
+    noiseSupression: true,
+    echoCancellation: true,
+    backgroundBlur: 'off',
+    hardwareAcceleration: true,
+    highContrastControls: false,
+    largeControlButtons: false,
+    screenReaderAnnouncements: true,
+    keyboardShortcuts: true
+}
+
+// Video quality presets mapping (used in Phase 3 - startVideoCapture)
+const _VIDEO_QUALITY_PRESETS: Record<VideoQuality, { width: number; height: number; bitrate: number }> = {
+    low: { width: 320, height: 240, bitrate: 256 },
+    medium: { width: 640, height: 480, bitrate: 512 },
+    high: { width: 1280, height: 720, bitrate: 1024 },
+    hd: { width: 1920, height: 1080, bitrate: 2048 }
+}
+
+// WebRTC Configuration (Phase 4 - WebRTC Connection)
+const RTC_CONFIG: RTCConfiguration = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+}
+
 // Peer info
 interface PeerInfo {
     address: string
@@ -410,6 +476,47 @@ function App() {
     const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([])
     const [selectedSpeakerId, setSelectedSpeakerId] = useState<string>('default')
 
+    // ============================================
+    // VIDEO CALL STATE (Phase 1 - Foundation)
+    // ============================================
+
+    // Call type: voice or video
+    const [callType, setCallType] = useState<CallType>('voice')
+
+    // Video streams
+    const [localVideoStream, setLocalVideoStream] = useState<MediaStream | null>(null)
+    const [remoteVideoStream, setRemoteVideoStream] = useState<MediaStream | null>(null)
+
+    // Camera state  
+    const [isCameraOn, setIsCameraOn] = useState(true)
+    const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
+    const [selectedCameraId, setSelectedCameraId] = useState<string>('default')
+
+    // Video settings (persisted to localStorage)
+    const [videoSettings, setVideoSettings] = useState<VideoSettings>(() => {
+        const saved = localStorage.getItem('rangerChatVideoSettings')
+        if (saved) {
+            try {
+                return { ...DEFAULT_VIDEO_SETTINGS, ...JSON.parse(saved) }
+            } catch { }
+        }
+        return DEFAULT_VIDEO_SETTINGS
+    })
+
+    // Connection quality indicator (0-100)
+    const [connectionQuality, setConnectionQuality] = useState<number>(100)
+
+    // Current transport mode in use (may differ from settings if fallback occurred)
+    const [activeTransportMode, setActiveTransportMode] = useState<TransportMode>('hybrid')
+
+    // Video call timer
+    const [videoCallStartTime, setVideoCallStartTime] = useState<number | null>(null)
+    const [videoCallElapsed, setVideoCallElapsed] = useState(0)
+
+    // Video call UI state
+    const [isVideoPreviewing, setIsVideoPreviewing] = useState(false)
+    const [isVideoMuted, setIsVideoMuted] = useState(false)
+
     // Radio state
     const [radioSettings, setRadioSettings] = useState<RadioSettings>(() => {
         const saved = localStorage.getItem('rangerRadioSettings')
@@ -450,6 +557,15 @@ function App() {
     const callPartnerRef = useRef<string | null>(null)
     const selectedSpeakerRef = useRef<string>('default')
 
+    // ============================================
+    // VIDEO CALL REFS (Phase 1 - Foundation)
+    // ============================================
+    const localVideoRef = useRef<HTMLVideoElement>(null)
+    const remoteVideoRef = useRef<HTMLVideoElement>(null)
+    const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
+    const callTypeRef = useRef<CallType>('voice')
+    const videoCallTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
     // Keep refs in sync with state (fixes closure bugs in audio processor and WebSocket handlers)
     useEffect(() => {
         callStateRef.current = callState
@@ -466,6 +582,104 @@ function App() {
     useEffect(() => {
         selectedSpeakerRef.current = selectedSpeakerId
     }, [selectedSpeakerId])
+
+    // Keep video call refs in sync with state
+    useEffect(() => {
+        callTypeRef.current = callType
+    }, [callType])
+
+    // Persist video settings to localStorage
+    useEffect(() => {
+        localStorage.setItem('rangerChatVideoSettings', JSON.stringify(videoSettings))
+    }, [videoSettings])
+
+    // Bind video streams to elements
+    useEffect(() => {
+        if (localVideoRef.current) {
+            localVideoRef.current.srcObject = localVideoStream
+        }
+    }, [localVideoStream])
+
+    useEffect(() => {
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteVideoStream
+        }
+    }, [remoteVideoStream])
+
+    // Video call timer tracking
+    useEffect(() => {
+        if (callType === 'video' && callState === 'in_call') {
+            setVideoCallStartTime(prev => prev ?? Date.now())
+            return
+        }
+        if (callType !== 'video' || callState === 'idle') {
+            setVideoCallStartTime(null)
+        }
+    }, [callType, callState])
+
+    useEffect(() => {
+        if (!videoCallStartTime) {
+            setVideoCallElapsed(0)
+            return
+        }
+        const interval = setInterval(() => {
+            setVideoCallElapsed(Date.now() - videoCallStartTime)
+        }, 1000)
+        return () => clearInterval(interval)
+    }, [videoCallStartTime])
+
+    useEffect(() => {
+        if (callType !== 'video' || callState === 'idle') {
+            setActiveTransportMode(videoSettings.transportMode)
+        }
+    }, [videoSettings.transportMode, callType, callState])
+
+    // Keyboard shortcuts for video calls (M=mute, V=camera, Esc=end) - Added by Claude CLI
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Only active during video calls and when shortcuts are enabled
+            if (callType !== 'video' || callState === 'idle' || !videoSettings.keyboardShortcuts) {
+                return
+            }
+
+            // Don't trigger if user is typing in an input field
+            const target = e.target as HTMLElement
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                return
+            }
+
+            switch (e.key.toLowerCase()) {
+                case 'm':
+                    // Toggle mute (audio)
+                    setIsMuted(prev => !prev)
+                    e.preventDefault()
+                    break
+                case 'v':
+                    // Toggle camera (video)
+                    setIsVideoMuted(prev => !prev)
+                    e.preventDefault()
+                    break
+                case 'escape':
+                    // End the video call
+                    endVideoCall()
+                    e.preventDefault()
+                    break
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [callType, callState, videoSettings.keyboardShortcuts])
+
+    // Stop preview stream when leaving settings (unless in a video call)
+    useEffect(() => {
+        if (view !== 'settings' && isVideoPreviewing && callType !== 'video') {
+            localVideoStream?.getTracks().forEach(track => track.stop())
+            setLocalVideoStream(null)
+            setIsVideoPreviewing(false)
+            setIsCameraOn(false)
+        }
+    }, [view, isVideoPreviewing, callType, localVideoStream])
 
     // Check for existing identity on load
     useEffect(() => {
@@ -805,7 +1019,7 @@ function App() {
         return fetchJson(url.toString())
     }
 
-    const getRainWindow = (data: any, hoursAhead: number) => {
+    const getRainWindow = (data: any, hoursAhead: number): { firstRain: { time: number; precip: number; prob: number } | null, maxProb: number, maxPrecip: number } => {
         const now = Date.now()
         const times: string[] = data?.hourly?.time || []
         const precipitation: number[] = data?.hourly?.precipitation || []
@@ -1131,20 +1345,28 @@ function App() {
                         logTransaction('peer', 'out', nodeId, 'relay-server', getPeersMsg, 'broadcast')
                         break
                     case 'peerList':
-                        const peerList = data.peers || []
-                        setPeers(peerList.filter((p: PeerInfo) => p.nickname !== username))
-                        setPeerCount(peerList.length)
+                        const rawPeerList = data.peers || []
+                        const normalizedPeers = rawPeerList
+                            .map((p: any) => typeof p === 'string' ? { nickname: p, capabilities: [], status: 'online' } : p)
+                            .filter((p: PeerInfo) => p && p.nickname && p.nickname !== username)
+
+                        setPeers(normalizedPeers)
+                        setPeerCount(normalizedPeers.length)
                         setMessages(prev => [...prev, {
                             type: 'system',
                             sender: 'System',
-                            content: `${peerList.length} peer(s) online`,
+                            content: `${normalizedPeers.length} peer(s) online`,
                             timestamp: new Date().toLocaleTimeString()
                         }])
                         break
                     case 'peerListUpdate':
-                        const updatedPeers = data.peers || []
-                        setPeers(updatedPeers.filter((p: PeerInfo) => p.nickname !== username))
-                        setPeerCount(updatedPeers.length)
+                        const rawUpdatedPeers = data.peers || []
+                        const normalizedUpdatedPeers = rawUpdatedPeers
+                            .map((p: any) => typeof p === 'string' ? { nickname: p, capabilities: [], status: 'online' } : p)
+                            .filter((p: PeerInfo) => p && p.nickname && p.nickname !== username)
+
+                        setPeers(normalizedUpdatedPeers)
+                        setPeerCount(normalizedUpdatedPeers.length)
                         break
                     case 'broadcast':
                     case 'nodeMessage':
@@ -1200,6 +1422,12 @@ function App() {
             return
         }
 
+        // Handle video-related payloads (Phase 2 - Signaling Protocol)  
+        if (['videoCallRequest', 'videoCallAccepted', 'videoCallRejected', 'videoCallBusy', 'videoCallEnded', 'videoOffer', 'videoAnswer', 'iceCandidate'].includes(payload.type)) {
+            handleVideoPayload(payload)
+            return
+        }
+
         switch (payload.type) {
             case 'chatMessage':
             case 'chat':
@@ -1230,12 +1458,23 @@ function App() {
 
         if (!wsRef.current || !connected) return
 
-        // Handle /call command
+        // Handle /call command (voice call)
         const callMatch = trimmedInput.match(/^\/call\s+(.+)$/i)
         if (callMatch) {
             const targetUser = callMatch[1].trim()
             if (targetUser) {
                 makeCall(targetUser)
+                setInput('')
+                return
+            }
+        }
+
+        // Handle /video command (video call) - Added by Claude CLI
+        const videoMatch = trimmedInput.match(/^\/video\s+(.+)$/i)
+        if (videoMatch) {
+            const targetUser = videoMatch[1].trim()
+            if (targetUser) {
+                makeVideoCall(targetUser)
                 setInput('')
                 return
             }
@@ -1604,6 +1843,7 @@ function App() {
             return
         }
 
+        setCallType('voice')
         setCallState('calling')
         setCallPartner(targetNickname)
 
@@ -1657,6 +1897,7 @@ function App() {
             return
         }
 
+        setCallType('voice')
         setCallState('in_call')
         setCallPartner(incomingCaller)
         setIncomingCaller(null)
@@ -1708,6 +1949,7 @@ function App() {
             timestamp: new Date().toLocaleTimeString()
         }])
 
+        setCallType('voice')
         setCallState('idle')
         setIncomingCaller(null)
     }
@@ -1739,6 +1981,7 @@ function App() {
             timestamp: new Date().toLocaleTimeString()
         }])
 
+        setCallType('voice')
         setCallState('idle')
         setCallPartner(null)
     }
@@ -1807,6 +2050,7 @@ function App() {
                 // Check if this call is for us
                 if (payload.target === username || payload.target.toLowerCase() === username.toLowerCase()) {
                     if (callStateRef.current === 'idle') {
+                        setCallType('voice')
                         setIncomingCaller(senderName)
                         setCallState('ringing')
 
@@ -1815,7 +2059,7 @@ function App() {
                             // Terminal bell sound
                             const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleHsYcKjm8tK7egMthNT82suxcCM1jdb/3syrXSEzkt7/3MmgWzEqiNX/3cmfWzYqiNT/3saYWz4pid3/3MWQWEpVi9n/28OLXFRSkNf/2sCIYl1Li9X/27+IY11PjNP/276FY2JOjdH/2ryFZWNPjtD/2rqFZWNPjtD/2rmFZWJQjtD/2rqFZGNPjtH/27uFZWFOjdD/2ruGZmBPjdD/2rqHZl9Qj9D/27qGZl9RjtD/2ryGZl5RkNL/2ryGZl5Rj9H/27qJZlxTkdP/2rqIZlxTkdT/2rmIZltUk9X/2riJZlpVlNX/2reKZlhXldX/2raKZldYldX/27aJZldZltX/2raKZlZalt3/27WKZldaltz/27WLZlVcltr/27SNZVRdl9n/2rOOZVJfl9n/2rGPZVFfl9r/2rCQZVBhmdr/2a+RZE9imdr/2a+RZE5jmtr/2a6TY01kmtr/2a2TY0xkmtr/2ayVYktlm9r/2KuWYkpnm9v/2KqWYkhonNz/2KqXYUdon93/2KmYYUdpnt3/2KiZYEZqnt7/2KeaYEVrn97/16ebX0Rsn97/16acXkNtoN7/16WdXkJuoN7/16SdXUFvoN//16OeXUBwoN//1qKfXD9xod//1qGfXD5yod//1qCgWz5zot//1qChWz10ot//1p+hWjx1o+D/1p6iWjt2pOD/1p2jWTp3pOH/1pykWDl4peH/1pylVzl5peH/1pqmVjh6puL/1pmm');
                             audio.volume = 0.3
-                            audio.play().catch(() => {})
+                            audio.play().catch(() => { })
                         }, 2000)
 
                         setMessages(prev => [...prev, {
@@ -1842,6 +2086,7 @@ function App() {
 
             case 'callAccepted':
                 if (payload.target === username && callStateRef.current === 'calling') {
+                    setCallType('voice')
                     setCallState('in_call')
                     setCallPartner(senderName)
                     startAudioCapture()
@@ -1856,6 +2101,7 @@ function App() {
 
             case 'callRejected':
                 if (payload.target === username && callStateRef.current === 'calling') {
+                    setCallType('voice')
                     setCallState('idle')
                     setCallPartner(null)
                     setMessages(prev => [...prev, {
@@ -1869,6 +2115,7 @@ function App() {
 
             case 'callBusy':
                 if (payload.target === username && callStateRef.current === 'calling') {
+                    setCallType('voice')
                     setCallState('idle')
                     setCallPartner(null)
                     setMessages(prev => [...prev, {
@@ -1888,6 +2135,7 @@ function App() {
                         ringIntervalRef.current = null
                     }
                     setIsTalking(false)
+                    setCallType('voice')
                     setCallState('idle')
                     setCallPartner(null)
                     setIncomingCaller(null)
@@ -1930,6 +2178,849 @@ function App() {
         }
     }
 
+    // ============================================
+    // VIDEO CALL UI + DEVICE HELPERS (Phase 3/6)
+    // ============================================
+
+    const updateVideoSettings = (updates: Partial<VideoSettings>) => {
+        setVideoSettings(prev => ({ ...prev, ...updates }))
+    }
+
+    const formatVideoDuration = (elapsedMs: number) => {
+        const totalSeconds = Math.floor(elapsedMs / 1000)
+        const minutes = Math.floor(totalSeconds / 60)
+        const seconds = totalSeconds % 60
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    }
+
+    const getSignalBars = (quality: number) => {
+        if (quality >= 75) return 4
+        if (quality >= 50) return 3
+        if (quality >= 25) return 2
+        return 1
+    }
+
+    const loadVideoDevices = async () => {
+        try {
+            // Request permission to unlock device labels
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+            stream.getTracks().forEach(track => track.stop())
+
+            const devices = await navigator.mediaDevices.enumerateDevices()
+            const cameras = devices.filter(d => d.kind === 'videoinput')
+            setVideoDevices(cameras)
+
+            if (selectedCameraId !== 'default') {
+                const exists = cameras.some(d => d.deviceId === selectedCameraId)
+                if (!exists) {
+                    setSelectedCameraId('default')
+                }
+            }
+        } catch (error) {
+            console.error('[Video] Error enumerating cameras:', error)
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices()
+                const cameras = devices.filter(d => d.kind === 'videoinput')
+                setVideoDevices(cameras)
+            } catch (secondaryError) {
+                console.error('[Video] Cannot enumerate cameras:', secondaryError)
+            }
+        }
+    }
+
+    const startLocalVideoPreview = async (options?: { withAudio?: boolean; replace?: boolean; startVideoMuted?: boolean; startAudioMuted?: boolean }) => {
+        try {
+            if (localVideoStream && !options?.replace) {
+                setIsVideoPreviewing(true)
+                return true
+            }
+
+            if (localVideoStream && options?.replace) {
+                localVideoStream.getTracks().forEach(track => track.stop())
+            }
+
+            const preset = _VIDEO_QUALITY_PRESETS[videoSettings.quality]
+            const videoConstraints: MediaTrackConstraints = {
+                width: { ideal: preset.width },
+                height: { ideal: preset.height },
+                frameRate: { ideal: videoSettings.frameRate, max: 30 }
+            }
+
+            if (selectedCameraId !== 'default') {
+                videoConstraints.deviceId = { exact: selectedCameraId }
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: videoConstraints,
+                audio: options?.withAudio ? {
+                    deviceId: selectedMicId !== 'default' ? { exact: selectedMicId } : undefined,
+                    noiseSuppression: videoSettings.noiseSupression,
+                    echoCancellation: videoSettings.echoCancellation
+                } : false
+            })
+
+            if (options?.startVideoMuted) {
+                stream.getVideoTracks().forEach(track => {
+                    track.enabled = false
+                })
+                setIsCameraOn(false)
+            } else {
+                setIsCameraOn(true)
+            }
+
+            if (options?.startAudioMuted) {
+                stream.getAudioTracks().forEach(track => {
+                    track.enabled = false
+                })
+                setIsVideoMuted(true)
+            } else {
+                setIsVideoMuted(false)
+            }
+
+            setLocalVideoStream(stream)
+            setIsVideoPreviewing(true)
+            return true
+        } catch (error) {
+            console.error('[Video] Camera access denied:', error)
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: '❌ Camera access denied. Please check permissions.',
+                timestamp: new Date().toLocaleTimeString()
+            }])
+            return false
+        }
+    }
+
+    const stopLocalVideoPreview = (options?: { keepCallState?: boolean }) => {
+        if (localVideoStream) {
+            localVideoStream.getTracks().forEach(track => track.stop())
+        }
+        setLocalVideoStream(null)
+        if (!options?.keepCallState) {
+            setIsVideoPreviewing(false)
+            setIsCameraOn(false)
+            setIsVideoMuted(false)
+        }
+    }
+
+    const toggleCamera = async () => {
+        if (!localVideoStream) {
+            await startLocalVideoPreview()
+            return
+        }
+        const next = !isCameraOn
+        localVideoStream.getVideoTracks().forEach(track => {
+            track.enabled = next
+        })
+        setIsCameraOn(next)
+    }
+
+    const toggleVideoMute = () => {
+        const next = !isVideoMuted
+        if (localVideoStream) {
+            localVideoStream.getAudioTracks().forEach(track => {
+                track.enabled = !next
+            })
+        }
+        setIsVideoMuted(next)
+    }
+
+    const toggleVideoPreview = async () => {
+        if (isVideoPreviewing) {
+            stopLocalVideoPreview()
+            return
+        }
+        await startLocalVideoPreview()
+    }
+
+    const makeVideoCall = async (targetNickname: string) => {
+        if (callState !== 'idle') {
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: 'Already in a call. Hang up first.',
+                timestamp: new Date().toLocaleTimeString()
+            }])
+            return
+        }
+
+        setCallType('video')
+        setCallState('calling')
+        setCallPartner(targetNickname)
+        setActiveTransportMode(videoSettings.transportMode)
+
+        await startLocalVideoPreview({
+            withAudio: true,
+            startVideoMuted: videoSettings.muteVideoOnJoin,
+            startAudioMuted: videoSettings.muteAudioOnJoin
+        })
+
+        wsRef.current?.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'videoCallRequest',
+                from: identity?.nodeId,
+                nickname: username,
+                target: targetNickname,
+                timestamp: Date.now()
+            }
+        }))
+
+        setMessages(prev => [...prev, {
+            type: 'system',
+            sender: 'System',
+            content: `📹 Video calling ${targetNickname}...`,
+            timestamp: new Date().toLocaleTimeString()
+        }])
+
+        if (videoCallTimeoutRef.current) {
+            clearTimeout(videoCallTimeoutRef.current)
+        }
+        videoCallTimeoutRef.current = setTimeout(() => {
+            if (callStateRef.current === 'calling' && callTypeRef.current === 'video') {
+                setCallState('idle')
+                setCallPartner(null)
+                stopLocalVideoPreview()
+                setCallType('voice')
+                setMessages(prev => [...prev, {
+                    type: 'system',
+                    sender: 'System',
+                    content: `No answer from ${targetNickname}`,
+                    timestamp: new Date().toLocaleTimeString()
+                }])
+            }
+        }, 30000)
+    }
+
+    const answerVideoCall = async () => {
+        if (callState !== 'ringing' || !incomingCaller) return
+
+        if (ringIntervalRef.current) {
+            clearInterval(ringIntervalRef.current)
+            ringIntervalRef.current = null
+        }
+
+        setCallType('video')
+        setCallState('in_call')
+        setCallPartner(incomingCaller)
+        setIncomingCaller(null)
+        setActiveTransportMode(videoSettings.transportMode)
+
+        await startLocalVideoPreview({
+            withAudio: true,
+            startVideoMuted: videoSettings.muteVideoOnJoin,
+            startAudioMuted: videoSettings.muteAudioOnJoin
+        })
+
+        wsRef.current?.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'videoCallAccepted',
+                from: identity?.nodeId,
+                nickname: username,
+                target: incomingCaller,
+                timestamp: Date.now()
+            }
+        }))
+    }
+
+    const rejectVideoCall = () => {
+        if (callState !== 'ringing' || !incomingCaller) return
+
+        if (ringIntervalRef.current) {
+            clearInterval(ringIntervalRef.current)
+            ringIntervalRef.current = null
+        }
+
+        wsRef.current?.send(JSON.stringify({
+            type: 'broadcast',
+            payload: {
+                type: 'videoCallRejected',
+                from: identity?.nodeId,
+                nickname: username,
+                target: incomingCaller,
+                timestamp: Date.now()
+            }
+        }))
+
+        setCallState('idle')
+        setIncomingCaller(null)
+        setCallType('voice')
+    }
+
+    const endVideoCall = () => {
+        if (callState !== 'in_call' && callState !== 'calling') return
+
+        if (videoCallTimeoutRef.current) {
+            clearTimeout(videoCallTimeoutRef.current)
+            videoCallTimeoutRef.current = null
+        }
+
+        if (callPartner) {
+            wsRef.current?.send(JSON.stringify({
+                type: 'broadcast',
+                payload: {
+                    type: 'videoCallEnded',
+                    from: identity?.nodeId,
+                    nickname: username,
+                    target: callPartner,
+                    timestamp: Date.now()
+                }
+            }))
+        }
+
+        // Close WebRTC peer connection
+        if (peerConnectionRef.current) {
+            peerConnectionRef.current.close()
+            peerConnectionRef.current = null
+        }
+
+        stopLocalVideoPreview()
+        setRemoteVideoStream(null)
+        setConnectionQuality(0)
+        setCallState('idle')
+        setCallPartner(null)
+        setCallType('voice')
+    }
+
+    useEffect(() => {
+        if (!selectedCameraId) return
+        const shouldRefreshPreview = isVideoPreviewing || (callType === 'video' && callState !== 'idle')
+        if (!shouldRefreshPreview) return
+        startLocalVideoPreview({
+            replace: true,
+            withAudio: callType === 'video' && callState !== 'idle',
+            startVideoMuted: !isCameraOn,
+            startAudioMuted: isVideoMuted
+        })
+    }, [selectedCameraId, videoSettings.quality, videoSettings.frameRate, callType, callState, isVideoPreviewing, isCameraOn, isVideoMuted])
+
+    // ============================================
+    // WEBRTC CONNECTION (Phase 4 - Core WebRTC)
+    // ============================================
+
+    /**
+     * Creates a new RTCPeerConnection with proper configuration
+     * Sets up event handlers for tracks, ICE candidates, and connection state
+     */
+    const createPeerConnection = (): RTCPeerConnection => {
+        // Close existing connection if any
+        if (peerConnectionRef.current) {
+            peerConnectionRef.current.close()
+        }
+
+        const pc = new RTCPeerConnection(RTC_CONFIG)
+
+        // Add local video/audio tracks to the connection
+        if (localVideoStream) {
+            localVideoStream.getTracks().forEach(track => {
+                console.log('[WebRTC] Adding local track:', track.kind)
+                pc.addTrack(track, localVideoStream!)
+            })
+        }
+
+        // Handle incoming remote tracks (video/audio from peer)
+        pc.ontrack = (event) => {
+            console.log('[WebRTC] Received remote track:', event.track.kind)
+            setRemoteVideoStream(event.streams[0])
+
+            // Attach to video element
+            if (remoteVideoRef.current && event.streams[0]) {
+                remoteVideoRef.current.srcObject = event.streams[0]
+            }
+        }
+
+        // Handle ICE candidates - send to peer via signaling
+        pc.onicecandidate = (event) => {
+            if (event.candidate && callPartnerRef.current) {
+                console.log('[WebRTC] Sending ICE candidate')
+                wsRef.current?.send(JSON.stringify({
+                    type: 'broadcast',
+                    payload: {
+                        type: 'iceCandidate',
+                        from: identity?.nodeId,
+                        nickname: username,
+                        target: callPartnerRef.current,
+                        candidate: event.candidate.toJSON(),
+                        timestamp: Date.now()
+                    }
+                }))
+            }
+        }
+
+        // Monitor connection state for quality and failures
+        pc.onconnectionstatechange = () => {
+            console.log('[WebRTC] Connection state:', pc.connectionState)
+
+            switch (pc.connectionState) {
+                case 'connected':
+                    setConnectionQuality(100)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: '✅ Video connection established',
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    break
+                case 'disconnected':
+                    setConnectionQuality(25)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: '⚠️ Video connection unstable',
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    break
+                case 'failed':
+                    setConnectionQuality(0)
+                    endVideoCall()
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: '❌ Video connection failed',
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                    break
+            }
+        }
+
+        // Monitor ICE connection state
+        pc.oniceconnectionstatechange = () => {
+            console.log('[WebRTC] ICE connection state:', pc.iceConnectionState)
+
+            if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+                setConnectionQuality(100)
+            } else if (pc.iceConnectionState === 'checking') {
+                setConnectionQuality(50)
+            }
+        }
+
+        peerConnectionRef.current = pc
+        return pc
+    }
+
+    /**
+     * Initiates WebRTC connection as the caller (creates and sends offer)
+     */
+    const initiateWebRTCConnection = async () => {
+        try {
+            // Select transport mode based on settings
+            const transport = selectTransportMode()
+            setActiveTransportMode(transport)
+            console.log(`[WebRTC] Initiating connection as caller (transport: ${transport})`)
+
+            const pc = createPeerConnection()
+
+            // Create SDP offer
+            const offer = await pc.createOffer({
+                offerToReceiveVideo: true,
+                offerToReceiveAudio: true
+            })
+
+            await pc.setLocalDescription(offer)
+            console.log('[WebRTC] Created and set local offer')
+
+            // Send offer to peer via signaling
+            if (callPartnerRef.current) {
+                wsRef.current?.send(JSON.stringify({
+                    type: 'broadcast',
+                    payload: {
+                        type: 'videoOffer',
+                        from: identity?.nodeId,
+                        nickname: username,
+                        target: callPartnerRef.current,
+                        sdp: offer,
+                        transport: transport, // Include transport mode in signaling
+                        timestamp: Date.now()
+                    }
+                }))
+            }
+        } catch (error) {
+            console.error('[WebRTC] Failed to initiate connection:', error)
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: '❌ Failed to start video connection',
+                timestamp: new Date().toLocaleTimeString()
+            }])
+        }
+    }
+
+    /**
+     * Handles incoming SDP offer from peer (creates and sends answer)
+     */
+    const handleRemoteOffer = async (sdp: RTCSessionDescriptionInit, senderName: string, transport?: TransportMode) => {
+        try {
+            // Set transport mode from caller's offer or use our settings
+            const activeTransport = transport || selectTransportMode()
+            setActiveTransportMode(activeTransport)
+            console.log(`[WebRTC] Handling remote offer from: ${senderName} (transport: ${activeTransport})`)
+
+            const pc = createPeerConnection()
+
+            // Set the remote offer
+            await pc.setRemoteDescription(new RTCSessionDescription(sdp))
+            console.log('[WebRTC] Set remote description (offer)')
+
+            // Create and set answer
+            const answer = await pc.createAnswer()
+            await pc.setLocalDescription(answer)
+            console.log('[WebRTC] Created and set local answer')
+
+            // Send answer back to caller
+            wsRef.current?.send(JSON.stringify({
+                type: 'broadcast',
+                payload: {
+                    type: 'videoAnswer',
+                    from: identity?.nodeId,
+                    nickname: username,
+                    target: senderName,
+                    sdp: answer,
+                    transport: activeTransport,
+                    timestamp: Date.now()
+                }
+            }))
+        } catch (error) {
+            console.error('[WebRTC] Failed to handle offer:', error)
+            setMessages(prev => [...prev, {
+                type: 'system',
+                sender: 'System',
+                content: '❌ Failed to accept video connection',
+                timestamp: new Date().toLocaleTimeString()
+            }])
+        }
+    }
+
+    /**
+     * Handles incoming SDP answer from peer
+     */
+    const handleRemoteAnswer = async (sdp: RTCSessionDescriptionInit) => {
+        try {
+            console.log('[WebRTC] Handling remote answer')
+            if (peerConnectionRef.current) {
+                await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(sdp))
+                console.log('[WebRTC] Set remote description (answer)')
+            }
+        } catch (error) {
+            console.error('[WebRTC] Failed to handle answer:', error)
+        }
+    }
+
+    /**
+     * Adds an ICE candidate received from peer
+     */
+    const addIceCandidate = async (candidate: RTCIceCandidateInit) => {
+        try {
+            if (peerConnectionRef.current && candidate) {
+                await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate))
+                console.log('[WebRTC] Added ICE candidate')
+            }
+        } catch (error) {
+            console.error('[WebRTC] Failed to add ICE candidate:', error)
+        }
+    }
+
+    /**
+     * Closes the peer connection and cleans up
+     */
+    const closePeerConnection = () => {
+        if (peerConnectionRef.current) {
+            peerConnectionRef.current.close()
+            peerConnectionRef.current = null
+            console.log('[WebRTC] Peer connection closed')
+        }
+        setRemoteVideoStream(null)
+        setConnectionQuality(0)
+    }
+
+    // ============================================
+    // TRANSPORT MODE SUPPORT (Phase 4B - Hybrid)
+    // ============================================
+
+    /**
+     * Determines the transport path to use based on settings
+     * For v1.0, we use WebRTC only (blockchain relay is placeholder for v1.5)
+     */
+    const selectTransportMode = (): TransportMode => {
+        const preferred = videoSettings.transportMode
+
+        // For now, WebRTC is the only implemented path
+        // Blockchain relay will be added in v1.5
+        if (preferred === 'blockchain') {
+            console.log('[Transport] Blockchain relay not yet implemented, using WebRTC')
+            return 'webrtc'
+        }
+
+        if (preferred === 'hybrid') {
+            // Hybrid mode: start with WebRTC, fallback if needed
+            console.log('[Transport] Hybrid mode: starting with WebRTC')
+            return 'webrtc'
+        }
+
+        return 'webrtc'
+    }
+
+    /**
+     * Monitors connection quality and triggers fallback if needed
+     * Called periodically during active video calls
+     */
+    const checkConnectionQuality = () => {
+        if (!peerConnectionRef.current) return 100
+
+        const pc = peerConnectionRef.current
+
+        // Check ICE connection state for quality indicator
+        switch (pc.iceConnectionState) {
+            case 'connected':
+            case 'completed':
+                return 100
+            case 'checking':
+                return 50
+            case 'disconnected':
+                return 25
+            case 'failed':
+            case 'closed':
+                return 0
+            default:
+                return 75
+        }
+    }
+
+    /**
+     * Attempts to recover a degraded connection
+     * In hybrid mode, could trigger fallback to blockchain relay
+     */
+    const attemptConnectionRecovery = async () => {
+        console.log('[Transport] Attempting connection recovery')
+
+        // Check if we should fallback (hybrid mode only)
+        if (videoSettings.transportMode === 'hybrid' && activeTransportMode === 'webrtc') {
+            const quality = checkConnectionQuality()
+
+            if (quality < 25) {
+                console.log('[Transport] Connection quality poor, would fallback to blockchain relay')
+                // TODO v1.5: Implement blockchain relay fallback
+                // setActiveTransportMode('blockchain')
+                // initiateBlockchainRelay()
+
+                // For now, just try to restart ICE
+                if (peerConnectionRef.current) {
+                    try {
+                        peerConnectionRef.current.restartIce()
+                        console.log('[Transport] ICE restart requested')
+                    } catch (error) {
+                        console.error('[Transport] ICE restart failed:', error)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates connection quality metric based on WebRTC stats
+     */
+    const updateConnectionQuality = async () => {
+        if (!peerConnectionRef.current || callState !== 'in_call' || callType !== 'video') return
+
+        try {
+            const stats = await peerConnectionRef.current.getStats()
+            let packetsLost = 0
+            let packetsReceived = 0
+            let roundTripTime = 0
+
+            stats.forEach(report => {
+                if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                    packetsLost = report.packetsLost || 0
+                    packetsReceived = report.packetsReceived || 0
+                }
+                if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                    roundTripTime = report.currentRoundTripTime || 0
+                }
+            })
+
+            // Calculate quality score (0-100)
+            const totalPackets = packetsReceived + packetsLost
+            const lossRatio = totalPackets > 0 ? packetsLost / totalPackets : 0
+            const latencyPenalty = Math.min(roundTripTime * 100, 30) // Max 30% penalty for latency
+
+            let quality = 100 - (lossRatio * 50) - latencyPenalty
+            quality = Math.max(0, Math.min(100, quality))
+
+            setConnectionQuality(Math.round(quality))
+
+            // Log for debugging
+            if (quality < 75) {
+                console.log(`[Transport] Quality: ${Math.round(quality)}% (loss: ${(lossRatio * 100).toFixed(1)}%, RTT: ${(roundTripTime * 1000).toFixed(0)}ms)`)
+            }
+
+            // Trigger recovery if quality is very poor
+            if (quality < 25) {
+                attemptConnectionRecovery()
+            }
+        } catch (error) {
+            // Stats not available, use ICE state as fallback
+            setConnectionQuality(checkConnectionQuality())
+        }
+    }
+
+    // Quality monitoring interval during video calls
+    useEffect(() => {
+        if (callState !== 'in_call' || callType !== 'video') return
+
+        const interval = setInterval(updateConnectionQuality, 3000)
+        return () => clearInterval(interval)
+    }, [callState, callType])
+
+    // ============================================
+    // VIDEO CALL SIGNALING (Phase 2 - Protocol)
+    // ============================================
+
+    /**
+     * Handle incoming video call signaling messages
+     * Message types: videoCallRequest, videoCallAccepted, videoCallRejected,
+     *                videoCallEnded, videoOffer, videoAnswer, iceCandidate
+     */
+    const handleVideoPayload = (payload: any) => {
+        const senderName = payload.nickname || payload.from?.slice(0, 12) || 'Unknown'
+        if (senderName === username) return
+
+        console.log('[Video] Received payload:', payload.type, 'from:', senderName)
+
+        switch (payload.type) {
+            case 'videoCallRequest':
+                // Check if this call is for us
+                if (payload.target === username || payload.target.toLowerCase() === username.toLowerCase()) {
+                    if (callStateRef.current === 'idle') {
+                        setCallType('video')
+                        setIncomingCaller(senderName)
+                        setCallState('ringing')
+
+                        // Play ring sound (reuse voice call ring logic)
+                        ringIntervalRef.current = setInterval(() => {
+                            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleHsYcKjm8tK7egMthNT82suxcCM1jdb/3syrXSEzkt7/3MmgWzEqiNX/3cmfWzYqiNT/3saYWz4pid3/3MWQWEpVi9n/28OLXFRSkNf/2sCIYl1Li9X/27+IY11PjNP/276FY2JOjdH/2ryFZWNPjtD/2rqFZWNPjtD/2rmFZWJQjtD/2rqFZGNPjtH/27uFZWFOjdD/2ruGZmBPjdD/2rqHZl9Qj9D/27qGZl9RjtD/2ryGZl5RkNL/2ryGZl5Rj9H/27qJZlxTkdP/2rqIZlxTkdT/2rmIZltUk9X/2riJZlpVlNX/2reKZlhXldX/2raKZldYldX/27aJZldZltX/2raKZlZalt3/27WKZldaltz/27WLZlVcltr/27SNZVRdl9n/2rOOZVJfl9n/2rGPZVFfl9r/2rCQZVBhmdr/2a+RZE9imdr/2a+RZE5jmtr/2a6TY01kmtr/2a2TY0xkmtr/2ayVYktlm9r/2KuWYkpnm9v/2KqWYkhonNz/2KqXYUdon93/2KmYYUdpnt3/2KiZYEZqnt7/2KeaYEVrn97/16ebX0Rsn97/16acXkNtoN7/16WdXkJuoN7/16SdXUFvoN//16OeXUBwoN//1qKfXD9xod//1qGfXD5yod//1qCgWz5zot//1qChWz10ot//1p+hWjx1o+D/1p6iWjt2pOD/1p2jWTp3pOH/1pykWDl4peH/1pylVzl5peH/1pqmVjh6puL/1pmm');
+                            audio.volume = 0.3
+                            audio.play().catch(() => { })
+                        }, 2000)
+
+                        setMessages(prev => [...prev, {
+                            type: 'system',
+                            sender: 'System',
+                            content: `📹 Incoming VIDEO call from ${senderName}`,
+                            timestamp: new Date().toLocaleTimeString()
+                        }])
+                    } else {
+                        // Send busy signal
+                        wsRef.current?.send(JSON.stringify({
+                            type: 'broadcast',
+                            payload: {
+                                type: 'videoCallBusy',
+                                from: identity?.nodeId,
+                                nickname: username,
+                                target: senderName,
+                                timestamp: Date.now()
+                            }
+                        }))
+                    }
+                }
+                break
+
+            case 'videoCallAccepted':
+                if (payload.target === username && callStateRef.current === 'calling') {
+                    setCallType('video')
+                    setCallState('in_call')
+                    setCallPartner(senderName)
+
+                    // Phase 4: Initiate WebRTC connection as the caller
+                    initiateWebRTCConnection()
+
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `📹 Video call connected with ${senderName}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+
+            case 'videoCallRejected':
+                if (payload.target === username && callStateRef.current === 'calling') {
+                    setCallType('voice')
+                    setCallState('idle')
+                    setCallPartner(null)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `${senderName} declined the video call`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+
+            case 'videoCallBusy':
+                if (payload.target === username && callStateRef.current === 'calling') {
+                    setCallType('voice')
+                    setCallState('idle')
+                    setCallPartner(null)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `${senderName} is busy (video)`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+
+            case 'videoCallEnded':
+                if (payload.target === username && (callStateRef.current === 'in_call' || callStateRef.current === 'ringing')) {
+                    // Phase 4: Close WebRTC connection
+                    closePeerConnection()
+
+                    if (ringIntervalRef.current) {
+                        clearInterval(ringIntervalRef.current)
+                        ringIntervalRef.current = null
+                    }
+                    stopLocalVideoPreview()
+                    setCallType('voice')
+                    setCallState('idle')
+                    setCallPartner(null)
+                    setIncomingCaller(null)
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        sender: 'System',
+                        content: `Video call ended by ${senderName}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }])
+                }
+                break
+
+            // WebRTC Signaling messages (Phase 4)
+            case 'videoOffer':
+                if (payload.target === username && payload.sdp) {
+                    console.log('[Video] Received SDP offer from:', senderName)
+                    // Handle incoming offer and send answer (pass transport mode from caller)
+                    handleRemoteOffer(payload.sdp, senderName, payload.transport)
+                }
+                break
+
+            case 'videoAnswer':
+                if (payload.target === username && payload.sdp) {
+                    console.log('[Video] Received SDP answer from:', senderName)
+                    // Set remote description with the answer
+                    handleRemoteAnswer(payload.sdp)
+                }
+                break
+
+            case 'iceCandidate':
+                if (payload.target === username && payload.candidate) {
+                    console.log('[Video] Received ICE candidate from:', senderName)
+                    // Add ICE candidate to peer connection
+                    addIceCandidate(payload.candidate)
+                }
+                break
+        }
+    }
+
     // Settings functions
     const openSettings = async () => {
         try {
@@ -1941,6 +3032,7 @@ function App() {
             }
             // Load available audio devices when settings opens
             loadAudioDevices()
+            loadVideoDevices()
         } catch (error) {
             console.error('Error loading settings:', error)
         }
@@ -2071,12 +3163,37 @@ function App() {
                         <div className="header-right">
                             {/* Voice Call Button */}
                             <button
-                                className={`header-btn call-btn ${callState !== 'idle' ? 'active' : ''}`}
+                                className={`header-btn call-btn ${callType === 'voice' && callState !== 'idle' ? 'active' : ''}`}
                                 onClick={() => setShowPeerList(!showPeerList)}
-                                title={callState === 'idle' ? 'Make a call' : callState === 'in_call' ? `In call with ${callPartner}` : 'Calling...'}
+                                title={
+                                    callState === 'idle'
+                                        ? 'Start voice call'
+                                        : callType === 'voice' && callState === 'in_call'
+                                            ? `In call with ${callPartner}`
+                                            : callType === 'voice'
+                                                ? 'Calling...'
+                                                : 'Start voice call'
+                                }
                                 disabled={callState === 'ringing'}
                             >
-                                {callState === 'idle' ? '📞' : callState === 'in_call' ? '🔊' : '📱'}
+                                {callType === 'voice' && callState === 'in_call' ? '🔊' : callType === 'voice' && callState === 'calling' ? '📱' : '📞'}
+                            </button>
+                            {/* Video Call Button */}
+                            <button
+                                className={`header-btn video-btn ${callType === 'video' && callState !== 'idle' ? 'active' : ''}`}
+                                onClick={() => setShowPeerList(!showPeerList)}
+                                title={
+                                    callState === 'idle'
+                                        ? 'Start video call'
+                                        : callType === 'video' && callState === 'in_call'
+                                            ? `Video call with ${callPartner}`
+                                            : callType === 'video'
+                                                ? 'Video calling...'
+                                                : 'Start video call'
+                                }
+                                disabled={callState === 'ringing'}
+                            >
+                                {callType === 'video' && callState !== 'idle' ? '📹' : '🎥'}
                             </button>
                             <button
                                 className={`header-btn ${showSearch ? 'active' : ''}`}
@@ -2142,7 +3259,7 @@ function App() {
                     )}
 
                     {/* Incoming Call Banner */}
-                    {callState === 'ringing' && incomingCaller && (
+                    {callState === 'ringing' && incomingCaller && callType === 'voice' && (
                         <div className="incoming-call-banner">
                             <div className="call-info">
                                 <span className="call-icon ringing">📞</span>
@@ -2150,10 +3267,28 @@ function App() {
                                 <span className="call-status">is calling...</span>
                             </div>
                             <div className="call-actions">
-                                <button className="call-answer-btn" onClick={answerCall}>
+                                <button className="call-answer-btn" onClick={answerCall} aria-label="Answer voice call">
                                     ✓ Answer
                                 </button>
-                                <button className="call-reject-btn" onClick={rejectCall}>
+                                <button className="call-reject-btn" onClick={rejectCall} aria-label="Reject voice call">
+                                    ✕ Reject
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {callState === 'ringing' && incomingCaller && callType === 'video' && (
+                        <div className="incoming-video-banner">
+                            <div className="call-info">
+                                <span className="call-icon ringing">📹</span>
+                                <span className="caller-name">{incomingCaller}</span>
+                                <span className="call-status">is video calling...</span>
+                            </div>
+                            <div className="call-actions">
+                                <button className="call-answer-btn" onClick={answerVideoCall} aria-label="Answer video call">
+                                    ✓ Answer
+                                </button>
+                                <button className="call-reject-btn" onClick={rejectVideoCall} aria-label="Reject video call">
                                     ✕ Reject
                                 </button>
                             </div>
@@ -2161,7 +3296,7 @@ function App() {
                     )}
 
                     {/* In-Call Control Bar */}
-                    {callState === 'in_call' && (
+                    {callState === 'in_call' && callType === 'voice' && (
                         <div className="in-call-bar">
                             <div className="call-info">
                                 <span className="call-icon connected">🔊</span>
@@ -2201,7 +3336,7 @@ function App() {
                     )}
 
                     {/* Calling Status Bar */}
-                    {callState === 'calling' && (
+                    {callState === 'calling' && callType === 'voice' && (
                         <div className="calling-bar">
                             <div className="call-info">
                                 <span className="call-icon calling">📱</span>
@@ -2220,6 +3355,115 @@ function App() {
                         </div>
                     )}
 
+                    {callType === 'video' && (callState === 'calling' || callState === 'in_call') && (
+                        <div
+                            className={`video-call-overlay ${videoSettings.highContrastControls ? 'high-contrast' : ''} ${videoSettings.largeControlButtons ? 'large-controls' : ''}`}
+                            aria-live={videoSettings.screenReaderAnnouncements ? 'polite' : undefined}
+                        >
+                            <div className="video-call-header">
+                                <div className="video-call-title">
+                                    <span className="video-call-icon">📹</span>
+                                    <span className="video-call-name">
+                                        {callPartner || incomingCaller || 'Video Call'}
+                                    </span>
+                                    <span className={`video-call-state ${callState}`}>
+                                        {callState === 'calling' ? 'Calling...' : 'Live'}
+                                    </span>
+                                </div>
+                                <div className="video-call-meta">
+                                    <div className="video-call-timer" aria-label="Call duration">
+                                        {formatVideoDuration(videoCallElapsed)}
+                                    </div>
+                                    <div className={`video-transport-pill transport-${activeTransportMode}`}>
+                                        {activeTransportMode === 'webrtc' ? 'WebRTC' : activeTransportMode === 'blockchain' ? 'Blockchain' : 'Hybrid'}
+                                    </div>
+                                    <div className="video-signal" aria-label={`Connection quality ${connectionQuality}%`}>
+                                        {[1, 2, 3, 4].map(level => (
+                                            <span
+                                                key={level}
+                                                className={`signal-bar ${getSignalBars(connectionQuality) >= level ? 'active' : ''}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="video-call-stage">
+                                <div className="remote-video-frame">
+                                    {remoteVideoStream ? (
+                                        <video
+                                            ref={remoteVideoRef}
+                                            autoPlay
+                                            playsInline
+                                            className="remote-video"
+                                        />
+                                    ) : (
+                                        <div className="video-placeholder">
+                                            <div className="placeholder-avatar">
+                                                {(callPartner || incomingCaller || '?').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="placeholder-text">
+                                                {callState === 'calling' ? 'Waiting for answer...' : 'Connecting video...'}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className={`local-video-pip ${videoSettings.mirrorLocal ? 'mirrored' : ''}`}>
+                                        {localVideoStream ? (
+                                            <video
+                                                ref={localVideoRef}
+                                                autoPlay
+                                                playsInline
+                                                muted
+                                                className="local-video"
+                                            />
+                                        ) : (
+                                            <div className="pip-placeholder">
+                                                <span>Camera off</span>
+                                            </div>
+                                        )}
+                                        {!isCameraOn && <div className="camera-off-overlay">Camera Off</div>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="video-call-controls" role="group" aria-label="Video call controls">
+                                <button
+                                    className={`video-control-btn ${isVideoMuted ? 'active' : ''}`}
+                                    onClick={toggleVideoMute}
+                                    aria-label={isVideoMuted ? 'Unmute microphone' : 'Mute microphone'}
+                                >
+                                    {isVideoMuted ? '🔇' : '🎤'}
+                                    <span>{isVideoMuted ? 'Unmute' : 'Mute'}</span>
+                                </button>
+                                <button
+                                    className={`video-control-btn ${!isCameraOn ? 'active' : ''}`}
+                                    onClick={toggleCamera}
+                                    aria-label={isCameraOn ? 'Turn camera off' : 'Turn camera on'}
+                                >
+                                    {isCameraOn ? '📹' : '📷'}
+                                    <span>{isCameraOn ? 'Cam On' : 'Cam Off'}</span>
+                                </button>
+                                <button
+                                    className="video-control-btn"
+                                    onClick={() => updateVideoSettings({ mirrorLocal: !videoSettings.mirrorLocal })}
+                                    aria-label="Flip local video"
+                                >
+                                    🔄
+                                    <span>Flip</span>
+                                </button>
+                                <button
+                                    className="video-control-btn end-call"
+                                    onClick={endVideoCall}
+                                    aria-label="End video call"
+                                >
+                                    📵
+                                    <span>End</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="chat-history" ref={chatHistoryRef}>
                         {getFilteredMessages().map((msg, i) => (
                             <div key={i} className={`message ${msg.type} ${msg.sender === username ? 'own' : ''}`}>
@@ -2229,15 +3473,24 @@ function App() {
                                         {msg.sender}
                                     </span>
                                     <span className="timestamp">{msg.timestamp}</span>
-                                    {/* Quick call button for other users' messages */}
+                                    {/* Quick call buttons for other users' messages */}
                                     {msg.type === 'chat' && msg.sender !== username && msg.sender !== 'System' && (
-                                        <button
-                                            className="msg-call-btn"
-                                            onClick={() => makeCall(msg.sender)}
-                                            title={`Call ${msg.sender}`}
-                                        >
-                                            📞
-                                        </button>
+                                        <>
+                                            <button
+                                                className="msg-call-btn"
+                                                onClick={() => makeCall(msg.sender)}
+                                                title={`Voice call ${msg.sender}`}
+                                            >
+                                                📞
+                                            </button>
+                                            <button
+                                                className="msg-video-btn"
+                                                onClick={() => makeVideoCall(msg.sender)}
+                                                title={`Video call ${msg.sender}`}
+                                            >
+                                                📹
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                                 <div className="message-content">{msg.content}</div>
@@ -2319,7 +3572,7 @@ function App() {
                                 <div className="call-modal-header">
                                     <div className="call-modal-title">
                                         <span className="call-icon">📱</span>
-                                        <span>Voice Call</span>
+                                        <span>Call</span>
                                     </div>
                                     <button className="call-modal-close" onClick={() => setShowPeerList(false)}>
                                         ✕
@@ -2336,37 +3589,48 @@ function App() {
                                         peers.map((peer, i) => (
                                             <div key={i} className="peer-list-item">
                                                 <div className="peer-avatar" style={{
-                                                    background: `linear-gradient(135deg, ${
-                                                        ['#5c6bc0', '#26a69a', '#ef5350', '#ab47bc', '#ffa726'][i % 5]
-                                                    } 0%, ${
-                                                        ['#3949ab', '#00897b', '#c62828', '#7b1fa2', '#f57c00'][i % 5]
-                                                    } 100%)`
+                                                    background: `linear-gradient(135deg, ${['#5c6bc0', '#26a69a', '#ef5350', '#ab47bc', '#ffa726'][i % 5]
+                                                        } 0%, ${['#3949ab', '#00897b', '#c62828', '#7b1fa2', '#f57c00'][i % 5]
+                                                        } 100%)`
                                                 }}>
-                                                    {peer.nickname.charAt(0).toUpperCase()}
+                                                    {peer.nickname?.charAt(0).toUpperCase() || '?'}
                                                 </div>
                                                 <div className="peer-info">
-                                                    <div className="peer-name">{peer.nickname}</div>
+                                                    <div className="peer-name">{peer.nickname || 'Unknown'}</div>
                                                     <div className="peer-status">
                                                         <span className="online-dot"></span>
                                                         Online{peer.capabilities?.includes('voice') && ' • Voice Ready'}
                                                     </div>
                                                 </div>
-                                                <button
-                                                    className="peer-call-btn"
-                                                    onClick={() => {
-                                                        makeCall(peer.nickname)
-                                                        setShowPeerList(false)
-                                                    }}
-                                                >
-                                                    📞 Call
-                                                </button>
+                                                <div className="peer-call-actions">
+                                                    <button
+                                                        className="peer-call-btn"
+                                                        onClick={() => {
+                                                            makeCall(peer.nickname)
+                                                            setShowPeerList(false)
+                                                        }}
+                                                        aria-label={`Start voice call with ${peer.nickname}`}
+                                                    >
+                                                        📞 Call
+                                                    </button>
+                                                    <button
+                                                        className="peer-video-btn"
+                                                        onClick={() => {
+                                                            makeVideoCall(peer.nickname)
+                                                            setShowPeerList(false)
+                                                        }}
+                                                        aria-label={`Start video call with ${peer.nickname}`}
+                                                    >
+                                                        📹 Video
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))
                                     )}
                                 </div>
                                 <div className="call-modal-footer">
                                     <div className="call-modal-tip">
-                                        💡 Tip: Type <code>/call username</code> in chat
+                                        💡 Tip: Type <code>/call username</code> for voice or <code>/video username</code> for video
                                     </div>
                                 </div>
                             </div>
@@ -2387,6 +3651,10 @@ function App() {
                                     <div className="slash-help-item">
                                         <code>/call username</code>
                                         <span>Start a 1-to-1 voice call.</span>
+                                    </div>
+                                    <div className="slash-help-item">
+                                        <code>/video username</code>
+                                        <span>Start a 1-to-1 video call.</span>
                                     </div>
                                     <div className="slash-help-item">
                                         <code>/hangup</code> <span>or</span> <code>/end</code>
@@ -2493,6 +3761,261 @@ function App() {
                             )}
                             {audioOutputDevices.length > 0 && (
                                 <p className="mic-count">{audioOutputDevices.length} speaker(s) available</p>
+                            )}
+                        </div>
+
+                        {/* Video Calls Section */}
+                        <div className="settings-section video-settings-section">
+                            <h3>📹 Video Calls</h3>
+                            <p className="settings-note">Tune video quality, devices, and accessibility for video calls</p>
+
+                            <div className="video-settings-grid">
+                                <div className="setting-item">
+                                    <label>Video Quality</label>
+                                    <select
+                                        value={videoSettings.quality}
+                                        onChange={(e) => updateVideoSettings({ quality: e.target.value as VideoQuality })}
+                                    >
+                                        <option value="low">Low (320p)</option>
+                                        <option value="medium">Medium (480p)</option>
+                                        <option value="high">High (720p)</option>
+                                        <option value="hd">HD (1080p)</option>
+                                    </select>
+                                </div>
+
+                                <div className="setting-item">
+                                    <label>Max Bandwidth</label>
+                                    <select
+                                        value={videoSettings.maxBandwidth}
+                                        onChange={(e) => updateVideoSettings({ maxBandwidth: parseInt(e.target.value, 10) })}
+                                    >
+                                        <option value="256">256 kbps</option>
+                                        <option value="512">512 kbps</option>
+                                        <option value="1024">1024 kbps</option>
+                                        <option value="2048">2048 kbps</option>
+                                        <option value="0">Unlimited</option>
+                                    </select>
+                                </div>
+
+                                <div className="setting-item">
+                                    <label>Frame Rate</label>
+                                    <select
+                                        value={videoSettings.frameRate}
+                                        onChange={(e) => updateVideoSettings({ frameRate: parseInt(e.target.value, 10) as VideoSettings['frameRate'] })}
+                                    >
+                                        <option value="15">15 fps</option>
+                                        <option value="24">24 fps</option>
+                                        <option value="30">30 fps</option>
+                                    </select>
+                                </div>
+
+                                <div className="setting-item toggle-setting">
+                                    <span>Auto Quality</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.autoQuality ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ autoQuality: !videoSettings.autoQuality })}
+                                    />
+                                </div>
+
+                                <div className="setting-item toggle-setting">
+                                    <span>Low Bandwidth Mode</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.lowBandwidthMode ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ lowBandwidthMode: !videoSettings.lowBandwidthMode })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="video-settings-subsection">
+                                <h4>Devices</h4>
+                                <div className="mic-settings">
+                                    <select
+                                        className="mic-select"
+                                        value={selectedCameraId}
+                                        onChange={(e) => setSelectedCameraId(e.target.value)}
+                                    >
+                                        <option value="default">System Default Camera</option>
+                                        {videoDevices.map((device) => (
+                                            <option key={device.deviceId} value={device.deviceId}>
+                                                {device.label || `Camera ${device.deviceId.substring(0, 8)}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button className="refresh-btn" onClick={loadVideoDevices} title="Refresh camera list">
+                                        🔄
+                                    </button>
+                                </div>
+                                {videoDevices.length === 0 && (
+                                    <p className="mic-note">Click 🔄 to scan for cameras. You may need to allow camera access.</p>
+                                )}
+                                {videoDevices.length > 0 && (
+                                    <p className="mic-count">{videoDevices.length} camera(s) available</p>
+                                )}
+
+                                <div className="mic-settings">
+                                    <select
+                                        className="mic-select"
+                                        value={selectedMicId}
+                                        onChange={(e) => setSelectedMicId(e.target.value)}
+                                    >
+                                        <option value="default">System Default Microphone</option>
+                                        {audioDevices.map((device) => (
+                                            <option key={device.deviceId} value={device.deviceId}>
+                                                {device.label || `Microphone ${device.deviceId.substring(0, 8)}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button className="refresh-btn" onClick={loadAudioDevices} title="Refresh microphone list">
+                                        🔄
+                                    </button>
+                                </div>
+
+                                <div className="setting-item toggle-setting">
+                                    <span>Mirror Local Video</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.mirrorLocal ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ mirrorLocal: !videoSettings.mirrorLocal })}
+                                    />
+                                </div>
+                                <div className="setting-item toggle-setting">
+                                    <span>Start with Camera Off</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.muteVideoOnJoin ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ muteVideoOnJoin: !videoSettings.muteVideoOnJoin })}
+                                    />
+                                </div>
+                                <div className="setting-item toggle-setting">
+                                    <span>Start Muted</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.muteAudioOnJoin ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ muteAudioOnJoin: !videoSettings.muteAudioOnJoin })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="video-settings-subsection">
+                                <h4>Transport Mode</h4>
+                                <div className="transport-options">
+                                    <label className="transport-option">
+                                        <input
+                                            type="radio"
+                                            name="transportMode"
+                                            value="webrtc"
+                                            checked={videoSettings.transportMode === 'webrtc'}
+                                            onChange={() => updateVideoSettings({ transportMode: 'webrtc' })}
+                                        />
+                                        <span>WebRTC (P2P)</span>
+                                    </label>
+                                    <label className="transport-option">
+                                        <input
+                                            type="radio"
+                                            name="transportMode"
+                                            value="blockchain"
+                                            checked={videoSettings.transportMode === 'blockchain'}
+                                            onChange={() => updateVideoSettings({ transportMode: 'blockchain' })}
+                                        />
+                                        <span>Blockchain Relay</span>
+                                    </label>
+                                    <label className="transport-option">
+                                        <input
+                                            type="radio"
+                                            name="transportMode"
+                                            value="hybrid"
+                                            checked={videoSettings.transportMode === 'hybrid'}
+                                            onChange={() => updateVideoSettings({ transportMode: 'hybrid' })}
+                                        />
+                                        <span>Hybrid (Auto)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="video-settings-subsection">
+                                <h4>Advanced</h4>
+                                <div className="setting-item">
+                                    <label>Background Blur</label>
+                                    <select
+                                        value={videoSettings.backgroundBlur}
+                                        onChange={(e) => updateVideoSettings({ backgroundBlur: e.target.value as VideoSettings['backgroundBlur'] })}
+                                    >
+                                        <option value="off">Off</option>
+                                        <option value="light">Light</option>
+                                        <option value="heavy">Heavy</option>
+                                    </select>
+                                </div>
+                                <div className="setting-item toggle-setting">
+                                    <span>Noise Suppression</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.noiseSupression ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ noiseSupression: !videoSettings.noiseSupression })}
+                                    />
+                                </div>
+                                <div className="setting-item toggle-setting">
+                                    <span>Echo Cancellation</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.echoCancellation ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ echoCancellation: !videoSettings.echoCancellation })}
+                                    />
+                                </div>
+                                <div className="setting-item toggle-setting">
+                                    <span>Hardware Acceleration</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.hardwareAcceleration ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ hardwareAcceleration: !videoSettings.hardwareAcceleration })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="video-settings-subsection">
+                                <h4>Accessibility</h4>
+                                <div className="setting-item toggle-setting">
+                                    <span>High Contrast Controls</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.highContrastControls ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ highContrastControls: !videoSettings.highContrastControls })}
+                                    />
+                                </div>
+                                <div className="setting-item toggle-setting">
+                                    <span>Large Control Buttons</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.largeControlButtons ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ largeControlButtons: !videoSettings.largeControlButtons })}
+                                    />
+                                </div>
+                                <div className="setting-item toggle-setting">
+                                    <span>Screen Reader Announcements</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.screenReaderAnnouncements ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ screenReaderAnnouncements: !videoSettings.screenReaderAnnouncements })}
+                                    />
+                                </div>
+                                <div className="setting-item toggle-setting">
+                                    <span>Keyboard Shortcuts</span>
+                                    <div
+                                        className={`settings-toggle-switch ${videoSettings.keyboardShortcuts ? 'active' : ''}`}
+                                        onClick={() => updateVideoSettings({ keyboardShortcuts: !videoSettings.keyboardShortcuts })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="video-settings-actions">
+                                <button className="test-camera-btn" onClick={toggleVideoPreview}>
+                                    {isVideoPreviewing ? 'Stop Camera Preview' : 'Test Camera'}
+                                </button>
+                                <button className="reset-video-btn" onClick={() => setVideoSettings(DEFAULT_VIDEO_SETTINGS)}>
+                                    Reset to Defaults
+                                </button>
+                            </div>
+
+                            {isVideoPreviewing && (
+                                <div className="video-preview-panel">
+                                    <video
+                                        ref={localVideoRef}
+                                        autoPlay
+                                        playsInline
+                                        muted
+                                        className={`settings-video-preview ${videoSettings.mirrorLocal ? 'mirrored' : ''}`}
+                                    />
+                                </div>
                             )}
                         </div>
 
@@ -2664,29 +4187,29 @@ function App() {
                                 {contracts
                                     .filter(c => c.chain === 'both' || c.chain === preferredChain)
                                     .map(contract => (
-                                    <div
-                                        key={contract.id}
-                                        className={`contract-card ${selectedContract?.id === contract.id ? 'selected' : ''}`}
-                                        onClick={() => {
-                                            setSelectedContract(contract)
-                                            setShowContractDetails(true)
-                                        }}
-                                    >
-                                        <div className="contract-header">
-                                            <span className="contract-icon">{contract.icon}</span>
-                                            <span className="contract-name">{contract.name}</span>
-                                            <span className={`contract-chain chain-${contract.chain}`}>
-                                                {contract.chain === 'both' ? '◎⟠' : contract.chain === 'solana' ? '◎' : '⟠'}
-                                            </span>
+                                        <div
+                                            key={contract.id}
+                                            className={`contract-card ${selectedContract?.id === contract.id ? 'selected' : ''}`}
+                                            onClick={() => {
+                                                setSelectedContract(contract)
+                                                setShowContractDetails(true)
+                                            }}
+                                        >
+                                            <div className="contract-header">
+                                                <span className="contract-icon">{contract.icon}</span>
+                                                <span className="contract-name">{contract.name}</span>
+                                                <span className={`contract-chain chain-${contract.chain}`}>
+                                                    {contract.chain === 'both' ? '◎⟠' : contract.chain === 'solana' ? '◎' : '⟠'}
+                                                </span>
+                                            </div>
+                                            <p className="contract-description">{contract.description}</p>
+                                            <div className="contract-category">
+                                                <span className={`category-badge cat-${contract.category}`}>
+                                                    {contract.category}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <p className="contract-description">{contract.description}</p>
-                                        <div className="contract-category">
-                                            <span className={`category-badge cat-${contract.category}`}>
-                                                {contract.category}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
                             </div>
 
                             {/* Contract Details Modal */}
@@ -2706,7 +4229,7 @@ function App() {
                                                 <span className="label">Available on:</span>
                                                 <span className="value">
                                                     {selectedContract.chain === 'both' ? 'Solana & Ethereum' :
-                                                     selectedContract.chain === 'solana' ? 'Solana' : 'Ethereum'}
+                                                        selectedContract.chain === 'solana' ? 'Solana' : 'Ethereum'}
                                                 </span>
                                             </div>
 
@@ -2726,14 +4249,14 @@ function App() {
                                                         <code className="file-path">
                                                             Blockchain/contracts/solana/ranger_{selectedContract.category === 'registration' ? 'registration' :
                                                                 selectedContract.category === 'bridge' ? 'bridge' :
-                                                                selectedContract.category === 'transfer' ? 'file_transfer' : 'token'}.rs
+                                                                    selectedContract.category === 'transfer' ? 'file_transfer' : 'token'}.rs
                                                         </code>
                                                     )}
                                                     {(selectedContract.chain === 'both' || selectedContract.chain === 'ethereum') && (
                                                         <code className="file-path">
                                                             Blockchain/contracts/Ranger{selectedContract.category === 'registration' ? 'Registration' :
                                                                 selectedContract.category === 'bridge' ? 'Bridge' :
-                                                                selectedContract.category === 'transfer' ? 'FileTransfer' : 'Token'}.sol
+                                                                    selectedContract.category === 'transfer' ? 'FileTransfer' : 'Token'}.sol
                                                         </code>
                                                     )}
                                                 </div>
@@ -2742,7 +4265,7 @@ function App() {
                                             <div className="details-status">
                                                 <span className={`status-badge status-${selectedContract.status}`}>
                                                     {selectedContract.status === 'available' ? '🟢 Available' :
-                                                     selectedContract.status === 'deployed' ? '🔵 Deployed' : '⭐ Selected'}
+                                                        selectedContract.status === 'deployed' ? '🔵 Deployed' : '⭐ Selected'}
                                                 </span>
                                             </div>
                                         </div>

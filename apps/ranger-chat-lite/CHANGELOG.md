@@ -4,6 +4,79 @@ All notable changes to RangerChat Lite will be documented in this file.
 
 ---
 
+## [1.9.5] - 2026-01-27 - "Video Calls"
+
+### Added
+
+#### Peer-to-Peer Video Calls
+- **WebRTC Video Calling**: Full peer-to-peer video calling with real-time streaming
+- **`/video <username>` Command**: Start a video call from chat (like `/call` for voice)
+- **Video Call Button**: Click the camera icon next to peers in call list
+- **Video Call Overlay**: Full-screen overlay with remote video and local PiP preview
+- **Signal Quality Indicator**: Visual bars showing connection quality (0-100%)
+- **Call Timer Display**: Shows elapsed call duration (HH:MM:SS)
+
+#### Video Call Controls
+- **Camera Toggle**: Turn camera on/off during call
+- **Microphone Mute**: Mute/unmute audio during call
+- **Mirror Local Preview**: Option to flip local video horizontally
+- **End Call Button**: Gracefully end the video call
+
+#### Keyboard Shortcuts
+- **M**: Toggle microphone mute
+- **V**: Toggle camera on/off
+- **Esc**: End the video call
+- Shortcuts only active during video calls and when enabled in settings
+
+#### Video Settings (Settings Page)
+- **Video Quality**: Low (320p) / Medium (480p) / High (720p) / HD (1080p)
+- **Frame Rate**: 15 / 24 / 30 fps
+- **Max Bandwidth**: 500 Kbps to 5 Mbps limit
+- **Camera Selection**: Choose from available cameras
+- **Microphone Selection**: Choose from available mics
+- **Mirror Local Video**: Flip local preview horizontally
+- **Mute Audio on Join**: Start calls with mic muted
+- **Mute Video on Join**: Start calls with camera off
+
+#### Transport Modes
+- **WebRTC (P2P)**: Direct peer-to-peer connection (fastest)
+- **Blockchain Relay**: Route through RangerBlock relay server
+- **Hybrid**: Try P2P first, fallback to relay if needed
+- **Transport Indicator**: Shows current transport mode in call overlay
+
+#### Advanced Settings
+- **Background Blur**: Off / Light / Medium / Heavy
+- **Noise Suppression**: AI-powered noise reduction
+- **Echo Cancellation**: Prevent audio feedback
+- **Hardware Acceleration**: GPU-accelerated encoding
+
+#### Accessibility
+- **High Contrast Controls**: Enhanced visibility for controls
+- **Large Control Buttons**: Bigger touch/click targets
+- **Screen Reader Announcements**: ARIA live regions for call events
+- **Keyboard Shortcuts Toggle**: Enable/disable M/V/Esc shortcuts
+
+### Technical
+- WebRTC RTCPeerConnection with ICE candidates
+- Signaling via existing WebSocket relay
+- Video settings persisted to localStorage
+- Compatible with existing voice call system (no regression)
+- Theme-aware styling (Matrix green, Tron cyan)
+
+### Fixed
+- **Call Crash**: Fixed critical white screen crash when opening peer list caused by malformed server data
+- **Defensive Rendering**: Added robust safety checks for peer data processing
+- **Crash Recovery**: Added global Error Boundary with detailed crash report screen and reload button
+
+
+### Contributors
+- **Colonel Gemini Ranger** - WebRTC core, protocol, signaling
+- **ChatGPT** - UI components, CSS styles, settings
+- **Claude CLI** - Slash command, keyboard shortcuts, testing, documentation
+- **Commander David** - Call flow functions, UI overlay
+
+---
+
 ## [1.9.4] - 2026-01-22 - "Local Weather Alerts" 🌦️
 
 ### Added

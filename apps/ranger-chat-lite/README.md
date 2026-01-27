@@ -55,6 +55,8 @@ RangerChat Lite is a **standalone desktop application** that connects to the Ran
 - 📊 **Blockchain Viewer** - See live network transactions
 - 💬 Real-time messaging via WebSocket
 - 📡 Connect to local or remote RangerPlex servers
+- 📞 **Voice Calls** - 1-to-1 voice calls with push-to-talk
+- 📹 **Video Calls** - Peer-to-peer video calling with WebRTC
 
 ---
 
@@ -145,6 +147,7 @@ Once connected:
 
 Use these in the chat input:
 - `/call <username>` - Start a 1-to-1 voice call
+- `/video <username>` - Start a 1-to-1 video call
 - `/hangup` or `/end` - End the current call
 - `/peers` or `/online` - List online users with voice capability
 - `/weather [city]` - Local weather (auto-detect or city override)
@@ -152,6 +155,43 @@ Use these in the chat input:
 ### 4. **Close App**
 
 Click the **X** button in the top-right corner
+
+---
+
+## 📹 Video Calls
+
+RangerChat Lite supports peer-to-peer video calls using WebRTC!
+
+### Making a Video Call:
+
+1. Type `/video <username>` in the chat input
+2. Or click the 📹 button next to a peer in the call list
+3. Wait for the other person to accept
+
+### Video Call Controls:
+
+| Key/Button | Action |
+|------------|--------|
+| **M** or 🎤 button | Toggle microphone mute |
+| **V** or 📹 button | Toggle camera on/off |
+| **Esc** or 📵 button | End the call |
+
+### Video Settings (in Settings page):
+
+- **Video Quality**: Low (320p) / Medium (480p) / High (720p) / HD (1080p)
+- **Frame Rate**: 15 / 24 / 30 fps
+- **Camera Selection**: Choose from available cameras
+- **Microphone Selection**: Choose from available mics
+- **Mirror Local Video**: Flip your preview horizontally
+- **Mute on Join**: Start calls with audio/video muted
+- **Transport Mode**: WebRTC (P2P) / Blockchain Relay / Hybrid
+
+### Accessibility Options:
+
+- High contrast controls
+- Large control buttons
+- Screen reader announcements
+- Keyboard shortcuts (M, V, Esc)
 
 ---
 
