@@ -40,9 +40,9 @@
       "file": "lib/admin-check.cjs"
     },
     "ranger-chat-lite": {
-      "version": "1.3.1",
-      "description": "Electron desktop app",
-      "file": "apps/ranger-chat-lite/package.json"
+      "version": "2.0.0",
+      "description": "Electron desktop app (moved to standalone repo)",
+      "repo": "https://github.com/davidtkeane/ranger-chat-lite"
     },
     "setup-universal": {
       "version": "5.1.0",

@@ -112,5 +112,15 @@ software/
 # Contracts (keep local only)
 contracts/
 
-# Ranger Chat Lite planning docs (keep private)
-apps/ranger-chat-lite/theplan/
+# Email configs with credentials
+**/email-config.json
+
+# Compiled bundles (may contain embedded keys - rebuild from source)
+public/Win95/assets/*.js
+
+# Machine-specific network configs
+**/machine-registry.json
+
+# Security: never commit keys
+*.pem
+*.key
