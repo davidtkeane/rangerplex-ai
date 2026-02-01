@@ -1,13 +1,30 @@
 # RangerChat Lite
 
+> **MOVED**: RangerChat Lite has been split into its own standalone repository.
+>
+> **New repo: [github.com/davidtkeane/ranger-chat-lite](https://github.com/davidtkeane/ranger-chat-lite)**
+>
+> This copy is kept for reference only. All future development happens in the standalone repo.
+>
+> **To install:**
+> ```bash
+> # macOS / Linux:
+> curl -fsSL https://raw.githubusercontent.com/davidtkeane/ranger-chat-lite/main/scripts/install-rangerchat-now.sh | bash
+>
+> # Windows (PowerShell):
+> irm https://raw.githubusercontent.com/davidtkeane/ranger-chat-lite/main/scripts/install-rangerchat-now.ps1 | iex
+> ```
+
+---
+
 Standalone Electron/React client for the RangerPlex blockchain network. Features secure P2P chat, voice/video calls, hardware-bound wallet, and blockchain ledger.
 
-![Version](https://img.shields.io/badge/version-2.0.1-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.0.0-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Ranger_License-green?style=for-the-badge)
 ![Stack](https://img.shields.io/badge/React-Vite-blue?style=for-the-badge)
 ![AI](https://img.shields.io/badge/Multi--Model-Gemini%20|%20OpenAI%20|%20Claude-purple?style=for-the-badge)
 
-**Version:** 2.0.1 "Smart Install Scripts"
+**Version:** 2.0.0 "Standalone Release" - See [new repo](https://github.com/davidtkeane/ranger-chat-lite)
 
 ## Quick Install
 
